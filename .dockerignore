@@ -1,0 +1,15 @@
+.git
+.next
+**/.next
+node_modules
+**/node_modules
+.env
+.env.*
+!.env.example
+!.env.production.example
+coverage
+docs
+CLAUDE.md
+PROJECT_CONTEXT.MD
+npm-debug.log*
+pnpm-debug.log*

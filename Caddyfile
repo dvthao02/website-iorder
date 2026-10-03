@@ -1,0 +1,11 @@
+{$SITE_ADDRESS} {
+  encode zstd gzip
+
+  reverse_proxy publish-web:3000
+}
+
+{$CMS_SITE_ADDRESS} {
+  encode zstd gzip
+
+  reverse_proxy cms:3000
+}

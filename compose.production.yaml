@@ -1,0 +1,185 @@
+name: iorder-v2
+
+services:
+  cms:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runner
+      args:
+        APP_NAME: cms
+        BACKEND_URL: http://backend:3000
+    image: iorder-v2-cms:${APP_IMAGE_TAG:-latest}
+    restart: unless-stopped
+    environment:
+      BACKEND_URL: http://backend:3000
+    depends_on:
+      backend:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+      s3-init:
+        condition: service_completed_successfully
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  publish-web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runner
+      args:
+        APP_NAME: publish-web
+        BACKEND_URL: http://backend:3000
+    image: iorder-v2-publish:${APP_IMAGE_TAG:-latest}
+    restart: unless-stopped
+    environment:
+      BACKEND_URL: http://backend:3000
+    depends_on:
+      backend:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+      s3-init:
+        condition: service_completed_successfully
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runner
+      args:
+        APP_NAME: backend
+    image: iorder-v2-backend:${APP_IMAGE_TAG:-latest}
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      LEAD_IP_HASH_SALT: ${LEAD_IP_HASH_SALT}
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID}
+      S3_BUCKET: ${S3_BUCKET}
+      S3_ENDPOINT: http://s3:9000
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      s3-init:
+        condition: service_completed_successfully
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: migrations
+    image: iorder-v2-migrate:${APP_IMAGE_TAG:-latest}
+    restart: "no"
+    command: pnpm db:migrate
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - internal
+
+  db:
+    image: postgres:17.11-alpine3.24
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  s3:
+    image: minio/minio:latest
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY_ID}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_ACCESS_KEY}
+    volumes:
+      - minio-data:/data
+    networks:
+      - internal
+
+  s3-init:
+    image: minio/mc:latest
+    restart: "no"
+    depends_on:
+      s3:
+        condition: service_started
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY_ID}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_ACCESS_KEY}
+      S3_BUCKET: ${S3_BUCKET}
+    networks:
+      - internal
+    entrypoint:
+      - /bin/sh
+      - -ec
+      - |
+        until mc alias set iorder http://s3:9000 "$${MINIO_ROOT_USER}" "$${MINIO_ROOT_PASSWORD}"; do sleep 2; done
+        mc mb --ignore-existing "iorder/$${S3_BUCKET}"
+
+  proxy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      cms:
+        condition: service_healthy
+      publish-web:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    environment:
+      CMS_SITE_ADDRESS: ${CMS_SITE_ADDRESS}
+      SITE_ADDRESS: ${SITE_ADDRESS}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    networks:
+      - internal
+
+volumes:
+  postgres-data:
+  minio-data:
+  caddy-data:
+  caddy-config:
+
+networks:
+  internal:
+    driver: bridge

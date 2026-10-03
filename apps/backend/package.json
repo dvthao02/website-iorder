@@ -1,0 +1,21 @@
+{
+  "name": "@iorder/backend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3002",
+    "build": "next build",
+    "start": "next start -p 3002",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@iorder/core": "workspace:*",
+    "@aws-sdk/client-s3": "^3.1140.0",
+    "drizzle-orm": "^0.45.3",
+    "next": "16.3.6",
+    "postgres": "^3.4.9",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "zod": "^4.6.5"
+  }
+}
