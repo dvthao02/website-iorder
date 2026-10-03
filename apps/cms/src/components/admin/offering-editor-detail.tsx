@@ -19,10 +19,11 @@ type OfferingEditorDetailProps = {
 export function OfferingEditorDetail({ backHref, offering, offeringType, offeringTypeLabel }: OfferingEditorDetailProps) {
   const router = useRouter();
   const [notice, setNotice] = useState<string>();
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const { show: showToast } = useAdminToast();
 
   const editorTitle = offering?.title ?? `Tạo ${offeringTypeLabel.toLocaleLowerCase("vi")}`;
   const editorDescription = offering ? `Chỉnh sửa nội dung, xuất bản và SEO của ${offeringTypeLabel.toLocaleLowerCase("vi")}.` : `Hoàn thiện thông tin rồi lưu để tạo ${offeringTypeLabel.toLocaleLowerCase("vi")}.`;
 
-  return <AdminDetailPanel actions={<PublishedPreviewLink contentType={offering?.type} kind="offering" slug={offering?.slug} status={offering?.status} />} backHref={backHref} description={editorDescription} eyebrow={offeringTypeLabel} notice={notice ? <AdminNotice tone="error">{notice}</AdminNotice> : undefined} title={editorTitle}><OfferingEditor offering={offering} offeringType={offeringType} offeringTypeLabel={offeringTypeLabel} onError={(message) => { setNotice(message); showToast(message, "error"); }} onSaved={(saved) => { setNotice(undefined); showToast(offering ? "Đã lưu thay đổi." : "Đã tạo nội dung mới.", "success"); router.replace(`${backHref}/${saved.id}`); router.refresh(); }} /></AdminDetailPanel>;
+  return <AdminDetailPanel actions={<PublishedPreviewLink contentType={offering?.type} kind="offering" slug={offering?.slug} status={offering?.status} />} backHref={backHref} description={editorDescription} eyebrow={offeringTypeLabel} hasUnsavedChanges={hasUnsavedChanges} notice={notice ? <AdminNotice tone="error">{notice}</AdminNotice> : undefined} title={editorTitle}><OfferingEditor offering={offering} offeringType={offeringType} offeringTypeLabel={offeringTypeLabel} onDirtyChange={setHasUnsavedChanges} onError={(message) => { setNotice(message); showToast(message, "error"); }} onSaved={(saved) => { setNotice(undefined); showToast(offering ? "Đã lưu thay đổi." : "Đã tạo nội dung mới.", "success"); router.replace(`${backHref}/${saved.id}`); router.refresh(); }} /></AdminDetailPanel>;
 }

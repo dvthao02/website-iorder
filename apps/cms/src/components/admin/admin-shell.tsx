@@ -3,7 +3,7 @@
 import NextImage from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { AdminToastProvider } from "@/components/admin/ui/admin-feedback";
 import {
   ArrowRightLeft,
@@ -35,6 +35,7 @@ import {
   Users,
   UsersRound,
   Wrench,
+  X,
   type LucideIcon,
 } from "lucide-react";
 
@@ -143,6 +144,7 @@ function initials(fullName: string) {
 export function AdminShell({ administrator, children, notifications }: { administrator: Administrator; children: ReactNode; notifications: HeaderNotification[] }) {
   const pathname = usePathname();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isMobileNavigationOpen, setIsMobileNavigationOpen] = useState(false);
   const [collapsedNavigationGroups, setCollapsedNavigationGroups] = useState<Set<string>>(() => new Set());
   const [compactNavigationGroups, setCompactNavigationGroups] = useState<Set<string>>(() => new Set());
   const [sidebarTooltip, setSidebarTooltip] = useState<{ label: string; top: number } | null>(null);
@@ -152,6 +154,10 @@ export function AdminShell({ administrator, children, notifications }: { adminis
       .map((item) => ({ group, item })))
     .find(({ item }) => isActive(pathname, item));
   const currentNavigationLabel = currentNavigation?.item.label ?? "Tổng quan";
+
+  useEffect(() => {
+    setIsMobileNavigationOpen(false);
+  }, [pathname]);
 
   function toggleNavigationGroup(groupId: string) {
     setCollapsedNavigationGroups(current => {
@@ -183,8 +189,11 @@ export function AdminShell({ administrator, children, notifications }: { adminis
   }
 
   return <AdminToastProvider><CmsThemeProvider><AdminLoadingBar />
-    <div className={isSidebarCollapsed ? "admin-shell admin-shell--collapsed" : "admin-shell"}>
+    <div className={["admin-shell", isSidebarCollapsed ? "admin-shell--collapsed" : "", isMobileNavigationOpen ? "admin-shell--mobile-navigation-open" : ""].filter(Boolean).join(" ")}>
       <header className="admin-topbar">
+        <button aria-controls="admin-mobile-navigation" aria-expanded={isMobileNavigationOpen} aria-label={isMobileNavigationOpen ? "Đóng điều hướng" : "Mở điều hướng"} className="admin-mobile-navigation-toggle" onClick={() => { setIsSidebarCollapsed(false); setCompactNavigationGroups(new Set()); setIsMobileNavigationOpen(value => !value); }} type="button">
+          {isMobileNavigationOpen ? <X aria-hidden="true" size={19} /> : <Menu aria-hidden="true" size={19} />}
+        </button>
         {isSidebarCollapsed ? <div className="admin-topbar__context" title={currentNavigation?.group.label ?? currentNavigationLabel}><span>{currentNavigationLabel}</span></div> : null}
         <AdminGlobalSearch />
         <Link className="admin-topbar__view-site" href="/" target="_blank">Xem website <span aria-hidden="true">↗</span></Link>
@@ -223,7 +232,7 @@ export function AdminShell({ administrator, children, notifications }: { adminis
       </header>
 
       <div className="admin-shell__body">
-        <aside className="admin-sidebar">
+        <aside className="admin-sidebar" id="admin-mobile-navigation">
           <Link aria-label="Trang tổng quan iOrder CMS" className="admin-brand" href="/admin">
             <NextImage alt="iOrder" className="admin-brand__logo admin-brand__logo--full admin-brand__logo--light" height={51} priority src="/brand/iorder-logo.png" width={140} />
             <NextImage alt="iOrder" className="admin-brand__logo admin-brand__logo--full admin-brand__logo--dark" height={47} priority src="/brand/iorder-logo-dark.png" width={140} />
@@ -283,6 +292,7 @@ export function AdminShell({ administrator, children, notifications }: { adminis
           </nav>
           </div>
         </aside>
+        {isMobileNavigationOpen ? <button aria-label="Đóng điều hướng" className="admin-mobile-navigation-backdrop" onClick={() => setIsMobileNavigationOpen(false)} type="button" /> : null}
         {sidebarTooltip ? <span className="admin-sidebar-tooltip" role="tooltip" style={{ top: sidebarTooltip.top }}>{sidebarTooltip.label}</span> : null}
 
         <div className="admin-shell__main">

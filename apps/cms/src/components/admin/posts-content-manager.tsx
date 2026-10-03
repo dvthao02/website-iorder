@@ -1,10 +1,11 @@
 "use client";
 
-import { type FormEvent, type ReactNode, useState } from "react";
+import { type FormEvent, type ReactNode, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { MediaPicker } from "./media-picker";
 import { RevisionHistory } from "./revision-history";
 import { AdminEditorActions } from "./ui/admin-editor-actions";
+import { useUnsavedChanges } from "./ui/use-unsaved-changes";
 import { AdminEditorTabs } from "./ui/admin-editor-tabs";
 import { AdminButton } from "./ui/admin-button";
 import { AdminNotice } from "./ui/admin-feedback";
@@ -166,16 +167,19 @@ export function PostsContentManager({ initialPosts, taxonomy }: { initialPosts: 
   );
 }
 
-export function PostEditor({ post, taxonomy, onSaved, onError, contentType }: {
+export function PostEditor({ post, taxonomy, onSaved, onError, contentType, onDirtyChange }: {
   post: AdminPost | undefined;
   taxonomy: Taxonomy;
   onSaved: (post: AdminPost, created: boolean) => void;
   onError: (message: string) => void;
   contentType?: AdminPost["type"];
+  onDirtyChange?: (isDirty: boolean) => void;
 }) {
   const [form, setForm] = useState(() => postToForm(post, contentType));
   const [isSaving, setIsSaving] = useState(false);
   const [activeTab, setActiveTab] = useState("basic");
+  const { isDirty, markSaved } = useUnsavedChanges(form);
+  useEffect(() => onDirtyChange?.(isDirty), [isDirty, onDirtyChange]);
 
   function update<Field extends keyof typeof form>(field: Field, value: (typeof form)[Field]) {
     setForm((current) => ({ ...current, [field]: value }));
@@ -188,6 +192,7 @@ export function PostEditor({ post, taxonomy, onSaved, onError, contentType }: {
     try {
       const payload = formToPayload(form);
       const result = await requestJson(post ? `/api/admin/posts/${post.id}` : "/api/admin/posts", post ? "PATCH" : "POST", payload);
+      markSaved();
       onSaved(result.post, !post);
     } catch (error: unknown) {
       onError(error instanceof Error ? error.message : "Không thể lưu bài viết.");
@@ -225,7 +230,7 @@ export function PostEditor({ post, taxonomy, onSaved, onError, contentType }: {
 
       {activeTab === "history" && post ? <EditorSection description="Xem lại hoặc khôi phục một phiên bản đã được lưu trước đó." title="Lịch sử phiên bản"><RevisionHistory target="posts" id={post.id} /></EditorSection> : null}
 
-      <AdminEditorActions><AdminButton disabled={isSaving} type="submit">{isSaving ? "Đang lưu..." : post ? "Lưu thay đổi" : "Tạo bài viết"}</AdminButton></AdminEditorActions>
+      <AdminEditorActions>{isDirty ? <p className="mb-0 text-sm text-amber-700" role="status">Có thay đổi chưa lưu.</p> : null}<AdminButton disabled={isSaving} type="submit">{isSaving ? "Đang lưu..." : post ? "Lưu thay đổi" : "Tạo bài viết"}</AdminButton></AdminEditorActions>
     </form>
   );
 }

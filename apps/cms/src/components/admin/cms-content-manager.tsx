@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { useSearchParams } from "next/navigation";
 import { MediaPicker } from "./media-picker";
 import { RevisionHistory } from "./revision-history";
 import { AdminEditorTabs } from "./ui/admin-editor-tabs";
 import { AdminEditorActions } from "./ui/admin-editor-actions";
+import { useUnsavedChanges } from "./ui/use-unsaved-changes";
 import { AdminNotice } from "./ui/admin-feedback";
 
 import type { AdminOffering, AdminOfferingInput, PublicOfferingType } from "@iorder/core/server/offerings/offering-content.contract";
@@ -156,16 +157,19 @@ export function CmsContentManager({ initialOfferings, offeringType, offeringType
   );
 }
 
-export function OfferingEditor({ offering, offeringType, offeringTypeLabel, onSaved, onError }: {
+export function OfferingEditor({ offering, offeringType, offeringTypeLabel, onSaved, onError, onDirtyChange }: {
   offering: AdminOffering | undefined;
   offeringType?: PublicOfferingType;
   offeringTypeLabel: string;
   onSaved: (offering: AdminOffering, created: boolean) => void;
   onError: (message: string) => void;
+  onDirtyChange?: (isDirty: boolean) => void;
 }) {
   const [form, setForm] = useState(() => offeringToForm(offering, offeringType));
   const [isSaving, setIsSaving] = useState(false);
   const [activeTab, setActiveTab] = useState("basic");
+  const { isDirty, markSaved } = useUnsavedChanges(form);
+  useEffect(() => onDirtyChange?.(isDirty), [isDirty, onDirtyChange]);
 
   function update<Field extends keyof typeof form>(field: Field, value: (typeof form)[Field]) {
     setForm((current) => ({ ...current, [field]: value }));
@@ -179,6 +183,7 @@ export function OfferingEditor({ offering, offeringType, offeringTypeLabel, onSa
       const payload = offeringFormToInput(form);
       const typeGuard = offeringType ? `?type=${offeringType}` : "";
       const result = await requestJson(offering ? `/api/admin/offerings/${offering.id}${typeGuard}` : `/api/admin/offerings${typeGuard}`, offering ? "PATCH" : "POST", payload) as { offering: AdminOffering };
+      markSaved();
       onSaved(result.offering, !offering);
     } catch (error: unknown) {
       onError(error instanceof Error ? error.message : "Không thể lưu nội dung catalog.");
@@ -197,7 +202,7 @@ export function OfferingEditor({ offering, offeringType, offeringTypeLabel, onSa
         <EditorSection title="Xuất bản"><div className="grid gap-4 sm:grid-cols-2"><label className={labelClassName}>Trạng thái<select className={inputClassName} onChange={(event) => update("status", event.target.value as typeof form.status)} value={form.status}><option value="draft">Bản nháp</option><option value="review">Chờ duyệt</option><option value="scheduled">Hẹn giờ</option><option value="published">Xuất bản</option><option value="archived">Lưu trữ</option></select></label>{form.status === "scheduled" ? <label className={labelClassName}>Thời điểm hẹn giờ<input className={inputClassName} onChange={(event) => update("scheduledAt", event.target.value)} required type="datetime-local" value={form.scheduledAt} /></label> : null}<label className={labelClassName}>Thứ tự<input className={inputClassName} min="0" onChange={(event) => update("sortOrder", Number(event.target.value))} type="number" value={form.sortOrder} /></label><label className="mt-6 flex items-center gap-3 text-sm font-bold text-slate-700"><input checked={form.isFeatured} onChange={(event) => update("isFeatured", event.target.checked)} type="checkbox" />Nội dung nổi bật</label></div></EditorSection>
       </div> : null}
       {activeTab === "history" && offering ? <EditorSection title="Lịch sử"><RevisionHistory target="offerings" id={offering.id} /></EditorSection> : null}
-      <AdminEditorActions><button className="rounded-xl bg-blue-700 px-5 py-3 text-sm font-extrabold text-white hover:bg-blue-800 disabled:cursor-wait disabled:bg-slate-400" disabled={isSaving} type="submit">{isSaving ? "Đang lưu..." : offering ? "Lưu thay đổi" : "Tạo nội dung catalog"}</button></AdminEditorActions>
+      <AdminEditorActions>{isDirty ? <p className="mb-0 text-sm text-amber-700" role="status">Có thay đổi chưa lưu.</p> : null}<button className="rounded-xl bg-blue-700 px-5 py-3 text-sm font-extrabold text-white hover:bg-blue-800 disabled:cursor-wait disabled:bg-slate-400" disabled={isSaving} type="submit">{isSaving ? "Đang lưu..." : offering ? "Lưu thay đổi" : "Tạo nội dung catalog"}</button></AdminEditorActions>
     </form>
   );
 }
