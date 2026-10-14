@@ -1,7 +1,9 @@
-import { and, desc, eq, isNull, lte, or } from "drizzle-orm";
+import { and, asc, count, desc, eq, ilike, inArray, isNull, lte, ne, or } from "drizzle-orm";
 
 import { getDb } from "@iorder/core/db/client";
+import { assertContentVersion, contentDeleteRequestSchema } from "../shared/content-version";
 import { auditLogs, categories, mediaAssets, postCategories, postRevisions, postTags, posts, tags } from "@iorder/core/db/schema";
+import { toAdminListPage, type AdminListQuery } from "@iorder/core/server/shared/admin-list.contract";
 
 import type { AdminPostInput, PublicPostType } from "./posts.contract";
 
@@ -26,6 +28,22 @@ async function postTaxonomy(postId: string) {
 }
 async function withTaxonomy<T extends { id: string }>(row: T) { return { ...row, ...(await postTaxonomy(row.id)) }; }
 
+async function withTaxonomyBatch<T extends { id: string }>(rows: T[], database: Pick<ReturnType<typeof getDb>, "select"> = getDb()) {
+  if (!rows.length) return [];
+  const postIds = rows.map((row) => row.id);
+  const [categoryRows, tagRows] = await Promise.all([
+    database.select({ postId: postCategories.postId, id: categories.id, name: categories.name, slug: categories.slug }).from(postCategories).innerJoin(categories, eq(postCategories.categoryId, categories.id)).where(inArray(postCategories.postId, postIds)),
+    database.select({ postId: postTags.postId, id: tags.id, name: tags.name, slug: tags.slug }).from(postTags).innerJoin(tags, eq(postTags.tagId, tags.id)).where(inArray(postTags.postId, postIds)),
+  ]);
+  const taxonomyByPost = new Map(postIds.map((id) => [id, { categories: [] as Array<{ id: string; name: string; slug: string }>, tags: [] as Array<{ id: string; name: string; slug: string }> }]));
+  categoryRows.forEach(({ postId, ...category }) => taxonomyByPost.get(postId)?.categories.push(category));
+  tagRows.forEach(({ postId, ...tag }) => taxonomyByPost.get(postId)?.tags.push(tag));
+  return rows.map((row) => {
+    const taxonomy = taxonomyByPost.get(row.id) ?? { categories: [], tags: [] };
+    return { ...row, ...taxonomy, categoryIds: taxonomy.categories.map((category) => category.id), tagIds: taxonomy.tags.map((tag) => tag.id) };
+  });
+}
+
 export async function listPublishedPosts(type?: PublicPostType) {
   const rows = await getDb()
     .select({
@@ -43,14 +61,14 @@ export async function listPublishedPosts(type?: PublicPostType) {
     .leftJoin(mediaAssets, eq(posts.coverMediaId, mediaAssets.id))
     .where(type ? and(publicPostCondition(), eq(posts.type, type)) : publicPostCondition())
     .orderBy(desc(posts.publishedAt), desc(posts.createdAt));
-  return Promise.all(rows.map(withTaxonomy));
+  return withTaxonomyBatch(rows);
 }
 
 export async function listPublishedPostsByTaxonomy(kind: "category" | "tag", slug: string) {
   const rows = kind === "category"
     ? await getDb().select({ id: posts.id, type: posts.type, title: posts.title, slug: posts.slug, excerpt: posts.excerpt, publishedAt: posts.publishedAt, createdAt: posts.createdAt, coverStorageKey: mediaAssets.storageKey, coverAltText: mediaAssets.altText }).from(posts).innerJoin(postCategories, eq(postCategories.postId, posts.id)).innerJoin(categories, eq(postCategories.categoryId, categories.id)).leftJoin(mediaAssets, eq(posts.coverMediaId, mediaAssets.id)).where(and(eq(categories.slug, slug), publicPostCondition())).orderBy(desc(posts.publishedAt), desc(posts.createdAt))
     : await getDb().select({ id: posts.id, type: posts.type, title: posts.title, slug: posts.slug, excerpt: posts.excerpt, publishedAt: posts.publishedAt, createdAt: posts.createdAt, coverStorageKey: mediaAssets.storageKey, coverAltText: mediaAssets.altText }).from(posts).innerJoin(postTags, eq(postTags.postId, posts.id)).innerJoin(tags, eq(postTags.tagId, tags.id)).leftJoin(mediaAssets, eq(posts.coverMediaId, mediaAssets.id)).where(and(eq(tags.slug, slug), publicPostCondition())).orderBy(desc(posts.publishedAt), desc(posts.createdAt));
-  return Promise.all(rows.map(withTaxonomy));
+  return withTaxonomyBatch(rows);
 }
 
 export async function findPublishedPostBySlug(slug: string) {
@@ -102,13 +120,75 @@ const adminPostSelection = {
   updatedAt: posts.updatedAt,
 };
 
+type PostListQuery = AdminListQuery & {
+  excludeType?: PublicPostType;
+  status?: "draft" | "review" | "scheduled" | "published" | "archived";
+  type?: PublicPostType;
+};
+
+function postListCondition(query: PostListQuery) {
+  const keyword = query.query ? `%${query.query.replace(/[\\%_]/g, "\\$&")}%` : undefined;
+  return and(
+    isNull(posts.deletedAt),
+    query.type ? eq(posts.type, query.type) : undefined,
+    query.excludeType ? ne(posts.type, query.excludeType) : undefined,
+    query.status ? eq(posts.status, query.status) : undefined,
+    keyword ? or(ilike(posts.title, keyword), ilike(posts.slug, keyword)) : undefined,
+  );
+}
+
+const publishedPostDetailSelection = {
+  id: posts.id,
+  type: posts.type,
+  title: posts.title,
+  slug: posts.slug,
+  excerpt: posts.excerpt,
+  content: posts.content,
+  seoTitle: posts.seoTitle,
+  seoDescription: posts.seoDescription,
+  canonicalUrl: posts.canonicalUrl,
+  publishedAt: posts.publishedAt,
+  createdAt: posts.createdAt,
+  coverStorageKey: mediaAssets.storageKey,
+  coverAltText: mediaAssets.altText,
+};
+
+export async function listPublishedPostDetails(type?: PublicPostType) {
+  const rows = await getDb()
+    .select(publishedPostDetailSelection)
+    .from(posts)
+    .leftJoin(mediaAssets, eq(posts.coverMediaId, mediaAssets.id))
+    .where(type ? and(publicPostCondition(), eq(posts.type, type)) : publicPostCondition())
+    .orderBy(desc(posts.publishedAt), desc(posts.createdAt));
+  return withTaxonomyBatch(rows);
+}
+
 export async function listAdminPosts() {
-  return Promise.all((await getDb().select(adminPostSelection).from(posts).where(isNull(posts.deletedAt)).orderBy(desc(posts.updatedAt), desc(posts.createdAt))).map(withTaxonomy));
+  return withTaxonomyBatch(await getDb().select(adminPostSelection).from(posts).where(isNull(posts.deletedAt)).orderBy(desc(posts.updatedAt), desc(posts.createdAt)));
+}
+
+export async function listAdminPostsPage(query: PostListQuery, database = getDb()) {
+  const condition = postListCondition(query);
+  return database.transaction(async (tx) => {
+    const rows = await tx.select(adminPostSelection).from(posts).where(condition).orderBy(desc(posts.updatedAt), desc(posts.createdAt), asc(posts.id)).limit(query.pageSize).offset((query.page - 1) * query.pageSize);
+    const [totals] = await tx.select({ total: count() }).from(posts).where(condition);
+    return toAdminListPage(await withTaxonomyBatch(rows, tx), query, totals?.total ?? 0);
+  }, { isolationLevel: "repeatable read", accessMode: "read only" });
 }
 
 export async function findAdminPostById(id: string) {
   const [post] = await getDb().select(adminPostSelection).from(posts).where(and(eq(posts.id, id), isNull(posts.deletedAt))).limit(1);
   return post ? withTaxonomy(post) : undefined;
+}
+
+export async function listAdminPostSummariesPage(query: PostListQuery, database = getDb()) {
+  const condition = postListCondition(query);
+  return database.transaction(async tx => {
+    const rows = await tx.select({ id: posts.id, type: posts.type, title: posts.title, slug: posts.slug, status: posts.status, draftVersion: posts.draftVersion, updatedAt: posts.updatedAt })
+      .from(posts).where(condition).orderBy(desc(posts.updatedAt), desc(posts.createdAt), asc(posts.id)).limit(query.pageSize).offset((query.page - 1) * query.pageSize);
+    const [totals] = await tx.select({ total: count() }).from(posts).where(condition);
+    return toAdminListPage(rows, query, totals?.total ?? 0);
+  }, { isolationLevel: "repeatable read", accessMode: "read only" });
 }
 
 type PostRevisionWrite = {
@@ -188,5 +268,35 @@ export async function updatePostWithRevision(
     });
 
     return updated.id;
+  });
+}
+
+/** Chỉ đưa bản đã lưu trữ ra khỏi danh sách CMS; lịch sử và audit vẫn được giữ lại. */
+export async function deleteArchivedPost(id: string, editorId: string, expectedVersion: number, database?: ReturnType<typeof getDb>) {
+  contentDeleteRequestSchema.parse({ expectedVersion });
+  return (database ?? getDb()).transaction(async (tx) => {
+    const [existing] = await tx
+      .select()
+      .from(posts)
+      .where(and(eq(posts.id, id), eq(posts.status, "archived"), isNull(posts.deletedAt)))
+      .for("update");
+    if (!existing) return undefined;
+    assertContentVersion(existing.draftVersion, expectedVersion);
+
+    const [deleted] = await tx
+      .update(posts)
+      .set({ deletedAt: new Date(), updatedAt: new Date() })
+      .where(and(eq(posts.id, id), eq(posts.draftVersion, expectedVersion), eq(posts.status, "archived"), isNull(posts.deletedAt)))
+      .returning({ id: posts.id, slug: posts.slug, type: posts.type });
+    if (!deleted) return undefined;
+
+    await tx.insert(auditLogs).values({
+      userId: editorId,
+      action: "post.delete",
+      entityType: "post",
+      entityId: deleted.id,
+      beforeData: existing,
+    });
+    return deleted;
   });
 }

@@ -29,6 +29,8 @@ function createRepository(initial: NavigationDocument | null = null) {
         parentId: item.parentKey,
         label: item.label,
         url: item.url,
+        linkType: item.linkType,
+        contentId: item.contentId,
         target: item.target,
         icon: null,
         sortOrder: index,
@@ -68,6 +70,28 @@ test("trả tài liệu rỗng cho vị trí chưa có menu", async () => {
 
   assert.deepEqual(await service.getAdminNavigation("footer"), { id: null, location: "footer", version: 0, items: [] });
   assert.equal(await service.getNavigation("footer"), null);
+});
+
+test("preserves content references when reading a menu for CMS", async () => {
+  const contentId = "44444444-4444-4444-8444-444444444444";
+  const fake = createRepository({
+    id: menuId,
+    location: "header",
+    version: 1,
+    items: [{ key: itemId, parentKey: null, label: "Dich vu", url: "/dich-vu/phan-mem", linkType: "offering", contentId, target: "_self", isEnabled: true }],
+  });
+  const service = createNavigationService(fake.repository);
+
+  assert.deepEqual((await service.getAdminNavigation("header")).items[0], {
+    key: itemId,
+    parentKey: null,
+    label: "Dich vu",
+    url: "/dich-vu/phan-mem",
+    linkType: "offering",
+    contentId,
+    target: "_self",
+    isEnabled: true,
+  });
 });
 
 test("validate URL trước khi gọi repository", async () => {
@@ -116,7 +140,7 @@ test("chuyển xung đột version thành lỗi nghiệp vụ tiếng Việt", a
     id: menuId,
     location: "header",
     version: 2,
-    items: [{ key: itemId, parentKey: null, label: "Trang chủ", url: "/", target: "_self", isEnabled: true }],
+    items: [{ key: itemId, parentKey: null, label: "Trang chủ", url: "/", linkType: "custom", contentId: null, target: "_self", isEnabled: true }],
   });
   const service = createNavigationService(fake.repository);
 

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { revalidatePath } from "next/cache";
+import { revalidatePath } from "@/lib/publish-cache-revalidation";
 import { z } from "zod";
 import { getRequestAdministrator } from "@iorder/core/server/auth/request-administrator";
 import { getCatalogContent, updateCatalogContent } from "@iorder/core/server/settings/catalog-content.service";

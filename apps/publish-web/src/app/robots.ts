@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 import { getPublishingConfig } from "@/lib/backend";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export default async function robots(): Promise<MetadataRoute.Robots> {
   const config = await getPublishingConfig();

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { publishedPublicUrl } from "@/lib/published-public-url";
 
 type PublishedPreviewLinkProps = {
   kind: "page" | "post" | "offering" | "equipment";
@@ -60,21 +60,23 @@ export function PublishedPreviewLink({
 }: PublishedPreviewLinkProps) {
   if (status !== "published") return null;
 
-  const href = getPublicPath({
+  const path = getPublicPath({
     kind,
     slug,
     contentType,
   });
 
-  if (!href) return null;
+  if (!path) return null;
+
+  const href = publishedPublicUrl(path);
 
   return (
-   <Link
+   <a
   className="published-preview-link"
   href={href}
   rel="noreferrer"
   target="_blank"
 >
   Mở trang đã xuất bản ↗
-</Link>)
+</a>)
 }

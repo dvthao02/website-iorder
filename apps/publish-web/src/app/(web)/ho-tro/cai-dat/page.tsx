@@ -6,7 +6,7 @@ import { getPublishedPostSummaries } from "@/lib/backend";
 import { getEnabledSupportDownloads } from "@/lib/backend";
 import { getListingContent } from "@/lib/backend";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export async function generateMetadata(): Promise<Metadata> { const content = await getListingContent(); return content ? { title: content.support.title, description: content.support.description ?? undefined } : {}; }
 

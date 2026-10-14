@@ -1,9 +1,12 @@
-import { revalidatePath } from "next/cache";
+import { revalidatePath } from "@/lib/publish-cache-revalidation";
 import { NextResponse } from "next/server";
+import { adminDetailResponse } from "../../../../../lib/admin-detail-response";
 import { z } from "zod";
 
 import { getRequestAdministrator } from "@iorder/core/server/auth/request-administrator";
-import { updateAdminPost } from "@iorder/core/server/posts/posts.service";
+import { hasDatabaseErrorCode } from "@iorder/core/server/shared/database-error";
+import { contentDeleteRequestSchema, contentStateRequestSchema, contentUpdateRequestSchema, ContentVersionConflictError } from "@iorder/core/server/shared/content-version";
+import { changeAdminPostState, deleteArchivedAdminPost, getAdminPostById, updateAdminPost } from "@iorder/core/server/posts/posts.service";
 
 export const runtime = "nodejs";
 
@@ -25,6 +28,15 @@ function lamMoiNoiDungBaiViet(slug: string) {
   revalidatePath("/sitemap.xml");
 }
 
+export async function GET(_: Request, { params }: PostRouteProps) {
+  const administrator = await getRequestAdministrator();
+  if (!administrator) return phanHoiLoi("UNAUTHORIZED", "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.", 401);
+
+  const { id } = await params;
+  if (!z.string().uuid().safeParse(id).success) return phanHoiLoi("INVALID_INPUT", "Bài viết cần xem không hợp lệ.", 400);
+  return adminDetailResponse("post", () => getAdminPostById(id), { missing: "Không tìm thấy bài viết.", failed: "Không thể tải bài viết lúc này. Vui lòng thử lại." });
+}
+
 export async function PATCH(request: Request, { params }: PostRouteProps) {
   const administrator = await getRequestAdministrator();
   if (!administrator) return phanHoiLoi("UNAUTHORIZED", "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.", 401);
@@ -40,16 +52,51 @@ export async function PATCH(request: Request, { params }: PostRouteProps) {
   }
 
   try {
-    const post = await updateAdminPost(id, body, administrator.userId);
+    if (body && typeof body === "object" && "action" in body) {
+      const { action, expectedVersion } = contentStateRequestSchema.parse(body);
+      const post = await changeAdminPostState(id, action, administrator.userId, expectedVersion);
+      if (!post) return phanHoiLoi("NOT_FOUND", "Không tìm thấy bài viết cần cập nhật.", 404);
+      lamMoiNoiDungBaiViet(post.slug);
+      return NextResponse.json({ post });
+    }
+    const { expectedVersion, ...values } = contentUpdateRequestSchema.parse(body);
+    const post = await updateAdminPost(id, values, administrator.userId, undefined, expectedVersion);
     if (!post) return phanHoiLoi("NOT_FOUND", "Không tìm thấy bài viết cần cập nhật.", 404);
 
     lamMoiNoiDungBaiViet(post.slug);
     return NextResponse.json({ post });
   } catch (error: unknown) {
+    if (error instanceof ContentVersionConflictError) return phanHoiLoi("VERSION_CONFLICT", error.message, 409);
     if (error instanceof z.ZodError) return phanHoiLoi("INVALID_INPUT", "Vui lòng kiểm tra lại nội dung và metadata bài viết.", 400);
-    if (typeof error === "object" && error !== null && "code" in error && error.code === "23505") return phanHoiLoi("DUPLICATE_SLUG", "Slug bài viết đã tồn tại.", 409);
+    if (hasDatabaseErrorCode(error, "23505")) return phanHoiLoi("DUPLICATE_SLUG", "Slug bài viết đã tồn tại.", 409);
 
-    console.error("Cập nhật bài viết trong CMS thất bại.", error);
+    console.error("Cập nhật bài viết trong CMS thất bại.");
     return phanHoiLoi("INTERNAL_ERROR", "Không thể cập nhật bài viết lúc này. Vui lòng thử lại.", 500);
+  }
+}
+
+export async function DELETE(request: Request, { params }: PostRouteProps) {
+  const administrator = await getRequestAdministrator();
+  if (!administrator) return phanHoiLoi("UNAUTHORIZED", "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.", 401);
+
+  const { id } = await params;
+  if (!z.string().uuid().safeParse(id).success) return phanHoiLoi("INVALID_INPUT", "Bài viết cần xóa không hợp lệ.", 400);
+
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return phanHoiLoi("INVALID_INPUT", "Dữ liệu gửi lên không hợp lệ.", 400);
+  }
+  try {
+    const { expectedVersion } = contentDeleteRequestSchema.parse(body);
+    const deleted = await deleteArchivedAdminPost(id, administrator.userId, expectedVersion);
+    if (!deleted) return phanHoiLoi("NOT_FOUND", "Chỉ có thể xóa bài viết đang lưu trữ.", 404);
+    lamMoiNoiDungBaiViet(deleted.slug);
+    return NextResponse.json({ deletedId: deleted.id });
+  } catch (error: unknown) {
+    if (error instanceof ContentVersionConflictError) return phanHoiLoi("VERSION_CONFLICT", error.message, 409);
+    if (error instanceof z.ZodError) return phanHoiLoi("INVALID_INPUT", "Phiên bản nội dung cần xóa không hợp lệ. Vui lòng tải lại danh sách.", 400);
+    return phanHoiLoi("INTERNAL_ERROR", "Không thể xóa bài viết lúc này. Vui lòng thử lại.", 500);
   }
 }

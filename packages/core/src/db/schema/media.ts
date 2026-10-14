@@ -1,4 +1,4 @@
-import { bigint, index, integer, pgTable, text, uuid, varchar } from "drizzle-orm/pg-core";
+import { bigint, index, integer, pgTable, text, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
 
 import { users } from "./identity";
 import { timestamps } from "./shared";
@@ -16,7 +16,8 @@ export const mediaAssets = pgTable(
     height: integer("height"),
     altText: varchar("alt_text", { length: 500 }),
     caption: text("caption"),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
     ...timestamps(),
   },
-  (table) => [index("media_assets_mime_type_index").on(table.mimeType), index("media_assets_created_at_index").on(table.createdAt)],
+  (table) => [index("media_assets_mime_type_index").on(table.mimeType), index("media_assets_created_at_index").on(table.createdAt), index("media_assets_deleted_at_index").on(table.deletedAt)],
 );

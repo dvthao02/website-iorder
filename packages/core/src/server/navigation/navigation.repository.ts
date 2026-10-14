@@ -1,9 +1,10 @@
-import { and, asc, eq, inArray } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, lte, or } from "drizzle-orm";
 
 import { getDb } from "@iorder/core/db/client";
-import { auditLogs, menuItems, menuRevisions, menus } from "@iorder/core/db/schema";
+import { auditLogs, equipmentGroups, menuItems, menuRevisions, menus, offerings, pages, posts, salesEquipment } from "@iorder/core/db/schema";
+import { getFixedWebsitePage } from "@iorder/core/server/pages/pages.contract";
 
-import type { NavigationDocument, NavigationItems, NavigationLocation } from "./navigation.contract";
+import type { NavigationDocument, NavigationItems, NavigationLinkType, NavigationLocation, NavigationTarget } from "./navigation.contract";
 
 export class NavigationWriteConflictError extends Error {
   constructor() {
@@ -23,9 +24,78 @@ function serializeItems(rows: MenuItemRows): NavigationItems {
     parentKey: row.parentId,
     label: row.label,
     url: row.url,
+    linkType: row.linkType as NavigationLinkType,
+    contentId: row.contentId,
     target: row.target as "_self" | "_blank",
     isEnabled: row.isEnabled,
   }));
+}
+
+function pagePath(slug: string) {
+  return getFixedWebsitePage(slug)?.publicPath ?? `/trang/${slug}`;
+}
+
+function postPath(slug: string, type: string) {
+  return type === "guide" ? `/ho-tro/cai-dat/${slug}` : `/tin-tuc/${slug}`;
+}
+
+function offeringPath(slug: string, type: string) {
+  const catalog = type === "software" ? "phan-mem" : type === "solution" ? "giai-phap" : type === "service" ? "dich-vu" : null;
+  return catalog ? `/${catalog}/${slug}` : null;
+}
+
+type TargetIds = Partial<Record<Exclude<NavigationLinkType, "custom">, string[]>>;
+
+async function readPublishedNavigationTargets(ids?: TargetIds): Promise<NavigationTarget[]> {
+  const now = new Date();
+  const pagePublished = or(and(eq(pages.status, "published"), or(isNull(pages.publishedAt), lte(pages.publishedAt, now))), and(eq(pages.status, "scheduled"), lte(pages.scheduledAt, now)));
+  const postPublished = or(and(eq(posts.status, "published"), or(isNull(posts.publishedAt), lte(posts.publishedAt, now))), and(eq(posts.status, "scheduled"), lte(posts.scheduledAt, now)));
+  const offeringPublished = or(and(eq(offerings.status, "published"), or(isNull(offerings.publishedAt), lte(offerings.publishedAt, now))), and(eq(offerings.status, "scheduled"), lte(offerings.scheduledAt, now)));
+  const equipmentPublished = or(and(eq(salesEquipment.status, "published"), or(isNull(salesEquipment.publishedAt), lte(salesEquipment.publishedAt, now))), and(eq(salesEquipment.status, "scheduled"), lte(salesEquipment.scheduledAt, now)));
+  const pageIds = ids?.page;
+  const postIds = ids?.post;
+  const offeringIds = ids?.offering;
+  const equipmentIds = ids?.equipment;
+  const [pageRows, postRows, offeringRows, equipmentRows] = await Promise.all([
+    getDb().select({ id: pages.id, title: pages.title, slug: pages.slug }).from(pages).where(and(isNull(pages.deletedAt), pagePublished, pageIds ? inArray(pages.id, pageIds) : undefined)),
+    getDb().select({ id: posts.id, title: posts.title, slug: posts.slug, type: posts.type }).from(posts).where(and(isNull(posts.deletedAt), postPublished, postIds ? inArray(posts.id, postIds) : undefined)),
+    getDb().select({ id: offerings.id, title: offerings.title, slug: offerings.slug, type: offerings.type }).from(offerings).where(and(isNull(offerings.deletedAt), offeringPublished, offeringIds ? inArray(offerings.id, offeringIds) : undefined)),
+    getDb().select({ id: salesEquipment.id, name: salesEquipment.name, slug: salesEquipment.slug }).from(salesEquipment).innerJoin(equipmentGroups, eq(salesEquipment.groupId, equipmentGroups.id)).where(and(isNull(salesEquipment.deletedAt), isNull(equipmentGroups.deletedAt), eq(equipmentGroups.isEnabled, true), equipmentPublished, equipmentIds ? inArray(salesEquipment.id, equipmentIds) : undefined)),
+  ]);
+
+  return [
+    ...pageRows.map((row) => ({ id: row.id, linkType: "page" as const, label: row.title, url: pagePath(row.slug), typeLabel: "Trang website" })),
+    ...postRows.map((row) => ({ id: row.id, linkType: "post" as const, label: row.title, url: postPath(row.slug, row.type), typeLabel: row.type === "guide" ? "Hướng dẫn" : "Bài viết" })),
+    ...offeringRows.flatMap((row) => {
+      const url = offeringPath(row.slug, row.type);
+      return url ? [{ id: row.id, linkType: "offering" as const, label: row.title, url, typeLabel: row.type === "software" ? "Phần mềm" : row.type === "solution" ? "Giải pháp" : "Dịch vụ" }] : [];
+    }),
+    ...equipmentRows.map((row) => ({ id: row.id, linkType: "equipment" as const, label: row.name, url: `/thiet-bi/${row.slug}`, typeLabel: "Thiết bị" })),
+  ];
+}
+
+export async function listPublishedNavigationTargets() {
+  return readPublishedNavigationTargets();
+}
+
+export async function resolvePublishedNavigationItems(items: NavigationItems): Promise<NavigationItems> {
+  const ids = items.reduce<TargetIds>((result, item) => {
+    if (item.linkType !== "custom" && item.contentId) (result[item.linkType] ??= []).push(item.contentId);
+    return result;
+  }, {});
+  if (Object.values(ids).every((value) => !value?.length)) return items;
+
+  const targets = await readPublishedNavigationTargets(ids);
+  const byReference = new Map(targets.map((target) => [`${target.linkType}:${target.id}`, target]));
+  const keptKeys = new Set<string>();
+  const resolved: NavigationItems = [];
+  for (const item of items) {
+    const target = item.linkType === "custom" || !item.contentId ? null : byReference.get(`${item.linkType}:${item.contentId}`);
+    if ((item.linkType !== "custom" && !target) || (item.parentKey !== null && !keptKeys.has(item.parentKey))) continue;
+    resolved.push(target ? { ...item, url: target.url } : item);
+    keptKeys.add(item.key);
+  }
+  return resolved;
 }
 
 export async function readNavigation(location: NavigationLocation) {
@@ -49,8 +119,8 @@ type WriteNavigationInput = {
   changeNote: string;
 };
 
-export function writeNavigation(input: WriteNavigationInput): Promise<NavigationDocument> {
-  return getDb().transaction(async (tx) => {
+export function writeNavigation(input: WriteNavigationInput, database = getDb()): Promise<NavigationDocument> {
+  return database.transaction(async (tx) => {
     await tx.insert(menus).values({ name: input.name, location: input.location }).onConflictDoNothing({ target: menus.location });
 
     const [menu] = await tx.select().from(menus).where(eq(menus.location, input.location)).limit(1).for("update");
@@ -78,6 +148,8 @@ export function writeNavigation(input: WriteNavigationInput): Promise<Navigation
         parentId: null,
         label: item.label,
         url: item.url,
+        linkType: item.linkType,
+        contentId: item.contentId,
         target: item.target,
         isEnabled: item.isEnabled,
         sortOrder: -index - 1,
@@ -94,6 +166,8 @@ export function writeNavigation(input: WriteNavigationInput): Promise<Navigation
         parentId,
         label: item.label,
         url: item.url,
+        linkType: item.linkType,
+        contentId: item.contentId,
         target: item.target,
         isEnabled: item.isEnabled,
         sortOrder: index,

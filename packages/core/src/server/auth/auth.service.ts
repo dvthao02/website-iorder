@@ -2,6 +2,7 @@ import { createHash, randomBytes } from "node:crypto";
 
 import type { AdministratorLoginInput } from "./auth.schema";
 import { InvalidAdministratorCredentialsError } from "./auth.errors";
+import { clearAdministratorLoginAttempt, consumeAdministratorLoginAttempt } from "./login-throttle";
 import {
   createSessionForUser,
   findActiveAdministratorByUsername,
@@ -17,7 +18,8 @@ function hashSessionToken(token: string) {
   return createHash("sha256").update(token).digest("base64url");
 }
 
-export async function signInAdministrator(input: AdministratorLoginInput, userAgent?: string) {
+export async function signInAdministrator(input: AdministratorLoginInput, userAgent?: string, ipAddress: string | null = null) {
+  await consumeAdministratorLoginAttempt(input, ipAddress);
   const user = await findActiveAdministratorByUsername(input.username);
 
   if (!user || !(await verifyPassword(input.password, user.passwordHash))) {
@@ -33,6 +35,7 @@ export async function signInAdministrator(input: AdministratorLoginInput, userAg
     expiresAt,
     userAgent,
   });
+  await clearAdministratorLoginAttempt(input, ipAddress);
 
   return {
     token,

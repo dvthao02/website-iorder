@@ -1,9 +1,11 @@
-import Link from "next/link";
-
-import { EquipmentManager } from "@/components/admin/equipment-manager";
+import { EquipmentGroupEditorDetail } from "@/components/admin/equipment-group-editor-detail";
 import { getEquipmentGroups } from "@/lib/backend";
 
-export default async function EquipmentGroupsPage() {
+export const dynamic = "force-dynamic";
+
+export default async function EquipmentGroupsPage({ searchParams }: { searchParams: Promise<{ create?: string; edit?: string }> }) {
+  const params = await searchParams;
   const groups = await getEquipmentGroups();
-  return <main className="mx-auto max-w-5xl p-6"><Link href="/admin/thiet-bi">← Quay lại thiết bị</Link><h1 className="my-6 text-3xl font-bold">Nhóm thiết bị</h1><p className="mb-6 text-slate-600">Tạo và quản lý các nhóm dùng để phân loại thiết bị.</p><EquipmentManager groups={groups} items={[]} /></main>;
+  const group = params.edit ? groups.find((item) => item.id === params.edit) : undefined;
+  return <main className="admin-editor-detail-page"><EquipmentGroupEditorDetail group={group} key={group?.id ?? "new"} /></main>;
 }

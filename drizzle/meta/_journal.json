@@ -29,6 +29,48 @@
       "when": 1791017725424,
       "tag": "0003_faulty_jasper_sitwell",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791060628368,
+      "tag": "0004_clear_hercules",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791100309012,
+      "tag": "0005_zippy_queen_noir",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791101362480,
+      "tag": "0006_messy_korg",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1791114841819,
+      "tag": "0007_demonic_gladiator",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1791961982872,
+      "tag": "0008_complete_cloak",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1791972367877,
+      "tag": "0009_flippant_masked_marvel",
+      "breakpoints": true
     }
   ]
 }

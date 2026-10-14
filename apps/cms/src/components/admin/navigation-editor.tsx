@@ -1,22 +1,27 @@
 "use client";
 
-import { ChevronDown, ChevronUp, CornerDownRight, Menu, Plus, RotateCcw, Save, Trash2 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { ChevronDown, ChevronUp, CornerDownRight, Link2, Menu, Plus, RotateCcw, Save, Trash2 } from "lucide-react";
+import { useMemo, useRef, useState } from "react";
 
 import {
-  navigationDocumentSchema,
+  parseSavedNavigationDocument,
   navigationSchema,
   type NavigationDocument,
   type NavigationItems,
   type NavigationLocation,
+  type NavigationTarget,
 } from "@iorder/core/server/navigation/navigation.contract";
 
 import { RevisionHistory } from "./revision-history";
 import { AdminButton } from "./ui/admin-button";
 import { AdminEmptyState } from "./ui/admin-empty-state";
 import { AdminStatusBadge, useAdminToast } from "./ui/admin-feedback";
+import { AdminFilterTabs } from "./ui/admin-filter-tabs";
 import { AdminCard } from "./ui/admin-card";
+import { AdminListHeader } from "./ui/admin-list-header";
 import { AdminSidePanel } from "./ui/admin-side-panel";
+import { useNavigationGuard } from "./ui/use-navigation-guard";
+import { useRevisionRestore } from "./ui/use-revision-restore";
 
 const locations: NavigationLocation[] = ["header", "header_cta", "footer"];
 const locationLabel: Record<NavigationLocation, string> = {
@@ -89,14 +94,17 @@ function sameItems(first: NavigationItems, second: NavigationItems) {
   return JSON.stringify(first) === JSON.stringify(second);
 }
 
-export function NavigationEditor({ menus }: { menus: Record<NavigationLocation, NavigationDocument> }) {
+export function NavigationEditor({ menus, targets }: { menus: Record<NavigationLocation, NavigationDocument>; targets: NavigationTarget[] }) {
   const { show: showToast } = useAdminToast();
   const [activeLocation, setActiveLocation] = useState<NavigationLocation>("header");
   const [documents, setDocuments] = useState(menus);
   const [savedDocuments, setSavedDocuments] = useState(menus);
   const [selectedKey, setSelectedKey] = useState<string | null>(menus.header.items[0]?.key ?? null);
   const [isPanelOpen, setPanelOpen] = useState(false);
-  const [busy, setBusy] = useState(false);
+  const [isSaving, setBusy] = useState(false);
+  const revisionRestore = useRevisionRestore();
+  const busy = isSaving || revisionRestore.restoring;
+  const saving = useRef(false);
 
   const currentDocument = documents[activeLocation];
   const items = currentDocument.items;
@@ -108,26 +116,12 @@ export function NavigationEditor({ menus }: { menus: Record<NavigationLocation, 
     [documents, savedDocuments],
   );
 
-  useEffect(() => {
-    if (!hasUnsavedChanges) return;
-    const handleBeforeUnload = (event: BeforeUnloadEvent) => event.preventDefault();
-    const handleLink = (event: MouseEvent) => {
-      const anchor = event.target instanceof Element ? event.target.closest<HTMLAnchorElement>("a[href]") : null;
-      if (!anchor || anchor.target === "_blank" || anchor.hasAttribute("download")) return;
-      const destination = new URL(anchor.href, window.location.href);
-      if (destination.origin !== window.location.origin) return;
-      event.preventDefault();
-      showToast("Bạn có thay đổi menu chưa lưu. Hãy lưu hoặc bỏ thay đổi trước khi rời trang.", "warning");
-    };
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    document.addEventListener("click", handleLink, true);
-    return () => {
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-      document.removeEventListener("click", handleLink, true);
-    };
-  }, [hasUnsavedChanges, showToast]);
+  useNavigationGuard(!revisionRestore.completing && (hasUnsavedChanges || busy), () => {
+    showToast(saving.current || revisionRestore.pending.current ? "Đang xử lý menu. Vui lòng chờ trước khi rời trang." : "Bạn có thay đổi menu chưa lưu. Hãy lưu hoặc bỏ thay đổi trước khi rời trang.", "warning");
+  });
 
   function updateItems(next: NavigationItems) {
+    if (saving.current || revisionRestore.pending.current) return;
     setDocuments((current) => ({
       ...current,
       [activeLocation]: { ...current[activeLocation], items: next },
@@ -140,22 +134,22 @@ export function NavigationEditor({ menus }: { menus: Record<NavigationLocation, 
   }
 
   function changeLocation(next: NavigationLocation) {
+    if (saving.current || revisionRestore.pending.current) return;
     if (next === activeLocation) return;
-    if (dirty) {
-      showToast("Hãy lưu hoặc bỏ thay đổi ở menu hiện tại trước khi chuyển vị trí.", "warning");
-      return;
-    }
     setActiveLocation(next);
     setSelectedKey(documents[next].items[0]?.key ?? null);
     setPanelOpen(false);
   }
 
   function addItem(parentKey: string | null = null) {
+    if (saving.current || revisionRestore.pending.current) return;
     const entry: NavigationItems[number] = {
       key: createKey(),
       parentKey,
       label: "Mục menu mới",
       url: "/",
+      linkType: "custom",
+      contentId: null,
       target: "_self",
       isEnabled: true,
     };
@@ -170,6 +164,7 @@ export function NavigationEditor({ menus }: { menus: Record<NavigationLocation, 
   }
 
   function removeSelected() {
+    if (saving.current || revisionRestore.pending.current) return;
     if (!selected) return;
     const keys = descendants(items, selected.key);
     const next = items.filter((item) => !keys.has(item.key));
@@ -180,14 +175,30 @@ export function NavigationEditor({ menus }: { menus: Record<NavigationLocation, 
   }
 
   function closeEditor() {
+    if (saving.current || revisionRestore.pending.current) { showToast("Đang xử lý menu. Vui lòng chờ trước khi đóng.", "info"); return; }
     if (dirty) {
-      showToast("Hãy lưu hoặc bỏ thay đổi menu trước khi đóng trình biên tập.", "warning");
+      showToast("Menu chưa lưu. Hãy lưu hoặc bỏ thay đổi trước khi đóng.", "warning");
       return;
     }
     setPanelOpen(false);
   }
 
+  function selectPublishedTarget(targetId: string) {
+    const target = targets.find((entry) => `${entry.linkType}:${entry.id}` === targetId);
+    if (!target) {
+      updateSelected({ linkType: "custom", contentId: null });
+      return;
+    }
+    updateSelected({
+      contentId: target.id,
+      linkType: target.linkType,
+      url: target.url,
+      ...(selected?.label === "Mục menu mới" ? { label: target.label } : {}),
+    });
+  }
+
   function discardChanges() {
+    if (saving.current || revisionRestore.pending.current) return;
     const saved = savedDocuments[activeLocation];
     setDocuments((current) => ({ ...current, [activeLocation]: saved }));
     setSelectedKey(saved.items[0]?.key ?? null);
@@ -195,11 +206,13 @@ export function NavigationEditor({ menus }: { menus: Record<NavigationLocation, 
   }
 
   async function save() {
+    if (saving.current || revisionRestore.pending.current || !dirty) return;
     const parsed = navigationSchema.safeParse(items);
     if (!parsed.success) {
       showToast(parsed.error.issues[0]?.message ?? "Dữ liệu menu chưa hợp lệ.", "error");
       return;
     }
+    saving.current = true;
     setBusy(true);
     const selectedPosition = selectedIndex;
     try {
@@ -215,7 +228,8 @@ export function NavigationEditor({ menus }: { menus: Record<NavigationLocation, 
       });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error?.message || "Không thể lưu menu.");
-      const nextDocument = navigationDocumentSchema.parse(payload.menu);
+      const nextDocument = parseSavedNavigationDocument(payload.menu, savedDocuments[activeLocation]);
+      if (!nextDocument) throw new Error("Phản hồi lưu menu không hợp lệ hoặc không khớp. Vui lòng tải lại để kiểm tra trước khi thử lại.");
       setDocuments((current) => ({ ...current, [activeLocation]: nextDocument }));
       setSavedDocuments((current) => ({ ...current, [activeLocation]: nextDocument }));
       setSelectedKey(nextDocument.items[selectedPosition]?.key ?? nextDocument.items[0]?.key ?? null);
@@ -223,42 +237,26 @@ export function NavigationEditor({ menus }: { menus: Record<NavigationLocation, 
     } catch (error) {
       showToast(error instanceof Error ? error.message : "Không kết nối được máy chủ.", "error");
     } finally {
+      saving.current = false;
       setBusy(false);
     }
   }
 
   const sidebar = <>
-    <header className="border-b border-slate-200 p-4">
-      <div className="flex items-center gap-3">
-        <span className="grid size-9 place-items-center rounded-lg bg-blue-50 text-blue-700"><Menu aria-hidden="true" size={18} /></span>
-        <div><h1 className="text-base font-extrabold text-slate-950">Menu & Điều hướng</h1><p className="text-xs text-slate-500">Chọn vị trí, sau đó sửa từng mục.</p></div>
-      </div>
-      <div className="mt-4 grid gap-2" role="tablist" aria-label="Vị trí menu">
-        {locations.map((location) => {
-          const locationDirty = !sameItems(documents[location].items, savedDocuments[location].items);
-          return <button
-            aria-selected={activeLocation === location}
-            className={activeLocation === location ? "flex items-center justify-between rounded-lg bg-blue-50 px-3 py-2 text-left text-sm font-bold text-blue-700" : "flex items-center justify-between rounded-lg px-3 py-2 text-left text-sm font-semibold text-slate-700 hover:bg-slate-50"}
-            key={location}
-            onClick={() => changeLocation(location)}
-            role="tab"
-            type="button"
-          >
-            <span>{locationLabel[location]}</span>
-            <span className="text-xs">{locationDirty ? "Chưa lưu" : documents[location].items.length}</span>
-          </button>;
-        })}
-      </div>
+    <header className="grid gap-4 border-b border-[var(--cms-border)] p-4">
+      <AdminListHeader actions={<AdminButton disabled={busy} leadingIcon={<Plus aria-hidden="true" size={16} />} onClick={() => addItem()}>Thêm mục</AdminButton>} description="Chọn vị trí, sau đó sửa từng mục." headingLevel={1} title="Menu & Điều hướng" />
+      <AdminFilterTabs ariaLabel="Vị trí menu" disabled={busy} items={locations.map((location) => ({ label: `${locationLabel[location]} · ${!sameItems(documents[location].items, savedDocuments[location].items) ? "chưa lưu" : documents[location].items.length}`, value: location }))} onValueChange={changeLocation} value={activeLocation} />
     </header>
-    <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
-      <strong className="text-sm text-slate-950">Các mục ({items.length})</strong>
-      <button className="inline-flex items-center gap-1 text-xs font-bold text-blue-700 hover:text-blue-800" onClick={() => addItem()} type="button"><Plus aria-hidden="true" size={14} />Thêm</button>
+    <div className="flex items-center justify-between border-b border-[var(--cms-border)] px-4 py-3">
+      <strong className="text-sm text-[var(--cms-text)]">Các mục ({items.length})</strong>
+      <button disabled={busy} className="inline-flex items-center gap-1 text-xs font-bold text-blue-700 hover:text-blue-800" onClick={() => addItem()} type="button"><Plus aria-hidden="true" size={14} />Thêm</button>
     </div>
     <div className="min-h-[calc(100dvh-22rem)] overflow-y-auto p-2">
       {items.map((item) => <button
         aria-current={selectedKey === item.key ? "true" : undefined}
-        className={selectedKey === item.key ? "mb-1 flex w-full items-center gap-2 rounded-lg bg-blue-50 px-3 py-2 text-left text-blue-700" : "mb-1 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-slate-700 hover:bg-slate-50"}
+        className={selectedKey === item.key ? "mb-1 flex w-full items-center gap-2 rounded-lg bg-blue-50 px-3 py-2 text-left text-blue-700" : "mb-1 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-[var(--cms-text)] hover:bg-[var(--cms-hover)]"}
         key={item.key}
+        disabled={busy}
         onClick={() => { setSelectedKey(item.key); setPanelOpen(true); }}
         style={{ paddingLeft: `${12 + Math.min(depth(items, item), 4) * 16}px` }}
         type="button"
@@ -276,19 +274,25 @@ export function NavigationEditor({ menus }: { menus: Record<NavigationLocation, 
   const possibleParents = selectedIndex > 0 ? items.slice(0, selectedIndex) : [];
 
   const editor = <>
-    <header className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 p-4 sm:px-5">
-      <div><div className="flex items-center gap-2"><h2 className="text-lg font-extrabold text-slate-950">{locationLabel[activeLocation]}</h2><AdminStatusBadge tone={dirty ? "warning" : "success"}>{dirty ? "Chưa lưu" : `Phiên bản ${currentDocument.version}`}</AdminStatusBadge></div><p className="mt-1 text-sm text-slate-500">Mỗi lần lưu sẽ tạo một phiên bản có thể khôi phục.</p></div>
+    <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--cms-border)] p-4 sm:px-5">
+      <div><div className="flex items-center gap-2"><h2 className="text-lg font-extrabold text-[var(--cms-text)]">{locationLabel[activeLocation]}</h2><AdminStatusBadge tone={dirty ? "warning" : "success"}>{dirty ? "Chưa lưu" : `Phiên bản ${currentDocument.version}`}</AdminStatusBadge></div><p className="mt-1 text-sm text-[var(--cms-muted)]">Mỗi lần lưu sẽ tạo một phiên bản có thể khôi phục.</p></div>
     </header>
-    <div className="p-4 sm:p-5">
+    <fieldset disabled={busy} className="min-w-0 border-0 p-4 sm:p-5">
       {selected ? <div className="grid gap-5">
         <div className="grid gap-4 md:grid-cols-2">
-          <label className="grid gap-2 text-sm font-bold text-slate-700">Nhãn hiển thị<input className="admin-input" maxLength={180} onChange={(event) => updateSelected({ label: event.target.value })} required value={selected.label} /></label>
-          <label className="grid gap-2 text-sm font-bold text-slate-700">Đường dẫn<input className="admin-input" maxLength={1000} onChange={(event) => updateSelected({ url: event.target.value })} placeholder="/lien-he hoặc https://..." required value={selected.url} /></label>
-          <label className="grid gap-2 text-sm font-bold text-slate-700">Mục cha<select className="admin-input" onChange={(event) => updateSelected({ parentKey: event.target.value || null })} value={selected.parentKey ?? ""}><option value="">Không có (mục cấp cao)</option>{possibleParents.map((parent) => <option key={parent.key} value={parent.key}>{"— ".repeat(depth(items, parent))}{parent.label}</option>)}</select></label>
-          <label className="grid gap-2 text-sm font-bold text-slate-700">Kiểu mở<select className="admin-input" onChange={(event) => updateSelected({ target: event.target.value as "_self" | "_blank" })} value={selected.target}><option value="_self">Cùng cửa sổ</option><option value="_blank">Cửa sổ mới</option></select></label>
+          <label className="grid gap-2 text-sm font-bold text-[var(--cms-text)]">Nhãn hiển thị<input className="admin-input" maxLength={180} onChange={(event) => updateSelected({ label: event.target.value })} required value={selected.label} /></label>
+          <label className="grid gap-2 text-sm font-bold text-[var(--cms-text)]">Loại liên kết<select className="admin-input" onChange={(event) => {
+            updateSelected(event.target.value === "custom" ? { linkType: "custom", contentId: null } : { linkType: "page", contentId: null });
+          }} value={selected.linkType === "custom" ? "custom" : "published"}>
+            <option value="published">Nội dung đã xuất bản</option><option value="custom">URL tùy chỉnh</option>
+          </select></label>
+          {selected.linkType === "custom" ? <label className="grid gap-2 text-sm font-bold text-[var(--cms-text)] md:col-span-2">Đường dẫn<input className="admin-input" maxLength={1000} onChange={(event) => updateSelected({ url: event.target.value })} placeholder="/lien-he hoặc https://..." required value={selected.url} /></label> : <label className="grid gap-2 text-sm font-bold text-[var(--cms-text)] md:col-span-2">Nội dung đã xuất bản<select className="admin-input" onChange={(event) => selectPublishedTarget(event.target.value)} value={selected.contentId ? `${selected.linkType}:${selected.contentId}` : ""}><option value="">Chọn nội dung đã xuất bản</option>{targets.map((target) => <option key={`${target.linkType}:${target.id}`} value={`${target.linkType}:${target.id}`}>{target.typeLabel} — {target.label} ({target.url})</option>)}</select><span className="text-xs font-medium text-[var(--cms-muted)]">URL sẽ tự cập nhật khi slug của nội dung thay đổi; nội dung bị gỡ publish sẽ tự ẩn khỏi website.</span></label>}
+          <label className="grid gap-2 text-sm font-bold text-[var(--cms-text)]">Mục cha<select className="admin-input" onChange={(event) => updateSelected({ parentKey: event.target.value || null })} value={selected.parentKey ?? ""}><option value="">Không có (mục cấp cao)</option>{possibleParents.map((parent) => <option key={parent.key} value={parent.key}>{"— ".repeat(depth(items, parent))}{parent.label}</option>)}</select></label>
+          <label className="grid gap-2 text-sm font-bold text-[var(--cms-text)]">Kiểu mở<select className="admin-input" onChange={(event) => updateSelected({ target: event.target.value as "_self" | "_blank" })} value={selected.target}><option value="_self">Cùng cửa sổ</option><option value="_blank">Cửa sổ mới</option></select></label>
         </div>
-        <label className="flex items-center gap-3 rounded-lg border border-slate-200 px-4 py-3 text-sm font-bold text-slate-700"><input checked={selected.isEnabled} onChange={(event) => updateSelected({ isEnabled: event.target.checked })} type="checkbox" />Hiển thị mục này trên website</label>
-        <div className="flex flex-wrap items-center gap-2 border-t border-slate-200 pt-4">
+        <div className="flex items-start gap-3 rounded-lg border border-blue-100 bg-blue-50/50 px-4 py-3 text-sm text-[var(--cms-text)]"><Link2 aria-hidden="true" className="mt-0.5 shrink-0 text-blue-700" size={17} /><p>{selected.linkType === "custom" ? "URL tùy chỉnh được giữ nguyên theo cấu hình menu." : "Mục này đang liên kết trực tiếp tới nội dung publish; CMS sẽ dùng URL thực tế của nội dung đó."}</p></div>
+        <label className="flex items-center gap-3 rounded-lg border border-[var(--cms-border)] px-4 py-3 text-sm font-bold text-[var(--cms-text)]"><input checked={selected.isEnabled} onChange={(event) => updateSelected({ isEnabled: event.target.checked })} type="checkbox" />Hiển thị mục này trên website</label>
+        <div className="flex flex-wrap items-center gap-2 border-t border-[var(--cms-border)] pt-4">
           <AdminButton disabled={siblingPosition <= 0} onClick={() => updateItems(moveSibling(items, selectedIndex, -1))} variant="secondary"><ChevronUp aria-hidden="true" size={16} />Lên</AdminButton>
           <AdminButton disabled={siblingPosition < 0 || siblingPosition >= siblingPositions.length - 1} onClick={() => updateItems(moveSibling(items, selectedIndex, 1))} variant="secondary"><ChevronDown aria-hidden="true" size={16} />Xuống</AdminButton>
           <AdminButton onClick={() => addItem(selected.key)} variant="secondary"><CornerDownRight aria-hidden="true" size={16} />Thêm mục con</AdminButton>
@@ -296,11 +300,11 @@ export function NavigationEditor({ menus }: { menus: Record<NavigationLocation, 
         </div>
       </div> : <AdminEmptyState action={<AdminButton onClick={() => addItem()}>Thêm mục menu</AdminButton>} description="Chọn một mục ở panel bên trái hoặc tạo mục mới." icon={<Menu aria-hidden="true" size={20} />} title="Chưa chọn mục" />}
 
-      {currentDocument.id ? <details className="mt-6 border-t border-slate-200 pt-4"><summary className="cursor-pointer text-sm font-bold text-blue-700">Lịch sử và khôi phục</summary><RevisionHistory disabled={dirty} id={currentDocument.id} target="navigation" /></details> : null}
-    </div>
+      {currentDocument.id ? <details className="mt-6 border-t border-[var(--cms-border)] pt-4"><summary className="cursor-pointer text-sm font-bold text-blue-700">Lịch sử và khôi phục</summary><RevisionHistory disabled={dirty || busy} expectedVersion={currentDocument.version} id={currentDocument.id} target="navigation" onRestorePendingChange={revisionRestore.onPendingChange} onRestored={revisionRestore.onRestored} /></details> : null}
+    </fieldset>
   </>;
 
-  const actions = <>{dirty ? <AdminButton onClick={discardChanges} variant="secondary"><RotateCcw aria-hidden="true" size={16} />Bỏ thay đổi</AdminButton> : null}<AdminButton disabled={busy || !dirty} onClick={save}><Save aria-hidden="true" size={16} />{busy ? "Đang lưu…" : "Lưu menu"}</AdminButton></>;
+  const actions = <>{dirty ? <AdminButton disabled={busy} onClick={discardChanges} variant="secondary"><RotateCcw aria-hidden="true" size={16} />Bỏ thay đổi</AdminButton> : null}<AdminButton disabled={busy || !dirty} onClick={save}><Save aria-hidden="true" size={16} />{busy ? "Đang lưu…" : "Lưu menu"}</AdminButton></>;
 
   return <><AdminCard className="min-h-[calc(100dvh-7rem)] overflow-hidden">{sidebar}</AdminCard><AdminSidePanel footer={actions} isOpen={isPanelOpen} onClose={closeEditor}>{editor}</AdminSidePanel></>;
 }

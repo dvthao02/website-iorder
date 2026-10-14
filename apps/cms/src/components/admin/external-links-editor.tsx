@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 
 import type { ExternalLinks } from "@iorder/core/server/settings/external-links.contract";
 import { useAdminToast } from "@/components/admin/ui/admin-feedback";
 import { AdminEditorActions } from "@/components/admin/ui/admin-editor-actions";
+import { AdminButton } from "./ui/admin-button";
+import { useUnsavedChanges } from "./ui/use-unsaved-changes";
 
 const fields = [
   ["appLogin", "Trang đăng nhập ứng dụng"],
@@ -28,16 +30,20 @@ const emptyLinks: ExternalLinks = {
 
 export function ExternalLinksEditor({ initial }: { initial: ExternalLinks | null }) {
   const [links, setLinks] = useState<ExternalLinks>(initial ?? emptyLinks);
+  const { isDirty, markSaved } = useUnsavedChanges(links);
   const [busy, setBusy] = useState(false);
+  const saving = useRef(false);
   const [message, setMessage] = useState("");
   const { show: showToast } = useAdminToast();
 
   function update(key: keyof ExternalLinks, value: string) {
-    setLinks(current => ({ ...current, [key]: value.trim() || null }));
+    setLinks(current => ({ ...current, [key]: value || null }));
   }
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (saving.current) return;
+    saving.current = true;
     setBusy(true);
     setMessage("");
     try {
@@ -47,11 +53,12 @@ export function ExternalLinksEditor({ initial }: { initial: ExternalLinks | null
         body: JSON.stringify(links),
       });
       const body = await response.json();
-      if (response.ok) showToast("Đã cập nhật liên kết ngoài trên website.", "success");
+      if (response.ok) { markSaved(); showToast("Đã cập nhật liên kết ngoài trên website.", "success"); }
       else { const notice = body.error?.message ?? "Không thể lưu liên kết ngoài."; setMessage(notice); showToast(notice, "error"); }
     } catch {
       const notice = "Không kết nối được máy chủ."; setMessage(notice); showToast(notice, "error");
     } finally {
+      saving.current = false;
       setBusy(false);
     }
   }
@@ -59,6 +66,6 @@ export function ExternalLinksEditor({ initial }: { initial: ExternalLinks | null
   return <form className="grid gap-4" onSubmit={save}>
     <p>Điền URL đầy đủ, ví dụ <code>https://...</code>. Để trống một dịch vụ nếu website chưa sử dụng dịch vụ đó.</p>
     {fields.map(([key, label]) => <label key={key}>{label}<input className="block w-full rounded border p-2" type="url" value={links[key] ?? ""} onChange={event => update(key, event.target.value)} placeholder="https://..." /></label>)}
-    <AdminEditorActions><p role="status">{message}</p><button className="rounded bg-blue-700 px-4 py-2 text-white disabled:opacity-50" disabled={busy}>{busy ? "Đang lưu…" : "Lưu liên kết ngoài"}</button></AdminEditorActions>
+    <AdminEditorActions><p role="status">{message || (isDirty ? "Có thay đổi chưa lưu." : "Không có thay đổi chưa lưu.")}</p><AdminButton disabled={busy || !isDirty} type="submit">{busy ? "Đang lưu…" : "Lưu liên kết ngoài"}</AdminButton></AdminEditorActions>
   </form>;
 }

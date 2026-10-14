@@ -1,4 +1,4 @@
-import { index, pgTable, primaryKey, timestamp, uniqueIndex, uuid, varchar } from "drizzle-orm/pg-core";
+import { index, integer, pgTable, primaryKey, timestamp, uniqueIndex, uuid, varchar } from "drizzle-orm/pg-core";
 
 import { userStatusEnum } from "./enums";
 import { timestamps } from "./shared";
@@ -33,6 +33,18 @@ export const roles = pgTable(
   (table) => [uniqueIndex("roles_code_unique").on(table.code)],
 );
 
+export const permissions = pgTable(
+  "permissions",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    code: varchar("code", { length: 120 }).notNull(),
+    name: varchar("name", { length: 180 }).notNull(),
+    description: varchar("description", { length: 500 }),
+    ...timestamps(),
+  },
+  (table) => [uniqueIndex("permissions_code_unique").on(table.code)],
+);
+
 export const userRoles = pgTable(
   "user_roles",
   {
@@ -40,6 +52,15 @@ export const userRoles = pgTable(
     roleId: uuid("role_id").notNull().references(() => roles.id, { onDelete: "cascade" }),
   },
   (table) => [primaryKey({ columns: [table.userId, table.roleId] })],
+);
+
+export const rolePermissions = pgTable(
+  "role_permissions",
+  {
+    roleId: uuid("role_id").notNull().references(() => roles.id, { onDelete: "cascade" }),
+    permissionId: uuid("permission_id").notNull().references(() => permissions.id, { onDelete: "cascade" }),
+  },
+  (table) => [primaryKey({ columns: [table.roleId, table.permissionId] })],
 );
 
 export const sessions = pgTable(
@@ -59,5 +80,21 @@ export const sessions = pgTable(
     uniqueIndex("sessions_token_hash_unique").on(table.tokenHash),
     index("sessions_user_expires_at_index").on(table.userId, table.expiresAt),
     index("sessions_expires_at_index").on(table.expiresAt),
+  ],
+);
+
+/** Active, pseudonymous login-rate-limit buckets. Expired rows are harmless and cleaned by an operational job. */
+export const loginThrottleBuckets = pgTable(
+  "login_throttle_buckets",
+  {
+    scope: varchar("scope", { length: 16 }).notNull(),
+    keyHash: varchar("key_hash", { length: 128 }).notNull(),
+    attempts: integer("attempts").notNull(),
+    windowExpiresAt: timestamp("window_expires_at", { withTimezone: true }).notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.scope, table.keyHash] }),
+    index("login_throttle_buckets_window_expires_at_index").on(table.windowExpiresAt),
   ],
 );

@@ -3,7 +3,7 @@ import { SiteHeader } from "@/components/site/site-header";
 import { PageBlockRenderer } from "@/components/site/page-block-renderer";
 import { getPublishedPage } from "@/lib/backend";
 import type { Metadata } from "next";
-export const dynamic = "force-dynamic";
+export const revalidate = 0;
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   const page = await getPublishedPage(slug);

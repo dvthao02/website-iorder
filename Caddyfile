@@ -1,11 +1,37 @@
 {$SITE_ADDRESS} {
-  encode zstd gzip
+	encode zstd gzip
+	header {
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+	}
 
-  reverse_proxy publish-web:3000
+	request_body /api/admin/media {
+		max_size 21MB
+	}
+
+	handle /api/internal/* {
+		respond "Not Found" 404
+	}
+
+	reverse_proxy publish-web:3000
 }
 
 {$CMS_SITE_ADDRESS} {
-  encode zstd gzip
+	encode zstd gzip
+	header {
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+	}
 
-  reverse_proxy cms:3000
+	request_body /api/admin/media {
+		max_size 21MB
+	}
+
+	handle /api/internal/* {
+		respond "Not Found" 404
+	}
+
+	reverse_proxy cms:3000
 }

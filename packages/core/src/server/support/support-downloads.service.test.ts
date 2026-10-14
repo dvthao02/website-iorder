@@ -59,6 +59,11 @@ function createRepository(options: { mimeType?: string; initial?: Partial<AdminS
       revisionWrites.push(revision);
       return downloadId;
     },
+    async deleteArchivedSupportDownload(id, _userId, expectedVersion) {
+      if (!current || id !== downloadId || !current.archivedAt || (expectedVersion !== undefined && expectedVersion !== current.draftVersion)) return undefined;
+      current = undefined;
+      return downloadId;
+    },
     async findAdminSupportDownloadById(id) {
       return id === downloadId ? current : undefined;
     },
@@ -149,4 +154,15 @@ test("lưu trữ và khôi phục đều tăng version, khôi phục về bản 
   assert.equal(restored?.status, "draft");
   assert.equal(restored?.draftVersion, 3);
   assert.equal(restored?.isEnabled, false);
+});
+
+test("chỉ xóa được tài nguyên đã lưu trữ và giữ kiểm tra phiên bản", async () => {
+  const fake = createRepository({ mimeType: "application/pdf", initial: { fileMediaId: fileId, isEnabled: true } });
+  const service = createSupportDownloadsService(fake.repository);
+
+  assert.equal(await service.deleteArchivedAdminSupportDownload(downloadId, editorId, 1), undefined);
+  await service.changeSupportDownloadArchiveState(downloadId, true, editorId, 1);
+  await assert.rejects(service.deleteArchivedAdminSupportDownload(downloadId, editorId, 1), SupportDownloadVersionConflictError);
+  assert.equal(await service.deleteArchivedAdminSupportDownload(downloadId, editorId, 2), downloadId);
+  assert.equal(fake.current(), undefined);
 });

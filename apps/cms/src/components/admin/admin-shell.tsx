@@ -3,7 +3,7 @@
 import NextImage from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { AdminToastProvider } from "@/components/admin/ui/admin-feedback";
 import {
   ArrowRightLeft,
@@ -45,11 +45,13 @@ import { AdminLoadingBar } from "@/components/admin/ui/admin-loading-bar";
 import { AdminPopover } from "@/components/admin/ui/admin-popover";
 import { CmsThemeProvider } from "@/components/admin/admin-theme-settings";
 import { AdminGlobalSearch } from "@/components/admin/admin-global-search";
+import { publishedPublicUrl } from "@/lib/published-public-url";
+import type { CmsPermissionCode } from "@iorder/core/server/auth/permissions";
 
-type Administrator = { fullName: string; username: string; role: string };
+type Administrator = { fullName: string; username: string; role: string; permissions: string[] };
 type HeaderNotification = { id: string; label: string; detail: string; href: string };
 
-type NavigationItem = { href: string; label: string; icon: LucideIcon; adminOnly?: boolean; matchesChildRoutes?: boolean };
+type NavigationItem = { href: string; label: string; icon: LucideIcon; adminOnly?: boolean; matchesChildRoutes?: boolean; permission?: CmsPermissionCode };
 
 type NavigationGroup = { id: string; label: string; icon: LucideIcon; items: NavigationItem[] };
 
@@ -68,16 +70,16 @@ function ensureUniqueNavigationPaths(groups: NavigationGroup[]) {
 }
 
 const navigationGroups = ensureUniqueNavigationPaths([
-  { id: "overview", label: "Tổng quan", icon: LayoutDashboard, items: [{ href: "/admin", label: "Tổng quan", icon: Home }, { href: "/admin/analytics", label: "Thống kê & truy cập", icon: BarChart3 }] },
+  { id: "overview", label: "Tổng quan", icon: LayoutDashboard, items: [{ href: "/admin", label: "Tổng quan", icon: Home }, { href: "/admin/analytics", label: "Thống kê & truy cập", icon: BarChart3, permission: "analytics.read" }] },
   {
     id: "content",
     label: "Nội dung website",
     icon: FileText,
     items: [
-      { href: "/admin/pages", label: "Trang website", icon: FileText, matchesChildRoutes: true },
-      { href: "/admin/tin-tuc", label: "Bài viết & Tin tức", icon: Newspaper, matchesChildRoutes: true },
-      { href: "/admin/tai-nguyen", label: "Hỗ trợ cài đặt", icon: Download, matchesChildRoutes: true },
-      { href: "/admin/media", label: "Hình ảnh & Tệp", icon: Image },
+      { href: "/admin/pages", label: "Trang website", icon: FileText, matchesChildRoutes: true, permission: "content.read" },
+      { href: "/admin/tin-tuc", label: "Bài viết & Tin tức", icon: Newspaper, matchesChildRoutes: true, permission: "content.read" },
+      { href: "/admin/tai-nguyen", label: "Hỗ trợ cài đặt", icon: Download, matchesChildRoutes: true, permission: "content.read" },
+      { href: "/admin/media", label: "Hình ảnh & Tệp", icon: Image, permission: "media.manage" },
     ],
   },
   {
@@ -85,10 +87,10 @@ const navigationGroups = ensureUniqueNavigationPaths([
     label: "Sản phẩm & Dịch vụ",
     icon: Boxes,
     items: [
-      { href: "/admin/san-pham", label: "Sản phẩm", icon: Boxes, matchesChildRoutes: true },
-      { href: "/admin/giai-phap", label: "Giải pháp hạ tầng", icon: Lightbulb, matchesChildRoutes: true },
-      { href: "/admin/dich-vu", label: "Dịch vụ", icon: Wrench, matchesChildRoutes: true },
-      { href: "/admin/thiet-bi", label: "Thiết bị", icon: Laptop, matchesChildRoutes: true },
+      { href: "/admin/san-pham", label: "Sản phẩm", icon: Boxes, matchesChildRoutes: true, permission: "content.read" },
+      { href: "/admin/giai-phap", label: "Giải pháp hạ tầng", icon: Lightbulb, matchesChildRoutes: true, permission: "content.read" },
+      { href: "/admin/dich-vu", label: "Dịch vụ", icon: Wrench, matchesChildRoutes: true, permission: "content.read" },
+      { href: "/admin/thiet-bi", label: "Thiết bị", icon: Laptop, matchesChildRoutes: true, permission: "content.read" },
     ],
   },
   {
@@ -96,11 +98,11 @@ const navigationGroups = ensureUniqueNavigationPaths([
     label: "Website & SEO",
     icon: FolderTree,
     items: [
-      { href: "/admin/menu", label: "Menu & Điều hướng", icon: Menu },
-      { href: "/admin/phan-loai-bai-viet", label: "Chuyên mục & Thẻ", icon: Tags },
-      { href: "/admin/seo", label: "SEO & Xuất bản", icon: Search, matchesChildRoutes: true },
-      { href: "/admin/chuyen-huong", label: "Chuyển hướng URL", icon: ArrowRightLeft },
-      { href: "/admin/lien-ket-ngoai", label: "Liên kết ngoài", icon: LinkIcon },
+      { href: "/admin/menu", label: "Menu & Điều hướng", icon: Menu, permission: "navigation.manage" },
+      { href: "/admin/phan-loai-bai-viet", label: "Chuyên mục & Thẻ", icon: Tags, permission: "taxonomy.manage" },
+      { href: "/admin/seo", label: "SEO & Xuất bản", icon: Search, matchesChildRoutes: true, permission: "seo.manage" },
+      { href: "/admin/chuyen-huong", label: "Chuyển hướng URL", icon: ArrowRightLeft, permission: "seo.manage" },
+      { href: "/admin/lien-ket-ngoai", label: "Liên kết ngoài", icon: LinkIcon, permission: "seo.manage" },
     ],
   },
   {
@@ -108,9 +110,9 @@ const navigationGroups = ensureUniqueNavigationPaths([
     label: "Khách hàng & Thương hiệu",
     icon: Handshake,
     items: [
-      { href: "/admin/thong-tin-doanh-nghiep", label: "Thông tin doanh nghiệp", icon: Building2 },
-      { href: "/admin/doi-tac", label: "Đối tác & Đánh giá", icon: Handshake },
-      { href: "/admin/khach-hang-tiem-nang", label: "Khách hàng tiềm năng", icon: UsersRound },
+      { href: "/admin/thong-tin-doanh-nghiep", label: "Thông tin doanh nghiệp", icon: Building2, permission: "seo.manage" },
+      { href: "/admin/doi-tac", label: "Đối tác & Đánh giá", icon: Handshake, permission: "content.read" },
+      { href: "/admin/khach-hang-tiem-nang", label: "Khách hàng tiềm năng", icon: UsersRound, permission: "leads.read" },
     ],
   },
   {
@@ -119,7 +121,8 @@ const navigationGroups = ensureUniqueNavigationPaths([
     icon: ShieldCheck,
     items: [
       { href: "/admin/tai-khoan", label: "Người dùng CMS", icon: Users, adminOnly: true },
-      { href: "/admin/nhat-ky", label: "Nhật ký hoạt động", icon: History },
+      { href: "/admin/phan-quyen", label: "Vai trò & quyền", icon: ShieldCheck, adminOnly: true },
+      { href: "/admin/nhat-ky", label: "Nhật ký hoạt động", icon: History, permission: "audit.read" },
     ],
   },
   {
@@ -127,7 +130,7 @@ const navigationGroups = ensureUniqueNavigationPaths([
     label: "Cài đặt",
     icon: Settings,
     items: [
-      { href: "/admin/cau-hinh", label: "Cấu hình website", icon: Settings2 },
+      { href: "/admin/cau-hinh", label: "Cấu hình website", icon: Settings2, permission: "seo.manage" },
       { href: "/admin/giao-dien-cms", label: "Giao diện CMS", icon: Palette },
     ],
   },
@@ -137,6 +140,10 @@ function isActive(pathname: string, item: NavigationItem) {
   return pathname === item.href || (item.matchesChildRoutes === true && pathname.startsWith(`${item.href}/`));
 }
 
+function canAccessNavigation(administrator: Administrator, item: NavigationItem) {
+  return administrator.role === "admin" || ((!item.adminOnly || administrator.role === "admin") && (!item.permission || administrator.permissions.includes(item.permission)));
+}
+
 function initials(fullName: string) {
   return fullName.split(/\s+/).filter(Boolean).slice(-2).map(word => word[0]).join("").toUpperCase() || "AD";
 }
@@ -144,20 +151,27 @@ function initials(fullName: string) {
 export function AdminShell({ administrator, children, notifications }: { administrator: Administrator; children: ReactNode; notifications: HeaderNotification[] }) {
   const pathname = usePathname();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [isMobileNavigationOpen, setIsMobileNavigationOpen] = useState(false);
+  const [mobileNavigationPath, setMobileNavigationPath] = useState<string | null>(null);
+  const isMobileNavigationOpen = mobileNavigationPath === pathname;
   const [collapsedNavigationGroups, setCollapsedNavigationGroups] = useState<Set<string>>(() => new Set());
   const [compactNavigationGroups, setCompactNavigationGroups] = useState<Set<string>>(() => new Set());
   const [sidebarTooltip, setSidebarTooltip] = useState<{ label: string; top: number } | null>(null);
   const currentNavigation = navigationGroups
     .flatMap((group) => group.items
-      .filter((item) => !item.adminOnly || administrator.role === "admin")
+      .filter((item) => canAccessNavigation(administrator, item))
       .map((item) => ({ group, item })))
     .find(({ item }) => isActive(pathname, item));
   const currentNavigationLabel = currentNavigation?.item.label ?? "Tổng quan";
 
-  useEffect(() => {
-    setIsMobileNavigationOpen(false);
-  }, [pathname]);
+  function toggleMobileNavigation() {
+    if (!isMobileNavigationOpen) {
+      const activeGroupId = currentNavigation?.group.id;
+      setIsSidebarCollapsed(false);
+      setCompactNavigationGroups(new Set());
+      setCollapsedNavigationGroups(new Set(navigationGroups.filter((group) => group.id !== activeGroupId).map((group) => group.id)));
+    }
+    setMobileNavigationPath(isMobileNavigationOpen ? null : pathname);
+  }
 
   function toggleNavigationGroup(groupId: string) {
     setCollapsedNavigationGroups(current => {
@@ -191,12 +205,12 @@ export function AdminShell({ administrator, children, notifications }: { adminis
   return <AdminToastProvider><CmsThemeProvider><AdminLoadingBar />
     <div className={["admin-shell", isSidebarCollapsed ? "admin-shell--collapsed" : "", isMobileNavigationOpen ? "admin-shell--mobile-navigation-open" : ""].filter(Boolean).join(" ")}>
       <header className="admin-topbar">
-        <button aria-controls="admin-mobile-navigation" aria-expanded={isMobileNavigationOpen} aria-label={isMobileNavigationOpen ? "Đóng điều hướng" : "Mở điều hướng"} className="admin-mobile-navigation-toggle" onClick={() => { setIsSidebarCollapsed(false); setCompactNavigationGroups(new Set()); setIsMobileNavigationOpen(value => !value); }} type="button">
+        <button aria-controls="admin-mobile-navigation" aria-expanded={isMobileNavigationOpen} aria-label={isMobileNavigationOpen ? "Đóng điều hướng" : "Mở điều hướng"} className="admin-mobile-navigation-toggle" onClick={toggleMobileNavigation} type="button">
           {isMobileNavigationOpen ? <X aria-hidden="true" size={19} /> : <Menu aria-hidden="true" size={19} />}
         </button>
         {isSidebarCollapsed ? <div className="admin-topbar__context" title={currentNavigation?.group.label ?? currentNavigationLabel}><span>{currentNavigationLabel}</span></div> : null}
         <AdminGlobalSearch />
-        <Link className="admin-topbar__view-site" href="/" target="_blank">Xem website <span aria-hidden="true">↗</span></Link>
+        <a className="admin-topbar__view-site" href={publishedPublicUrl("/")} rel="noreferrer" target="_blank">Xem website <span aria-hidden="true">↗</span></a>
         <div className="admin-topbar__account">
           <AdminPopover
             className="admin-notifications"
@@ -251,7 +265,7 @@ export function AdminShell({ administrator, children, notifications }: { adminis
           <div className="admin-sidebar__scroll">
           <nav className="admin-navigation" aria-label="Điều hướng quản trị">
             {navigationGroups.map(group => {
-              const items = group.items.filter(item => !item.adminOnly || administrator.role === "admin");
+              const items = group.items.filter(item => canAccessNavigation(administrator, item));
               if (!items.length) return null;
               const isGroupCollapsed = collapsedNavigationGroups.has(group.id);
               const isCompactGroupOpen = compactNavigationGroups.has(group.id);
@@ -292,7 +306,7 @@ export function AdminShell({ administrator, children, notifications }: { adminis
           </nav>
           </div>
         </aside>
-        {isMobileNavigationOpen ? <button aria-label="Đóng điều hướng" className="admin-mobile-navigation-backdrop" onClick={() => setIsMobileNavigationOpen(false)} type="button" /> : null}
+        {isMobileNavigationOpen ? <button aria-label="Đóng điều hướng" className="admin-mobile-navigation-backdrop" onClick={() => setMobileNavigationPath(null)} type="button" /> : null}
         {sidebarTooltip ? <span className="admin-sidebar-tooltip" role="tooltip" style={{ top: sidebarTooltip.top }}>{sidebarTooltip.label}</span> : null}
 
         <div className="admin-shell__main">

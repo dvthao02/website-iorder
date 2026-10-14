@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { revalidatePath } from "next/cache";
+import { revalidatePath } from "@/lib/publish-cache-revalidation";
 import { z } from "zod";
 import { getRequestAdministrator } from "@iorder/core/server/auth/request-administrator";
 import { supportDownloadCreateRequestSchema } from "@iorder/core/server/support/support-downloads.contract";
@@ -8,7 +8,11 @@ import { createAdminSupportDownload, getAdminSupportDownloads } from "@iorder/co
 export async function GET() {
   const user = await getRequestAdministrator();
   if (!user) return NextResponse.json({ error: { code: "UNAUTHORIZED", message: "Vui lòng đăng nhập lại." } }, { status: 401 });
-  return NextResponse.json({ downloads: await getAdminSupportDownloads() });
+  try {
+    return NextResponse.json({ downloads: await getAdminSupportDownloads() });
+  } catch {
+    return NextResponse.json({ error: { code: "INTERNAL_ERROR", message: "Không thể tải danh sách tài nguyên lúc này. Vui lòng thử lại." } }, { status: 500 });
+  }
 }
 
 export async function POST(request: Request) {

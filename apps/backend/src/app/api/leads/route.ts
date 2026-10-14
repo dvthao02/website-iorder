@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { submitPublicLead } from "@iorder/core/server/leads/leads.service";
+import { getClientAddress } from "@/lib/client-address";
 
-function clientAddress(request: Request) { return request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? request.headers.get("x-real-ip"); }
+// Caddy is the public ingress and appends its observed peer IP to X-Forwarded-For.
+// Reading the rightmost value prevents a client-supplied leftmost value from bypassing lead throttling.
+function clientAddress(request: Request) { return getClientAddress(request.headers.get("x-forwarded-for"), request.headers.get("x-real-ip")); }
 
 export async function POST(request: Request) {
   let input: unknown;

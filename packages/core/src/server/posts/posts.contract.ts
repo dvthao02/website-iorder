@@ -94,4 +94,10 @@ export type PublicPostSummary = z.infer<typeof publicPostSummarySchema>;
 export type PostContentDocument = z.infer<typeof postContentDocumentSchema>;
 export type PublicPostDetail = z.infer<typeof publicPostDetailSchema>;
 export type AdminPost = z.infer<typeof adminPostSchema>;
+export const adminPostListItemSchema = z.object({
+  id: z.string().uuid(), type: publicPostTypeSchema, title: z.string().min(1).max(220), slug: z.string().min(1).max(180),
+  status: z.enum(["draft", "review", "scheduled", "published", "archived"]),
+  draftVersion: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER), updatedAt: z.date(),
+}).strict();
+export type AdminPostListItem = z.infer<typeof adminPostListItemSchema>;
 export type AdminPostInput = z.infer<typeof adminPostInputSchema>;

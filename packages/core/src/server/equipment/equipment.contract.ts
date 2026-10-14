@@ -11,7 +11,7 @@ export const equipmentInputSchema = z.object({
   modelCode: z.string().max(80).nullable(), coverMediaId: z.string().uuid().nullable(),
   priceVnd: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER),
   warrantyMonths: z.number().int().min(0).max(1200), summary: z.string().max(20000).nullable(),
-  specificationGroups: z.array(z.object({ title: z.string().min(1).max(180), items: z.array(z.object({ label: z.string().min(1).max(180), value: z.string().min(1).max(2000) }).strict()).max(100) }).strict()).max(50),
+  specificationGroups: z.array(z.object({ title: z.string().trim().min(1).max(180), items: z.array(z.object({ label: z.string().trim().min(1).max(180), value: z.string().trim().min(1).max(2000) }).strict()).max(100) }).strict()).max(50),
   status: z.enum(["draft", "review", "scheduled", "published", "archived"]),
   scheduledAt: z.coerce.date().nullable(),
   sortOrder: z.number().int().min(0).max(10000), isFeatured: z.boolean(),
@@ -23,3 +23,14 @@ export const equipmentInputSchema = z.object({
 });
 export type EquipmentInput = z.infer<typeof equipmentInputSchema>;
 export type EquipmentGroupInput = z.infer<typeof equipmentGroupInputSchema>;
+
+export const equipmentWriteRequestSchema = z.object({
+  kind: z.enum(["groups", "items"]),
+  id: z.string().uuid().nullable(),
+  values: z.unknown(),
+  expectedVersion: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER).optional(),
+}).strict().superRefine((value, context) => {
+  if (value.kind === "items" && value.id && value.expectedVersion === undefined) {
+    context.addIssue({ code: "custom", path: ["expectedVersion"], message: "Vui lòng tải lại thiết bị để lấy phiên bản mới nhất trước khi lưu." });
+  }
+});

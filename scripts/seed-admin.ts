@@ -3,8 +3,9 @@ import "dotenv/config";
 import { eq } from "drizzle-orm";
 
 import { getDb } from "../packages/core/src/db/client";
-import { roles, userRoles, users } from "../packages/core/src/db/schema";
+import { permissions, rolePermissions, roles, userRoles, users } from "../packages/core/src/db/schema";
 import { hashPassword } from "../packages/core/src/server/auth/password";
+import { cmsPermissions, cmsRoles } from "../packages/core/src/server/auth/permissions";
 
 function requiredEnvironmentValue(name: string) {
   const value = process.env[name]?.trim();
@@ -31,6 +32,26 @@ async function seedInitialAdministrator() {
       .insert(roles)
       .values({ code: "editor", name: "Biên tập viên" })
       .onConflictDoNothing({ target: roles.code });
+
+    for (const permission of cmsPermissions) {
+      await tx.insert(permissions).values(permission).onConflictDoUpdate({ target: permissions.code, set: { name: permission.name, description: permission.description, updatedAt: new Date() } });
+    }
+    for (const role of cmsRoles) {
+      await tx.insert(roles).values({ code: role.code, name: role.name }).onConflictDoUpdate({ target: roles.code, set: { name: role.name, updatedAt: new Date() } });
+    }
+    const seededRoles = await tx.select({ id: roles.id, code: roles.code }).from(roles);
+    const seededPermissions = await tx.select({ id: permissions.id, code: permissions.code }).from(permissions);
+    const roleIds = new Map(seededRoles.map((role) => [role.code, role.id]));
+    const permissionIds = new Map(seededPermissions.map((permission) => [permission.code, permission.id]));
+    for (const role of cmsRoles) {
+      const roleId = roleIds.get(role.code);
+      if (!roleId) throw new Error(`KhÃ´ng táº¡o Ä‘Æ°á»£c vai trÃ² ${role.code}.`);
+      for (const permissionCode of role.permissions) {
+        const permissionId = permissionIds.get(permissionCode);
+        if (!permissionId) throw new Error(`KhÃ´ng táº¡o Ä‘Æ°á»£c quyá»n ${permissionCode}.`);
+        await tx.insert(rolePermissions).values({ roleId, permissionId }).onConflictDoNothing();
+      }
+    }
 
     const [adminRole] = await tx.select({ id: roles.id }).from(roles).where(eq(roles.code, "admin")).limit(1);
 

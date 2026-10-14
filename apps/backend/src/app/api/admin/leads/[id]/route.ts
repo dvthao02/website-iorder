@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getRequestAdministrator } from "@iorder/core/server/auth/request-administrator";
-import { leadStatusUpdateSchema } from "@iorder/core/server/leads/leads.contract";
+import { leadStatusUpdateResponseSchema, leadStatusUpdateSchema } from "@iorder/core/server/leads/leads.contract";
 import { changeLeadStatus } from "@iorder/core/server/leads/leads.service";
 
 export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
@@ -12,7 +12,11 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     const body = leadStatusUpdateSchema.parse(await request.json());
     const lead = await changeLeadStatus(z.string().uuid().parse(id), body.status, user.userId);
     if (!lead) return NextResponse.json({ error: { code: "NOT_FOUND", message: "Không tìm thấy liên hệ cần cập nhật." } }, { status: 404 });
-    return NextResponse.json({ lead });
+    const response = leadStatusUpdateResponseSchema.safeParse({
+      id: lead.id, status: lead.status, handledAt: lead.handledAt?.toISOString() ?? null,
+    });
+    if (!response.success) return NextResponse.json({ error: { code: "INTERNAL_ERROR", message: "Không thể xác nhận kết quả cập nhật liên hệ. Vui lòng tải lại danh sách." } }, { status: 500 });
+    return NextResponse.json({ lead: response.data });
   } catch (error) {
     if (error instanceof z.ZodError || error instanceof SyntaxError) return NextResponse.json({ error: { code: "INVALID_INPUT", message: "Trạng thái liên hệ không hợp lệ." } }, { status: 400 });
     return NextResponse.json({ error: { code: "INTERNAL_ERROR", message: "Không thể cập nhật liên hệ lúc này." } }, { status: 500 });

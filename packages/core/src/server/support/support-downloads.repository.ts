@@ -52,7 +52,7 @@ export async function listEnabledSupportDownloads() {
     })
     .from(supportDownloads)
     .innerJoin(mediaAssets, eq(supportDownloads.fileMediaId, mediaAssets.id))
-    .where(and(eq(supportDownloads.isEnabled, true), isNull(supportDownloads.archivedAt), isNotNull(supportDownloads.fileMediaId)))
+    .where(and(eq(supportDownloads.isEnabled, true), isNull(supportDownloads.archivedAt), isNull(supportDownloads.deletedAt), isNotNull(supportDownloads.fileMediaId)))
     .orderBy(asc(supportDownloads.sortOrder), asc(supportDownloads.title));
 }
 
@@ -61,6 +61,7 @@ export async function listAdminSupportDownloads() {
     .select(adminSelection)
     .from(supportDownloads)
     .leftJoin(mediaAssets, eq(supportDownloads.fileMediaId, mediaAssets.id))
+    .where(isNull(supportDownloads.deletedAt))
     .orderBy(asc(supportDownloads.sortOrder), asc(supportDownloads.title));
 }
 
@@ -69,7 +70,7 @@ export async function findAdminSupportDownloadById(id: string) {
     .select(adminSelection)
     .from(supportDownloads)
     .leftJoin(mediaAssets, eq(supportDownloads.fileMediaId, mediaAssets.id))
-    .where(eq(supportDownloads.id, id))
+    .where(and(eq(supportDownloads.id, id), isNull(supportDownloads.deletedAt)))
     .limit(1);
   return download;
 }
@@ -98,11 +99,11 @@ export function createSupportDownloadWithRevision(values: AdminSupportDownloadIn
 
 export function updateSupportDownloadWithRevision(id: string, values: AdminSupportDownloadInput, revision: RevisionWrite) {
   return getDb().transaction(async (tx) => {
-    const [before] = await tx.select().from(supportDownloads).where(eq(supportDownloads.id, id)).limit(1).for("update");
+    const [before] = await tx.select().from(supportDownloads).where(and(eq(supportDownloads.id, id), isNull(supportDownloads.deletedAt))).limit(1).for("update");
     if (!before || before.draftVersion !== revision.versionNumber - 1) return undefined;
     const [updated] = await tx.update(supportDownloads)
       .set({ ...values, draftVersion: revision.versionNumber, updatedAt: new Date() })
-      .where(and(eq(supportDownloads.id, id), eq(supportDownloads.draftVersion, revision.versionNumber - 1)))
+      .where(and(eq(supportDownloads.id, id), isNull(supportDownloads.deletedAt), eq(supportDownloads.draftVersion, revision.versionNumber - 1)))
       .returning({ id: supportDownloads.id });
     if (!updated) return undefined;
     await tx.insert(supportDownloadRevisions).values({
@@ -126,7 +127,7 @@ export function updateSupportDownloadWithRevision(id: string, values: AdminSuppo
 
 export function setSupportDownloadArchived(id: string, archived: boolean, userId: string, expectedVersion?: number) {
   return getDb().transaction(async (tx) => {
-    const [before] = await tx.select().from(supportDownloads).where(eq(supportDownloads.id, id)).limit(1).for("update");
+    const [before] = await tx.select().from(supportDownloads).where(and(eq(supportDownloads.id, id), isNull(supportDownloads.deletedAt))).limit(1).for("update");
     if (!before || (expectedVersion !== undefined && before.draftVersion !== expectedVersion)) return undefined;
     if (Boolean(before.archivedAt) === archived) return id;
 
@@ -137,7 +138,7 @@ export function setSupportDownloadArchived(id: string, archived: boolean, userId
       isEnabled: false,
       draftVersion: versionNumber,
       updatedAt: new Date(),
-    }).where(and(eq(supportDownloads.id, id), eq(supportDownloads.draftVersion, before.draftVersion))).returning({ id: supportDownloads.id });
+    }).where(and(eq(supportDownloads.id, id), isNull(supportDownloads.deletedAt), eq(supportDownloads.draftVersion, before.draftVersion))).returning({ id: supportDownloads.id });
     if (!updated) return undefined;
     await tx.insert(supportDownloadRevisions).values({
       supportDownloadId: id,
@@ -155,5 +156,28 @@ export function setSupportDownloadArchived(id: string, archived: boolean, userId
       afterData: { ...afterSnapshot, archivedAt: archived ? "now" : null },
     });
     return id;
+  });
+}
+
+/** Chỉ cho xóa mềm tài nguyên đã lưu trữ để giữ revision và audit. */
+export function deleteArchivedSupportDownload(id: string, userId: string, expectedVersion?: number) {
+  return getDb().transaction(async (tx) => {
+    const [before] = await tx
+      .select()
+      .from(supportDownloads)
+      .where(and(eq(supportDownloads.id, id), isNotNull(supportDownloads.archivedAt), isNull(supportDownloads.deletedAt)))
+      .for("update");
+    if (!before || (expectedVersion !== undefined && before.draftVersion !== expectedVersion)) return undefined;
+
+    const [deleted] = await tx.update(supportDownloads).set({ deletedAt: new Date(), updatedAt: new Date(), isEnabled: false }).where(and(eq(supportDownloads.id, id), isNull(supportDownloads.deletedAt))).returning({ id: supportDownloads.id });
+    if (!deleted) return undefined;
+    await tx.insert(auditLogs).values({
+      userId,
+      action: "support_download.delete",
+      entityType: "support_download",
+      entityId: deleted.id,
+      beforeData: { ...rowSnapshot(before), archivedAt: before.archivedAt },
+    });
+    return deleted.id;
   });
 }

@@ -1,69 +1,99 @@
-import type { EquipmentInput } from "@iorder/core/server/equipment/equipment.contract";
 import type { PublicOfferingDetail, PublicOfferingSummary } from "@iorder/core/server/offerings/offering-content.contract";
 import type { PublicPostDetail, PublicPostSummary, PublicPostType } from "@iorder/core/server/posts/posts.contract";
+import type { getEquipment as getEquipmentFromService } from "@iorder/core/server/equipment/equipment.service";
+import type { getMediaById as getMediaByIdFromService } from "@iorder/core/server/media/media.service";
+import type { getNavigation as getNavigationFromService } from "@iorder/core/server/navigation/navigation.service";
+import type { getPublishedPage as getPublishedPageFromService, getPublishedPageSummaries as getPublishedPageSummariesFromService } from "@iorder/core/server/pages/pages.service";
+import type { getCatalogContent as getCatalogContentFromService } from "@iorder/core/server/settings/catalog-content.service";
+import type { getExternalLinks as getExternalLinksFromService } from "@iorder/core/server/settings/external-links.service";
+import type { getListingContent as getListingContentFromService } from "@iorder/core/server/settings/listing-content.service";
+import type { getPublishingConfig as getPublishingConfigFromService } from "@iorder/core/server/settings/publishing.service";
+import type { getSiteProfile as getSiteProfileFromService } from "@iorder/core/server/settings/profile.service";
+import type { getEnabledSupportDownloads as getEnabledSupportDownloadsFromService } from "@iorder/core/server/support/support-downloads.service";
+import type { getPartners as getPartnersFromService, getTestimonials as getTestimonialsFromService } from "@iorder/core/server/supporting/supporting.service";
+import type { getTaxonomy as getTaxonomyFromService } from "@iorder/core/server/taxonomy/taxonomy.service";
+import { publicContentCacheTag } from "@iorder/core/server/publishing/cache-invalidation";
 import { cache } from "react";
 
-type PublicContent = {
-  settings: { config: any; profile: any; externalLinks: any; catalogContent: any; listingContent: any };
-  navigation: { header: any[] | null; headerCta: any[] | null; footer: any[] | null };
-  pages: any[];
-  pageSummaries: any[];
-  posts: any[];
-  postSummaries: any[];
-  equipment: any[];
-  taxonomy: { categories: any[]; tags: any[] };
-  downloads: any[];
-  partners: any[];
-  testimonials: any[];
-  offerings: Record<"software" | "solution" | "service", any[]>;
+type SharedContent = {
+  settings: {
+    config: Awaited<ReturnType<typeof getPublishingConfigFromService>>;
+    profile: Awaited<ReturnType<typeof getSiteProfileFromService>>;
+    externalLinks: Awaited<ReturnType<typeof getExternalLinksFromService>>;
+    catalogContent: Awaited<ReturnType<typeof getCatalogContentFromService>>;
+    listingContent: Awaited<ReturnType<typeof getListingContentFromService>>;
+  };
+  navigation: {
+    header: Awaited<ReturnType<typeof getNavigationFromService>>;
+    headerCta: Awaited<ReturnType<typeof getNavigationFromService>>;
+    footer: Awaited<ReturnType<typeof getNavigationFromService>>;
+  };
 };
-type PublicEquipment = EquipmentInput & { id: string; groupName: string; coverUrl: string | null; coverAlt: string | null; version: number; updatedAt: Date };
+type PublicEquipment = Awaited<ReturnType<typeof getEquipmentFromService>>[number];
+type PublishedPage = NonNullable<Awaited<ReturnType<typeof getPublishedPageFromService>>>;
+type PublishedPageSummaries = Awaited<ReturnType<typeof getPublishedPageSummariesFromService>>;
+type PublicTaxonomy = Awaited<ReturnType<typeof getTaxonomyFromService>>;
+type PublicSupportDownloads = Awaited<ReturnType<typeof getEnabledSupportDownloadsFromService>>;
+type PublicPartners = Awaited<ReturnType<typeof getPartnersFromService>>;
+type PublicTestimonials = Awaited<ReturnType<typeof getTestimonialsFromService>>;
+type PublicMedia = Awaited<ReturnType<typeof getMediaByIdFromService>>;
 
 const backendUrl = (process.env.BACKEND_URL ?? "http://localhost:3002").replace(/\/$/, "");
+const publicCacheOptions = { cache: "force-cache" as const, next: { revalidate: 60, tags: [publicContentCacheTag] } };
 
-function reviveDates(value: unknown, key = ""): any {
+function reviveDates(value: unknown, key = ""): unknown {
   if (typeof value === "string" && /(?:At|Date)$/.test(key) && !Number.isNaN(Date.parse(value))) return new Date(value);
   if (Array.isArray(value)) return value.map((item) => reviveDates(item));
   if (value && typeof value === "object") return Object.fromEntries(Object.entries(value).map(([name, item]) => [name, reviveDates(item, name)]));
   return value;
 }
 
-const getContent = cache(async (): Promise<PublicContent> => {
-  const response = await fetch(`${backendUrl}/api/public/content`, { cache: "no-store" });
+const fetchPublicResource = cache(async (resource: string, encodedParams = "") => {
+  const query = new URLSearchParams(encodedParams);
+  query.set("resource", resource);
+  const response = await fetch(`${backendUrl}/api/public/content?${query.toString()}`, publicCacheOptions);
   if (!response.ok) throw new Error("Không thể tải dữ liệu website từ Backend.");
-  return reviveDates(await response.json());
+  return reviveDates(await response.json() as unknown);
 });
+
+function publicResource<T>(resource: string, params: Record<string, string | undefined> = {}) {
+  const query = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => { if (value) query.set(key, value); });
+  return fetchPublicResource(resource, query.toString()) as Promise<T>;
+}
+
+const getSharedContent = cache(() => publicResource<SharedContent>("shared"));
 
 export function getOfferingTypeFromCatalogPath(path: string) {
   return ({ "phan-mem": "software", "giai-phap": "solution", "dich-vu": "service" } as const)[path as "phan-mem" | "giai-phap" | "dich-vu"];
 }
-export async function getPublishingConfig() { return (await getContent()).settings.config; }
-export async function getSiteProfile() { return (await getContent()).settings.profile; }
-export async function getExternalLinks() { return (await getContent()).settings.externalLinks; }
-export async function getCatalogContent() { return (await getContent()).settings.catalogContent; }
-export async function getListingContent() { return (await getContent()).settings.listingContent; }
-export async function getNavigation(location = "header") { const navigation = (await getContent()).navigation; return location === "header_cta" ? navigation.headerCta : location === "footer" ? navigation.footer : navigation.header; }
-export async function getPublishedPage(slug: string) { return (await getContent()).pages.find((page) => page.slug === slug); }
-export async function getPublishedPageSummaries() { return (await getContent()).pageSummaries; }
-export async function getPublishedPostSummaries(type?: PublicPostType): Promise<PublicPostSummary[]> { const content = await getContent(); return (type ? content.postSummaries.filter((post) => post.type === type) : content.postSummaries) as PublicPostSummary[]; }
-export async function getPublishedPostBySlug(slug: string): Promise<PublicPostDetail | undefined> { return (await getContent()).posts.find((post) => post.slug === slug) as PublicPostDetail | undefined; }
-export async function getPublishedPostsByTaxonomy(kind: "category" | "tag", slug: string): Promise<PublicPostSummary[]> { return (await getContent()).postSummaries.filter((post) => post[`${kind === "category" ? "categories" : "tags"}`].some((term: any) => term.slug === slug)) as PublicPostSummary[]; }
-export async function findCategoryBySlug(slug: string) { return (await getContent()).taxonomy.categories.find((category) => category.slug === slug); }
-export async function findTagBySlug(slug: string) { return (await getContent()).taxonomy.tags.find((tag) => tag.slug === slug); }
-export async function getTaxonomy() { return (await getContent()).taxonomy; }
-export async function getPublishedOfferingSummaries(type: string): Promise<PublicOfferingSummary[]> { return ((await getContent()).offerings[type as "software" | "solution" | "service"] ?? []) as PublicOfferingSummary[]; }
-export async function getPublishedOfferingBySlug(type: string, slug: string): Promise<PublicOfferingDetail | undefined> { return ((await getContent()).offerings[type as "software" | "solution" | "service"] ?? []).find((offering) => offering.slug === slug) as PublicOfferingDetail | undefined; }
-export async function getEquipment(publicOnly = false): Promise<PublicEquipment[]> { const equipment = (await getContent()).equipment as PublicEquipment[]; return publicOnly ? equipment : equipment; }
-export async function getEnabledSupportDownloads(): Promise<any[]> { return (await getContent()).downloads; }
-export async function getPartners(enabledOnly = false): Promise<any[]> { const partners = (await getContent()).partners; return enabledOnly ? partners.filter((partner) => partner.isEnabled) : partners; }
-export async function getTestimonials(enabledOnly = false): Promise<any[]> { const testimonials = (await getContent()).testimonials; return enabledOnly ? testimonials.filter((testimonial) => testimonial.isEnabled) : testimonials; }
+export async function getPublishingConfig() { return (await getSharedContent()).settings.config; }
+export async function getSiteProfile() { return (await getSharedContent()).settings.profile; }
+export async function getExternalLinks() { return (await getSharedContent()).settings.externalLinks; }
+export async function getCatalogContent() { return (await getSharedContent()).settings.catalogContent; }
+export async function getListingContent() { return (await getSharedContent()).settings.listingContent; }
+export async function getNavigation(location = "header") { const navigation = (await getSharedContent()).navigation; return location === "header_cta" ? navigation.headerCta : location === "footer" ? navigation.footer : navigation.header; }
+export async function getPublishedPage(slug: string) { return (await publicResource<{ page: PublishedPage | null }>("page", { slug })).page ?? undefined; }
+export async function getPublishedPageSummaries() { return (await publicResource<{ pages: PublishedPageSummaries }>("page-summaries")).pages; }
+export async function getPublishedPostSummaries(type?: PublicPostType): Promise<PublicPostSummary[]> { return (await publicResource<{ posts: PublicPostSummary[] }>("post-summaries", { postType: type })).posts; }
+export async function getPublishedPostBySlug(slug: string): Promise<PublicPostDetail | undefined> { return (await publicResource<{ post: PublicPostDetail | null }>("post", { slug })).post ?? undefined; }
+export async function getPublishedPostsByTaxonomy(kind: "category" | "tag", slug: string): Promise<PublicPostSummary[]> { return (await publicResource<{ posts: PublicPostSummary[] }>("post-taxonomy", { taxonomyKind: kind, slug })).posts; }
+export async function findCategoryBySlug(slug: string) { return (await getTaxonomy()).categories.find((category) => category.slug === slug); }
+export async function findTagBySlug(slug: string) { return (await getTaxonomy()).tags.find((tag) => tag.slug === slug); }
+export async function getTaxonomy() { return (await publicResource<{ taxonomy: PublicTaxonomy }>("taxonomy")).taxonomy; }
+export async function getPublishedOfferingSummaries(type: string): Promise<PublicOfferingSummary[]> { return (await publicResource<{ offerings: PublicOfferingSummary[] }>("offering-summaries", { offeringType: type })).offerings; }
+export async function getPublishedOfferingBySlug(type: string, slug: string): Promise<PublicOfferingDetail | undefined> { return (await publicResource<{ offering: PublicOfferingDetail | null }>("offering", { offeringType: type, slug })).offering ?? undefined; }
+export async function getEquipment(_publicOnly = false): Promise<PublicEquipment[]> { void _publicOnly; return (await publicResource<{ equipment: PublicEquipment[] }>("equipment")).equipment; }
+export async function getEnabledSupportDownloads(): Promise<PublicSupportDownloads> { return (await publicResource<{ downloads: PublicSupportDownloads }>("downloads")).downloads; }
+export async function getPartners(_enabledOnly = false): Promise<PublicPartners> { void _enabledOnly; return (await publicResource<{ partners: PublicPartners }>("partners")).partners; }
+export async function getTestimonials(_enabledOnly = false): Promise<PublicTestimonials> { void _enabledOnly; return (await publicResource<{ testimonials: PublicTestimonials }>("testimonials")).testimonials; }
 export async function getMediaById(id: string) {
-  const response = await fetch(`${backendUrl}/api/public/media/${encodeURIComponent(id)}`, { cache: "no-store" });
+  const response = await fetch(`${backendUrl}/api/public/media/${encodeURIComponent(id)}`, publicCacheOptions);
   if (!response.ok) return null;
-  return (await response.json()).asset;
+  return (await response.json() as { asset: PublicMedia }).asset;
 }
 export async function getEnabledRedirect(path: string) {
-  const response = await fetch(`${backendUrl}/api/public/redirect?path=${encodeURIComponent(path)}`, { cache: "no-store" });
+  const response = await fetch(`${backendUrl}/api/public/redirect?path=${encodeURIComponent(path)}`, publicCacheOptions);
   if (!response.ok) return null;
   return (await response.json()).redirect;
 }

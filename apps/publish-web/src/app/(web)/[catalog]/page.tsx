@@ -7,7 +7,7 @@ import { SiteHeader } from "@/components/site/site-header";
 import { getOfferingTypeFromCatalogPath, getPublishedOfferingSummaries } from "@/lib/backend";
 import { getCatalogContent } from "@/lib/backend";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 type OfferingListPageProps = {
   params: Promise<{ catalog: string }>;

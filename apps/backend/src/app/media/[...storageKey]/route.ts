@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { notFound } from "next/navigation";
 
 import { getDb } from "@iorder/core/db/client";
@@ -29,7 +29,7 @@ export async function GET(_: Request, { params }: MediaRouteProps) {
   const [asset] = await getDb()
     .select({ mimeType: mediaAssets.mimeType, originalName: mediaAssets.originalName })
     .from(mediaAssets)
-    .where(eq(mediaAssets.storageKey, storageKey))
+    .where(and(eq(mediaAssets.storageKey, storageKey), isNull(mediaAssets.deletedAt)))
     .limit(1);
 
   if (!asset) {

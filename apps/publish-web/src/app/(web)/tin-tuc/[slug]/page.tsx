@@ -7,7 +7,7 @@ import { PostContent } from "@/components/site/post-content";
 import { SiteHeader } from "@/components/site/site-header";
 import { getPublishedPostBySlug } from "@/lib/backend";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 type NewsDetailPageProps = {
   params: Promise<{ slug: string }>;

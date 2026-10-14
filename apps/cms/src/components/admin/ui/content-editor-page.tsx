@@ -7,7 +7,7 @@ export function ContentEditorPage({ sidebar, editor, actions }: { sidebar: React
   return (
     <div className="grid h-[calc(100dvh-7rem)] min-h-[32rem] gap-4 xl:grid-cols-[minmax(17rem,22rem)_minmax(0,1fr)]">
       <AdminCard className="min-w-0 overflow-hidden">{sidebar}</AdminCard>
-      <AdminCard className="grid min-w-0 min-h-0 grid-rows-[minmax(0,1fr)_auto] overflow-hidden"><div className="min-h-0 overflow-y-auto">{editor}</div>{actions ? <AdminEditorActions className="admin-editor-actions--panel">{actions}</AdminEditorActions> : null}</AdminCard>
+      <AdminCard className="grid min-w-0 min-h-0 grid-rows-[minmax(0,1fr)_auto] overflow-hidden"><div className="min-h-0 overflow-y-auto">{editor}</div>{actions ? <AdminEditorActions variant="inline">{actions}</AdminEditorActions> : null}</AdminCard>
     </div>
   );
 }

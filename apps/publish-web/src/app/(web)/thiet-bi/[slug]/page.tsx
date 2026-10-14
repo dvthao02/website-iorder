@@ -3,7 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { SiteHeader } from "@/components/site/site-header";
 import { getEquipment } from "@/lib/backend";
-export const dynamic = "force-dynamic";
+export const revalidate = 0;
 type Props = { params: Promise<{ slug: string }> };
 export async function generateMetadata({ params }: Props) {
   const { slug } = await params;

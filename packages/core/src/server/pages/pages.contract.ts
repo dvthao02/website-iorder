@@ -1,4 +1,10 @@
 import { z } from "zod";
+import { adminListQuerySchema } from "../shared/admin-list.contract";
+
+export const pageListQuerySchema = adminListQuerySchema.extend({ status: z.enum(["draft", "review", "scheduled", "published", "archived"]).optional() });
+export const pageSaveRequestSchema = z.object({ id: z.string().uuid().nullable(), values: z.unknown(), expectedVersion: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER).optional() }).strict().superRefine((value, context) => {
+  if (value.id && value.expectedVersion === undefined) context.addIssue({ code: "custom", path: ["expectedVersion"], message: "Vui lòng tải lại trang để lấy phiên bản trước khi lưu." });
+});
 
 // Route thuộc về code; CMS chỉ quản lý nội dung, SEO và trạng thái của các trang này.
 export const fixedWebsitePages = [
@@ -43,6 +49,15 @@ export const pageInputSchema = z.object({
 });
 
 export const adminPageSchema = pageInputSchema.safeExtend({ id: z.string().uuid(), draftVersion: z.number().int().nonnegative(), publishedAt: z.date().nullable(), updatedAt: z.date() });
+export const adminPagesPageSchema = z.object({
+  items: z.array(adminPageSchema), page: z.number().int().positive(), pageSize: z.number().int().min(5).max(100),
+  total: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER), totalPages: z.number().int().positive(),
+}).superRefine((value, context) => {
+  const expected = Math.max(0, Math.min(value.pageSize, value.total - (value.page - 1) * value.pageSize));
+  if (value.totalPages !== Math.max(1, Math.ceil(value.total / value.pageSize)) || value.items.length !== expected || new Set(value.items.map(page => page.id)).size !== value.items.length) {
+    context.addIssue({ code: "custom", message: "Phản hồi danh sách trang không nhất quán." });
+  }
+});
 export type AdminPage = z.infer<typeof adminPageSchema>;
 export type PageInput = z.infer<typeof pageInputSchema>;
 export type PageBlock = z.infer<typeof pageBlockInputSchema>;

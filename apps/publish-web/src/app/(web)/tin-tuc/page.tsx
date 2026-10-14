@@ -6,7 +6,7 @@ import { SiteHeader } from "@/components/site/site-header";
 import { getPublishedPostSummaries } from "@/lib/backend";
 import { getListingContent } from "@/lib/backend";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export async function generateMetadata(): Promise<Metadata> { const content = await getListingContent(); return content ? { title: content.news.title, description: content.news.description ?? undefined } : {}; }
 

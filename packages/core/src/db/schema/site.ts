@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import { AnyPgColumn, boolean, index, integer, jsonb, pgTable, text, timestamp, uniqueIndex, uuid, varchar } from "drizzle-orm/pg-core";
 
 import { mediaAssets } from "./media";
@@ -18,6 +19,8 @@ export const menuItems = pgTable(
     parentId: uuid("parent_id").references((): AnyPgColumn => menuItems.id, { onDelete: "cascade" }),
     label: varchar("label", { length: 180 }).notNull(),
     url: text("url").notNull(),
+    linkType: varchar("link_type", { length: 32 }).default("custom").notNull(),
+    contentId: uuid("content_id"),
     target: varchar("target", { length: 20 }).default("_self").notNull(),
     icon: varchar("icon", { length: 120 }),
     sortOrder: integer("sort_order").default(0).notNull(),
@@ -27,6 +30,7 @@ export const menuItems = pgTable(
   (table) => [
     uniqueIndex("menu_items_position_unique").on(table.menuId, table.parentId, table.sortOrder),
     index("menu_items_menu_enabled_index").on(table.menuId, table.isEnabled),
+    index("menu_items_content_reference_index").on(table.linkType, table.contentId),
   ],
 );
 
@@ -83,9 +87,10 @@ export const redirects = pgTable(
     destinationPath: varchar("destination_path", { length: 1000 }).notNull(),
     statusCode: integer("status_code").default(301).notNull(),
     isEnabled: boolean("is_enabled").default(true).notNull(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
     ...timestamps(),
   },
-  (table) => [uniqueIndex("redirects_source_path_unique").on(table.sourcePath), index("redirects_enabled_index").on(table.isEnabled)],
+  (table) => [uniqueIndex("redirects_source_path_unique").on(table.sourcePath).where(sql`${table.deletedAt} is null`), index("redirects_enabled_index").on(table.isEnabled), index("redirects_deleted_at_index").on(table.deletedAt)],
 );
 
 export const auditLogs = pgTable(

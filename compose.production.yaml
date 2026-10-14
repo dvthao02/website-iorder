@@ -9,6 +9,7 @@ services:
       args:
         APP_NAME: cms
         BACKEND_URL: http://backend:3000
+        NEXT_PUBLIC_PUBLISH_WEB_URL: https://${SITE_ADDRESS:?missing}
     image: iorder-v2-cms:${APP_IMAGE_TAG:-latest}
     restart: unless-stopped
     environment:
@@ -18,8 +19,8 @@ services:
         condition: service_healthy
       migrate:
         condition: service_completed_successfully
-      s3-init:
-        condition: service_completed_successfully
+      s3:
+        condition: service_healthy
     networks:
       - internal
     healthcheck:
@@ -41,13 +42,14 @@ services:
     restart: unless-stopped
     environment:
       BACKEND_URL: http://backend:3000
+      PUBLISH_WEB_REVALIDATE_SECRET: ${PUBLISH_WEB_REVALIDATE_SECRET:?missing}
     depends_on:
       backend:
         condition: service_healthy
       migrate:
         condition: service_completed_successfully
-      s3-init:
-        condition: service_completed_successfully
+      s3:
+        condition: service_healthy
     networks:
       - internal
     healthcheck:
@@ -67,19 +69,24 @@ services:
     image: iorder-v2-backend:${APP_IMAGE_TAG:-latest}
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
-      LEAD_IP_HASH_SALT: ${LEAD_IP_HASH_SALT}
-      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID}
-      S3_BUCKET: ${S3_BUCKET}
-      S3_ENDPOINT: http://s3:9000
-      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY}
+      DATABASE_URL: postgresql://${POSTGRES_USER:?missing}:${POSTGRES_PASSWORD:?missing}@db:5432/${POSTGRES_DB:?missing}
+      LEAD_IP_HASH_SALT: ${LEAD_IP_HASH_SALT:?missing}
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:?missing}
+      S3_BUCKET: ${S3_BUCKET:?missing}
+      S3_ENDPOINT: http://s3:8333
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:?missing}
+      PUBLISH_WEB_REVALIDATE_URL: http://publish-web:3000/api/internal/revalidate
+      PUBLISH_WEB_REVALIDATE_SECRET: ${PUBLISH_WEB_REVALIDATE_SECRET:?missing}
     depends_on:
       migrate:
         condition: service_completed_successfully
-      s3-init:
+      seed-admin:
         condition: service_completed_successfully
+      s3:
+        condition: service_healthy
     networks:
       - internal
+      - storage
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
       interval: 30s
@@ -96,20 +103,35 @@ services:
     restart: "no"
     command: pnpm db:migrate
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      DATABASE_URL: postgresql://${POSTGRES_USER:?missing}:${POSTGRES_PASSWORD:?missing}@db:5432/${POSTGRES_DB:?missing}
     depends_on:
       db:
         condition: service_healthy
     networks:
       - internal
 
+  seed-admin:
+    image: iorder-v2-migrate:${APP_IMAGE_TAG:-latest}
+    restart: "no"
+    command: pnpm db:seed:admin
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:?missing}:${POSTGRES_PASSWORD:?missing}@db:5432/${POSTGRES_DB:?missing}
+      INITIAL_ADMIN_USERNAME: ${INITIAL_ADMIN_USERNAME}
+      INITIAL_ADMIN_PASSWORD: ${INITIAL_ADMIN_PASSWORD}
+      INITIAL_ADMIN_NAME: ${INITIAL_ADMIN_NAME:-Administrator}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    networks:
+      - internal
+
   db:
-    image: postgres:17.11-alpine3.24
+    image: postgres:17.11-alpine3.24@sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:?missing}
+      POSTGRES_USER: ${POSTGRES_USER:?missing}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?missing}
     volumes:
       - postgres-data:/var/lib/postgresql/data
     networks:
@@ -121,38 +143,25 @@ services:
       retries: 12
 
   s3:
-    image: minio/minio:latest
+    image: chrislusf/seaweedfs@sha256:4e61d15fd35994cb1e43e1e553dff106794841fd9a99ade2fc8c8bfce4d7872d
     restart: unless-stopped
-    command: server /data --console-address ":9001"
+    command: ["mini", "-dir=/data", "-master.telemetry=false"]
     environment:
-      MINIO_ROOT_USER: ${S3_ACCESS_KEY_ID}
-      MINIO_ROOT_PASSWORD: ${S3_SECRET_ACCESS_KEY}
+      AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:?missing}
+      AWS_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:?missing}
+      S3_BUCKET: ${S3_BUCKET:?missing}
     volumes:
-      - minio-data:/data
+      - seaweed-data:/data
     networks:
-      - internal
-
-  s3-init:
-    image: minio/mc:latest
-    restart: "no"
-    depends_on:
-      s3:
-        condition: service_started
-    environment:
-      MINIO_ROOT_USER: ${S3_ACCESS_KEY_ID}
-      MINIO_ROOT_PASSWORD: ${S3_SECRET_ACCESS_KEY}
-      S3_BUCKET: ${S3_BUCKET}
-    networks:
-      - internal
-    entrypoint:
-      - /bin/sh
-      - -ec
-      - |
-        until mc alias set iorder http://s3:9000 "$${MINIO_ROOT_USER}" "$${MINIO_ROOT_PASSWORD}"; do sleep 2; done
-        mc mb --ignore-existing "iorder/$${S3_BUCKET}"
+      - storage
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:9333/cluster/status"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
 
   proxy:
-    image: caddy:2-alpine
+    image: caddy:2-alpine@sha256:d8542f48d34a9cf4e4c11a478865229840e87e4c96ea3f439101f31a5d35f75f
     restart: unless-stopped
     depends_on:
       cms:
@@ -162,8 +171,8 @@ services:
       backend:
         condition: service_healthy
     environment:
-      CMS_SITE_ADDRESS: ${CMS_SITE_ADDRESS}
-      SITE_ADDRESS: ${SITE_ADDRESS}
+      CMS_SITE_ADDRESS: ${CMS_SITE_ADDRESS:?missing}
+      SITE_ADDRESS: ${SITE_ADDRESS:?missing}
     ports:
       - "80:80"
       - "443:443"
@@ -176,10 +185,13 @@ services:
 
 volumes:
   postgres-data:
-  minio-data:
+  seaweed-data:
   caddy-data:
   caddy-config:
 
 networks:
   internal:
     driver: bridge
+  storage:
+    driver: bridge
+    internal: true

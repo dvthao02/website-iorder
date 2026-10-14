@@ -10,6 +10,7 @@ import {
 } from "./support-downloads.contract";
 import {
   createSupportDownloadWithRevision,
+  deleteArchivedSupportDownload,
   findAdminSupportDownloadById,
   listAdminSupportDownloads,
   listEnabledSupportDownloads,
@@ -33,6 +34,7 @@ export class ArchivedSupportDownloadError extends Error {
 
 type SupportDownloadsRepository = {
   createSupportDownloadWithRevision: typeof createSupportDownloadWithRevision;
+  deleteArchivedSupportDownload: typeof deleteArchivedSupportDownload;
   findAdminSupportDownloadById: typeof findAdminSupportDownloadById;
   listAdminSupportDownloads: typeof listAdminSupportDownloads;
   listEnabledSupportDownloads: typeof listEnabledSupportDownloads;
@@ -138,18 +140,31 @@ export function createSupportDownloadsService(repository: SupportDownloadsReposi
     return download ? serializeAdminSupportDownload(download) : undefined;
   }
 
+  async function deleteArchivedAdminSupportDownload(id: string, editorId: string, expectedVersion?: number) {
+    if (!z.string().uuid().safeParse(id).success) return undefined;
+    const existing = await repository.findAdminSupportDownloadById(id);
+    if (!existing) return undefined;
+    if (!existing.archivedAt) return undefined;
+    if (expectedVersion !== undefined && expectedVersion !== existing.draftVersion) throw new SupportDownloadVersionConflictError();
+    const deletedId = await repository.deleteArchivedSupportDownload(id, editorId, expectedVersion);
+    if (!deletedId) throw new SupportDownloadVersionConflictError();
+    return deletedId;
+  }
+
   return {
     changeSupportDownloadArchiveState,
     createAdminSupportDownload,
     getAdminSupportDownloadById,
     getAdminSupportDownloads,
     getEnabledSupportDownloads,
+    deleteArchivedAdminSupportDownload,
     updateAdminSupportDownload,
   };
 }
 
 const supportDownloadsService = createSupportDownloadsService({
   createSupportDownloadWithRevision,
+  deleteArchivedSupportDownload,
   findAdminSupportDownloadById,
   findMediaAsset,
   listAdminSupportDownloads,
@@ -160,6 +175,7 @@ const supportDownloadsService = createSupportDownloadsService({
 
 export const changeSupportDownloadArchiveState = supportDownloadsService.changeSupportDownloadArchiveState;
 export const createAdminSupportDownload = supportDownloadsService.createAdminSupportDownload;
+export const deleteArchivedAdminSupportDownload = supportDownloadsService.deleteArchivedAdminSupportDownload;
 export const getAdminSupportDownloadById = supportDownloadsService.getAdminSupportDownloadById;
 export const getAdminSupportDownloads = supportDownloadsService.getAdminSupportDownloads;
 export const getEnabledSupportDownloads = supportDownloadsService.getEnabledSupportDownloads;

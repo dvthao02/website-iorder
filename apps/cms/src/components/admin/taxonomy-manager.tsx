@@ -2,12 +2,18 @@
 
 import { FolderTree, Plus, Tags } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState, type FormEvent, type ReactNode } from "react";
+import { useRef, useState, type FormEvent, type ReactNode } from "react";
 
 import { AdminButton } from "./ui/admin-button";
 import { AdminCard } from "./ui/admin-card";
 import { AdminEmptyState } from "./ui/admin-empty-state";
+import { AdminEditorActions } from "./ui/admin-editor-actions";
 import { useAdminToast } from "./ui/admin-feedback";
+import { AdminFilterBar } from "./ui/admin-filter-bar";
+import { AdminFilterTabs } from "./ui/admin-filter-tabs";
+import { AdminListHeader } from "./ui/admin-list-header";
+import { AdminListPage } from "./ui/admin-list-page";
+import { useNavigationGuard } from "./ui/use-navigation-guard";
 
 type Category = {
   id: string;
@@ -66,12 +72,18 @@ export function TaxonomyManager({ categories, tags }: { categories: Category[]; 
   const [tagForm, setTagForm] = useState<TagForm | null>(null);
   const [initialValues, setInitialValues] = useState<CategoryForm | TagForm | null>(null);
   const [busy, setBusy] = useState(false);
+  const mutationPending = useRef(false);
 
   const form = kind === "categories" ? categoryForm : tagForm;
   const dirty = !equalValues(form, initialValues);
+  useNavigationGuard(dirty || busy, busy ? () => showToast("Đang xử lý phân loại. Vui lòng chờ trước khi rời trang.", "info") : undefined);
   const invalidParentIds = activeId && kind === "categories" ? descendantIds(categories, activeId) : new Set<string>();
 
   function allowSelectionChange() {
+    if (mutationPending.current) {
+      showToast("Đang xử lý phân loại. Vui lòng chờ trước khi chuyển mục.", "info");
+      return false;
+    }
     if (!dirty) return true;
     showToast("Bạn có thay đổi chưa lưu. Hãy lưu hoặc bỏ thay đổi trước khi chuyển mục.", "warning");
     return false;
@@ -109,7 +121,7 @@ export function TaxonomyManager({ categories, tags }: { categories: Category[]; 
   }
 
   function discardChanges() {
-    if (!initialValues) return;
+    if (mutationPending.current || !initialValues) return;
     if (kind === "categories") setCategoryForm(initialValues as CategoryForm);
     else setTagForm(initialValues as TagForm);
     showToast("Đã bỏ các thay đổi chưa lưu.", "info");
@@ -118,8 +130,9 @@ export function TaxonomyManager({ categories, tags }: { categories: Category[]; 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const values = kind === "categories" ? categoryForm : tagForm;
-    if (!values) return;
+    if (!values || !dirty || mutationPending.current) return;
 
+    mutationPending.current = true;
     setBusy(true);
     try {
       const response = await fetch("/api/admin/taxonomy", {
@@ -129,6 +142,7 @@ export function TaxonomyManager({ categories, tags }: { categories: Category[]; 
       });
       const body = await response.json();
       if (!response.ok) throw new Error(body.error?.message ?? "Không thể lưu phân loại.");
+      if (typeof body.id !== "string" || !body.id || (activeId && body.id !== activeId)) throw new Error("Phản hồi lưu phân loại không hợp lệ. Hãy kiểm tra lại dữ liệu trước khi thử lại.");
 
       const wasCreating = !activeId;
       setActiveId(body.id);
@@ -138,45 +152,65 @@ export function TaxonomyManager({ categories, tags }: { categories: Category[]; 
     } catch (error) {
       showToast(error instanceof Error ? error.message : "Không kết nối được máy chủ.", "error");
     } finally {
+      mutationPending.current = false;
+      setBusy(false);
+    }
+  }
+
+  async function removeCurrent() {
+    if (mutationPending.current) return;
+    if (!activeId || dirty) {
+      if (dirty) showToast("Hãy lưu hoặc bỏ thay đổi trước khi xóa.", "warning");
+      return;
+    }
+    const label = kind === "categories" ? "chuyên mục" : "thẻ";
+    if (!window.confirm(`Xóa ${label} này khỏi CMS? Thao tác không thể hoàn tác.`)) return;
+
+    mutationPending.current = true;
+    setBusy(true);
+    try {
+      const response = await fetch(`/api/admin/taxonomy?kind=${kind}&id=${activeId}`, { method: "DELETE" });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.error?.message ?? `Không thể xóa ${label}.`);
+      if (body.deletedId !== activeId) throw new Error("Phản hồi xóa phân loại không hợp lệ. Hãy tải lại danh sách để kiểm tra.");
+      setActiveId(null);
+      setCategoryForm(null);
+      setTagForm(null);
+      setInitialValues(null);
+      showToast(`Đã xóa ${label} khỏi CMS.`, "success");
+      router.refresh();
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : "Không kết nối được máy chủ.", "error");
+    } finally {
+      mutationPending.current = false;
       setBusy(false);
     }
   }
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[minmax(19rem,0.72fr)_minmax(0,1.28fr)]">
+    <AdminListPage className="xl:grid-cols-[minmax(19rem,0.72fr)_minmax(0,1.28fr)]">
       <AdminCard className="overflow-hidden p-0">
-        <header className="border-b border-slate-200 p-5">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h2 className="text-lg font-extrabold text-slate-950">Cấu trúc phân loại</h2>
-              <p className="mt-1 text-sm text-slate-600">Tổ chức bài viết để người đọc tìm nội dung nhanh hơn.</p>
-            </div>
-            <AdminButton onClick={() => (kind === "categories" ? selectCategory() : selectTag())}>
-              <Plus aria-hidden="true" size={16} /> {kind === "categories" ? "Thêm chuyên mục" : "Thêm thẻ"}
-            </AdminButton>
-          </div>
-          <div aria-label="Loại phân loại" className="mt-5 flex gap-2" role="tablist">
-            <KindTab active={kind === "categories"} label={`Chuyên mục (${categories.length})`} onClick={() => changeKind("categories")} />
-            <KindTab active={kind === "tags"} label={`Thẻ (${tags.length})`} onClick={() => changeKind("tags")} />
-          </div>
+        <header className="grid gap-4 p-5">
+          <AdminListHeader actions={<AdminButton leadingIcon={<Plus aria-hidden="true" size={16} />} onClick={() => (kind === "categories" ? selectCategory() : selectTag())}>{kind === "categories" ? "Thêm chuyên mục" : "Thêm thẻ"}</AdminButton>} description="Tổ chức bài viết để người đọc tìm nội dung nhanh hơn." title="Cấu trúc phân loại" />
+          <AdminFilterBar onSubmit={(event) => event.preventDefault()}><AdminFilterTabs ariaLabel="Loại phân loại" disabled={busy} items={[{ label: `Chuyên mục (${categories.length})`, value: "categories" }, { label: `Thẻ (${tags.length})`, value: "tags" }]} onValueChange={changeKind} value={kind} /></AdminFilterBar>
         </header>
 
         <div className="grid gap-2 p-3">
           {kind === "categories" ? categories.map((item) => (
             <button
-              className={item.id === activeId ? "rounded-xl border border-blue-300 bg-blue-50 p-3 text-left" : "rounded-xl border border-transparent p-3 text-left hover:bg-slate-50"}
+              className={item.id === activeId ? "rounded-xl border border-blue-300 bg-blue-50 p-3 text-left" : "rounded-xl border border-transparent p-3 text-left hover:bg-[var(--cms-hover)]"}
               key={item.id}
               onClick={() => selectCategory(item)}
               style={{ marginLeft: `${Math.min(categoryDepth(categories, item), 3) * 14}px` }}
               type="button"
             >
-              <span className="flex items-center gap-2"><FolderTree aria-hidden="true" className="text-blue-700" size={16} /><strong className="text-sm text-slate-950">{item.name}</strong></span>
-              <span className="mt-1 block text-xs text-slate-500">/{item.slug} · Thứ tự {item.sortOrder}</span>
+              <span className="flex items-center gap-2"><FolderTree aria-hidden="true" className="text-blue-700" size={16} /><strong className="text-sm text-[var(--cms-text)]">{item.name}</strong></span>
+              <span className="mt-1 block text-xs text-[var(--cms-muted)]">/{item.slug} · Thứ tự {item.sortOrder}</span>
             </button>
           )) : tags.map((item) => (
-            <button className={item.id === activeId ? "rounded-xl border border-blue-300 bg-blue-50 p-3 text-left" : "rounded-xl border border-transparent p-3 text-left hover:bg-slate-50"} key={item.id} onClick={() => selectTag(item)} type="button">
-              <span className="flex items-center gap-2"><Tags aria-hidden="true" className="text-blue-700" size={16} /><strong className="text-sm text-slate-950">{item.name}</strong></span>
-              <span className="mt-1 block text-xs text-slate-500">/{item.slug}</span>
+            <button className={item.id === activeId ? "rounded-xl border border-blue-300 bg-blue-50 p-3 text-left" : "rounded-xl border border-transparent p-3 text-left hover:bg-[var(--cms-hover)]"} key={item.id} onClick={() => selectTag(item)} type="button">
+              <span className="flex items-center gap-2"><Tags aria-hidden="true" className="text-blue-700" size={16} /><strong className="text-sm text-[var(--cms-text)]">{item.name}</strong></span>
+              <span className="mt-1 block text-xs text-[var(--cms-muted)]">/{item.slug}</span>
             </button>
           ))}
           {(kind === "categories" ? categories.length : tags.length) === 0 ? (
@@ -193,12 +227,13 @@ export function TaxonomyManager({ categories, tags }: { categories: Category[]; 
       <AdminCard className="p-5 sm:p-7">
         {form ? (
           <form className="grid gap-6" onSubmit={save}>
-            <header className="border-b border-slate-200 pb-5">
+            <header className="border-b border-[var(--cms-border)] pb-5">
               <p className="text-sm font-bold uppercase tracking-wide text-blue-700">{activeId ? "Chỉnh sửa" : "Tạo mới"}</p>
-              <h2 className="mt-1 text-2xl font-extrabold text-slate-950">{kind === "categories" ? "Chuyên mục" : "Thẻ bài viết"}</h2>
-              <p className={dirty ? "mt-1 text-sm font-semibold text-amber-700" : "mt-1 text-sm text-slate-600"}>{dirty ? "Có thay đổi chưa lưu." : "Mọi thay đổi đã được lưu."}</p>
+              <h2 className="mt-1 text-2xl font-extrabold text-[var(--cms-text)]">{kind === "categories" ? "Chuyên mục" : "Thẻ bài viết"}</h2>
+              <p className={dirty ? "mt-1 text-sm font-semibold text-amber-700" : "mt-1 text-sm text-[var(--cms-muted)]"}>{busy ? "Đang xử lý phân loại…" : dirty ? "Có thay đổi chưa lưu." : activeId ? "Không có thay đổi chưa lưu." : "Nhập thông tin để tạo phân loại mới."}</p>
             </header>
 
+            <fieldset className="grid min-w-0 gap-6 border-0 p-0 disabled:opacity-70" disabled={busy}>
             {kind === "categories" && categoryForm ? (
               <>
                 <Field label="Tên chuyên mục"><input onChange={(event) => setCategoryForm({ ...categoryForm, name: event.target.value })} required value={categoryForm.name} /></Field>
@@ -218,10 +253,15 @@ export function TaxonomyManager({ categories, tags }: { categories: Category[]; 
               </>
             ) : null}
 
-            <footer className="admin-editor-actions flex-wrap">
-              {dirty ? <AdminButton onClick={discardChanges} variant="secondary">Bỏ thay đổi</AdminButton> : null}
-              <AdminButton disabled={busy || !dirty} type="submit">{busy ? "Đang lưu…" : "Lưu phân loại"}</AdminButton>
-            </footer>
+            </fieldset>
+
+            <AdminEditorActions className="flex-wrap justify-between" variant="inline">
+              <div>{activeId ? <AdminButton disabled={busy} onClick={removeCurrent} variant="danger">Xóa {kind === "categories" ? "chuyên mục" : "thẻ"}</AdminButton> : null}</div>
+              <div className="flex gap-2">
+                {dirty ? <AdminButton disabled={busy} onClick={discardChanges} variant="secondary">Bỏ thay đổi</AdminButton> : null}
+                <AdminButton disabled={busy || !dirty} type="submit">{busy ? "Đang lưu…" : "Lưu phân loại"}</AdminButton>
+              </div>
+            </AdminEditorActions>
           </form>
         ) : (
           <AdminEmptyState
@@ -232,14 +272,10 @@ export function TaxonomyManager({ categories, tags }: { categories: Category[]; 
           />
         )}
       </AdminCard>
-    </div>
+    </AdminListPage>
   );
 }
 
-function KindTab({ active, label, onClick }: { active: boolean; label: string; onClick: () => void }) {
-  return <button aria-selected={active} className={active ? "rounded-full bg-blue-100 px-3 py-1.5 text-sm font-bold text-blue-800" : "rounded-full bg-slate-100 px-3 py-1.5 text-sm font-bold text-slate-600 hover:bg-slate-200"} onClick={onClick} role="tab" type="button">{label}</button>;
-}
-
 function Field({ children, label }: { children: ReactNode; label: string }) {
-  return <label className="grid gap-2 text-sm font-bold text-slate-700"><span>{label}</span><span className="[&_input]:block [&_input]:w-full [&_input]:rounded-lg [&_input]:border [&_input]:border-slate-300 [&_input]:px-3 [&_input]:py-2 [&_select]:block [&_select]:w-full [&_select]:rounded-lg [&_select]:border [&_select]:border-slate-300 [&_select]:bg-white [&_select]:px-3 [&_select]:py-2 [&_textarea]:block [&_textarea]:w-full [&_textarea]:rounded-lg [&_textarea]:border [&_textarea]:border-slate-300 [&_textarea]:px-3 [&_textarea]:py-2">{children}</span></label>;
+  return <label className="grid gap-2 text-sm font-bold text-[var(--cms-text)]"><span>{label}</span><span className="[&_input]:block [&_input]:w-full [&_input]:rounded-lg [&_input]:border [&_input]:border-[var(--cms-border)] [&_input]:px-3 [&_input]:py-2 [&_select]:block [&_select]:w-full [&_select]:rounded-lg [&_select]:border [&_select]:border-[var(--cms-border)] [&_select]:bg-[var(--cms-card)] [&_select]:px-3 [&_select]:py-2 [&_textarea]:block [&_textarea]:w-full [&_textarea]:rounded-lg [&_textarea]:border [&_textarea]:border-[var(--cms-border)] [&_textarea]:px-3 [&_textarea]:py-2">{children}</span></label>;
 }

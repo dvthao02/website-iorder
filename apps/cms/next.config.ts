@@ -9,8 +9,12 @@ const workspaceRoot = path.join(__dirname, "../..");
 loadEnvironment({ path: path.join(workspaceRoot, ".env") });
 
 const nextConfig: NextConfig = {
+  allowedDevOrigins: ["127.0.0.1"],
   output: "standalone",
   outputFileTracingRoot: workspaceRoot,
+  experimental: {
+    turbopackFileSystemCacheForDev: false,
+  },
   turbopack: { root: workspaceRoot },
   async redirects() {
     return [

@@ -16,7 +16,7 @@ const catalogRoots = [
 ];
 
 function item(key: string, label: string, url: string, parentKey: string | null = null): NavigationItems[number] {
-  return { key, label, url, parentKey, target: "_self", isEnabled: true };
+  return { key, label, url, parentKey, linkType: "custom", contentId: null, target: "_self", isEnabled: true };
 }
 
 async function run() {

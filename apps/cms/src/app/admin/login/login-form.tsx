@@ -39,20 +39,20 @@ export function LoginForm({ initialError }: LoginFormProps) {
 
   return (
     <form action="/api/admin/session" className="grid gap-5" method="post" onSubmit={handleSubmit}>
-      <label className="grid gap-2 text-sm font-semibold text-slate-700">
+      <label className="grid gap-2 text-sm font-semibold text-[var(--cms-text)]">
         Tên đăng nhập
         <input
           autoComplete="username"
-          className="rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
+          className="rounded-xl border border-[var(--cms-border)] bg-[var(--cms-card)] px-4 py-3 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
           name="username"
           required
         />
       </label>
-      <label className="grid gap-2 text-sm font-semibold text-slate-700">
+      <label className="grid gap-2 text-sm font-semibold text-[var(--cms-text)]">
         Mật khẩu
         <input
           autoComplete="current-password"
-          className="rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
+          className="rounded-xl border border-[var(--cms-border)] bg-[var(--cms-card)] px-4 py-3 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
           name="password"
           required
           type="password"
@@ -60,7 +60,7 @@ export function LoginForm({ initialError }: LoginFormProps) {
       </label>
       {error ? <p className="text-sm font-medium text-red-700">{error}</p> : null}
       <button
-        className="rounded-xl bg-slate-900 px-4 py-3 font-bold text-white transition hover:bg-slate-700 disabled:cursor-wait disabled:opacity-70"
+        className="rounded-xl bg-[var(--cms-text)] px-4 py-3 font-bold text-white transition hover:bg-[var(--cms-primary-strong)] disabled:cursor-wait disabled:opacity-70"
         disabled={isSubmitting}
         type="submit"
       >

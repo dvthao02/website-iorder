@@ -4,7 +4,7 @@ import { SiteHeader } from "@/components/site/site-header";
 import { getEquipment } from "@/lib/backend";
 import { getListingContent } from "@/lib/backend";
 import type { Metadata } from "next";
-export const dynamic = "force-dynamic";
+export const revalidate = 0;
 export async function generateMetadata(): Promise<Metadata> { const content = await getListingContent(); return content ? { title: content.equipment.title, description: content.equipment.description ?? undefined } : {}; }
 export default async function EquipmentPage() {
   const [items, content] = await Promise.all([getEquipment(true), getListingContent()]);

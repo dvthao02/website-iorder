@@ -4,11 +4,14 @@ import {
   navigationSchema,
   type NavigationDocument,
   type NavigationLocation,
+  type NavigationTarget,
 } from "./navigation.contract";
 import {
   NavigationWriteConflictError,
   readNavigation,
   readNavigationById,
+  listPublishedNavigationTargets,
+  resolvePublishedNavigationItems,
   writeNavigation,
 } from "./navigation.repository";
 
@@ -27,6 +30,8 @@ export class NavigationVersionConflictError extends Error {
 type NavigationRepository = {
   readNavigation: typeof readNavigation;
   readNavigationById: typeof readNavigationById;
+  listPublishedNavigationTargets?: typeof listPublishedNavigationTargets;
+  resolvePublishedNavigationItems?: typeof resolvePublishedNavigationItems;
   writeNavigation: typeof writeNavigation;
 };
 
@@ -40,6 +45,8 @@ function toDocument(record: NonNullable<Awaited<ReturnType<typeof readNavigation
       parentKey: row.parentId,
       label: row.label,
       url: row.url,
+      linkType: row.linkType as NavigationDocument["items"][number]["linkType"],
+      contentId: row.contentId,
       target: row.target,
       isEnabled: row.isEnabled,
     })),
@@ -49,7 +56,11 @@ function toDocument(record: NonNullable<Awaited<ReturnType<typeof readNavigation
 export function createNavigationService(repository: NavigationRepository) {
   async function getNavigation(location: NavigationLocation = "header") {
     const document = await getAdminNavigation(location);
-    return document.id ? document.items : null;
+    return document.id ? (repository.resolvePublishedNavigationItems ? repository.resolvePublishedNavigationItems(document.items) : document.items) : null;
+  }
+
+  async function getPublishedNavigationTargets(): Promise<NavigationTarget[]> {
+    return repository.listPublishedNavigationTargets ? repository.listPublishedNavigationTargets() : [];
   }
 
   async function getAdminNavigation(location: NavigationLocation): Promise<NavigationDocument> {
@@ -86,12 +97,13 @@ export function createNavigationService(repository: NavigationRepository) {
     }
   }
 
-  return { getNavigation, getAdminNavigation, getAdminNavigationById, saveNavigation };
+  return { getNavigation, getAdminNavigation, getAdminNavigationById, getPublishedNavigationTargets, saveNavigation };
 }
 
-const navigationService = createNavigationService({ readNavigation, readNavigationById, writeNavigation });
+const navigationService = createNavigationService({ readNavigation, readNavigationById, listPublishedNavigationTargets, resolvePublishedNavigationItems, writeNavigation });
 
 export const getNavigation = navigationService.getNavigation;
 export const getAdminNavigation = navigationService.getAdminNavigation;
 export const getAdminNavigationById = navigationService.getAdminNavigationById;
+export const getPublishedNavigationTargets = navigationService.getPublishedNavigationTargets;
 export const saveNavigation = navigationService.saveNavigation;

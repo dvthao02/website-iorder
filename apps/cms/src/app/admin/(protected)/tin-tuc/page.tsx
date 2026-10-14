@@ -1,21 +1,22 @@
 import { redirect } from "next/navigation";
+import { outOfRangeListHref } from "@/lib/admin-list-url";
 
 import { PostManagerList } from "@/components/admin/post-manager-list";
-import { getAdminPosts } from "@/lib/backend";
+import { getAdminPostsPage } from "@/lib/backend";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdministratorPostsPage({ searchParams }: { searchParams: Promise<{ create?: string; edit?: string }> }) {
+type PostStatus = "draft" | "review" | "scheduled" | "published" | "archived";
+const statuses = new Set<PostStatus>(["draft", "review", "scheduled", "published", "archived"]);
+
+export default async function AdministratorPostsPage({ searchParams }: { searchParams: Promise<{ create?: string; edit?: string; page?: string; query?: string; status?: string }> }) {
   const params = await searchParams;
   if (params.create === "1") redirect("/admin/tin-tuc/moi");
   if (params.edit) redirect(`/admin/tin-tuc/${encodeURIComponent(params.edit)}`);
-  const posts = await getAdminPosts();
+  const status = params.status && statuses.has(params.status as PostStatus) ? params.status as PostStatus : undefined;
+  const result = await getAdminPostsPage({ excludeType: "guide", page: params.page, query: params.query, status });
+  const correctedHref = outOfRangeListHref("/admin/tin-tuc", result, { query: params.query, status });
+  if (correctedHref) redirect(correctedHref);
 
-  return (
-    <main className="min-h-screen bg-slate-100 p-6 sm:p-10">
-      <section className="mx-auto max-w-7xl">
-        <PostManagerList items={posts.filter((post) => post.type !== "guide")} />
-      </section>
-    </main>
-  );
+  return <main className="min-h-screen bg-[var(--cms-hover)] p-6 sm:p-10"><section className="mx-auto max-w-7xl"><PostManagerList initialQuery={params.query ?? ""} initialStatus={status ?? "all"} key={`${params.query ?? ""}:${status ?? "all"}:${params.page ?? "1"}`} result={result} /></section></main>;
 }

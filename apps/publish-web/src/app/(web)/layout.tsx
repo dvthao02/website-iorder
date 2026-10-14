@@ -7,7 +7,7 @@ import type { NavigationItems } from "@iorder/core/server/navigation/navigation.
 import { getExternalLinks } from "@/lib/backend";
 import Link from "next/link";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export default async function PublicLayout({ children }: { children: ReactNode }) {
   const [profile, footerNavigation, externalLinks] = await Promise.all([getSiteProfile(), getNavigation("footer"), getExternalLinks()]);

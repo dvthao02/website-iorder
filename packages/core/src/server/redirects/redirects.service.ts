@@ -1,5 +1,6 @@
 import { redirectInputSchema } from "./redirects.contract";
-import { findEnabledRedirect, listRedirects, saveRedirect } from "./redirects.repository";
+import { deleteRedirect, findEnabledRedirect, listRedirects, saveRedirect } from "./redirects.repository";
+import { z } from "zod";
 
 export async function getRedirects() {
   return (await listRedirects()).map((row) => {
@@ -13,3 +14,4 @@ export async function getRedirects() {
 }
 export async function getEnabledRedirect(sourcePath: string) { return findEnabledRedirect(sourcePath); }
 export async function writeRedirect(id: string | null, input: unknown, userId: string) { return saveRedirect(id, redirectInputSchema.parse(input), userId); }
+export async function deleteAdminRedirect(id: string, userId: string) { return z.string().uuid().safeParse(id).success ? deleteRedirect(id, userId) : undefined; }

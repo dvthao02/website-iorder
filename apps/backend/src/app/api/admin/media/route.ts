@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getRequestAdministrator } from "@iorder/core/server/auth/request-administrator";
-import { getAdminMedia, InvalidMediaError, uploadAdminMedia } from "@iorder/core/server/media/media.service";
+import { getAdminMediaPage, InvalidMediaError, uploadAdminMedia } from "@iorder/core/server/media/media.service";
+import { z } from "zod";
+import { getOriginalRequestHost, isMediaUploadOriginAllowed } from "@iorder/core/server/media/media-origin";
 
 export const runtime = "nodejs";
 
@@ -9,7 +11,7 @@ export async function POST(request: Request) {
   const administrator = await getRequestAdministrator();
   if (!administrator) return fail("UNAUTHORIZED", "Vui lòng đăng nhập lại.", 401);
   const origin = request.headers.get("origin");
-  if (origin && new URL(origin).host !== request.headers.get("host")) return fail("FORBIDDEN", "Nguồn gửi yêu cầu không hợp lệ.", 403);
+  if (!isMediaUploadOriginAllowed(origin, getOriginalRequestHost(request.headers))) return fail("FORBIDDEN", "Nguồn gửi yêu cầu không hợp lệ.", 403);
   const contentType = request.headers.get("content-type") || "";
   if (!contentType.startsWith("multipart/form-data")) return fail("INVALID_INPUT", "Vui lòng gửi tệp bằng biểu mẫu tải lên.", 400);
   const reader = request.body?.getReader();
@@ -39,11 +41,14 @@ export async function POST(request: Request) {
   }
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   if (!await getRequestAdministrator()) return NextResponse.json({ error: { code: "UNAUTHORIZED", message: "Vui lòng đăng nhập lại." } }, { status: 401 });
   try {
-    return NextResponse.json({ assets: await getAdminMedia() });
-  } catch {
+    const params = new URL(request.url).searchParams;
+    const page = await getAdminMediaPage(Object.fromEntries(params));
+    return NextResponse.json({ ...page, assets: page.items });
+  } catch (error) {
+    if (error instanceof z.ZodError) return NextResponse.json({ error: { code: "INVALID_INPUT", message: "Kiểm tra trang, số lượng tệp, từ khóa và loại tệp cần tìm." } }, { status: 400 });
     return NextResponse.json({ error: { code: "INTERNAL_ERROR", message: "Không thể tải thư viện tệp." } }, { status: 500 });
   }
 }

@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import { boolean, index, integer, jsonb, pgTable, text, timestamp, uniqueIndex, uuid, varchar } from "drizzle-orm/pg-core";
 
 import { leadStatusEnum, partnerKindEnum } from "./enums";
@@ -16,9 +17,10 @@ export const partners = pgTable(
     websiteUrl: text("website_url"),
     sortOrder: integer("sort_order").default(0).notNull(),
     isEnabled: boolean("is_enabled").default(true).notNull(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
     ...timestamps(),
   },
-  (table) => [uniqueIndex("partners_name_unique").on(table.name), index("partners_enabled_sort_index").on(table.isEnabled, table.sortOrder)],
+  (table) => [uniqueIndex("partners_name_unique").on(table.name).where(sql`${table.deletedAt} is null`), index("partners_enabled_sort_index").on(table.isEnabled, table.sortOrder), index("partners_deleted_at_index").on(table.deletedAt)],
 );
 
 export const testimonials = pgTable(
@@ -33,9 +35,10 @@ export const testimonials = pgTable(
     rating: integer("rating"),
     sortOrder: integer("sort_order").default(0).notNull(),
     isEnabled: boolean("is_enabled").default(true).notNull(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
     ...timestamps(),
   },
-  (table) => [index("testimonials_enabled_sort_index").on(table.isEnabled, table.sortOrder)],
+  (table) => [index("testimonials_enabled_sort_index").on(table.isEnabled, table.sortOrder), index("testimonials_deleted_at_index").on(table.deletedAt)],
 );
 
 export const supportDownloads = pgTable(
@@ -51,9 +54,10 @@ export const supportDownloads = pgTable(
     isEnabled: boolean("is_enabled").default(true).notNull(),
     draftVersion: integer("draft_version").default(0).notNull(),
     archivedAt: timestamp("archived_at", { withTimezone: true }),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
     ...timestamps(),
   },
-  (table) => [index("support_downloads_enabled_sort_index").on(table.isEnabled, table.sortOrder)],
+  (table) => [index("support_downloads_enabled_sort_index").on(table.isEnabled, table.sortOrder), index("support_downloads_deleted_at_index").on(table.deletedAt)],
 );
 
 export const supportDownloadRevisions = pgTable(

@@ -1,5 +1,11 @@
 import type { ReactNode } from "react";
 
-export function AdminEditorActions({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <div className={`admin-editor-actions ${className}`.trim()}>{children}</div>;
+type AdminEditorActionsProps = {
+  children: ReactNode;
+  className?: string;
+  variant?: "fixed" | "inline";
+};
+
+export function AdminEditorActions({ children, className = "", variant = "fixed" }: AdminEditorActionsProps) {
+  return <div className={`admin-editor-actions admin-editor-actions--${variant} ${className}`.trim()}>{children}</div>;
 }

@@ -8,6 +8,9 @@ loadEnvironment({ path: path.join(workspaceRoot, ".env") });
 const nextConfig: NextConfig = {
   output: "standalone",
   outputFileTracingRoot: workspaceRoot,
+  experimental: {
+    turbopackFileSystemCacheForDev: false,
+  },
   turbopack: { root: workspaceRoot },
 };
 

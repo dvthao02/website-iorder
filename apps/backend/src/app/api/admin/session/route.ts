@@ -2,12 +2,14 @@ import { NextResponse } from "next/server";
 
 import { administratorLoginSchema } from "@iorder/core/server/auth/auth.schema";
 import { InvalidAdministratorCredentialsError } from "@iorder/core/server/auth/auth.errors";
+import { LoginRateLimitError } from "@iorder/core/server/auth/login-throttle";
 import {
   administratorSessionCookieName,
   administratorSessionMaxAgeSeconds,
   signInAdministrator,
   signOutAdministrator,
 } from "@iorder/core/server/auth/auth.service";
+import { getClientAddress } from "@/lib/client-address";
 
 export const runtime = "nodejs";
 
@@ -57,7 +59,7 @@ export async function POST(request: Request) {
 
   try {
     const userAgent = request.headers.get("user-agent")?.slice(0, 500);
-    const session = await signInAdministrator(parsed.data, userAgent);
+    const session = await signInAdministrator(parsed.data, userAgent, getClientAddress(request.headers.get("x-forwarded-for"), request.headers.get("x-real-ip")));
     const response = laBieuMauTrinhDuyet
       ? chuyenHuongBieuMau("/admin")
       : NextResponse.json({ user: session.user });
@@ -69,11 +71,16 @@ export async function POST(request: Request) {
 
     return response;
   } catch (error) {
+    if (error instanceof LoginRateLimitError) {
+      const response = phanHoiLoiBieuMauHoacJson(request, laBieuMauTrinhDuyet, "RATE_LIMITED", "Bạn đã thử đăng nhập quá nhiều lần. Vui lòng chờ ít phút rồi thử lại.", laBieuMauTrinhDuyet ? 303 : 429);
+      if (!laBieuMauTrinhDuyet) response.headers.set("retry-after", String(error.retryAfterSeconds));
+      return response;
+    }
     if (error instanceof InvalidAdministratorCredentialsError) {
       return phanHoiLoiBieuMauHoacJson(request, laBieuMauTrinhDuyet, "INVALID_CREDENTIALS", error.message, 401);
     }
 
-    console.error("Đăng nhập quản trị thất bại.", error);
+    console.error("Đăng nhập quản trị thất bại.");
     return phanHoiLoiBieuMauHoacJson(
       request,
       laBieuMauTrinhDuyet,

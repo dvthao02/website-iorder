@@ -1,10 +1,29 @@
-import { mediaAssetSchema, mediaMetadataSchema, mediaUsageSchema } from "./media.contract";
+import { mediaAssetSchema, mediaListQuerySchema, mediaMetadataSchema, mediaUsageSchema } from "./media.contract";
 import { randomUUID } from "node:crypto";
-import { collectMediaUsage, findMediaAsset, insertUploadedMedia, listMediaAssets, updateMediaMetadata } from "./media.repository";
+import { collectMediaUsage, findMediaAsset, insertUploadedMedia, listMediaAssets, listMediaAssetsPage, queueMediaAssetDeletion, updateMediaMetadata } from "./media.repository";
 import { z } from "zod";
 import { ensureMediaBucket, mediaPath, putStoredObject, removeStoredObject } from "./storage";
 
 export class InvalidMediaError extends Error {}
+export class MediaInUseError extends Error {
+  constructor() { super("Không thể xóa tệp đang được sử dụng trong nội dung CMS."); }
+}
+
+type MediaDeletionRepository = Pick<typeof import("./media.repository"), "collectMediaUsage" | "findMediaAsset" | "queueMediaAssetDeletion">;
+
+export function createMediaDeletionService(repository: MediaDeletionRepository) {
+  async function deleteAdminMedia(id: string, userId: string) {
+    if (!z.string().uuid().safeParse(id).success) return undefined;
+    const asset = await repository.findMediaAsset(id);
+    if (!asset) return undefined;
+    if ((await repository.collectMediaUsage(id)).length > 0) throw new MediaInUseError();
+    const queued = await repository.queueMediaAssetDeletion(id, userId);
+    return queued?.id;
+  }
+  return { deleteAdminMedia };
+}
+
+const mediaDeletionService = createMediaDeletionService({ collectMediaUsage, findMediaAsset, queueMediaAssetDeletion });
 
 export async function validateCoverMedia(id: string | null | undefined) {
   if (!id) return;
@@ -46,6 +65,11 @@ export async function getAdminMedia() {
   return (await listMediaAssets()).map(serialize);
 }
 
+export async function getAdminMediaPage(input: unknown) {
+  const page = await listMediaAssetsPage(mediaListQuerySchema.parse(input));
+  return { ...page, items: page.items.map(serialize) };
+}
+
 export async function getMediaById(id: string) {
   const asset = await findMediaAsset(id);
   return asset ? serialize(asset) : null;
@@ -61,3 +85,5 @@ export async function getAdminMediaUsage(id: string) {
   const items = await collectMediaUsage(id);
   return mediaUsageSchema.parse({ items, total: items.length, canDelete: items.length === 0 });
 }
+
+export const deleteAdminMedia = mediaDeletionService.deleteAdminMedia;

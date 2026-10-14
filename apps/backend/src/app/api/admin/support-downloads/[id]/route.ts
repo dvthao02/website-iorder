@@ -1,4 +1,4 @@
-import { revalidatePath } from "next/cache";
+import { revalidatePath } from "@/lib/publish-cache-revalidation";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -7,6 +7,7 @@ import { supportDownloadMutationSchema } from "@iorder/core/server/support/suppo
 import {
   ArchivedSupportDownloadError,
   changeSupportDownloadArchiveState,
+  deleteArchivedAdminSupportDownload,
   SupportDownloadVersionConflictError,
   updateAdminSupportDownload,
 } from "@iorder/core/server/support/support-downloads.service";
@@ -58,7 +59,28 @@ export async function PATCH(request: Request, { params }: SupportDownloadRoutePr
     if (error instanceof SupportDownloadVersionConflictError) return phanHoiLoi("VERSION_CONFLICT", error.message, 409);
     if (error instanceof ArchivedSupportDownloadError) return phanHoiLoi("CONTENT_ARCHIVED", error.message, 409);
 
-    console.error("Cập nhật mục Hỗ trợ trong CMS thất bại.", error);
+    console.error("Cập nhật mục Hỗ trợ trong CMS thất bại.");
     return phanHoiLoi("INTERNAL_ERROR", "Không thể cập nhật mục Hỗ trợ lúc này. Vui lòng thử lại.", 500);
+  }
+}
+
+export async function DELETE(request: Request, { params }: SupportDownloadRouteProps) {
+  const administrator = await getRequestAdministrator();
+  if (!administrator) return phanHoiLoi("UNAUTHORIZED", "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.", 401);
+  const { id } = await params;
+  if (!z.string().uuid().safeParse(id).success) return phanHoiLoi("INVALID_INPUT", "Mục Hỗ trợ cần xóa không hợp lệ.", 400);
+  const version = new URL(request.url).searchParams.get("version");
+  const expectedVersion = version === null ? undefined : Number(version);
+  if (expectedVersion !== undefined && (!Number.isInteger(expectedVersion) || expectedVersion < 0)) return phanHoiLoi("INVALID_INPUT", "Phiên bản tài nguyên không hợp lệ.", 400);
+
+  try {
+    const deletedId = await deleteArchivedAdminSupportDownload(id, administrator.userId, expectedVersion);
+    if (!deletedId) return phanHoiLoi("NOT_FOUND", "Chỉ có thể xóa tài nguyên đang lưu trữ.", 404);
+    revalidatePath("/ho-tro/cai-dat");
+    return NextResponse.json({ deletedId });
+  } catch (error) {
+    if (error instanceof SupportDownloadVersionConflictError) return phanHoiLoi("VERSION_CONFLICT", error.message, 409);
+    console.error("Xóa tài nguyên Hỗ trợ trong CMS thất bại.");
+    return phanHoiLoi("INTERNAL_ERROR", "Không thể xóa tài nguyên lúc này. Vui lòng thử lại.", 500);
   }
 }

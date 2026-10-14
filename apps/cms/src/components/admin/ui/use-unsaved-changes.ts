@@ -1,30 +1,27 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useRef, useState } from "react";
+import { useNavigationGuard } from "./use-navigation-guard";
 
 function snapshot(value: unknown) {
   return JSON.stringify(value) ?? "";
 }
 
-export function useUnsavedChanges(value: unknown) {
+export function useUnsavedChanges<T>(value: T, initialSavedValue: T = value) {
   const currentSnapshot = snapshot(value);
-  const savedSnapshot = useRef(currentSnapshot);
-  const isDirty = savedSnapshot.current !== currentSnapshot;
+  // Bản phục hồi vẫn phải so với dữ liệu đã lưu, không tự coi là sạch.
+  const [savedSnapshot, setSavedSnapshot] = useState(() => snapshot(initialSavedValue));
+  const savedValue = useRef(initialSavedValue);
+  const isDirty = savedSnapshot !== currentSnapshot;
 
-  useEffect(() => {
-    function warnBeforeUnload(event: BeforeUnloadEvent) {
-      if (!isDirty) return;
-      event.preventDefault();
-      event.returnValue = "";
-    }
-
-    window.addEventListener("beforeunload", warnBeforeUnload);
-    return () => window.removeEventListener("beforeunload", warnBeforeUnload);
-  }, [isDirty]);
+  useNavigationGuard(isDirty);
 
   const markSaved = useCallback(() => {
-    savedSnapshot.current = currentSnapshot;
-  }, [currentSnapshot]);
+    savedValue.current = structuredClone(value);
+    setSavedSnapshot(currentSnapshot);
+  }, [currentSnapshot, value]);
 
-  return { isDirty, markSaved };
+  const getSavedValue = useCallback(() => structuredClone(savedValue.current), []);
+
+  return { isDirty, markSaved, getSavedValue };
 }

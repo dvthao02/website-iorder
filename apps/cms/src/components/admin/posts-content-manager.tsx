@@ -1,6 +1,8 @@
 "use client";
+import { requestAdminJson } from "@/lib/admin-api";
+import { formatLocalDateTime } from "@/lib/local-date-time";
 
-import { type FormEvent, type ReactNode, useEffect, useState } from "react";
+import { type FormEvent, type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { MediaPicker } from "./media-picker";
 import { RevisionHistory } from "./revision-history";
@@ -9,6 +11,8 @@ import { useUnsavedChanges } from "./ui/use-unsaved-changes";
 import { AdminEditorTabs } from "./ui/admin-editor-tabs";
 import { AdminButton } from "./ui/admin-button";
 import { AdminNotice } from "./ui/admin-feedback";
+import { useNavigationGuard } from "./ui/use-navigation-guard";
+import { useRevisionRestore } from "./ui/use-revision-restore";
 
 import type { AdminPost, PostContentDocument } from "@iorder/core/server/posts/posts.contract";
 
@@ -28,7 +32,7 @@ function nullableText(value: string) {
 }
 
 function dateTimeInputValue(value: Date | null) {
-  return value ? new Date(value).toISOString().slice(0, 16) : "";
+  return formatLocalDateTime(value);
 }
 
 function dateTimeOrNull(value: string) {
@@ -101,21 +105,7 @@ function formToPayload(form: ReturnType<typeof postToForm>) {
 }
 
 async function requestJson(url: string, method: "PATCH" | "POST", body: unknown) {
-  const response = await fetch(url, {
-    method,
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  const payload: unknown = await response.json().catch(() => undefined);
-
-  if (!response.ok) {
-    const message = typeof payload === "object" && payload !== null && "error" in payload
-      ? (payload as { error?: { message?: unknown } }).error?.message
-      : undefined;
-    throw new Error(typeof message === "string" ? message : "Không thể lưu bài viết. Vui lòng thử lại.");
-  }
-
-  return payload as { post: AdminPost };
+  return await requestAdminJson(url, method, body, "Không thể lưu bài viết. Vui lòng thử lại.") as { post: AdminPost };
 }
 
 export type PostTaxonomy = { categories: Array<{ id: string; name: string }>; tags: Array<{ id: string; name: string }> };
@@ -131,22 +121,22 @@ export function PostsContentManager({ initialPosts, taxonomy }: { initialPosts: 
 
   return (
     <div className="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
-      <aside className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <aside className="rounded-2xl border border-[var(--cms-border)] bg-[var(--cms-card)] p-4 shadow-sm">
         <div className="mb-4 flex items-center justify-between gap-3">
-          <h2 className="font-extrabold tracking-tight text-slate-900">Bài viết</h2>
+          <h2 className="font-extrabold tracking-tight text-[var(--cms-text)]">Bài viết</h2>
           <button className="rounded-lg bg-blue-700 px-3 py-2 text-sm font-bold text-white hover:bg-blue-800" onClick={() => { setIsCreating(true); setActivePostId(undefined); }} type="button">Thêm mới</button>
         </div>
         <div className="grid gap-2">
           {posts.map((post) => (
-            <button className={`rounded-xl px-3 py-3 text-left text-sm transition ${post.id === activePostId && !isCreating ? "bg-blue-50 text-blue-900" : "hover:bg-slate-50"}`} key={post.id} onClick={() => { setActivePostId(post.id); setIsCreating(false); }} type="button">
+            <button className={`rounded-xl px-3 py-3 text-left text-sm transition ${post.id === activePostId && !isCreating ? "bg-blue-50 text-blue-900" : "hover:bg-[var(--cms-hover)]"}`} key={post.id} onClick={() => { setActivePostId(post.id); setIsCreating(false); }} type="button">
               <span className="block font-bold">{post.title}</span>
-              <span className="mt-1 block text-xs text-slate-500">{post.type} · {post.status} · v{post.draftVersion}</span>
+              <span className="mt-1 block text-xs text-[var(--cms-muted)]">{post.type} · {post.status} · v{post.draftVersion}</span>
             </button>
           ))}
         </div>
       </aside>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+      <section className="rounded-2xl border border-[var(--cms-border)] bg-[var(--cms-card)] p-6 shadow-sm sm:p-8">
         {notice ? <AdminNotice tone={notice.kind}>{notice.message}</AdminNotice> : null}
         {isCreating || activePost ? (
           <PostEditor
@@ -161,7 +151,7 @@ export function PostsContentManager({ initialPosts, taxonomy }: { initialPosts: 
               setNotice({ kind: "success", message: created ? "Đã tạo bài viết và lưu revision đầu tiên." : "Đã lưu bài viết và tạo revision mới." });
             }}
           />
-        ) : <p className="text-slate-600">Chưa có bài viết nào. Chọn “Thêm mới” để bắt đầu.</p>}
+        ) : <p className="text-[var(--cms-muted)]">Chưa có bài viết nào. Chọn “Thêm mới” để bắt đầu.</p>}
       </section>
     </div>
   );
@@ -176,33 +166,51 @@ export function PostEditor({ post, taxonomy, onSaved, onError, contentType, onDi
   onDirtyChange?: (isDirty: boolean) => void;
 }) {
   const [form, setForm] = useState(() => postToForm(post, contentType));
+  const [savedVersion, setSavedVersion] = useState(post?.draftVersion);
+  const saving = useRef(false);
+  const restore = useRevisionRestore();
+  const uploading = useRef(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const handleUploadingChange = useCallback((pending: boolean) => {
+    uploading.current = pending;
+    setIsUploading(pending);
+  }, []);
   const [isSaving, setIsSaving] = useState(false);
+  const processing = isSaving || isUploading || restore.restoring;
+  useNavigationGuard(processing && !restore.completing, () => onError("Đang xử lý bài viết. Vui lòng chờ trước khi rời màn hình."));
   const [activeTab, setActiveTab] = useState("basic");
   const { isDirty, markSaved } = useUnsavedChanges(form);
   useEffect(() => onDirtyChange?.(isDirty), [isDirty, onDirtyChange]);
 
   function update<Field extends keyof typeof form>(field: Field, value: (typeof form)[Field]) {
+    if (saving.current || restore.pending.current) return;
     setForm((current) => ({ ...current, [field]: value }));
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (saving.current || uploading.current || restore.pending.current) return;
+    saving.current = true;
     setIsSaving(true);
 
     try {
       const payload = formToPayload(form);
-      const result = await requestJson(post ? `/api/admin/posts/${post.id}` : "/api/admin/posts", post ? "PATCH" : "POST", payload);
+      const result = await requestJson(post ? `/api/admin/posts/${post.id}` : "/api/admin/posts", post ? "PATCH" : "POST", post ? { ...payload, expectedVersion: savedVersion } : payload);
+      if (!result.post || (post && result.post.id !== post.id) || !Number.isSafeInteger(result.post.draftVersion) || result.post.draftVersion !== (savedVersion ?? 0) + 1) throw new Error("Phản hồi phiên bản bài viết không hợp lệ. Kiểm tra danh sách trước khi thử lại.");
+      setSavedVersion(result.post.draftVersion);
       markSaved();
       onSaved(result.post, !post);
     } catch (error: unknown) {
       onError(error instanceof Error ? error.message : "Không thể lưu bài viết.");
     } finally {
+      saving.current = false;
       setIsSaving(false);
     }
   }
 
   return (
     <form className="grid gap-5" onSubmit={submit}>
+      <fieldset disabled={processing} className="contents">
       <AdminEditorTabs activeId={activeTab} onChange={setActiveTab} tabs={[{ id: "basic", label: "Thông tin" }, { id: "content", label: "Nội dung" }, { id: "publishing", label: "Xuất bản & SEO" }, ...(post ? [{ id: "history", label: "Lịch sử" }] : [])]} />
 
       {activeTab === "basic" ? <div className="grid gap-5">
@@ -212,7 +220,7 @@ export function PostEditor({ post, taxonomy, onSaved, onError, contentType, onDi
         <label className={labelClassName}>Slug<input className={inputClassName} onChange={(event) => update("slug", event.target.value)} pattern="[a-z0-9]+(-[a-z0-9]+)*" required value={form.slug} /></label>
       </div></EditorSection>
 
-      <EditorSection description="Ảnh đại diện hiển thị trong danh sách tin và trang chi tiết." title="Media"><MediaPicker value={form.coverMediaId} onChange={value => update("coverMediaId", value)} /></EditorSection>
+      <EditorSection description="Ảnh đại diện hiển thị trong danh sách tin và trang chi tiết." title="Media"><MediaPicker value={form.coverMediaId} onChange={value => update("coverMediaId", value)} onUploadingChange={handleUploadingChange} /></EditorSection>
       <EditorSection description="Chọn các nhóm giúp người đọc tìm bài viết trong trang tin." title="Phân loại"><div className="grid gap-5 sm:grid-cols-2"><fieldset className="grid gap-3"><legend className="text-sm font-bold text-[var(--cms-text)]">Chuyên mục</legend>{taxonomy.categories.length ? taxonomy.categories.map(category => <label className="admin-post-editor__check" key={category.id}><input type="checkbox" checked={form.categoryIds.includes(category.id)} onChange={event => update("categoryIds", event.target.checked ? [...form.categoryIds, category.id] : form.categoryIds.filter(id => id !== category.id))} />{category.name}</label>) : <p className="text-sm text-[var(--cms-muted)]">Chưa có chuyên mục. Tạo tại mục “Chuyên mục và thẻ”.</p>}</fieldset><fieldset className="grid gap-3"><legend className="text-sm font-bold text-[var(--cms-text)]">Thẻ</legend>{taxonomy.tags.length ? taxonomy.tags.map(tag => <label className="admin-post-editor__check" key={tag.id}><input type="checkbox" checked={form.tagIds.includes(tag.id)} onChange={event => update("tagIds", event.target.checked ? [...form.tagIds, tag.id] : form.tagIds.filter(id => id !== tag.id))} />{tag.name}</label>) : <p className="text-sm text-[var(--cms-muted)]">Chưa có thẻ. Tạo tại mục “Chuyên mục và thẻ”.</p>}</fieldset></div></EditorSection>
       </div> : null}
 
@@ -228,9 +236,10 @@ export function PostEditor({ post, taxonomy, onSaved, onError, contentType, onDi
         {form.type === "promotion" ? <><label className={labelClassName}>Bắt đầu khuyến mãi<input className={inputClassName} onChange={(event) => update("promotionStartAt", event.target.value)} type="datetime-local" value={form.promotionStartAt} /></label><label className={labelClassName}>Kết thúc khuyến mãi<input className={inputClassName} onChange={(event) => update("promotionEndAt", event.target.value)} type="datetime-local" value={form.promotionEndAt} /></label></> : null}
       </div></EditorSection></div> : null}
 
-      {activeTab === "history" && post ? <EditorSection description="Xem lại hoặc khôi phục một phiên bản đã được lưu trước đó." title="Lịch sử phiên bản"><RevisionHistory target="posts" id={post.id} /></EditorSection> : null}
+      {activeTab === "history" && post ? <EditorSection description="Xem lại hoặc khôi phục một phiên bản đã được lưu trước đó." title="Lịch sử phiên bản"><RevisionHistory target="posts" id={post.id} expectedVersion={savedVersion} disabled={isDirty || processing} onRestorePendingChange={restore.onPendingChange} onRestored={restore.onRestored} /></EditorSection> : null}
 
       <AdminEditorActions>{isDirty ? <p className="mb-0 text-sm text-amber-700" role="status">Có thay đổi chưa lưu.</p> : null}<AdminButton disabled={isSaving} type="submit">{isSaving ? "Đang lưu..." : post ? "Lưu thay đổi" : "Tạo bài viết"}</AdminButton></AdminEditorActions>
+      </fieldset>
     </form>
   );
 }

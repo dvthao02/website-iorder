@@ -54,3 +54,18 @@ export const supportDownloadMutationSchema = z.discriminatedUnion("action", [
 export type PublicSupportDownload = z.infer<typeof publicSupportDownloadSchema>;
 export type AdminSupportDownload = z.infer<typeof adminSupportDownloadSchema>;
 export type AdminSupportDownloadInput = z.infer<typeof adminSupportDownloadInputSchema>;
+
+export const supportDownloadListResponseSchema = z.object({
+  downloads: z.array(adminSupportDownloadSchema.extend({
+    // The CMS bridge revives *At JSON fields; preserve this contract's ISO string.
+    archivedAt: z.preprocess(value => value instanceof Date && Number.isFinite(value.getTime()) ? value.toISOString() : value, z.string().datetime().nullable()),
+  })).refine(rows => new Set(rows.map(row => row.id)).size === rows.length, "Danh sách tài nguyên có ID trùng."),
+});
+
+export function parseSavedSupportDownload(payload: unknown, expected: { id?: string; version: number; status: AdminSupportDownload["status"] }) {
+  const parsed = z.object({ download: adminSupportDownloadSchema }).safeParse(payload);
+  if (!parsed.success) return undefined;
+  const download = parsed.data.download;
+  if ((expected.id && download.id !== expected.id) || download.draftVersion !== expected.version || download.status !== expected.status) return undefined;
+  return download;
+}

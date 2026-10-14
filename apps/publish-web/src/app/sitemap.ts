@@ -6,7 +6,7 @@ import { getPublishedPostSummaries } from "@/lib/backend";
 import { getPublishingConfig } from "@/lib/backend";
 import { getTaxonomy } from "@/lib/backend";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 const catalogByType = { software: "phan-mem", solution: "giai-phap", service: "dich-vu" } as const;
 const dedicatedPageSlugs = new Set(["home", "contact", "about", "terms", "privacy-policy", "support-faq", "remote-support", "support-videos"]);

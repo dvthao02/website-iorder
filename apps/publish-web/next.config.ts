@@ -12,10 +12,15 @@ loadEnvironment({ path: path.join(workspaceRoot, ".env") });
 const nextConfig: NextConfig = {
   output: "standalone",
   outputFileTracingRoot: workspaceRoot,
+  experimental: {
+    turbopackFileSystemCacheForDev: false,
+  },
   turbopack: { root: workspaceRoot },
+  // Only proxy what the public site uses from the browser. Admin APIs stay
+  // reachable through the CMS host alone; server-side reads call BACKEND_URL.
   async rewrites() {
     return [
-      { source: "/api/:path*", destination: `${process.env.BACKEND_URL ?? "http://localhost:3002"}/api/:path*` },
+      { source: "/api/leads", destination: `${process.env.BACKEND_URL ?? "http://localhost:3002"}/api/leads` },
       { source: "/media/:path*", destination: `${process.env.BACKEND_URL ?? "http://localhost:3002"}/media/:path*` },
     ];
   },

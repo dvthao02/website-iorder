@@ -59,14 +59,17 @@ export const categories = pgTable(
   "categories",
   {
     id: uuid("id").defaultRandom().primaryKey(),
-    parentId: uuid("parent_id").references((): AnyPgColumn => categories.id, { onDelete: "set null" }),
+    parentId: uuid("parent_id").references((): AnyPgColumn => categories.id, { onDelete: "restrict" }),
     name: varchar("name", { length: 160 }).notNull(),
     slug: varchar("slug", { length: 180 }).notNull(),
     description: text("description"),
     sortOrder: integer("sort_order").default(0).notNull(),
     ...timestamps(),
   },
-  (table) => [uniqueIndex("categories_slug_unique").on(table.slug)],
+  (table) => [
+    uniqueIndex("categories_slug_unique").on(table.slug),
+    index("categories_parent_sort_index").on(table.parentId, table.sortOrder),
+  ],
 );
 
 export const tags = pgTable(
@@ -77,12 +80,18 @@ export const tags = pgTable(
 
 export const postCategories = pgTable(
   "post_categories",
-  { postId: uuid("post_id").notNull().references(() => posts.id, { onDelete: "cascade" }), categoryId: uuid("category_id").notNull().references(() => categories.id, { onDelete: "cascade" }) },
-  (table) => [primaryKey({ columns: [table.postId, table.categoryId] })],
+  { postId: uuid("post_id").notNull().references(() => posts.id, { onDelete: "cascade" }), categoryId: uuid("category_id").notNull().references(() => categories.id, { onDelete: "restrict" }) },
+  (table) => [
+    primaryKey({ columns: [table.postId, table.categoryId] }),
+    index("post_categories_category_post_index").on(table.categoryId, table.postId),
+  ],
 );
 
 export const postTags = pgTable(
   "post_tags",
-  { postId: uuid("post_id").notNull().references(() => posts.id, { onDelete: "cascade" }), tagId: uuid("tag_id").notNull().references(() => tags.id, { onDelete: "cascade" }) },
-  (table) => [primaryKey({ columns: [table.postId, table.tagId] })],
+  { postId: uuid("post_id").notNull().references(() => posts.id, { onDelete: "cascade" }), tagId: uuid("tag_id").notNull().references(() => tags.id, { onDelete: "restrict" }) },
+  (table) => [
+    primaryKey({ columns: [table.postId, table.tagId] }),
+    index("post_tags_tag_post_index").on(table.tagId, table.postId),
+  ],
 );
