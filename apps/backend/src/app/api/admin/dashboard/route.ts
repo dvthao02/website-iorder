@@ -15,11 +15,12 @@ export async function GET() {
     return NextResponse.json({ error: { code: "UNAUTHORIZED", message: "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại." } }, { status: 401 });
   }
 
+  // Each service filters its sections by the caller's view permissions.
   const [analytics, readiness, auditLogs, content] = await Promise.all([
-    hasCmsPermission(administrator, "analytics.read") ? getAnalyticsOverview() : Promise.resolve({ connection: "not_connected" as const, periodDays: 7, visits: null }),
-    hasCmsPermission(administrator, "content.read") ? getPublishingReadiness() : Promise.resolve([]),
-    hasCmsPermission(administrator, "audit.read") ? getRecentAuditLogs() : Promise.resolve([]),
-    hasCmsPermission(administrator, "content.read") ? getDashboardContentSummary() : Promise.resolve({ pages: { missingSeo: 0, pending: 0, published: 0, scheduled: 0, total: 0 }, posts: { missingSeo: 0, pending: 0, published: 0, scheduled: 0, total: 0 }, offerings: { products: { missingSeo: 0, pending: 0, published: 0, scheduled: 0, total: 0 }, solutions: { missingSeo: 0, pending: 0, published: 0, scheduled: 0, total: 0 }, services: { missingSeo: 0, pending: 0, published: 0, scheduled: 0, total: 0 } }, equipment: { missingSeo: 0, pending: 0, published: 0, scheduled: 0, total: 0 }, downloads: { enabled: 0, total: 0 }, leads: { new: 0, total: 0 }, recent: [] }),
+    hasCmsPermission(administrator, "dashboard.view") ? getAnalyticsOverview() : Promise.resolve({ connection: "not_connected" as const, periodDays: 7 as const }),
+    getPublishingReadiness(administrator),
+    hasCmsPermission(administrator, "audit.view") ? getRecentAuditLogs() : Promise.resolve([]),
+    getDashboardContentSummary(administrator),
   ]);
 
   return NextResponse.json({ administrator, analytics, readiness, auditLogs, content });

@@ -4,6 +4,8 @@ import { z } from "zod";
 
 import { getRequestAdministrator } from "@iorder/core/server/auth/request-administrator";
 import { supportDownloadMutationSchema } from "@iorder/core/server/support/support-downloads.contract";
+import { denyPublishUnless } from "@/lib/admin-access";
+import { getAdminSupportDownloadById } from "@iorder/core/server/support/support-downloads.service";
 import {
   ArchivedSupportDownloadError,
   changeSupportDownloadArchiveState,
@@ -40,6 +42,10 @@ export async function PATCH(request: Request, { params }: SupportDownloadRoutePr
 
   try {
     const mutation = supportDownloadMutationSchema.parse(body);
+    const denied = denyPublishUnless(administrator, "support_downloads.publish", mutation.action === "save"
+      ? { requestedStatus: mutation.values.isEnabled ? "published" : "draft", currentStatus: (await getAdminSupportDownloadById(id))?.status }
+      : { stateAction: mutation.action });
+    if (denied) return denied;
     const download = mutation.action === "save"
       ? await updateAdminSupportDownload(id, mutation.values, administrator.userId, {
           expectedVersion: mutation.expectedVersion,
@@ -70,8 +76,8 @@ export async function DELETE(request: Request, { params }: SupportDownloadRouteP
   const { id } = await params;
   if (!z.string().uuid().safeParse(id).success) return phanHoiLoi("INVALID_INPUT", "Mục Hỗ trợ cần xóa không hợp lệ.", 400);
   const version = new URL(request.url).searchParams.get("version");
-  const expectedVersion = version === null ? undefined : Number(version);
-  if (expectedVersion !== undefined && (!Number.isInteger(expectedVersion) || expectedVersion < 0)) return phanHoiLoi("INVALID_INPUT", "Phiên bản tài nguyên không hợp lệ.", 400);
+  const expectedVersion = version === null ? Number.NaN : Number(version);
+  if (!Number.isInteger(expectedVersion) || expectedVersion < 0) return phanHoiLoi("INVALID_INPUT", "Vui lòng tải lại để lấy phiên bản tài nguyên mới nhất trước khi xóa.", 400);
 
   try {
     const deletedId = await deleteArchivedAdminSupportDownload(id, administrator.userId, expectedVersion);

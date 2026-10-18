@@ -4,35 +4,43 @@ import { getRequestAdministrator } from "@iorder/core/server/auth/request-admini
 import { cmsUserListQuerySchema, cmsUserRequestSchema } from "@iorder/core/server/users/users.contract";
 import { hasDatabaseErrorCode } from "@iorder/core/server/shared/database-error";
 import { getCmsUsersPage, saveCmsUser } from "@iorder/core/server/users/users.service";
-import { CmsUserPermissionError } from "@iorder/core/server/users/users.errors";
-import { hasCmsPermission } from "@iorder/core/server/auth/permissions";
+import { CmsAccessError } from "@iorder/core/server/roles/roles.errors";
+import { getCmsRoles } from "@iorder/core/server/roles/roles.service";
+import { denyUnless } from "@/lib/admin-access";
+
+const fail = (code: string, message: string, status: number) => NextResponse.json({ error: { code, message } }, { status });
 
 export async function GET(request: Request) {
   const actor = await getRequestAdministrator();
-  if (!actor) return NextResponse.json({ error: { code: "UNAUTHORIZED", message: "Vui lòng đăng nhập lại." } }, { status: 401 });
-  if (!hasCmsPermission(actor, "users.manage")) return NextResponse.json({ error: { code: "FORBIDDEN", message: "Bạn không có quyền quản lý tài khoản." } }, { status: 403 });
+  if (!actor) return fail("UNAUTHORIZED", "Vui lòng đăng nhập lại.", 401);
+  const denied = denyUnless(actor, "users.view", "Bạn không có quyền xem tài khoản.");
+  if (denied) return denied;
   try {
     const params = new URL(request.url).searchParams;
     const parsed = cmsUserListQuerySchema.safeParse(Object.fromEntries(params));
-    if (!parsed.success) return NextResponse.json({ error: { code: "INVALID_INPUT", message: "Bộ lọc hoặc phân trang tài khoản không hợp lệ." } }, { status: 400 });
-    return NextResponse.json({ result: await getCmsUsersPage(parsed.data) });
+    if (!parsed.success) return fail("INVALID_INPUT", "Bộ lọc hoặc phân trang tài khoản không hợp lệ.", 400);
+    const [result, roles] = await Promise.all([getCmsUsersPage(parsed.data), getCmsRoles()]);
+    // Role options for the account form; assigning a role needs users.update, not roles.view.
+    return NextResponse.json({ result, roles: roles.map(({ code, name, isSystem }) => ({ code, name, isSystem })) });
   } catch {
-    return NextResponse.json({ error: { code: "INTERNAL_ERROR", message: "Không thể tải danh sách tài khoản lúc này. Vui lòng thử lại." } }, { status: 500 });
+    return fail("INTERNAL_ERROR", "Không thể tải danh sách tài khoản lúc này. Vui lòng thử lại.", 500);
   }
 }
+
 export async function POST(request: Request) {
   const actor = await getRequestAdministrator();
-  if (!actor) return NextResponse.json({ error: { code: "UNAUTHORIZED", message: "Vui lòng đăng nhập lại." } }, { status: 401 });
-  if (!hasCmsPermission(actor, "users.manage")) return NextResponse.json({ error: { code: "FORBIDDEN", message: "Bạn không có quyền quản lý tài khoản." } }, { status: 403 });
+  if (!actor) return fail("UNAUTHORIZED", "Vui lòng đăng nhập lại.", 401);
   try {
     const body = cmsUserRequestSchema.parse(await request.json());
+    const denied = denyUnless(actor, body.id ? "users.update" : "users.create", "Bạn không có quyền quản lý tài khoản.");
+    if (denied) return denied;
     const id = await saveCmsUser(body.id, body.values, actor.userId);
-    if (!id) return NextResponse.json({ error: { code: "NOT_FOUND", message: "Không tìm thấy tài khoản cần cập nhật." } }, { status: 404 });
+    if (!id) return fail("NOT_FOUND", "Không tìm thấy tài khoản cần cập nhật.", 404);
     return NextResponse.json({ id });
-  } catch (error) {
-    if (error instanceof CmsUserPermissionError) return NextResponse.json({ error: { code: "FORBIDDEN", message: error.message } }, { status: 403 });
-    if (error instanceof z.ZodError || error instanceof SyntaxError) return NextResponse.json({ error: { code: "INVALID_INPUT", message: "Kiểm tra tên đăng nhập, vai trò, trạng thái và mật khẩu trước khi lưu." } }, { status: 400 });
-    if (hasDatabaseErrorCode(error, "23505")) return NextResponse.json({ error: { code: "DUPLICATE_USER", message: "Tên đăng nhập hoặc email đã được sử dụng." } }, { status: 409 });
-    return NextResponse.json({ error: { code: "INTERNAL_ERROR", message: "Không thể lưu tài khoản lúc này." } }, { status: 500 });
+  } catch (error: unknown) {
+    if (error instanceof CmsAccessError) return fail(error.code, error.message, error.status);
+    if (error instanceof z.ZodError || error instanceof SyntaxError) return fail("INVALID_INPUT", "Kiểm tra tên đăng nhập, vai trò, trạng thái và mật khẩu trước khi lưu.", 400);
+    if (hasDatabaseErrorCode(error, "23505")) return fail("DUPLICATE_USER", "Tên đăng nhập hoặc email đã được sử dụng.", 409);
+    return fail("INTERNAL_ERROR", "Không thể lưu tài khoản lúc này.", 500);
   }
 }

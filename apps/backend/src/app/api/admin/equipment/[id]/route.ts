@@ -7,6 +7,7 @@ import { deleteAdminEquipmentGroup, deleteArchivedAdminEquipment, getEquipmentBy
 import { EquipmentVersionConflictError } from "@iorder/core/server/equipment/equipment-version";
 import { changeAdminEquipmentState } from "@iorder/core/server/equipment/equipment.service";
 import { contentStateRequestSchema, ContentVersionConflictError } from "@iorder/core/server/shared/content-version";
+import { denyPublishUnless } from "@/lib/admin-access";
 
 type EquipmentRouteProps = { params: Promise<{ id: string }> };
 
@@ -23,6 +24,8 @@ export async function PATCH(request: Request, { params }: EquipmentRouteProps) {
   try { body = await request.json(); } catch { return fail("INVALID_INPUT", "Dữ liệu gửi lên không hợp lệ.", 400); }
   try {
     const { action, expectedVersion } = contentStateRequestSchema.parse(body);
+    const denied = denyPublishUnless(administrator, "equipment.publish", { stateAction: action });
+    if (denied) return denied;
     const equipment = await changeAdminEquipmentState(id, action, administrator.userId, expectedVersion);
     if (!equipment) return fail("NOT_FOUND", "Không tìm thấy thiết bị cần cập nhật.", 404);
     revalidatePath("/thiet-bi", "layout");

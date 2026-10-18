@@ -1,23 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { administratorSessionCookieName, getCurrentAdministrator } from "@iorder/core/server/auth/auth.service";
-import { hasCmsPermission, type CmsPermissionCode } from "@iorder/core/server/auth/permissions";
 import { getOriginalRequestHost, isMediaUploadOriginAllowed } from "@iorder/core/server/media/media-origin";
 
-const mutationMethods = new Set(["POST", "PUT", "PATCH", "DELETE"]);
-
-function requiredPermission(pathname: string, method: string): CmsPermissionCode {
-  const mutation = mutationMethods.has(method);
-  if (pathname.endsWith("/users") || pathname.endsWith("/roles")) return pathname.endsWith("/roles") ? "roles.manage" : "users.manage";
-  if (pathname.endsWith("/audit")) return "audit.read";
-  if (pathname.endsWith("/dashboard")) return "dashboard.read";
-  if (pathname.includes("/leads")) return mutation ? "leads.write" : "leads.read";
-  if (pathname.includes("/media")) return mutation ? "media.manage" : "content.read";
-  if (pathname.includes("/taxonomy")) return mutation ? "taxonomy.manage" : "content.read";
-  if (pathname.includes("/navigation")) return mutation ? "navigation.manage" : "content.read";
-  if (pathname.includes("/redirects") || pathname.includes("/publishing-config") || pathname.includes("/external-links") || pathname.includes("/profile")) return mutation ? "seo.manage" : "content.read";
-  return mutation ? "content.write" : "content.read";
-}
+import { actorMayAccess, adminMutationMethods as mutationMethods, requiredAdminPermissions } from "./lib/admin-permission";
 
 // All CMS mutations are cookie-authenticated. Reject an explicitly cross-site
 // browser request before it reaches a route handler. Requests without Origin
@@ -34,7 +20,8 @@ export async function proxy(request: NextRequest) {
     );
   }
 
-  if (request.nextUrl.pathname.endsWith("/session")) return NextResponse.next();
+  const required = requiredAdminPermissions(request.nextUrl.pathname, request.method);
+  if (!required) return NextResponse.next();
 
   const actor = await getCurrentAdministrator(request.cookies.get(administratorSessionCookieName)?.value);
   if (!actor) {
@@ -44,8 +31,7 @@ export async function proxy(request: NextRequest) {
     );
   }
 
-  const permission = requiredPermission(request.nextUrl.pathname, request.method);
-  if (!hasCmsPermission(actor, permission)) {
+  if (!actorMayAccess(actor, required)) {
     return NextResponse.json(
       { error: { code: "FORBIDDEN", message: "Bạn không có quyền thực hiện thao tác này." } },
       { status: 403 },

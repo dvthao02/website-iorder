@@ -2,16 +2,33 @@ import { NextResponse } from "next/server";
 import { revalidatePath } from "@/lib/publish-cache-revalidation";
 import { z } from "zod";
 import { getRequestAdministrator } from "@iorder/core/server/auth/request-administrator";
-import { FixedWebsitePageBindingError, getAdminPagesPage, saveAdminPage } from "@iorder/core/server/pages/pages.service";
+import { FixedWebsitePageBindingError, getAdminPageBySlug, getAdminPagesPage, saveAdminPage } from "@iorder/core/server/pages/pages.service";
 import { adminListQuerySchema } from "@iorder/core/server/shared/admin-list.contract";
 import { hasDatabaseErrorCode } from "@iorder/core/server/shared/database-error";
 import { PageVersionConflictError } from "@iorder/core/server/pages/page-version";
-import { pageSaveRequestSchema } from "@iorder/core/server/pages/pages.contract";
+import { getFixedWebsitePage, pagePermissionCodes, pageSaveRequestSchema } from "@iorder/core/server/pages/pages.contract";
+import { denyPublishUnless, denyUnless, requestedStatusOf } from "@/lib/admin-access";
+import { getAdminPageById } from "@iorder/core/server/pages/pages.service";
 
 const fail = (code: string, message: string, status: number) => NextResponse.json({ error: { code, message } }, { status });
 export async function GET(request: Request) {
-  if (!await getRequestAdministrator()) return fail("UNAUTHORIZED", "Vui lòng đăng nhập lại.", 401);
+  const user = await getRequestAdministrator();
+  if (!user) return fail("UNAUTHORIZED", "Vui lòng đăng nhập lại.", 401);
   const query = new URL(request.url).searchParams;
+  // ?slug= looks up a system page (e.g. a listing page opened from its module).
+  const slug = query.get("slug");
+  if (slug !== null) {
+    if (!getFixedWebsitePage(slug)) return fail("INVALID_INPUT", "Chỉ tra cứu được trang hệ thống theo slug.", 400);
+    const denied = denyUnless(user, pagePermissionCodes(slug, "view"));
+    if (denied) return denied;
+    try {
+      return NextResponse.json({ page: await getAdminPageBySlug(slug) ?? null });
+    } catch {
+      return fail("INTERNAL_ERROR", "Không thể tải trang lúc này. Vui lòng thử lại.", 500);
+    }
+  }
+  const deniedList = denyUnless(user, "pages.view");
+  if (deniedList) return deniedList;
   const parsed = adminListQuerySchema.safeParse({ page: query.get("page") ?? undefined, pageSize: query.get("pageSize") ?? undefined, query: query.get("query") ?? undefined });
   const status = z.enum(["draft", "review", "scheduled", "published", "archived"]).optional().safeParse(query.get("status") || undefined);
   if (!parsed.success || !status.success) return fail("INVALID_INPUT", "Bộ lọc danh sách trang không hợp lệ.", 400);
@@ -28,6 +45,12 @@ export async function POST(request: Request) {
   try { body = await request.json(); } catch { return fail("INVALID_INPUT", "Dữ liệu trang không hợp lệ.", 400); }
   try {
     const { id, values, expectedVersion } = pageSaveRequestSchema.parse(body);
+    const existing = id ? await getAdminPageById(id) : undefined;
+    if (id && !existing) return fail("NOT_FOUND", "Không tìm thấy trang cần cập nhật.", 404);
+    // A listing page may also be edited by its owning module (pages.contract.ts).
+    const denied = denyUnless(user, existing ? pagePermissionCodes(existing.slug, "update") : "pages.create")
+      ?? denyPublishUnless(user, pagePermissionCodes(existing?.slug, "publish"), { requestedStatus: requestedStatusOf(values), currentStatus: existing?.status ?? null });
+    if (denied) return denied;
     const page = await saveAdminPage(id, values, user.userId, { expectedVersion });
     if (!page) return fail("NOT_FOUND", "Không tìm thấy trang cần cập nhật.", 404);
     revalidatePath("/", "layout");

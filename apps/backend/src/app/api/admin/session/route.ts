@@ -9,6 +9,7 @@ import {
   signInAdministrator,
   signOutAdministrator,
 } from "@iorder/core/server/auth/auth.service";
+import { getRequestAdministrator } from "@iorder/core/server/auth/request-administrator";
 import { getClientAddress } from "@/lib/client-address";
 
 export const runtime = "nodejs";
@@ -111,4 +112,12 @@ export async function DELETE(request: Request) {
   const response = new NextResponse(null, { status: 204 });
   response.cookies.set(administratorSessionCookieName, "", { ...sessionCookie, maxAge: 0 });
   return response;
+}
+
+// Current administrator for the CMS shell. Needs only a valid session, not a
+// module permission, so roles without dashboard access can still use the CMS.
+export async function GET() {
+  const administrator = await getRequestAdministrator();
+  if (!administrator) return phanHoiLoi("UNAUTHORIZED", "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.", 401);
+  return NextResponse.json({ administrator });
 }

@@ -4,11 +4,17 @@ import { after } from "next/server";
 import { publicContentCacheTag, signPublicCacheInvalidation } from "@iorder/core/server/publishing/cache-invalidation";
 
 const timeoutMilliseconds = 3_000;
+let missingConfigurationReported = false;
 
 async function notifyPublishWeb() {
   const endpoint = process.env.PUBLISH_WEB_REVALIDATE_URL?.trim();
   const secret = process.env.PUBLISH_WEB_REVALIDATE_SECRET?.trim();
-  if (!endpoint || !secret) return;
+  if (!endpoint || !secret) {
+    // Production Compose requires both; locally a missing value means edits only show after the 60 s TTL.
+    if (!missingConfigurationReported) console.warn("Chưa cấu hình PUBLISH_WEB_REVALIDATE_URL/SECRET: website chỉ cập nhật sau 60 giây.");
+    missingConfigurationReported = true;
+    return;
+  }
 
   const body = JSON.stringify({ tags: [publicContentCacheTag] });
   const timestamp = String(Date.now());

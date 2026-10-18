@@ -7,6 +7,7 @@ import { createAdminPost, getAdminPostsPage, getAdminPostSummariesPage } from "@
 import { publicPostTypeSchema } from "@iorder/core/server/posts/posts.contract";
 import { adminListQuerySchema } from "@iorder/core/server/shared/admin-list.contract";
 import { hasDatabaseErrorCode } from "@iorder/core/server/shared/database-error";
+import { denyPublishUnless, requestedStatusOf } from "@/lib/admin-access";
 
 export const runtime = "nodejs";
 
@@ -56,6 +57,8 @@ export async function POST(request: Request) {
   }
 
   try {
+    const denied = denyPublishUnless(administrator, "posts.publish", { requestedStatus: requestedStatusOf(body) });
+    if (denied) return denied;
     const post = await createAdminPost(body, administrator.userId);
     lamMoiNoiDungBaiViet(post.slug);
     return NextResponse.json({ post }, { status: 201 });

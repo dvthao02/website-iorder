@@ -9,6 +9,9 @@ import { PageVersionConflictError } from "@iorder/core/server/pages/page-version
 import { ContentVersionConflictError } from "@iorder/core/server/shared/content-version";
 import { NavigationVersionConflictError } from "@iorder/core/server/navigation/navigation.service";
 import { SupportDownloadVersionConflictError } from "@iorder/core/server/support/support-downloads.service";
+import { denyUnless } from "@/lib/admin-access";
+import { revisionTargetModules } from "@/lib/admin-permission";
+import type { CmsPermissionCode } from "@iorder/core/server/auth/permissions";
 
 type Context = { params: Promise<{ target: string; id: string }> };
 const fail = (code: string, message: string, status: number) => NextResponse.json({ error: { code, message } }, { status });
@@ -26,6 +29,10 @@ async function handle(request: Request, context: Context, restore: boolean) {
     if (target === "equipment" && body.expectedVersion === undefined) return fail("INVALID_INPUT", "Vui lòng tải lại thiết bị trước khi khôi phục phiên bản.", 400);
     if (target === "pages" && body.expectedVersion === undefined) return fail("INVALID_INPUT", "Vui lòng tải lại trang trước khi khôi phục phiên bản.", 400);
     if ((target === "posts" || target === "offerings") && body.expectedVersion === undefined) return fail("INVALID_INPUT", "Vui lòng tải lại nội dung trước khi khôi phục phiên bản.", 400);
+    // Restoring can change what is live, so publishable modules require publish.
+    const targetModule = revisionTargetModules[target];
+    const denied = denyUnless(user, (targetModule === "navigation" ? "navigation.update" : `${targetModule}.publish`) as CmsPermissionCode, "Bạn không có quyền khôi phục phiên bản của nội dung này.");
+    if (denied) return denied;
     const result = await restoreRevision(target, id, body.revisionId, user.userId, body.expectedVersion);
     if (!result) return fail("NOT_FOUND", "Không tìm thấy nội dung hoặc phiên bản cần khôi phục.", 404);
     revalidatePath("/", "layout");

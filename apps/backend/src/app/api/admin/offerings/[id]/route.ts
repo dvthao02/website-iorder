@@ -8,6 +8,7 @@ import { hasDatabaseErrorCode } from "@iorder/core/server/shared/database-error"
 import { contentDeleteRequestSchema, contentStateRequestSchema, contentUpdateRequestSchema, ContentVersionConflictError } from "@iorder/core/server/shared/content-version";
 import { publicOfferingTypeSchema } from "@iorder/core/server/offerings/offering-content.contract";
 import { changeAdminOfferingState, deleteArchivedAdminOffering, getAdminOfferingById, updateAdminOffering } from "@iorder/core/server/offerings/offerings.service";
+import { denyPublishUnless, requestedStatusOf } from "@/lib/admin-access";
 
 export const runtime = "nodejs";
 
@@ -17,7 +18,7 @@ function phanHoiLoi(ma: string, thongBao: string, trangThai: number) {
   return NextResponse.json({ error: { code: ma, message: thongBao } }, { status: trangThai });
 }
 
-const danhMucTheoLoai = { software: "phan-mem", solution: "giai-phap", service: "dich-vu", industry: "nganh-nghe" } as const;
+const danhMucTheoLoai = { software: "phan-mem", solution: "giai-phap", service: "dich-vu" } as const;
 
 function lamMoiNoiDungCatalog(type: keyof typeof danhMucTheoLoai, slug: string) {
   const danhMuc = danhMucTheoLoai[type];
@@ -71,12 +72,16 @@ export async function PATCH(request: Request, { params }: OfferingRouteProps) {
       if (offeringHienTai.type !== loaiDaKhoa || (!stateRequest && loaiGuiLen !== loaiDaKhoa)) return phanHoiLoi("CONTENT_TYPE_MISMATCH", "Loại nội dung không khớp với màn quản trị đang sử dụng.", 400);
     }
     if (stateRequest) {
+      const denied = denyPublishUnless(administrator, "offerings.publish", { stateAction: stateRequest.action });
+      if (denied) return denied;
       const offering = await changeAdminOfferingState(id, stateRequest.action, administrator.userId, stateRequest.expectedVersion);
       if (!offering) return phanHoiLoi("NOT_FOUND", "Không tìm thấy nội dung cần cập nhật.", 404);
       lamMoiNoiDungCatalog(offering.type, offering.slug);
       return NextResponse.json({ offering });
     }
     const { expectedVersion, ...values } = contentUpdateRequestSchema.parse(body);
+    const denied = denyPublishUnless(administrator, "offerings.publish", { requestedStatus: requestedStatusOf(values), currentStatus: (await getAdminOfferingById(id))?.status });
+    if (denied) return denied;
     const offering = await updateAdminOffering(id, values, administrator.userId, undefined, expectedVersion);
     if (!offering) {
       return phanHoiLoi("NOT_FOUND", "Không tìm thấy Offering cần cập nhật.", 404);

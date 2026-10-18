@@ -7,6 +7,7 @@ import { getRequestAdministrator } from "@iorder/core/server/auth/request-admini
 import { hasDatabaseErrorCode } from "@iorder/core/server/shared/database-error";
 import { contentDeleteRequestSchema, contentStateRequestSchema, contentUpdateRequestSchema, ContentVersionConflictError } from "@iorder/core/server/shared/content-version";
 import { changeAdminPostState, deleteArchivedAdminPost, getAdminPostById, updateAdminPost } from "@iorder/core/server/posts/posts.service";
+import { denyPublishUnless, requestedStatusOf } from "@/lib/admin-access";
 
 export const runtime = "nodejs";
 
@@ -54,12 +55,16 @@ export async function PATCH(request: Request, { params }: PostRouteProps) {
   try {
     if (body && typeof body === "object" && "action" in body) {
       const { action, expectedVersion } = contentStateRequestSchema.parse(body);
+      const denied = denyPublishUnless(administrator, "posts.publish", { stateAction: action });
+      if (denied) return denied;
       const post = await changeAdminPostState(id, action, administrator.userId, expectedVersion);
       if (!post) return phanHoiLoi("NOT_FOUND", "Không tìm thấy bài viết cần cập nhật.", 404);
       lamMoiNoiDungBaiViet(post.slug);
       return NextResponse.json({ post });
     }
     const { expectedVersion, ...values } = contentUpdateRequestSchema.parse(body);
+    const denied = denyPublishUnless(administrator, "posts.publish", { requestedStatus: requestedStatusOf(values), currentStatus: (await getAdminPostById(id))?.status });
+    if (denied) return denied;
     const post = await updateAdminPost(id, values, administrator.userId, undefined, expectedVersion);
     if (!post) return phanHoiLoi("NOT_FOUND", "Không tìm thấy bài viết cần cập nhật.", 404);
 

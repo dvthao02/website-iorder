@@ -1,10 +1,12 @@
 import { revalidatePath } from "@/lib/publish-cache-revalidation";
+import { ContentVersionConflictError } from "@iorder/core/server/shared/content-version";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getRequestAdministrator } from "@iorder/core/server/auth/request-administrator";
 import { taxonomyRequestSchema } from "@iorder/core/server/taxonomy/taxonomy.contract";
 import { hasDatabaseErrorCode } from "@iorder/core/server/shared/database-error";
 import { deleteAdminTaxonomy, getTaxonomy, TaxonomyInUseError, writeTaxonomy } from "@iorder/core/server/taxonomy/taxonomy.service";
+import { denyUnless } from "@/lib/admin-access";
 
 export async function GET() {
   const user = await getRequestAdministrator();
@@ -17,7 +19,9 @@ export async function POST(request: Request) {
   if (!user) return NextResponse.json({ error: { code: "UNAUTHORIZED", message: "Vui lòng đăng nhập lại." } }, { status: 401 });
   try {
     const body = taxonomyRequestSchema.parse(await request.json());
-    const id = await writeTaxonomy(body.kind, body.id, body.values, user.userId);
+    const denied = denyUnless(user, body.id ? "taxonomy.update" : "taxonomy.create");
+    if (denied) return denied;
+    const id = await writeTaxonomy(body.kind, body.id, body.values, user.userId, body.expectedVersion);
     if (!id) return NextResponse.json({ error: { code: "NOT_FOUND", message: "Không tìm thấy chuyên mục hoặc thẻ cần cập nhật." } }, { status: 404 });
     revalidatePath("/tin-tuc");
     revalidatePath("/tin-tuc/chuyen-muc/[slug]", "page");
@@ -25,6 +29,7 @@ export async function POST(request: Request) {
     revalidatePath("/sitemap.xml");
     return NextResponse.json({ id });
   } catch (error) {
+    if (error instanceof ContentVersionConflictError) return NextResponse.json({ error: { code: "VERSION_CONFLICT", message: error.message } }, { status: 409 });
     if (error instanceof z.ZodError || error instanceof SyntaxError) return NextResponse.json({ error: { code: "INVALID_INPUT", message: "Kiểm tra tên, slug, chuyên mục cha và thứ tự hiển thị trước khi lưu." } }, { status: 400 });
     if (hasDatabaseErrorCode(error, "23505")) return NextResponse.json({ error: { code: "DUPLICATE_SLUG", message: "Slug đã được sử dụng." } }, { status: 409 });
     return NextResponse.json({ error: { code: "INTERNAL_ERROR", message: "Không thể lưu phân loại bài viết lúc này." } }, { status: 500 });

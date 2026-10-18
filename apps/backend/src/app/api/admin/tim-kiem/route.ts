@@ -8,7 +8,7 @@ export async function GET(request: Request) {
   if (!user) return NextResponse.json({ error: { code: "UNAUTHORIZED", message: "Vui lòng đăng nhập lại." } }, { status: 401 });
 
   const keyword = new URL(request.url).searchParams.get("q")?.trim() ?? "";
-  const items = await searchAdminCms(keyword);
+  const items = await searchAdminCms(keyword, user);
 
   return NextResponse.json({ items }, { headers: { "Cache-Control": "private, max-age=20" } });
 }

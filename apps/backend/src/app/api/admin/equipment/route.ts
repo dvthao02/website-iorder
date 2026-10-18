@@ -6,7 +6,15 @@ import { getEquipmentGroups, getEquipmentPage, writeEquipment } from "@iorder/co
 import { adminListQuerySchema } from "@iorder/core/server/shared/admin-list.contract";
 import { equipmentWriteRequestSchema } from "@iorder/core/server/equipment/equipment.contract";
 import { EquipmentVersionConflictError } from "@iorder/core/server/equipment/equipment-version";
+import { ContentVersionConflictError } from "@iorder/core/server/shared/content-version";
 import { hasDatabaseErrorCode } from "@iorder/core/server/shared/database-error";
+import { denyPublishUnless, denyUnless, forbiddenResponse, requestedStatusOf } from "@/lib/admin-access";
+import { getEquipmentById, getEquipmentGroupVisibility } from "@iorder/core/server/equipment/equipment.service";
+import { hasCmsPermission } from "@iorder/core/server/auth/permissions";
+
+function requestedGroupVisibility(values: unknown) {
+  return values && typeof values === "object" && "isEnabled" in values && values.isEnabled === true ? "published" : "draft";
+}
 
 export async function GET(request: Request) {
   const user = await getRequestAdministrator();
@@ -32,12 +40,21 @@ export async function POST(request: Request) {
   if (!user) return fail("UNAUTHORIZED", "Vui lòng đăng nhập lại.", 401);
   try {
     const body = equipmentWriteRequestSchema.parse(await request.json());
-    const id = await writeEquipment(body.kind, body.id, body.values, user.userId, undefined, body.expectedVersion);
+    // An enabled group exposes all of its equipment, so groups follow the same
+    // publish rule as items: showing a group or editing a visible one needs publish.
+    const denied = denyUnless(user, body.id ? "equipment.update" : "equipment.create")
+      ?? (body.kind === "items"
+        ? denyPublishUnless(user, "equipment.publish", { requestedStatus: requestedStatusOf(body.values), currentStatus: body.id ? (await getEquipmentById(body.id))?.status : null })
+        : denyPublishUnless(user, "equipment.publish", { requestedStatus: requestedGroupVisibility(body.values), currentStatus: body.id && await getEquipmentGroupVisibility(body.id) ? "published" : null }));
+    if (denied) return denied;
+    const onlyIfHidden = body.kind === "groups" && !hasCmsPermission(user, "equipment.publish");
+    const id = await writeEquipment(body.kind, body.id, body.values, user.userId, undefined, body.expectedVersion, { onlyIfHidden });
+    if (!id && body.id && onlyIfHidden) return forbiddenResponse("Bạn không có quyền sửa nhóm thiết bị đang hiển thị trên website.");
     if (!id) return fail("NOT_FOUND", "Không tìm thấy thiết bị hoặc nhóm.", 404);
     revalidatePath("/thiet-bi", "layout");
     return NextResponse.json({ id, ...(body.kind === "items" ? { version: body.id ? body.expectedVersion! + 1 : 1 } : {}) });
   } catch (error) {
-    if (error instanceof EquipmentVersionConflictError) return fail("VERSION_CONFLICT", error.message, 409);
+    if (error instanceof EquipmentVersionConflictError || error instanceof ContentVersionConflictError) return fail("VERSION_CONFLICT", error.message, 409);
     if (error instanceof z.ZodError || error instanceof SyntaxError) return fail("INVALID_INPUT", "Kiểm tra nhóm, tên, slug, giá, ảnh và cấu trúc thông số trước khi lưu.", 400);
     if (hasDatabaseErrorCode(error, "23505")) return fail("DUPLICATE_SLUG", "Slug đã được sử dụng. Vui lòng chọn slug khác.", 409);
     return fail("INTERNAL_ERROR", "Không thể lưu thiết bị hoặc nhóm lúc này.", 500);

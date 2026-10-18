@@ -4,6 +4,7 @@ import { z } from "zod";
 import { getRequestAdministrator } from "@iorder/core/server/auth/request-administrator";
 import { supportDownloadCreateRequestSchema } from "@iorder/core/server/support/support-downloads.contract";
 import { createAdminSupportDownload, getAdminSupportDownloads } from "@iorder/core/server/support/support-downloads.service";
+import { denyPublishUnless } from "@/lib/admin-access";
 
 export async function GET() {
   const user = await getRequestAdministrator();
@@ -23,6 +24,8 @@ export async function POST(request: Request) {
   try { body = await request.json(); } catch { return fail("INVALID_INPUT", "Dữ liệu gửi lên không hợp lệ.", 400); }
   try {
     const { values, changeNote } = supportDownloadCreateRequestSchema.parse(body);
+    const denied = denyPublishUnless(user, "support_downloads.publish", { requestedStatus: values.isEnabled ? "published" : "draft" });
+    if (denied) return denied;
     const download = await createAdminSupportDownload(values, user.userId, changeNote);
     revalidatePath("/ho-tro/cai-dat");
     return NextResponse.json({ download }, { status: 201 });

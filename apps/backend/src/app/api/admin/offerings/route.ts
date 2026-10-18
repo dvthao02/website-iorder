@@ -7,6 +7,7 @@ import { hasDatabaseErrorCode } from "@iorder/core/server/shared/database-error"
 import { publicOfferingTypeSchema } from "@iorder/core/server/offerings/offering-content.contract";
 import { createAdminOffering, getAdminOfferingsPage, getAdminOfferingSummariesPage } from "@iorder/core/server/offerings/offerings.service";
 import { adminListQuerySchema } from "@iorder/core/server/shared/admin-list.contract";
+import { denyPublishUnless, requestedStatusOf } from "@/lib/admin-access";
 
 export const runtime = "nodejs";
 
@@ -14,7 +15,7 @@ function phanHoiLoi(ma: string, thongBao: string, trangThai: number) {
   return NextResponse.json({ error: { code: ma, message: thongBao } }, { status: trangThai });
 }
 
-const danhMucTheoLoai = { software: "phan-mem", solution: "giai-phap", service: "dich-vu", industry: "nganh-nghe" } as const;
+const danhMucTheoLoai = { software: "phan-mem", solution: "giai-phap", service: "dich-vu" } as const;
 
 function lamMoiNoiDungCatalog(type: keyof typeof danhMucTheoLoai, slug: string) {
   const danhMuc = danhMucTheoLoai[type];
@@ -68,6 +69,8 @@ export async function POST(request: Request) {
   try {
     const loiLoai = kiemTraLoaiDaKhoa(request, body);
     if (loiLoai) return phanHoiLoi("CONTENT_TYPE_MISMATCH", loiLoai, 400);
+    const denied = denyPublishUnless(administrator, "offerings.publish", { requestedStatus: requestedStatusOf(body) });
+    if (denied) return denied;
     const offering = await createAdminOffering(body, administrator.userId);
     lamMoiNoiDungCatalog(offering.type, offering.slug);
     return NextResponse.json({ offering }, { status: 201 });

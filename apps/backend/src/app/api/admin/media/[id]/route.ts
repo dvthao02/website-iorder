@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getRequestAdministrator } from "@iorder/core/server/auth/request-administrator";
 import { deleteAdminMedia, editAdminMedia, getMediaById, MediaInUseError } from "@iorder/core/server/media/media.service";
+import { revalidatePath } from "@/lib/publish-cache-revalidation";
 
 export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
   const fail = (code: string, message: string, status: number) => NextResponse.json({ error: { code, message } }, { status });
@@ -24,7 +25,10 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   try { input = await request.json(); } catch { return fail("INVALID_INPUT", "Dữ liệu gửi lên không hợp lệ.", 400); }
   try {
     const asset = await editAdminMedia(id, input, administrator.userId);
-    return asset ? NextResponse.json({ asset }) : fail("NOT_FOUND", "Không tìm thấy tệp.", 404);
+    if (!asset) return fail("NOT_FOUND", "Không tìm thấy tệp.", 404);
+    // Alt text is rendered on public covers, logos and equipment images.
+    revalidatePath("/", "layout");
+    return NextResponse.json({ asset });
   } catch (error) {
     return error instanceof z.ZodError ? fail("INVALID_INPUT", "Mô tả ảnh tối đa 500 ký tự; chú thích tối đa 10.000 ký tự.", 400)
       : fail("INTERNAL_ERROR", "Không thể lưu thông tin tệp.", 500);
