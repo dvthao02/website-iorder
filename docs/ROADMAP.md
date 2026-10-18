@@ -40,8 +40,8 @@ Tham chiếu các năng lực phổ biến của Strapi 5, Payload 3, Directus 1
 | Hộp thoại xác nhận trong app | Có | Còn dùng `window.confirm()` | Thiếu (UX) |
 | Thư viện media: thư mục, tag, tìm theo nơi dùng | Có | Có tìm kiếm, lọc MIME, theo dõi nơi dùng; không có thư mục | Đủ dùng |
 | Đa ngôn ngữ (i18n) | Có | Không | Chưa cần (site tiếng Việt) |
-| Quan sát hệ thống (error tracking, log, metric, uptime) | Tích hợp | Chỉ có `console` log, healthcheck | **Thiếu** cho production |
-| Sao lưu tự động + thử restore | Dịch vụ managed | Lệnh thủ công | **Thiếu** |
+| Quan sát hệ thống (error tracking, log, metric, uptime) | Tích hợp | Log JSON có mã request xuyên Caddy → CMS → Backend, access log Caddy, `onRequestError`, xoay vòng log; healthcheck | Log đạt. Thiếu cảnh báo tự động |
+| Sao lưu tự động + thử restore | Dịch vụ managed | `scripts/backup.sh`: dump DB + khôi phục thử mỗi lần, media theo object, xoay vòng | Đạt (chưa chạy trên VPS, chưa có bản sao ngoài máy) |
 | Test E2E trình duyệt | Thường có | Playwright `pnpm test:e2e`: 7 kịch bản (đăng nhập, ma trận quyền, Super Admin, CRUD + hộp xác nhận, tài khoản giới hạn, website, mobile) | Đạt cơ bản; cần mở rộng theo module và chạy trong CI |
 | API cho client headless, token | Có | API public read-only nội bộ | Chưa cần |
 
@@ -51,7 +51,7 @@ Tham chiếu các năng lực phổ biến của Strapi 5, Payload 3, Directus 1
 
 1. **Hoàn tất RBAC:** test role × endpoint (401/403), CMS ẩn hoặc khóa thao tác theo permission, không khóa được admin cuối cùng. Phải chốt ma trận quyền với chủ sản phẩm.
 2. **Test E2E (Playwright):** đã có 17 test chạy local (RBAC UI, phiên bản/409, trang danh sách, sidebar, tạo nhanh phân loại/nhóm). Còn thiếu: luồng upload media, xuất bản bài viết rồi kiểm tra website, và chạy trong CI trên Compose tạm.
-3. **Sao lưu tự động:** `pg_dump` và `seaweed-data` theo lịch, giữ N bản, thử restore định kỳ.
+3. ~~Sao lưu tự động~~: đã có `scripts/backup.sh` (xem PROJECT.md mục Production). Đã chạy thử với DB và S3 local: dump + khôi phục thử đạt, xoay vòng đúng, media sao lưu rồi khôi phục sang bucket khác khớp từng byte. Còn: cài cron trên VPS và chép `BACKUP_DIR` ra ngoài máy.
 4. **Deploy VPS thật:** TLS, domain, kiểm tra header và luồng media qua domain thật.
 
 ### P1: ngay sau phát hành
@@ -60,7 +60,7 @@ Tham chiếu các năng lực phổ biến của Strapi 5, Payload 3, Directus 1
 6. **Xem trước bản nháp:** token ký HMAC có hạn ngắn, publish-web render nội dung nháp không qua cache, `noindex`.
 7. **Quên mật khẩu và TOTP cho admin.**
 8. ~~Hộp thoại xác nhận dùng chung~~: đã xong (`useAdminConfirm`, không còn `window.confirm`).
-9. **Quan sát hệ thống:** log JSON có request id, error tracking, cảnh báo khi healthcheck lỗi.
+9. ~~Log có cấu trúc + mã request~~: đã xong (xem PROJECT.md mục "Log và theo dõi"). Đã kiểm chứng local: tắt DB → log Backend/CMS cùng mã request, có nguyên nhân gốc `ECONNREFUSED`, tham số SQL bị ẩn; Caddy thật ghi access log JSON, che cookie, bỏ `query`. Còn: cảnh báo khi healthcheck lỗi (chờ chọn kênh nhận, gộp với thông báo lead).
 10. **Lên lịch job dọn dẹp** (media, session, audit) sau khi chốt thời hạn lưu.
 
 18. ~~Tự đổi mật khẩu~~: đã có màn "Tài khoản của tôi" (`/admin/tai-khoan-cua-toi`), cần mật khẩu hiện tại, tính chung giới hạn thử với đăng nhập, đăng xuất các phiên khác và ghi nhật ký.

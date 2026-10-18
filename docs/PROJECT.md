@@ -134,13 +134,40 @@ Tác vụ định kỳ (lên lịch ở host, chạy qua image migration):
 | `pnpm db:cleanup-login-throttles` | Hằng ngày | Tối đa 500 bucket hết hạn mỗi lần |
 | `pnpm db:cleanup-media` | Thủ công | Media xóa mềm quá 7 ngày, bỏ qua tệp còn được tham chiếu. Chưa lên lịch, chờ chốt policy |
 
-Sao lưu:
+Sao lưu (`scripts/backup.sh`, chạy trên host ở thư mục repo):
 
-- Database: `... exec -T db sh -c 'pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB"' > iorder-db.sql`
-- Volume `seaweed-data`.
-- Phải thử restore trước khi tin vào bản sao lưu.
+- Mỗi lần chạy: `pg_dump -Fc` database iOrder và `umami` (nếu có) vào `BACKUP_DIR/db/<thời điểm UTC>/` kèm `SHA256SUMS`; khôi phục thử bản iOrder vào database tạm `iorder_restore_check` rồi xóa (lỗi hoặc không có dữ liệu → script dừng, bản đó không được giữ); sao lưu media theo từng object qua S3 API vào `BACKUP_DIR/media/` (service `backup-media`, profile `ops`). Media chỉ thêm, không xóa, nên dump cũ vẫn tìm được tệp đã dọn khỏi S3.
+- Mặc định `BACKUP_DIR=/var/backups/iorder`, giữ `BACKUP_KEEP=14` bản database. Có khóa `flock`, không chạy chồng.
+- Lên lịch: `30 2 * * * cd /srv/iorder && scripts/backup.sh >> /var/log/iorder-backup.log 2>&1`.
+- Bản sao lưu nằm cùng VPS chỉ chống lỗi thao tác/dữ liệu, không chống mất máy: phải chép `BACKUP_DIR` ra nơi khác (máy khác hoặc object storage ngoài).
+
+Khôi phục (phá hủy dữ liệu hiện tại, chỉ làm khi cần):
+
+1. Dừng ứng dụng: `... stop backend cms publish-web`.
+2. Database: `... exec -T db sh -c 'dropdb -U "$POSTGRES_USER" "$POSTGRES_DB" && createdb -U "$POSTGRES_USER" "$POSTGRES_DB" && pg_restore -U "$POSTGRES_USER" --no-owner --exit-on-error -d "$POSTGRES_DB"' < BACKUP_DIR/db/<bản>/iorder_v2.dump` (thay tên tệp theo `POSTGRES_DB`).
+3. Media: `... run --rm --no-deps -v BACKUP_DIR/media:/backup/media backup-media node scripts/backup-media.mjs restore /backup/media` (chỉ đưa lên object còn thiếu, không ghi đè).
+4. `... up -d`, rồi kiểm tra website, đăng nhập CMS, mở vài ảnh.
 
 Chuyển dữ liệu từ MinIO cũ: volume `seaweed-data` là volume mới. Nếu production đã có media thì phải sao chép object và đối soát với `storage_key` trước khi cutover, đồng thời giữ volume cũ cho đến khi restore đạt.
+
+### Log và theo dõi
+
+- **Mã request:** Caddy gắn `X-Request-Id` (UUID, thay giá trị client tự gửi) cho mọi request và trả lại trong response. CMS chuyển tiếp mã khi gọi Backend; proxy Backend nhận hoặc tạo mới cho `/api/*`, `/media/*`. Người dùng báo lỗi kèm mã này (DevTools → Network → header `x-request-id`) là tìm được đúng dòng log ở cả 3 tầng.
+- **Access log:** Caddy ghi JSON mỗi request (trạng thái, `duration`, IP, user agent, `uuid` = mã request). Cookie/Authorization bị che, tham số `query` (từ khóa tìm kiếm) bị bỏ khỏi URI.
+- **Log ứng dụng:** `logger` trong `packages/core/src/server/shared/logger.ts`. Production in một dòng JSON: `time`, `level`, `service`, `msg`, `requestId`, `method`, `path` (không query string), trường bổ sung, `err` (name, message, 12 frame stack, mã lỗi Postgres, chuỗi `cause`). Không ghi giá trị khóa nhạy cảm (password, token, cookie, hash, session…) và tham số SQL. Dev in dạng dễ đọc. `LOG_LEVEL` (debug/info/warn/error), `LOG_FORMAT=json` để ép JSON.
+- **Lỗi chưa xử lý:** `src/instrumentation.ts` (`onRequestError`) của cả 3 app ghi kèm route và requestId. Từ chối quyền (403) và mutation khác nguồn ghi mức `warn` kèm người thao tác.
+- **Giữ log:** Docker `json-file` xoay vòng 5 × 20 MB mỗi container.
+
+Lệnh hay dùng (`dc` = `docker compose --env-file .env.production -f compose.production.yaml`):
+
+| Mục đích | Lệnh |
+|---|---|
+| Theo dõi lỗi trực tiếp | `dc logs -f --no-log-prefix backend cms publish-web | grep '"level":"error"'` |
+| Tìm theo mã request | `dc logs --no-log-prefix --since 24h | grep <mã>` |
+| Request chậm hơn 2 giây | `dc logs --no-log-prefix proxy | jq -c 'select(.duration > 2) | {uuid, status, duration, uri: .request.uri}'` |
+| Đếm lỗi 5xx theo đường dẫn | `dc logs --no-log-prefix --since 24h proxy | jq -r 'select(.status >= 500) | .request.uri' | sort | uniq -c` |
+
+Chưa có: cảnh báo tự động khi healthcheck lỗi hoặc lỗi tăng đột biến (cần chọn kênh nhận: email/Zalo/dịch vụ uptime).
 
 ### Thống kê truy cập (Umami)
 

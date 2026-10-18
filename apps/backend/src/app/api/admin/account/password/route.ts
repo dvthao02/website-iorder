@@ -6,6 +6,7 @@ import { changeOwnPassword } from "@iorder/core/server/auth/account.service";
 import { LoginRateLimitError } from "@iorder/core/server/auth/login-throttle";
 import { getRequestAdministrator } from "@iorder/core/server/auth/request-administrator";
 import { getClientAddress } from "@/lib/client-address";
+import { logger } from "@iorder/core/server/shared/logger";
 
 export const runtime = "nodejs";
 
@@ -29,7 +30,7 @@ export async function POST(request: Request) {
     }
     if (error instanceof z.ZodError) return fail("INVALID_INPUT", error.issues[0]?.message ?? "Mật khẩu không hợp lệ.", 400);
     if (error instanceof SyntaxError) return fail("INVALID_INPUT", "Dữ liệu gửi lên không hợp lệ.", 400);
-    console.error("Đổi mật khẩu tài khoản thất bại.");
+    logger.error("Đổi mật khẩu tài khoản thất bại.", { request, error });
     return fail("INTERNAL_ERROR", "Không thể đổi mật khẩu lúc này. Vui lòng thử lại.", 500);
   }
 }

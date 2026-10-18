@@ -1,5 +1,13 @@
 name: iorder-v2
 
+# Docker xoay vòng log của mọi service (tối đa 5 × 20 MB mỗi container) để log không làm đầy ổ đĩa.
+# Xem: docker compose --env-file .env.production -f compose.production.yaml logs -f backend
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "20m"
+    max-file: "5"
+
 services:
   cms:
     build:
@@ -12,7 +20,9 @@ services:
         NEXT_PUBLIC_PUBLISH_WEB_URL: https://${SITE_ADDRESS:?missing}
     image: iorder-v2-cms:${APP_IMAGE_TAG:-latest}
     restart: unless-stopped
+    logging: *default-logging
     environment:
+      SERVICE_NAME: cms
       BACKEND_URL: http://backend:3000
     depends_on:
       backend:
@@ -40,7 +50,9 @@ services:
         BACKEND_URL: http://backend:3000
     image: iorder-v2-publish:${APP_IMAGE_TAG:-latest}
     restart: unless-stopped
+    logging: *default-logging
     environment:
+      SERVICE_NAME: publish-web
       BACKEND_URL: http://backend:3000
       PUBLISH_WEB_REVALIDATE_SECRET: ${PUBLISH_WEB_REVALIDATE_SECRET:?missing}
       # Để trống tới khi tạo website trong Umami; khi có thì website chèn script /stats/script.js.
@@ -70,7 +82,9 @@ services:
         APP_NAME: backend
     image: iorder-v2-backend:${APP_IMAGE_TAG:-latest}
     restart: unless-stopped
+    logging: *default-logging
     environment:
+      SERVICE_NAME: backend
       DATABASE_URL: postgresql://${POSTGRES_USER:?missing}:${POSTGRES_PASSWORD:?missing}@db:5432/${POSTGRES_DB:?missing}
       LEAD_IP_HASH_SALT: ${LEAD_IP_HASH_SALT:?missing}
       S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:?missing}
@@ -107,6 +121,7 @@ services:
       target: migrations
     image: iorder-v2-migrate:${APP_IMAGE_TAG:-latest}
     restart: "no"
+    logging: *default-logging
     command: pnpm db:migrate
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:?missing}:${POSTGRES_PASSWORD:?missing}@db:5432/${POSTGRES_DB:?missing}
@@ -119,6 +134,7 @@ services:
   seed-admin:
     image: iorder-v2-migrate:${APP_IMAGE_TAG:-latest}
     restart: "no"
+    logging: *default-logging
     command: pnpm db:seed:admin
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:?missing}:${POSTGRES_PASSWORD:?missing}@db:5432/${POSTGRES_DB:?missing}
@@ -131,9 +147,25 @@ services:
     networks:
       - internal
 
+  # Sao lưu media theo object; chỉ chạy qua scripts/backup.sh (profile ops, không khởi động khi up).
+  backup-media:
+    image: iorder-v2-migrate:${APP_IMAGE_TAG:-latest}
+    profiles: ["ops"]
+    restart: "no"
+    logging: *default-logging
+    command: ["node", "scripts/backup-media.mjs", "backup", "/backup/media"]
+    environment:
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:?missing}
+      S3_BUCKET: ${S3_BUCKET:?missing}
+      S3_ENDPOINT: http://s3:8333
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:?missing}
+    networks:
+      - storage
+
   db:
     image: postgres:17.11-alpine3.24@sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24
     restart: unless-stopped
+    logging: *default-logging
     environment:
       POSTGRES_DB: ${POSTGRES_DB:?missing}
       POSTGRES_USER: ${POSTGRES_USER:?missing}
@@ -153,6 +185,7 @@ services:
   umami-db-init:
     image: postgres:17.11-alpine3.24@sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24
     restart: "no"
+    logging: *default-logging
     command: ["sh", "-c", "psql -tAc \"select 1 from pg_database where datname = 'umami'\" | grep -q 1 || psql -c 'create database umami'"]
     environment:
       PGHOST: db
@@ -168,6 +201,7 @@ services:
   umami:
     image: ghcr.io/umami-software/umami:3.4.0@sha256:85909afc45bdcda1917394594a087421fdbb05610fded0fa9f6fb861abb2f367
     restart: unless-stopped
+    logging: *default-logging
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:?missing}:${POSTGRES_PASSWORD:?missing}@db:5432/umami
       APP_SECRET: ${UMAMI_APP_SECRET:?missing}
@@ -188,6 +222,7 @@ services:
   s3:
     image: chrislusf/seaweedfs@sha256:4e61d15fd35994cb1e43e1e553dff106794841fd9a99ade2fc8c8bfce4d7872d
     restart: unless-stopped
+    logging: *default-logging
     command: ["mini", "-dir=/data", "-master.telemetry=false"]
     environment:
       AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:?missing}
@@ -206,6 +241,7 @@ services:
   proxy:
     image: caddy:2-alpine@sha256:d8542f48d34a9cf4e4c11a478865229840e87e4c96ea3f439101f31a5d35f75f
     restart: unless-stopped
+    logging: *default-logging
     depends_on:
       cms:
         condition: service_healthy

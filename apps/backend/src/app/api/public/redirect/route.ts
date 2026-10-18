@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getEnabledRedirect } from "@iorder/core/server/redirects/redirects.service";
+import { logger } from "@iorder/core/server/shared/logger";
 
 export async function GET(request: Request) {
   const path = new URL(request.url).searchParams.get("path");
@@ -9,7 +10,7 @@ export async function GET(request: Request) {
     // Website chỉ cần đích và mã chuyển hướng; không trả id, version hay thời gian nội bộ.
     return NextResponse.json({ redirect: redirect ? { destinationPath: redirect.destinationPath, statusCode: redirect.statusCode } : null });
   } catch (error) {
-    console.error("Tra cứu chuyển hướng public thất bại.", error);
+    logger.error("Tra cứu chuyển hướng public thất bại.", { request, error });
     return NextResponse.json({ error: { code: "INTERNAL_ERROR", message: "Không thể tra cứu chuyển hướng lúc này." } }, { status: 500 });
   }
 }

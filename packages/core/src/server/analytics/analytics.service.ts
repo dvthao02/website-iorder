@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { umamiMetricsSchema, umamiPageviewsSchema, umamiStatsSchema, type AnalyticsOverview, type AnalyticsTotals } from "./analytics.contract";
+import { logger } from "../shared/logger";
 
 export type { AnalyticsOverview, AnalyticsTotals } from "./analytics.contract";
 
@@ -90,7 +91,7 @@ export function createAnalyticsService({ fetch: fetcher, env, now }: AnalyticsDe
         topPages: pages.filter((page) => page.x).map((page) => ({ path: page.x, visitors: page.y })),
       };
     } catch (error) {
-      console.error("Không lấy được số liệu truy cập từ Umami.", error instanceof Error ? error.message : error);
+      logger.error("Không lấy được số liệu truy cập từ Umami.", { periodDays, error });
       return { connection: "error", periodDays, message: "Không lấy được số liệu từ công cụ thống kê. Kiểm tra dịch vụ Umami, API key và mã website." };
     }
   }

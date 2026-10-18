@@ -13,6 +13,7 @@ import {
   SupportDownloadVersionConflictError,
   updateAdminSupportDownload,
 } from "@iorder/core/server/support/support-downloads.service";
+import { logger } from "@iorder/core/server/shared/logger";
 
 export const runtime = "nodejs";
 
@@ -65,7 +66,7 @@ export async function PATCH(request: Request, { params }: SupportDownloadRoutePr
     if (error instanceof SupportDownloadVersionConflictError) return phanHoiLoi("VERSION_CONFLICT", error.message, 409);
     if (error instanceof ArchivedSupportDownloadError) return phanHoiLoi("CONTENT_ARCHIVED", error.message, 409);
 
-    console.error("Cập nhật mục Hỗ trợ trong CMS thất bại.");
+    logger.error("Cập nhật mục Hỗ trợ trong CMS thất bại.", { request, error });
     return phanHoiLoi("INTERNAL_ERROR", "Không thể cập nhật mục Hỗ trợ lúc này. Vui lòng thử lại.", 500);
   }
 }
@@ -86,7 +87,7 @@ export async function DELETE(request: Request, { params }: SupportDownloadRouteP
     return NextResponse.json({ deletedId });
   } catch (error) {
     if (error instanceof SupportDownloadVersionConflictError) return phanHoiLoi("VERSION_CONFLICT", error.message, 409);
-    console.error("Xóa tài nguyên Hỗ trợ trong CMS thất bại.");
+    logger.error("Xóa tài nguyên Hỗ trợ trong CMS thất bại.", { request, error });
     return phanHoiLoi("INTERNAL_ERROR", "Không thể xóa tài nguyên lúc này. Vui lòng thử lại.", 500);
   }
 }

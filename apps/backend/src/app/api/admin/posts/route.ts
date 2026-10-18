@@ -8,6 +8,7 @@ import { publicPostTypeSchema } from "@iorder/core/server/posts/posts.contract";
 import { adminListQuerySchema } from "@iorder/core/server/shared/admin-list.contract";
 import { hasDatabaseErrorCode } from "@iorder/core/server/shared/database-error";
 import { denyPublishUnless, requestedStatusOf } from "@/lib/admin-access";
+import { logger } from "@iorder/core/server/shared/logger";
 
 export const runtime = "nodejs";
 
@@ -66,7 +67,7 @@ export async function POST(request: Request) {
     if (error instanceof z.ZodError) return phanHoiLoi("INVALID_INPUT", "Vui lòng kiểm tra lại nội dung và metadata bài viết.", 400);
     if (hasDatabaseErrorCode(error, "23505")) return phanHoiLoi("DUPLICATE_SLUG", "Slug bài viết đã tồn tại.", 409);
 
-    console.error("Tạo bài viết trong CMS thất bại.");
+    logger.error("Tạo bài viết trong CMS thất bại.", { request, error });
     return phanHoiLoi("INTERNAL_ERROR", "Không thể tạo bài viết lúc này. Vui lòng thử lại.", 500);
   }
 }

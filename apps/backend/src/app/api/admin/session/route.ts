@@ -11,6 +11,7 @@ import {
 } from "@iorder/core/server/auth/auth.service";
 import { getRequestAdministrator } from "@iorder/core/server/auth/request-administrator";
 import { getClientAddress } from "@/lib/client-address";
+import { logger } from "@iorder/core/server/shared/logger";
 
 export const runtime = "nodejs";
 
@@ -81,7 +82,7 @@ export async function POST(request: Request) {
       return phanHoiLoiBieuMauHoacJson(request, laBieuMauTrinhDuyet, "INVALID_CREDENTIALS", error.message, 401);
     }
 
-    console.error("Đăng nhập quản trị thất bại.");
+    logger.error("Đăng nhập quản trị thất bại.", { request, error });
     return phanHoiLoiBieuMauHoacJson(
       request,
       laBieuMauTrinhDuyet,

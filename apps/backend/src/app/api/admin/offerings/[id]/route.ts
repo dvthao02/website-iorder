@@ -9,6 +9,7 @@ import { contentDeleteRequestSchema, contentStateRequestSchema, contentUpdateReq
 import { publicOfferingTypeSchema } from "@iorder/core/server/offerings/offering-content.contract";
 import { changeAdminOfferingState, deleteArchivedAdminOffering, getAdminOfferingById, updateAdminOffering } from "@iorder/core/server/offerings/offerings.service";
 import { denyPublishUnless, requestedStatusOf } from "@/lib/admin-access";
+import { logger } from "@iorder/core/server/shared/logger";
 
 export const runtime = "nodejs";
 
@@ -99,7 +100,7 @@ export async function PATCH(request: Request, { params }: OfferingRouteProps) {
       return phanHoiLoi("DUPLICATE_SLUG", "Slug đã tồn tại trong nhóm nội dung này.", 409);
     }
 
-    console.error("Cập nhật Offering trong CMS thất bại.");
+    logger.error("Cập nhật Offering trong CMS thất bại.", { request, error });
     return phanHoiLoi("INTERNAL_ERROR", "Không thể cập nhật Offering lúc này. Vui lòng thử lại.", 500);
   }
 }

@@ -7,6 +7,7 @@ import { taxonomyRequestSchema } from "@iorder/core/server/taxonomy/taxonomy.con
 import { hasDatabaseErrorCode } from "@iorder/core/server/shared/database-error";
 import { deleteAdminTaxonomy, getTaxonomy, TaxonomyInUseError, writeTaxonomy } from "@iorder/core/server/taxonomy/taxonomy.service";
 import { denyUnless } from "@/lib/admin-access";
+import { logger } from "@iorder/core/server/shared/logger";
 
 export async function GET() {
   const user = await getRequestAdministrator();
@@ -49,7 +50,7 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ deletedId });
   } catch (error) {
     if (error instanceof TaxonomyInUseError) return NextResponse.json({ error: { code: "TAXONOMY_IN_USE", message: error.message } }, { status: 409 });
-    console.error("Xóa phân loại bài viết trong CMS thất bại.");
+    logger.error("Xóa phân loại bài viết trong CMS thất bại.", { request, error });
     return NextResponse.json({ error: { code: "INTERNAL_ERROR", message: "Không thể xóa phân loại lúc này." } }, { status: 500 });
   }
 }

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getRequestAdministrator } from "@iorder/core/server/auth/request-administrator";
 import { deleteAdminMedia, editAdminMedia, getMediaById, MediaInUseError } from "@iorder/core/server/media/media.service";
 import { revalidatePath } from "@/lib/publish-cache-revalidation";
+import { logger } from "@iorder/core/server/shared/logger";
 
 export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
   const fail = (code: string, message: string, status: number) => NextResponse.json({ error: { code, message } }, { status });
@@ -35,7 +36,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   }
 }
 
-export async function DELETE(_: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const administrator = await getRequestAdministrator();
   const fail = (code: string, message: string, status: number) => NextResponse.json({ error: { code, message } }, { status });
   if (!administrator) return fail("UNAUTHORIZED", "Vui lòng đăng nhập lại.", 401);
@@ -47,7 +48,7 @@ export async function DELETE(_: Request, { params }: { params: Promise<{ id: str
     return NextResponse.json({ queuedId });
   } catch (error) {
     if (error instanceof MediaInUseError) return fail("MEDIA_IN_USE", error.message, 409);
-    console.error("Xóa media trong CMS thất bại.");
+    logger.error("Xóa media trong CMS thất bại.", { request, error });
     return fail("INTERNAL_ERROR", "Không thể xóa tệp lúc này. Vui lòng thử lại.", 500);
   }
 }

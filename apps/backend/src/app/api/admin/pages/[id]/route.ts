@@ -8,6 +8,7 @@ import { getRequestAdministrator } from "@iorder/core/server/auth/request-admini
 import { deleteArchivedAdminPage, FixedWebsitePageBindingError, getAdminPageById } from "@iorder/core/server/pages/pages.service";
 import { pagePermissionCodes } from "@iorder/core/server/pages/pages.contract";
 import { denyUnless } from "@/lib/admin-access";
+import { logger } from "@iorder/core/server/shared/logger";
 
 type PageRouteProps = { params: Promise<{ id: string }> };
 
@@ -41,7 +42,7 @@ export async function DELETE(request: Request, { params }: PageRouteProps) {
   } catch (error) {
     if (error instanceof FixedWebsitePageBindingError) return fail("FIXED_PAGE_ROUTE", error.message, 400);
     if (error instanceof PageVersionConflictError) return fail("VERSION_CONFLICT", error.message, 409);
-    console.error("Xóa trang trong CMS thất bại.");
+    logger.error("Xóa trang trong CMS thất bại.", { request, error });
     return fail("INTERNAL_ERROR", "Không thể xóa trang lúc này. Vui lòng thử lại.", 500);
   }
 }

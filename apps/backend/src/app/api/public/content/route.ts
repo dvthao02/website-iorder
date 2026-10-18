@@ -14,6 +14,7 @@ import { getSiteProfile } from "@iorder/core/server/settings/profile.service";
 import { getEnabledSupportDownloads } from "@iorder/core/server/support/support-downloads.service";
 import { getPartners, getTestimonials } from "@iorder/core/server/supporting/supporting.service";
 import { getTaxonomy } from "@iorder/core/server/taxonomy/taxonomy.service";
+import { logger } from "@iorder/core/server/shared/logger";
 
 export const runtime = "nodejs";
 
@@ -86,7 +87,7 @@ export async function GET(request: Request) {
         return NextResponse.json({ testimonials: await getTestimonials(true) });
     }
   } catch (error) {
-    console.error(`Đọc nội dung public "${resource.data}" thất bại.`, error);
+    logger.error("Đọc nội dung public thất bại.", { request, resource: resource.data, error });
     return NextResponse.json({ error: { code: "INTERNAL_ERROR", message: "Không thể tải nội dung website lúc này." } }, { status: 500 });
   }
 }

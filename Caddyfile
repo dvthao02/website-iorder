@@ -1,4 +1,26 @@
+# Access log JSON (trạng thái, thời gian xử lý, IP, user agent) và một mã X-Request-Id cho mỗi request.
+# Mã này đi tiếp vào CMS/Backend để nối log; giá trị client tự gửi bị thay. Cookie/Authorization
+# được Caddy che sẵn; tham số "query" (từ khóa tìm kiếm, có thể là SĐT khách) bị bỏ khỏi URI.
+(observability) {
+	log {
+		output stdout
+		format filter {
+			wrap json
+			fields {
+				request>uri query {
+					delete query
+				}
+				# Mã thật nằm ở trường "uuid"; bỏ giá trị client tự gửi cho khỏi nhầm.
+				request>headers>X-Request-Id delete
+			}
+		}
+	}
+	request_header X-Request-Id {http.request.uuid}
+	header X-Request-Id {http.request.uuid}
+}
+
 {$SITE_ADDRESS} {
+	import observability
 	encode zstd gzip
 	header {
 		X-Content-Type-Options "nosniff"
@@ -30,6 +52,7 @@
 }
 
 {$CMS_SITE_ADDRESS} {
+	import observability
 	encode zstd gzip
 	header {
 		X-Content-Type-Options "nosniff"
@@ -49,6 +72,7 @@
 }
 
 {$ANALYTICS_SITE_ADDRESS} {
+	import observability
 	encode zstd gzip
 	header {
 		X-Content-Type-Options "nosniff"

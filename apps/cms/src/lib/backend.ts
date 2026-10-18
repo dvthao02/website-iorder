@@ -41,6 +41,7 @@ import type { getSiteProfile as getSiteProfileFromCore } from "@iorder/core/serv
 import type { getPublishingConfig as getPublishingConfigFromCore } from "@iorder/core/server/settings/publishing.service";
 import type { getAdminSupportDownloads as getAdminSupportDownloadsFromCore } from "@iorder/core/server/support/support-downloads.service";
 import type { getTaxonomy as getTaxonomyFromCore } from "@iorder/core/server/taxonomy/taxonomy.service";
+import { logger, normalizeRequestId, requestIdHeader } from "@iorder/core/server/shared/logger";
 
 const backendUrl = (process.env.BACKEND_URL ?? "http://localhost:3002").replace(/\/$/, "");
 export const administratorSessionCookieName = "iorder_admin_session";
@@ -86,15 +87,28 @@ function reviveDates(value: unknown, key = ""): unknown {
 // null: 401/403 (chưa đăng nhập hoặc thiếu quyền module); undefined: 404 (không có bản ghi).
 const getBackendJson = cache(async (path: string): Promise<unknown | null | undefined> => {
   const requestHeaders = await headers();
-  const response = await fetch(`${backendUrl}${path}`, {
-    headers: requestHeaders.get("cookie") ? { cookie: requestHeaders.get("cookie")! } : undefined,
-    cache: "no-store",
-  });
+  const forwarded: Record<string, string> = {};
+  const cookie = requestHeaders.get("cookie");
+  if (cookie) forwarded.cookie = cookie;
+  // Cùng mã request với trang CMS đang render để nối log CMS ↔ Backend.
+  const requestId = normalizeRequestId(requestHeaders.get(requestIdHeader));
+  if (requestId) forwarded[requestIdHeader] = requestId;
+  const backendPath = path.split("?")[0];
+  let response: Response;
+  try {
+    response = await fetch(`${backendUrl}${path}`, { headers: forwarded, cache: "no-store" });
+  } catch (error) {
+    logger.error("Không kết nối được Backend.", { requestId: requestId ?? undefined, backendPath, error });
+    throw new Error("Không thể tải dữ liệu CMS từ Backend. Vui lòng thử lại.");
+  }
   // 401: not signed in; 403: the role lacks this module. Pages fall back to empty
   // data instead of crashing; the API stays the authority.
   if (response.status === 401 || response.status === 403) return null;
   if (response.status === 404) return undefined;
-  if (!response.ok) throw new Error("Không thể tải dữ liệu CMS từ Backend. Vui lòng thử lại.");
+  if (!response.ok) {
+    logger.error("Backend trả lỗi khi CMS tải dữ liệu.", { requestId: requestId ?? undefined, backendPath, status: response.status });
+    throw new Error("Không thể tải dữ liệu CMS từ Backend. Vui lòng thử lại.");
+  }
   return reviveDates(await response.json());
 });
 

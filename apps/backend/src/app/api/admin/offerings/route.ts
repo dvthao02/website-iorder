@@ -8,6 +8,7 @@ import { publicOfferingTypeSchema } from "@iorder/core/server/offerings/offering
 import { createAdminOffering, getAdminOfferingsPage, getAdminOfferingSummariesPage } from "@iorder/core/server/offerings/offerings.service";
 import { adminListQuerySchema } from "@iorder/core/server/shared/admin-list.contract";
 import { denyPublishUnless, requestedStatusOf } from "@/lib/admin-access";
+import { logger } from "@iorder/core/server/shared/logger";
 
 export const runtime = "nodejs";
 
@@ -83,7 +84,7 @@ export async function POST(request: Request) {
       return phanHoiLoi("DUPLICATE_SLUG", "Slug đã tồn tại trong nhóm nội dung này.", 409);
     }
 
-    console.error("Tạo Offering trong CMS thất bại.");
+    logger.error("Tạo Offering trong CMS thất bại.", { request, error });
     return phanHoiLoi("INTERNAL_ERROR", "Không thể tạo Offering lúc này. Vui lòng thử lại.", 500);
   }
 }

@@ -2,6 +2,7 @@ import { revalidatePath as revalidateNextPath } from "next/cache";
 import { after } from "next/server";
 
 import { publicContentCacheTag, signPublicCacheInvalidation } from "@iorder/core/server/publishing/cache-invalidation";
+import { logger } from "@iorder/core/server/shared/logger";
 
 const timeoutMilliseconds = 3_000;
 let missingConfigurationReported = false;
@@ -11,7 +12,7 @@ async function notifyPublishWeb() {
   const secret = process.env.PUBLISH_WEB_REVALIDATE_SECRET?.trim();
   if (!endpoint || !secret) {
     // Production Compose requires both; locally a missing value means edits only show after the 60 s TTL.
-    if (!missingConfigurationReported) console.warn("Chưa cấu hình PUBLISH_WEB_REVALIDATE_URL/SECRET: website chỉ cập nhật sau 60 giây.");
+    if (!missingConfigurationReported) logger.warn("Chưa cấu hình PUBLISH_WEB_REVALIDATE_URL/SECRET: website chỉ cập nhật sau 60 giây.");
     missingConfigurationReported = true;
     return;
   }
@@ -33,9 +34,9 @@ async function notifyPublishWeb() {
       },
       signal: controller.signal,
     });
-    if (!response.ok) console.error(`Làm mới cache public thất bại với HTTP ${response.status}.`);
-  } catch {
-    console.error("Không thể gọi dịch vụ làm mới cache public.");
+    if (!response.ok) logger.error("Làm mới cache public thất bại.", { status: response.status, endpoint });
+  } catch (error) {
+    logger.error("Không thể gọi dịch vụ làm mới cache public.", { endpoint, error });
   } finally {
     clearTimeout(timeout);
   }

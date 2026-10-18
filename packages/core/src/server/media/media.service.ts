@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { collectMediaUsage, findMediaAsset, insertUploadedMedia, listMediaAssets, listMediaAssetsPage, queueMediaAssetDeletion, updateMediaMetadata } from "./media.repository";
 import { z } from "zod";
 import { ensureMediaBucket, mediaPath, putStoredObject, removeStoredObject } from "./storage";
+import { logger } from "../shared/logger";
 
 export class InvalidMediaError extends Error {}
 export class MediaInUseError extends Error {
@@ -51,7 +52,7 @@ export async function uploadAdminMedia(file: File, userId: string) {
   try {
     return serialize(await insertUploadedMedia({ storageKey, originalName, mimeType, fileSize: body.length, uploadedBy: userId }, userId));
   } catch (error) {
-    try { await removeStoredObject(storageKey); } catch { console.error("Không thể thu hồi tệp của lần tải lên thất bại."); }
+    try { await removeStoredObject(storageKey); } catch (cleanupError) { logger.error("Không thể thu hồi tệp của lần tải lên thất bại.", { storageKey, error: cleanupError }); }
     throw error;
   }
 }

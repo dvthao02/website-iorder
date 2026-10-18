@@ -11,6 +11,7 @@ import { hasDatabaseErrorCode } from "@iorder/core/server/shared/database-error"
 import { denyPublishUnless, denyUnless, forbiddenResponse, requestedStatusOf } from "@/lib/admin-access";
 import { getEquipmentById, getEquipmentGroupVisibility } from "@iorder/core/server/equipment/equipment.service";
 import { hasCmsPermission } from "@iorder/core/server/auth/permissions";
+import { logger } from "@iorder/core/server/shared/logger";
 
 function requestedGroupVisibility(values: unknown) {
   return values && typeof values === "object" && "isEnabled" in values && values.isEnabled === true ? "published" : "draft";
@@ -28,8 +29,8 @@ export async function GET(request: Request) {
     if (!pagination.success || !status.success || !groupId.success) return NextResponse.json({ error: { code: "INVALID_INPUT", message: "Bộ lọc danh sách thiết bị không hợp lệ." } }, { status: 400 });
     const [result, equipmentGroups] = await Promise.all([getEquipmentPage({ ...pagination.data, status: status.data, groupId: groupId.data }), getEquipmentGroups()]);
     return NextResponse.json({ result, equipmentGroups });
-  } catch {
-    console.error("Tải danh sách thiết bị hoặc nhóm trong CMS thất bại.");
+  } catch (error) {
+    logger.error("Tải danh sách thiết bị hoặc nhóm trong CMS thất bại.", { request, error });
     return NextResponse.json({ error: { code: "INTERNAL_ERROR", message: "Không thể tải danh sách thiết bị hoặc nhóm lúc này. Vui lòng thử lại." } }, { status: 500 });
   }
 }

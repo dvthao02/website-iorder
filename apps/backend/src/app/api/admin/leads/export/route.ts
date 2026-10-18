@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { getRequestAdministrator } from "@iorder/core/server/auth/request-administrator";
 import { exportLeadsCsv } from "@iorder/core/server/leads/leads.service";
+import { logger } from "@iorder/core/server/shared/logger";
 
 export const runtime = "nodejs";
 
@@ -25,7 +26,7 @@ export async function GET(request: Request) {
     } });
   } catch (error) {
     if (error instanceof z.ZodError) return fail("INVALID_INPUT", "Bộ lọc xuất dữ liệu không hợp lệ.", 400);
-    console.error("Xuất CSV khách hàng tiềm năng thất bại.");
+    logger.error("Xuất CSV khách hàng tiềm năng thất bại.", { request, error });
     return fail("INTERNAL_ERROR", "Không thể xuất danh sách lúc này. Vui lòng thử lại.", 500);
   }
 }

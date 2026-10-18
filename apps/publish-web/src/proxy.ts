@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getEnabledRedirect } from "@/lib/backend";
+import { logger } from "@iorder/core/server/shared/logger";
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -18,8 +19,8 @@ export async function proxy(request: NextRequest) {
   let redirect: Awaited<ReturnType<typeof getEnabledRedirect>> = null;
   try {
     redirect = await getEnabledRedirect(request.nextUrl.pathname);
-  } catch {
-    console.error("Không kiểm tra được chuyển hướng URL từ Backend; tiếp tục hiển thị trang.");
+  } catch (error) {
+    logger.error("Không kiểm tra được chuyển hướng URL từ Backend; tiếp tục hiển thị trang.", { request, error });
   }
   if (!redirect) return NextResponse.next();
   const destination = new URL(redirect.destinationPath, request.url);

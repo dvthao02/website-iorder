@@ -8,6 +8,7 @@ import { hasDatabaseErrorCode } from "@iorder/core/server/shared/database-error"
 import { contentDeleteRequestSchema, contentStateRequestSchema, contentUpdateRequestSchema, ContentVersionConflictError } from "@iorder/core/server/shared/content-version";
 import { changeAdminPostState, deleteArchivedAdminPost, getAdminPostById, updateAdminPost } from "@iorder/core/server/posts/posts.service";
 import { denyPublishUnless, requestedStatusOf } from "@/lib/admin-access";
+import { logger } from "@iorder/core/server/shared/logger";
 
 export const runtime = "nodejs";
 
@@ -75,7 +76,7 @@ export async function PATCH(request: Request, { params }: PostRouteProps) {
     if (error instanceof z.ZodError) return phanHoiLoi("INVALID_INPUT", "Vui lòng kiểm tra lại nội dung và metadata bài viết.", 400);
     if (hasDatabaseErrorCode(error, "23505")) return phanHoiLoi("DUPLICATE_SLUG", "Slug bài viết đã tồn tại.", 409);
 
-    console.error("Cập nhật bài viết trong CMS thất bại.");
+    logger.error("Cập nhật bài viết trong CMS thất bại.", { request, error });
     return phanHoiLoi("INTERNAL_ERROR", "Không thể cập nhật bài viết lúc này. Vui lòng thử lại.", 500);
   }
 }
