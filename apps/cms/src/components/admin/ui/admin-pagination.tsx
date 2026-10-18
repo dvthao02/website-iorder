@@ -20,12 +20,12 @@ export function AdminPagination({ page, pageSize, total, totalPages, onChange, d
   const last = Math.min(page * pageSize, total);
 
   return (
-    <nav aria-label={label} className={`admin-pagination flex flex-wrap items-center justify-between gap-3 text-sm text-[var(--cms-muted)] ${className}`.trim()}>
-      <span>Hiển thị {first}–{last} trên {total} mục</span>
-      <div className="flex items-center gap-2">
-        <AdminButton disabled={disabled || page <= 1} onClick={() => onChange(page - 1)} variant="secondary">Trang trước</AdminButton>
-        <span className="min-w-16 text-center font-semibold">{page}/{Math.max(totalPages, 1)}</span>
-        <AdminButton disabled={disabled || page >= totalPages} onClick={() => onChange(page + 1)} variant="secondary">Trang sau</AdminButton>
+    <nav aria-label={label} className={`admin-pagination ${className}`.trim()}>
+      <span>{first}–{last} trên {total} mục</span>
+      <div>
+        <AdminButton disabled={disabled || page <= 1} onClick={() => onChange(page - 1)} size="sm" variant="secondary">Trang trước</AdminButton>
+        <span className="admin-pagination__page">{page}/{Math.max(totalPages, 1)}</span>
+        <AdminButton disabled={disabled || page >= totalPages} onClick={() => onChange(page + 1)} size="sm" variant="secondary">Trang sau</AdminButton>
       </div>
     </nav>
   );

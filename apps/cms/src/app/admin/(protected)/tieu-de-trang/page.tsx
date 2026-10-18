@@ -1,13 +1,7 @@
-import { ListingContentEditor } from "@/components/admin/listing-content-editor";
-import { SettingsDetailPage } from "@/components/admin/settings-detail-page";
-import { getListingContent } from "@/lib/backend";
+import { redirect } from "next/navigation";
 
-export const dynamic = "force-dynamic";
-
-export default async function ListingTitlesPage() {
-  return <SettingsDetailPage
-    description="Cập nhật dòng giới thiệu, tiêu đề và mô tả của trang Tin tức, Hỗ trợ, Thiết bị và Hướng dẫn."
-    eyebrow="Cài đặt"
-    title="Tiêu đề trang danh sách"
-  ><ListingContentEditor initial={await getListingContent()} /></SettingsDetailPage>;
+// Phần đầu trang Tin tức/Thiết bị/Hỗ trợ nay là "Trang danh sách" trong Trang website,
+// mở từ nút "Trang danh sách" ở màn quản lý từng module.
+export default function LegacyListingTitlesPage() {
+  redirect("/admin/tin-tuc");
 }

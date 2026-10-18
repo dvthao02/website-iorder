@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import React from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { AdminButton } from "./admin-button";
 
 test("Nút thường mặc định không submit và giữ thuộc tính", () => {
@@ -41,4 +43,17 @@ test("Href rỗng vẫn là link, không tự biến thành nút submit", () => 
   const link = AdminButton({ children: "Mở", href: "" });
   assert.notEqual(link.type, "button");
   assert.equal(link.props.href, "");
+});
+
+test("Nút có permission ngoài CMS shell vẫn bấm được; backend vẫn là nơi quyết định", () => {
+  const html = renderToStaticMarkup(<AdminButton permission="posts.update">Lưu</AdminButton>);
+  assert.match(html, /<button/);
+  assert.doesNotMatch(html, /disabled/);
+});
+
+test("Danh sách permission: chỉ cần một quyền là bấm được", async () => {
+  const { AdminPermissionsProvider } = await import("./admin-permissions");
+  const render = (permissions: string[]) => renderToStaticMarkup(<AdminPermissionsProvider actor={{ role: "editor", permissions }}><AdminButton permission={["pages.update", "posts.update"]}>Lưu</AdminButton></AdminPermissionsProvider>);
+  assert.doesNotMatch(render(["posts.update"]), /disabled/);
+  assert.match(render(["posts.view"]), /disabled/);
 });

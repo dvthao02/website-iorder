@@ -12,14 +12,12 @@ export function AdminEmptyState({
   title: string;
 }) {
   return (
-    <div className="admin-empty-state grid min-h-52 place-items-center rounded-xl border border-dashed p-6 text-center">
-      <div className="grid max-w-md justify-items-center gap-3">
-        {icon ? <span className="admin-empty-state__icon grid h-11 w-11 place-items-center rounded-full shadow-sm">{icon}</span> : null}
-        <div>
-          <h3 className="admin-empty-state__title text-base font-extrabold">{title}</h3>
-          <p className="admin-empty-state__description mt-1 text-sm leading-6">{description}</p>
-        </div>
-        {action ? <div className="mt-1">{action}</div> : null}
+    <div className="admin-empty-state">
+      <div>
+        {icon ? <span className="admin-empty-state__icon">{icon}</span> : null}
+        <h3 className="admin-empty-state__title">{title}</h3>
+        <p className="admin-empty-state__description">{description}</p>
+        {action ? <div className="admin-empty-state__action">{action}</div> : null}
       </div>
     </div>
   );

@@ -22,11 +22,11 @@ export default async function AdministratorLoginPage({
   const { error } = await searchParams;
 
   return (
-    <main className="grid min-h-screen place-items-center bg-[var(--cms-hover)] p-6">
-      <section className="w-full max-w-md rounded-2xl border border-[var(--cms-border)] bg-[var(--cms-card)] p-7 shadow-xl shadow-slate-900/10 sm:p-9">
-        <p className="mb-3 text-sm font-bold uppercase tracking-[0.16em] text-blue-700">iOrder CMS</p>
-        <h1 className="mb-3 text-3xl font-extrabold tracking-tight text-[var(--cms-text)]">Đăng nhập</h1>
-        <p className="mb-7 leading-6 text-[var(--cms-muted)]">Dùng tài khoản quản trị đã được khởi tạo trong database.</p>
+    <main className="grid min-h-screen place-items-center p-4">
+      <section className="w-full max-w-sm rounded-[var(--cms-radius-card)] border border-[var(--cms-border)] bg-[var(--cms-card)] p-6">
+        <p className="mb-1 text-[13px] text-[var(--cms-muted)]">iOrder CMS</p>
+        <h1 className="mb-1">Đăng nhập</h1>
+        <p className="mb-5 text-[13px] text-[var(--cms-muted)]">Dùng tài khoản quản trị đã được khởi tạo trong database.</p>
         <LoginForm initialError={error ? thongBaoLoiDangNhap[error] : undefined} />
       </section>
     </main>

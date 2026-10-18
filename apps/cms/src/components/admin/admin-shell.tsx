@@ -5,6 +5,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, type ReactNode } from "react";
 import { AdminToastProvider } from "@/components/admin/ui/admin-feedback";
+import { AdminConfirmProvider } from "@/components/admin/ui/admin-confirm-dialog";
+import { AdminPermissionsProvider } from "@/components/admin/ui/admin-permissions";
 import {
   ArrowRightLeft,
   BarChart3,
@@ -13,24 +15,27 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  ClipboardCheck,
   Download,
   FileText,
   FolderTree,
+  Globe,
   Handshake,
   History,
   Home,
   Image,
+  KeyRound,
   Laptop,
   LayoutDashboard,
   Link as LinkIcon,
   Lightbulb,
   Menu,
   Newspaper,
-  Palette,
-  Search,
+  Package,
+  PanelsTopLeft,
   Settings,
-  Settings2,
   ShieldCheck,
+  Star,
   Tags,
   Users,
   UsersRound,
@@ -43,15 +48,18 @@ import { LogoutButton } from "@/app/admin/(protected)/logout-button";
 import { AdminIconButton } from "@/components/admin/ui/admin-icon-button";
 import { AdminLoadingBar } from "@/components/admin/ui/admin-loading-bar";
 import { AdminPopover } from "@/components/admin/ui/admin-popover";
+import { adminPageBarActionsId, adminPageBarMetaId } from "@/components/admin/ui/admin-page-bar";
+import { AdminVersionConflictBanner } from "@/components/admin/ui/admin-version-conflict";
 import { CmsThemeProvider } from "@/components/admin/admin-theme-settings";
 import { AdminGlobalSearch } from "@/components/admin/admin-global-search";
 import { publishedPublicUrl } from "@/lib/published-public-url";
-import type { CmsPermissionCode } from "@iorder/core/server/auth/permissions";
+import { hasAnyCmsPermission, hasCmsPermission, type CmsPermissionCode } from "@iorder/core/server/auth/permissions";
 
-type Administrator = { fullName: string; username: string; role: string; permissions: string[] };
+type Administrator = { fullName: string; username: string; role: string; roleName?: string | null; permissions: string[] };
 type HeaderNotification = { id: string; label: string; detail: string; href: string };
 
-type NavigationItem = { href: string; label: string; icon: LucideIcon; adminOnly?: boolean; matchesChildRoutes?: boolean; permission?: CmsPermissionCode };
+// `permission` may list several codes: the item shows when the user has any of them.
+type NavigationItem = { href: string; label: string; icon: LucideIcon; matchesChildRoutes?: boolean; permission?: CmsPermissionCode | CmsPermissionCode[] };
 
 type NavigationGroup = { id: string; label: string; icon: LucideIcon; items: NavigationItem[] };
 
@@ -70,16 +78,18 @@ function ensureUniqueNavigationPaths(groups: NavigationGroup[]) {
 }
 
 const navigationGroups = ensureUniqueNavigationPaths([
-  { id: "overview", label: "Tổng quan", icon: LayoutDashboard, items: [{ href: "/admin", label: "Tổng quan", icon: Home }, { href: "/admin/analytics", label: "Thống kê & truy cập", icon: BarChart3, permission: "analytics.read" }] },
+  // Thứ tự theo tần suất dùng: việc nội dung hằng ngày ở trên, quản trị hệ thống rồi cài đặt ở dưới cùng.
+  { id: "overview", label: "Tổng quan", icon: LayoutDashboard, items: [{ href: "/admin", label: "Tổng quan", icon: Home }, { href: "/admin/analytics", label: "Thống kê truy cập", icon: BarChart3, permission: "dashboard.view" }] },
   {
     id: "content",
-    label: "Nội dung website",
+    label: "Nội dung",
     icon: FileText,
     items: [
-      { href: "/admin/pages", label: "Trang website", icon: FileText, matchesChildRoutes: true, permission: "content.read" },
-      { href: "/admin/tin-tuc", label: "Bài viết & Tin tức", icon: Newspaper, matchesChildRoutes: true, permission: "content.read" },
-      { href: "/admin/tai-nguyen", label: "Hỗ trợ cài đặt", icon: Download, matchesChildRoutes: true, permission: "content.read" },
-      { href: "/admin/media", label: "Hình ảnh & Tệp", icon: Image, permission: "media.manage" },
+      { href: "/admin/pages", label: "Trang website", icon: PanelsTopLeft, matchesChildRoutes: true, permission: "pages.view" },
+      { href: "/admin/tin-tuc", label: "Bài viết & Tin tức", icon: Newspaper, matchesChildRoutes: true, permission: "posts.view" },
+      { href: "/admin/phan-loai-bai-viet", label: "Chuyên mục & Thẻ", icon: Tags, permission: "taxonomy.view" },
+      { href: "/admin/tai-nguyen", label: "Hỗ trợ cài đặt", icon: Download, matchesChildRoutes: true, permission: ["support_downloads.view", "posts.view"] },
+      { href: "/admin/media", label: "Thư viện media", icon: Image, permission: "media.view" },
     ],
   },
   {
@@ -87,51 +97,49 @@ const navigationGroups = ensureUniqueNavigationPaths([
     label: "Sản phẩm & Dịch vụ",
     icon: Boxes,
     items: [
-      { href: "/admin/san-pham", label: "Sản phẩm", icon: Boxes, matchesChildRoutes: true, permission: "content.read" },
-      { href: "/admin/giai-phap", label: "Giải pháp hạ tầng", icon: Lightbulb, matchesChildRoutes: true, permission: "content.read" },
-      { href: "/admin/dich-vu", label: "Dịch vụ", icon: Wrench, matchesChildRoutes: true, permission: "content.read" },
-      { href: "/admin/thiet-bi", label: "Thiết bị", icon: Laptop, matchesChildRoutes: true, permission: "content.read" },
+      { href: "/admin/san-pham", label: "Sản phẩm", icon: Package, matchesChildRoutes: true, permission: "offerings.view" },
+      { href: "/admin/giai-phap", label: "Giải pháp hạ tầng", icon: Lightbulb, matchesChildRoutes: true, permission: "offerings.view" },
+      { href: "/admin/dich-vu", label: "Dịch vụ", icon: Wrench, matchesChildRoutes: true, permission: "offerings.view" },
+      { href: "/admin/thiet-bi", label: "Thiết bị", icon: Laptop, matchesChildRoutes: true, permission: "equipment.view" },
     ],
   },
   {
-    id: "website",
-    label: "Website & SEO",
-    icon: FolderTree,
-    items: [
-      { href: "/admin/menu", label: "Menu & Điều hướng", icon: Menu, permission: "navigation.manage" },
-      { href: "/admin/phan-loai-bai-viet", label: "Chuyên mục & Thẻ", icon: Tags, permission: "taxonomy.manage" },
-      { href: "/admin/seo", label: "SEO & Xuất bản", icon: Search, matchesChildRoutes: true, permission: "seo.manage" },
-      { href: "/admin/chuyen-huong", label: "Chuyển hướng URL", icon: ArrowRightLeft, permission: "seo.manage" },
-      { href: "/admin/lien-ket-ngoai", label: "Liên kết ngoài", icon: LinkIcon, permission: "seo.manage" },
-    ],
-  },
-  {
-    id: "brand",
-    label: "Khách hàng & Thương hiệu",
+    id: "customers",
+    label: "Khách hàng & Đối tác",
     icon: Handshake,
     items: [
-      { href: "/admin/thong-tin-doanh-nghiep", label: "Thông tin doanh nghiệp", icon: Building2, permission: "seo.manage" },
-      { href: "/admin/doi-tac", label: "Đối tác & Đánh giá", icon: Handshake, permission: "content.read" },
-      { href: "/admin/khach-hang-tiem-nang", label: "Khách hàng tiềm năng", icon: UsersRound, permission: "leads.read" },
+      { href: "/admin/khach-hang-tiem-nang", label: "Khách hàng tiềm năng", icon: UsersRound, permission: "leads.view" },
+      { href: "/admin/doi-tac", label: "Đối tác & Đánh giá", icon: Star, permission: "supporting.view" },
+    ],
+  },
+  {
+    id: "structure",
+    label: "Cấu trúc website",
+    icon: FolderTree,
+    items: [
+      { href: "/admin/menu", label: "Menu & Điều hướng", icon: Menu, permission: "navigation.view" },
+      { href: "/admin/chuyen-huong", label: "Chuyển hướng URL", icon: ArrowRightLeft, permission: "redirects.view" },
+      { href: "/admin/seo/kiem-tra-xuat-ban", label: "Kiểm tra xuất bản", icon: ClipboardCheck, permission: "settings.view" },
     ],
   },
   {
     id: "administration",
-    label: "Quản trị",
+    label: "Quản trị hệ thống",
     icon: ShieldCheck,
     items: [
-      { href: "/admin/tai-khoan", label: "Người dùng CMS", icon: Users, adminOnly: true },
-      { href: "/admin/phan-quyen", label: "Vai trò & quyền", icon: ShieldCheck, adminOnly: true },
-      { href: "/admin/nhat-ky", label: "Nhật ký hoạt động", icon: History, permission: "audit.read" },
+      { href: "/admin/tai-khoan", label: "Người dùng CMS", icon: Users, permission: "users.view" },
+      { href: "/admin/phan-quyen", label: "Vai trò & quyền", icon: KeyRound, permission: "roles.view" },
+      { href: "/admin/nhat-ky", label: "Nhật ký hoạt động", icon: History, permission: "audit.view" },
     ],
   },
   {
     id: "settings",
-    label: "Cài đặt",
+    label: "Cài đặt website",
     icon: Settings,
     items: [
-      { href: "/admin/cau-hinh", label: "Cấu hình website", icon: Settings2, permission: "seo.manage" },
-      { href: "/admin/giao-dien-cms", label: "Giao diện CMS", icon: Palette },
+      { href: "/admin/thong-tin-doanh-nghiep", label: "Thông tin doanh nghiệp", icon: Building2, permission: "settings.view" },
+      { href: "/admin/seo", label: "Tên miền & SEO", icon: Globe, permission: "settings.view" },
+      { href: "/admin/lien-ket-ngoai", label: "Liên kết & Mạng xã hội", icon: LinkIcon, permission: "settings.view" },
     ],
   },
 ]);
@@ -141,7 +149,20 @@ function isActive(pathname: string, item: NavigationItem) {
 }
 
 function canAccessNavigation(administrator: Administrator, item: NavigationItem) {
-  return administrator.role === "admin" || ((!item.adminOnly || administrator.role === "admin") && (!item.permission || administrator.permissions.includes(item.permission)));
+  if (!item.permission) return true;
+  return Array.isArray(item.permission) ? hasAnyCmsPermission(administrator, item.permission) : hasCmsPermission(administrator, item.permission);
+}
+
+// Màn chỉnh sửa (tạo mới hoặc theo id) có header riêng kèm nút lưu/đóng nên không dùng thanh vị trí chung.
+function isEditorRoute(pathname: string) {
+  return /\/(moi|new)$/.test(pathname) || /\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(pathname) || pathname.startsWith("/admin/thiet-bi/nhom");
+}
+
+const extraPageLabels: Record<string, string[]> = { "/admin/giao-dien-cms": ["Tài khoản", "Giao diện CMS"], "/admin/tai-khoan-cua-toi": ["Tài khoản", "Tài khoản của tôi"], "/admin/khong-co-quyen": ["Không có quyền truy cập"] };
+
+function pageBarCrumbs(pathname: string, current: { group: NavigationGroup; item: NavigationItem } | undefined) {
+  if (current) return current.group.label === current.item.label ? [current.item.label] : [current.group.label, current.item.label];
+  return extraPageLabels[pathname] ?? ["iOrder CMS"];
 }
 
 function initials(fullName: string) {
@@ -202,7 +223,7 @@ export function AdminShell({ administrator, children, notifications }: { adminis
     setSidebarTooltip({ label, top: rect.top + rect.height / 2 });
   }
 
-  return <AdminToastProvider><CmsThemeProvider><AdminLoadingBar />
+  return <AdminToastProvider><AdminPermissionsProvider actor={administrator}><AdminConfirmProvider><CmsThemeProvider><AdminLoadingBar />
     <div className={["admin-shell", isSidebarCollapsed ? "admin-shell--collapsed" : "", isMobileNavigationOpen ? "admin-shell--mobile-navigation-open" : ""].filter(Boolean).join(" ")}>
       <header className="admin-topbar">
         <button aria-controls="admin-mobile-navigation" aria-expanded={isMobileNavigationOpen} aria-label={isMobileNavigationOpen ? "Đóng điều hướng" : "Mở điều hướng"} className="admin-mobile-navigation-toggle" onClick={toggleMobileNavigation} type="button">
@@ -221,8 +242,8 @@ export function AdminShell({ administrator, children, notifications }: { adminis
             </>}
           >
             <div className="admin-header-popover admin-header-popover--notifications">
-              <header><strong>Việc cần chú ý</strong><Link href="/admin/seo/kiem-tra-xuat-ban">Xem tất cả</Link></header>
-              {notifications.length > 0 ? <div>{notifications.map(item => <Link href={item.href} key={item.id}><strong>{item.label}</strong><small>{item.detail}</small></Link>)}</div> : <p>Không có việc cần xử lý từ dữ liệu hiện tại.</p>}
+              <header><strong>Việc cần xử lý</strong><Link href="/admin/seo/kiem-tra-xuat-ban">Kiểm tra xuất bản</Link></header>
+              {notifications.length > 0 ? <div>{notifications.map(item => <Link href={item.href} key={item.id}><strong>{item.label}</strong><small>{item.detail}</small></Link>)}</div> : <p>Không có liên hệ mới hay nội dung chờ duyệt.</p>}
             </div>
           </AdminPopover>
           <AdminPopover
@@ -230,15 +251,14 @@ export function AdminShell({ administrator, children, notifications }: { adminis
             label="Mở menu tài khoản"
             trigger={<>
               <span className="admin-avatar" aria-hidden="true">{initials(administrator.fullName)}</span>
-              <span><strong>{administrator.fullName}</strong><small>{administrator.role === "admin" ? "Quản trị hệ thống" : "Biên tập viên"}</small></span>
+              <span><strong>{administrator.fullName}</strong><small>{administrator.roleName ?? administrator.role}</small></span>
               <i aria-hidden="true">⌄</i>
             </>}
           >
             <div className="admin-header-popover admin-header-popover--account">
-              <strong className="admin-account-menu__title">Tài khoản quản trị</strong>
-              <Link href="/admin/thong-tin-doanh-nghiep">Thông tin doanh nghiệp</Link>
-              {administrator.role === "admin" ? <Link href="/admin/tai-khoan">Người dùng CMS</Link> : null}
-              <Link href="/admin/nhat-ky">Nhật ký hoạt động</Link>
+              <strong className="admin-account-menu__title">Tài khoản của tôi</strong>
+              <Link href="/admin/tai-khoan-cua-toi">Đổi mật khẩu</Link>
+              <Link href="/admin/giao-dien-cms">Giao diện CMS</Link>
               <div><LogoutButton /></div>
             </div>
           </AdminPopover>
@@ -310,9 +330,19 @@ export function AdminShell({ administrator, children, notifications }: { adminis
         {sidebarTooltip ? <span className="admin-sidebar-tooltip" role="tooltip" style={{ top: sidebarTooltip.top }}>{sidebarTooltip.label}</span> : null}
 
         <div className="admin-shell__main">
-        <div className="admin-shell__content">{children}</div>
+        <div className="admin-shell__content">
+          {isEditorRoute(pathname) ? null : <div className="admin-page-bar">
+            <div className="admin-page-bar__title">
+              <nav aria-label="Vị trí hiện tại" className="admin-page-bar__crumbs">{pageBarCrumbs(pathname, currentNavigation).map((label, index, all) => <span aria-current={index === all.length - 1 ? "page" : undefined} key={label}>{label}{index < all.length - 1 ? <ChevronRight aria-hidden="true" size={14} /> : null}</span>)}</nav>
+              <span className="admin-page-bar__meta" id={adminPageBarMetaId} />
+            </div>
+            <div className="admin-page-bar__actions" id={adminPageBarActionsId} />
+          </div>}
+          <AdminVersionConflictBanner />
+          {children}
+        </div>
         </div>
       </div>
     </div>
-  </CmsThemeProvider></AdminToastProvider>;
+  </CmsThemeProvider></AdminConfirmProvider></AdminPermissionsProvider></AdminToastProvider>;
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { adminApiError } from "@/lib/admin-api";
 import { FileArchive, FileText, FolderOpen, LoaderCircle, Upload } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
@@ -57,7 +58,7 @@ export function MediaPicker({ disabled = false, value, onChange, files = false, 
     const controller = new AbortController();
     fetch(`/api/admin/media/${encodeURIComponent(value)}`, { signal: controller.signal }).then(async response => {
       const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error?.message || "Không tải được thông tin tệp đang chọn.");
+      if (!response.ok) throw adminApiError(payload, "Không tải được thông tin tệp đang chọn.");
       const parsed = mediaAssetSchema.safeParse(payload.asset);
       if (!parsed.success || parsed.data.id !== value) throw new Error("Thông tin tệp đang chọn không hợp lệ.");
       if (!isSelectableMediaType(parsed.data.mimeType, files)) throw new Error("Tệp đang chọn không đúng định dạng cho trường này. Vui lòng chọn lại tệp phù hợp.");
@@ -76,7 +77,7 @@ export function MediaPicker({ disabled = false, value, onChange, files = false, 
     const params = new URLSearchParams({ page: String(libraryPage), pageSize: "25", query: libraryQuery, type: files ? "documents" : "images" });
     fetch(`/api/admin/media?${params}`, { signal: controller.signal }).then(async (response) => {
       const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error?.message || "Không tải được thư viện tệp.");
+      if (!response.ok) throw adminApiError(payload, "Không tải được thư viện tệp.");
       const parsed = mediaListResponseSchema.safeParse(payload);
       if (!parsed.success || parsed.data.page !== libraryPage || parsed.data.pageSize !== 25) throw new Error("Dữ liệu thư viện tệp không hợp lệ. Vui lòng thử tải lại.");
       if (controller.signal.aborted) return;
@@ -97,7 +98,7 @@ export function MediaPicker({ disabled = false, value, onChange, files = false, 
     const controller = new AbortController();
     fetch(`/api/admin/media/${value}/usage`, { signal: controller.signal }).then(async (response) => {
       const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error?.message || "Không kiểm tra được nơi sử dụng tệp.");
+      if (!response.ok) throw adminApiError(payload, "Không kiểm tra được nơi sử dụng tệp.");
       const parsed = mediaUsageSchema.safeParse(payload);
       if (!parsed.success) throw new Error("Dữ liệu nơi sử dụng tệp không hợp lệ.");
       if (!controller.signal.aborted) setUsageResult({ id: value, items: parsed.data.items });
@@ -123,7 +124,7 @@ export function MediaPicker({ disabled = false, value, onChange, files = false, 
       const response = await fetch("/api/admin/media", { method: "POST", body, signal: controller.signal });
       const payload = await response.json().catch(() => null) as { asset?: MediaAsset; error?: { message?: string } } | null;
       if (controller.signal.aborted) return;
-      if (!response.ok || !payload?.asset) throw new Error(payload?.error?.message || "Không thể tải tệp lên.");
+      if (!response.ok || !payload?.asset) throw adminApiError(payload, "Không thể tải tệp lên.");
       const parsed = mediaAssetSchema.safeParse(payload.asset);
       if (!parsed.success) throw new Error("Máy chủ đã nhận tệp nhưng phản hồi không hợp lệ. Hãy kiểm tra thư viện trước khi tải lại để tránh trùng tệp.");
       const asset = parsed.data;

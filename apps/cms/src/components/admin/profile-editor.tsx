@@ -1,5 +1,6 @@
 "use client";
 
+import { adminApiError } from "@/lib/admin-api";
 import { useCallback, useRef, useState, type FormEvent } from "react";
 import type { ProfileInput } from "@iorder/core/server/settings/profile.contract";
 import { useAdminToast } from "@/components/admin/ui/admin-feedback";
@@ -14,7 +15,8 @@ const fields = [
   ["supportEmail", "Email hỗ trợ"], ["salesEmail", "Email kinh doanh"], ["address", "Địa chỉ"], ["workingHours", "Giờ làm việc"],
 ] as const;
 
-export function ProfileEditor({ initial }: { initial: ProfileInput | null }) {
+export function ProfileEditor({ initial, initialVersion }: { initial: ProfileInput | null; initialVersion: number }) {
+  const version = useRef(initialVersion);
   const [form, setForm] = useState<ProfileInput>(() => initial ?? {
     companyName: "", legalName: null, hotline: null, supportEmail: null,
     salesEmail: null, address: null, workingHours: null, logoMediaId: null,
@@ -39,16 +41,16 @@ export function ProfileEditor({ initial }: { initial: ProfileInput | null }) {
     setBusy(true);
     setMessage("");
     try {
-      const response = await fetch("/api/admin/profile", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ ...body, logoMediaId: form.logoMediaId }) });
+      const response = await fetch("/api/admin/profile", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ values: { ...body, logoMediaId: form.logoMediaId }, expectedVersion: version.current }) });
       const payload = await response.json();
-      if (response.ok) { markSaved(); showToast("Đã cập nhật thông tin doanh nghiệp trên website.", "success"); }
-      else { const notice = payload.error?.message || "Không thể lưu thông tin."; setMessage(notice); showToast(notice, "error"); }
+      if (response.ok) { if (typeof payload.version === "number") version.current = payload.version; markSaved(); showToast("Đã cập nhật thông tin doanh nghiệp trên website.", "success"); }
+      else { const notice = adminApiError(payload, "Không thể lưu thông tin.").message; setMessage(notice); showToast(notice, "error"); }
     } catch { const notice = "Không kết nối được máy chủ."; setMessage(notice); showToast(notice, "error"); }
     finally { saving.current = false; setBusy(false); }
   }
   return <form className="grid gap-4" onSubmit={submit}>
-    {fields.map(([key, label]) => <label key={key}>{label}<input className="block w-full rounded border p-2" name={key} required={key === "companyName"} type={key.endsWith("Email") ? "email" : "text"} value={form[key] ?? ""} onChange={(event) => setForm((current) => ({ ...current, [key]: key === "companyName" ? event.target.value : event.target.value || null }))} /></label>)}
-    <p>Logo doanh nghiệp</p><MediaPicker disabled={busy} value={form.logoMediaId} onUploadingChange={handleUploadingChange} onChange={(logoMediaId) => setForm((current) => ({ ...current, logoMediaId }))} />
-    <AdminEditorActions><p role="status">{isUploading ? "Đang tải logo lên…" : message || (isDirty ? "Có thay đổi chưa lưu." : "Không có thay đổi chưa lưu.")}</p><AdminButton disabled={busy || isUploading || !isDirty} type="submit">{busy ? "Đang lưu…" : "Lưu thông tin doanh nghiệp"}</AdminButton></AdminEditorActions>
+    <div className="admin-form-grid">{fields.map(([key, label]) => <label className={key === "address" ? "admin-field admin-field--wide" : "admin-field"} key={key}>{label}<input className="block w-full" name={key} required={key === "companyName"} type={key.endsWith("Email") ? "email" : "text"} value={form[key] ?? ""} onChange={(event) => setForm((current) => ({ ...current, [key]: key === "companyName" ? event.target.value : event.target.value || null }))} /></label>)}</div>
+    <h3>Logo doanh nghiệp</h3><MediaPicker disabled={busy} value={form.logoMediaId} onUploadingChange={handleUploadingChange} onChange={(logoMediaId) => setForm((current) => ({ ...current, logoMediaId }))} />
+    <AdminEditorActions><p role="status">{isUploading ? "Đang tải logo lên…" : message || (isDirty ? "Có thay đổi chưa lưu." : "Không có thay đổi chưa lưu.")}</p><AdminButton disabled={busy || isUploading || !isDirty} permission="settings.update" type="submit">{busy ? "Đang lưu…" : "Lưu thông tin doanh nghiệp"}</AdminButton></AdminEditorActions>
   </form>;
 }

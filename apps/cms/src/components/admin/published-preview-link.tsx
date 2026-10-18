@@ -1,3 +1,4 @@
+import { getFixedWebsitePage } from "@iorder/core/server/pages/pages.contract";
 import { publishedPublicUrl } from "@/lib/published-public-url";
 
 type PublishedPreviewLinkProps = {
@@ -5,17 +6,6 @@ type PublishedPreviewLinkProps = {
   status: string | undefined;
   slug: string | undefined;
   contentType?: string | undefined;
-};
-
-const pagePaths: Record<string, string> = {
-  about: "/gioi-thieu",
-  contact: "/lien-he",
-  home: "/",
-  "privacy-policy": "/privacy-policy",
-  "remote-support": "/ho-tro-tu-xa",
-  "support-faq": "/ho-tro/faq",
-  "support-videos": "/ho-tro/video",
-  terms: "/terms",
 };
 
 const offeringCatalogPaths: Record<string, string> = {
@@ -32,7 +22,7 @@ function getPublicPath({
   if (!slug) return null;
 
   if (kind === "page") {
-    return pagePaths[slug] ?? `/trang/${slug}`;
+    return getFixedWebsitePage(slug)?.publicPath ?? `/trang/${slug}`;
   }
 
   if (kind === "post") {

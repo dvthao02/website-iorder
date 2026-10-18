@@ -6,15 +6,13 @@ import { ProfileEditor } from "./profile-editor";
 
 type BusinessProfileManagerProps = {
   profile: ProfileInput | null;
+  version: number;
 };
 
-export function BusinessProfileManager({ profile }: BusinessProfileManagerProps) {
+export function BusinessProfileManager({ profile, version }: BusinessProfileManagerProps) {
   return <main className="admin-settings-page">
-    <header className="admin-settings-page__header">
-      <p>Doanh nghiệp</p>
-      <h1>Thông tin doanh nghiệp</h1>
-      <span>Cập nhật tên thương hiệu, thông tin liên hệ và hình ảnh dùng trên website.</span>
-    </header>
+    <h1 className="sr-only">Thông tin doanh nghiệp</h1>
+    <p className="admin-help">Cập nhật tên thương hiệu, thông tin liên hệ và hình ảnh dùng trên website.</p>
 
     <section className="admin-settings-page__section" aria-labelledby="business-profile-title">
       <header>
@@ -23,7 +21,7 @@ export function BusinessProfileManager({ profile }: BusinessProfileManagerProps)
           <p>Nội dung này xuất hiện ở Header, Footer và các trang liên hệ.</p>
         </div>
       </header>
-      <ProfileEditor initial={profile} />
+      <ProfileEditor initial={profile} initialVersion={version} />
     </section>
   </main>;
 }

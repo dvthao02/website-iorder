@@ -1,3 +1,4 @@
+import { requireAdminPermission } from "@/lib/admin-guard";
 import { notFound } from "next/navigation";
 
 import { PostEditorDetail } from "@/components/admin/post-editor-detail";
@@ -7,6 +8,7 @@ import { getTaxonomy } from "@/lib/backend";
 export const dynamic = "force-dynamic";
 
 export default async function SupportGuideDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  await requireAdminPermission("posts.view");
   const [post, taxonomy] = await Promise.all([getAdminPostById((await params).id), getTaxonomy()]);
   if (!post || post.type !== "guide") notFound();
 

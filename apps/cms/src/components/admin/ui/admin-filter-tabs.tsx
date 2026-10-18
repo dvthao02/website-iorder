@@ -38,8 +38,8 @@ export function AdminFilterTabsContent<Value extends string>({ ariaLabel, items,
     onValueChange(items[target].value);
   }
   const selectedIndex = Math.max(0, items.findIndex(item => item.value === value));
-  return <div aria-label={ariaLabel} aria-orientation="horizontal" className="admin-filter-tabs" role="tablist">
-    {items.map((item, index) => <button disabled={disabled} tabIndex={index === selectedIndex ? 0 : -1} aria-selected={item.value === value} className={item.value === value ? "admin-filter-tabs__tab admin-filter-tabs__tab--active" : "admin-filter-tabs__tab"} key={item.value} onKeyDown={event => handleKey(event, index)} onClick={() => onValueChange(item.value)} role="tab" type="button">{item.label}</button>)}
+  return <div aria-label={ariaLabel} aria-orientation="horizontal" className="admin-view-tabs" role="tablist">
+    {items.map((item, index) => <button disabled={disabled} tabIndex={index === selectedIndex ? 0 : -1} aria-selected={item.value === value} className={item.value === value ? "admin-view-tabs__tab admin-view-tabs__tab--active" : "admin-view-tabs__tab"} key={item.value} onKeyDown={event => handleKey(event, index)} onClick={() => onValueChange(item.value)} role="tab" type="button">{item.label}</button>)}
   </div>;
 }
 import React, { useEffect, useRef, type KeyboardEvent } from "react";

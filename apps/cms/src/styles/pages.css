@@ -1,0 +1,109 @@
+/* Bố cục riêng của từng màn: Tổng quan, Thống kê, Cài đặt, Giao diện CMS. */
+@layer components {
+  /* Tổng quan */
+  .admin-dashboard__layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; align-items: start; gap: var(--cms-block-gap); }
+  .admin-dashboard__primary,
+  .admin-dashboard__aside { display: grid; min-width: 0; gap: var(--cms-block-gap); }
+  .admin-dashboard__analytics-grid { display: grid; min-width: 0; grid-template-columns: minmax(0, 1.6fr) minmax(220px, 1fr); gap: var(--cms-block-gap); }
+  .admin-dashboard__analytics-grid > * { min-width: 0; }
+  .admin-dashboard__analytics-grid > :only-child { grid-column: 1 / -1; }
+  .admin-dashboard__analytics-empty { display: grid; min-height: 120px; place-content: center; justify-items: center; gap: 4px; color: var(--cms-muted); font-size: var(--cms-text-sm); text-align: center; }
+  .admin-dashboard__analytics-empty strong { color: var(--cms-text); font-weight: 500; }
+  .admin-dashboard__analytics-empty svg { margin-bottom: 4px; }
+
+  .admin-metric-card__note { display: inline-flex; align-items: center; gap: 3px; color: var(--cms-muted); font-size: var(--cms-text-xs); }
+
+  /* Số lượng nội dung: lưới ô liền nhau, mỗi ô là một liên kết tới màn quản lý. */
+  .admin-dashboard__counts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); overflow: hidden; border: 1px solid var(--cms-border); border-radius: var(--cms-radius-component); background: var(--cms-border); gap: 1px; }
+  .admin-dashboard__counts > a { display: grid; gap: 1px; background: var(--cms-card); padding: 10px 12px; }
+  .admin-dashboard__counts > a:hover { background: var(--cms-subtle); }
+  .admin-dashboard__counts span { color: var(--cms-muted); font-size: var(--cms-text-xs); }
+  .admin-dashboard__counts strong { font-size: 18px; font-weight: 600; line-height: 1.3; }
+  .admin-dashboard__counts small { overflow: hidden; color: var(--cms-muted); text-overflow: ellipsis; white-space: nowrap; }
+
+  .admin-dashboard__recent { padding: 0; overflow: hidden; }
+  .admin-dashboard__recent > header { margin: 0; padding: 12px var(--cms-card-padding); }
+
+  /* Danh sách dạng dòng trong cột phải: thao tác nhanh, kiểm tra xuất bản, việc cần làm. */
+  .admin-dashboard__list { display: grid; margin: 0 calc(var(--cms-card-padding) * -1) calc(var(--cms-card-padding) * -1); }
+  .admin-dashboard__list > a { display: grid; grid-template-columns: 16px minmax(0, 1fr); align-items: center; gap: 10px; border-top: 1px solid var(--cms-border); padding: 9px var(--cms-card-padding); }
+  .admin-dashboard__list > a:hover { background: var(--cms-subtle); }
+  .admin-dashboard__list > a > svg { color: var(--cms-muted); }
+  .admin-dashboard__list > a > .admin-status { justify-self: center; }
+  .admin-dashboard__list strong,
+  .admin-dashboard__list small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .admin-dashboard__list strong { font-size: var(--cms-text-sm); font-weight: 500; }
+  .admin-dashboard__list small { color: var(--cms-muted); }
+  .admin-dashboard__empty { color: var(--cms-muted); font-size: var(--cms-text-sm); }
+
+  @media (max-width: 1280px) {
+    .admin-dashboard__layout { grid-template-columns: minmax(0, 1fr) 280px; }
+    .admin-dashboard__counts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  /* Từ 960px trở xuống cột phải xuống dưới nên nội dung chính lại đủ rộng cho 4 cột số liệu. */
+  @media (max-width: 960px) {
+    .admin-dashboard__layout { grid-template-columns: minmax(0, 1fr); }
+    .admin-dashboard__counts { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .admin-dashboard__aside { grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr)); align-items: start; }
+  }
+  @media (max-width: 680px) {
+    .admin-dashboard__analytics-grid { grid-template-columns: minmax(0, 1fr); }
+    .admin-dashboard__counts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+
+  /* Cài đặt: cùng lề với các màn khác, nội dung form giới hạn bề ngang để dễ đọc. */
+  .admin-settings-page { display: grid; min-width: 0; align-content: start; gap: var(--cms-block-gap); padding: var(--cms-page-gutter); }
+  .admin-settings-page__section { display: grid; min-width: 0; gap: 14px; border: 1px solid var(--cms-border); border-radius: var(--cms-radius-card); background: var(--cms-card); padding: var(--cms-card-padding); }
+  .admin-settings-page__section > header { display: grid; gap: 2px; }
+  .admin-settings-page__section > header p { color: var(--cms-muted); font-size: var(--cms-text-sm); }
+
+  /* Danh sách kiểm tra xuất bản */
+  .admin-check-list { display: grid; overflow: hidden; border: 1px solid var(--cms-border); border-radius: var(--cms-radius-card); background: var(--cms-card); }
+  .admin-check-list > a { display: grid; grid-template-columns: 8px minmax(0, 1fr) auto; align-items: center; gap: 12px; border-top: 1px solid var(--cms-border); padding: 10px var(--cms-card-padding); }
+  .admin-check-list > a:first-child { border-top: 0; }
+  .admin-check-list > a:hover { background: var(--cms-subtle); }
+  .admin-check-list strong,
+  .admin-check-list small { display: block; }
+  .admin-check-list strong { font-size: var(--cms-text-sm); font-weight: 500; }
+  .admin-check-list small { color: var(--cms-muted); }
+
+  /* Giao diện CMS: hai danh sách chọn (bảng màu, font) cạnh nhau. */
+  .admin-appearance { display: grid; gap: var(--cms-block-gap); }
+  .admin-appearance__header { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 8px 16px; }
+  .admin-appearance__header > div { display: grid; min-width: 0; gap: 2px; }
+  .admin-appearance__header small { color: var(--cms-muted); font-size: var(--cms-text-sm); }
+  .admin-appearance__current { display: inline-flex; align-items: center; gap: 6px; color: var(--cms-muted); font-size: var(--cms-text-sm); white-space: nowrap; }
+  .admin-appearance__groups { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(300px, 1fr); align-items: start; gap: var(--cms-block-gap); }
+  .admin-appearance__group { display: grid; overflow: hidden; border: 1px solid var(--cms-border); border-radius: var(--cms-radius-card); background: var(--cms-card); }
+  .admin-appearance__group > header { display: flex; align-items: center; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--cms-border); padding: 12px var(--cms-card-padding); }
+  .admin-appearance__group > header > div { display: grid; gap: 1px; }
+  .admin-appearance__group > header small { color: var(--cms-muted); }
+  .admin-appearance__group > header > strong { color: var(--cms-muted); font-size: var(--cms-text-sm); font-weight: 400; white-space: nowrap; }
+  .admin-appearance__list { display: grid; }
+  .admin-appearance__theme { display: grid; width: 100%; grid-template-columns: 40px minmax(0, 1fr) auto; align-items: center; gap: 12px; border: 0; border-top: 1px solid var(--cms-border); background: var(--cms-card); padding: 10px var(--cms-card-padding); color: var(--cms-text); text-align: left; }
+  .admin-appearance__theme:first-child { border-top: 0; }
+  .admin-appearance__theme:hover { background: var(--cms-subtle); }
+  .admin-appearance__theme--selected { background: var(--cms-primary-soft); }
+  .admin-appearance__theme--selected:hover { background: var(--cms-primary-soft); }
+  .admin-appearance__theme-copy { display: grid; min-width: 0; gap: 1px; font-family: var(--theme-font, var(--cms-font)); }
+  .admin-appearance__theme strong { font-size: var(--cms-text-sm); font-weight: 500; }
+  .admin-appearance__theme small { color: var(--cms-muted); }
+  .admin-appearance__theme em { color: var(--cms-muted); font-size: var(--cms-text-xs); font-style: normal; }
+  .admin-appearance__theme-action { display: inline-flex; align-items: center; gap: 4px; color: var(--cms-muted); font-size: var(--cms-text-xs); white-space: nowrap; }
+  .admin-appearance__theme--selected .admin-appearance__theme-action { color: var(--cms-primary); font-weight: 500; }
+  .admin-appearance__swatches { display: grid; height: 32px; grid-template-columns: 10px 1fr; grid-template-rows: 10px 1fr; gap: 2px; overflow: hidden; border: 1px solid var(--cms-border); border-radius: var(--cms-radius-sm); background: var(--theme-base); padding: 3px; }
+  .admin-appearance__swatches i { display: block; border-radius: 1px; background: var(--theme-card); }
+  .admin-appearance__swatches i:first-child { grid-row: span 2; background: var(--theme-accent); }
+  .admin-appearance__font-sample { display: grid; width: 32px; height: 32px; place-items: center; border: 1px solid var(--cms-border); border-radius: var(--cms-radius-sm); font-family: var(--theme-font, var(--cms-font)); font-size: 15px; font-weight: 600; }
+  @media (max-width: 960px) { .admin-appearance__groups { grid-template-columns: minmax(0, 1fr); } }
+  @media (max-width: 680px) {
+    .admin-appearance__theme { grid-template-columns: 36px minmax(0, 1fr); }
+    .admin-appearance__theme-action { grid-column: 2; }
+  }
+
+  /* Trang không có quyền, 404, lỗi */
+  .admin-message { display: grid; min-height: 52vh; place-items: center; padding: var(--cms-page-gutter); }
+  .admin-message > section { display: grid; width: min(100%, 440px); gap: 10px; border: 1px solid var(--cms-border); border-radius: var(--cms-radius-card); background: var(--cms-card); padding: 20px; }
+  .admin-message p { color: var(--cms-muted); font-size: var(--cms-text-sm); }
+  .admin-message > section > div { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+}

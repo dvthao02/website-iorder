@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 
 import { administratorSessionCookieName, getCurrentAdministrator } from "@/lib/backend";
 import { AdminShell } from "@/components/admin/admin-shell";
-import { getPublishingReadiness } from "@/lib/backend";
+import { getAdminNotifications } from "@/lib/backend";
 
 export const metadata: Metadata = {
   robots: { index: false, follow: false },
@@ -19,10 +19,7 @@ export default async function ProtectedAdministratorLayout({ children }: { child
     redirect("/admin/login");
   }
 
-  const notifications = (await getPublishingReadiness())
-    .filter((item) => item.status === "attention")
-    .slice(0, 5)
-    .map(({ id, label, detail, href }) => ({ id, label, detail, href }));
+  const notifications = await getAdminNotifications();
 
   return <AdminShell administrator={administrator} notifications={notifications}>{children}</AdminShell>;
 }

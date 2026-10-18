@@ -32,12 +32,11 @@ export function LogoutButton() {
 
   return (
     <div className="grid gap-2"><button
-      className="rounded-lg border border-[var(--cms-border)] bg-[var(--cms-card)] px-4 py-2 text-sm font-bold text-[var(--cms-text)] transition hover:bg-[var(--cms-hover)] disabled:cursor-wait disabled:opacity-70"
       disabled={isSubmitting}
       onClick={signOut}
       type="button"
     >
       {isSubmitting ? "Đang thoát…" : "Đăng xuất"}
-    </button>{error ? <p role="alert" className="text-sm text-red-700">{error}</p> : null}</div>
+    </button>{error ? <p role="alert" className="text-sm admin-text-error">{error}</p> : null}</div>
   );
 }

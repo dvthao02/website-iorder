@@ -19,7 +19,6 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       { source: "/admin/trang", destination: "/admin/pages", permanent: true },
-      { source: "/admin/phan-quyen", destination: "/admin/tai-khoan", permanent: true },
       { source: "/admin/cau-hinh/trang-thai-xuat-ban", destination: "/admin/seo/kiem-tra-xuat-ban", permanent: true },
     ];
   },

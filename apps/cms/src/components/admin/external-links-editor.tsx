@@ -1,5 +1,6 @@
 "use client";
 
+import { adminApiError } from "@/lib/admin-api";
 import { useRef, useState, type FormEvent } from "react";
 
 import type { ExternalLinks } from "@iorder/core/server/settings/external-links.contract";
@@ -28,7 +29,8 @@ const emptyLinks: ExternalLinks = {
   googlePlay: null,
 };
 
-export function ExternalLinksEditor({ initial }: { initial: ExternalLinks | null }) {
+export function ExternalLinksEditor({ initial, initialVersion }: { initial: ExternalLinks | null; initialVersion: number }) {
+  const version = useRef(initialVersion);
   const [links, setLinks] = useState<ExternalLinks>(initial ?? emptyLinks);
   const { isDirty, markSaved } = useUnsavedChanges(links);
   const [busy, setBusy] = useState(false);
@@ -50,11 +52,11 @@ export function ExternalLinksEditor({ initial }: { initial: ExternalLinks | null
       const response = await fetch("/api/admin/external-links", {
         method: "PUT",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify(links),
+        body: JSON.stringify({ values: links, expectedVersion: version.current }),
       });
       const body = await response.json();
-      if (response.ok) { markSaved(); showToast("Đã cập nhật liên kết ngoài trên website.", "success"); }
-      else { const notice = body.error?.message ?? "Không thể lưu liên kết ngoài."; setMessage(notice); showToast(notice, "error"); }
+      if (response.ok) { if (typeof body.version === "number") version.current = body.version; markSaved(); showToast("Đã cập nhật liên kết ngoài trên website.", "success"); }
+      else { const notice = adminApiError(body, "Không thể lưu liên kết ngoài.").message; setMessage(notice); showToast(notice, "error"); }
     } catch {
       const notice = "Không kết nối được máy chủ."; setMessage(notice); showToast(notice, "error");
     } finally {
@@ -65,7 +67,7 @@ export function ExternalLinksEditor({ initial }: { initial: ExternalLinks | null
 
   return <form className="grid gap-4" onSubmit={save}>
     <p>Điền URL đầy đủ, ví dụ <code>https://...</code>. Để trống một dịch vụ nếu website chưa sử dụng dịch vụ đó.</p>
-    {fields.map(([key, label]) => <label key={key}>{label}<input className="block w-full rounded border p-2" type="url" value={links[key] ?? ""} onChange={event => update(key, event.target.value)} placeholder="https://..." /></label>)}
-    <AdminEditorActions><p role="status">{message || (isDirty ? "Có thay đổi chưa lưu." : "Không có thay đổi chưa lưu.")}</p><AdminButton disabled={busy || !isDirty} type="submit">{busy ? "Đang lưu…" : "Lưu liên kết ngoài"}</AdminButton></AdminEditorActions>
+    {fields.map(([key, label]) => <label key={key}>{label}<input className="block w-full" type="url" value={links[key] ?? ""} onChange={event => update(key, event.target.value)} placeholder="https://..." /></label>)}
+    <AdminEditorActions><p role="status">{message || (isDirty ? "Có thay đổi chưa lưu." : "Không có thay đổi chưa lưu.")}</p><AdminButton disabled={busy || !isDirty} permission="settings.update" type="submit">{busy ? "Đang lưu…" : "Lưu liên kết ngoài"}</AdminButton></AdminEditorActions>
   </form>;
 }

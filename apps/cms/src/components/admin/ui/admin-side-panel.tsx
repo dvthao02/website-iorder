@@ -1,7 +1,8 @@
 "use client";
 
 import { X } from "lucide-react";
-import { useEffect, useRef, type ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
+import { useAdminFocusTrap } from "./admin-focus-trap";
 
 export function AdminSidePanel({ children, footer, isOpen, onClose, label = "Trình biên tập nội dung" }: {
   children: ReactNode;
@@ -11,47 +12,7 @@ export function AdminSidePanel({ children, footer, isOpen, onClose, label = "Tr�
   label?: string;
 }) {
   const panelRef = useRef<HTMLElement>(null);
-  const closeRef = useRef(onClose);
-
-  useEffect(() => { closeRef.current = onClose; }, [onClose]);
-
-  useEffect(() => {
-    if (!isOpen || !panelRef.current) return;
-    const panel = panelRef.current;
-    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    const focusableElements = () => Array.from(panel.querySelectorAll<HTMLElement>("a[href], button, input, select, textarea, [tabindex]"))
-      .filter((element) => element.tabIndex >= 0 && !element.matches(":disabled, [aria-disabled='true']") && element.getClientRects().length > 0);
-
-    (focusableElements()[0] ?? panel).focus();
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.defaultPrevented || event.isComposing) return;
-      if (event.key === "Escape") {
-        event.preventDefault();
-        closeRef.current();
-      } else if (event.key === "Tab") {
-        const elements = focusableElements();
-        const first = elements[0];
-        const last = elements[elements.length - 1];
-        if (!first || !last) {
-          event.preventDefault();
-          panel.focus();
-        } else if (event.shiftKey && (document.activeElement === first || !panel.contains(document.activeElement))) {
-          event.preventDefault();
-          last.focus();
-        } else if (!event.shiftKey && (document.activeElement === last || !panel.contains(document.activeElement))) {
-          event.preventDefault();
-          first.focus();
-        }
-      }
-    }
-
-    document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.removeEventListener("keydown", handleKeyDown);
-      if (opener?.isConnected) opener.focus();
-    };
-  }, [isOpen]);
+  useAdminFocusTrap({ containerRef: panelRef, isOpen, onClose });
 
   if (!isOpen) return null;
 

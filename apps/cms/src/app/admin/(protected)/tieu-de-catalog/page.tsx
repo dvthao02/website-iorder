@@ -1,13 +1,7 @@
-import { CatalogContentEditor } from "@/components/admin/catalog-content-editor";
-import { SettingsDetailPage } from "@/components/admin/settings-detail-page";
-import { getCatalogContent } from "@/lib/backend";
+import { redirect } from "next/navigation";
 
-export const dynamic = "force-dynamic";
-
-export default async function CatalogTitlesPage() {
-  return <SettingsDetailPage
-    description="Cập nhật dòng giới thiệu, tiêu đề và mô tả của trang Phần mềm, Giải pháp và Dịch vụ."
-    eyebrow="Cài đặt"
-    title="Tiêu đề trang catalog"
-  ><CatalogContentEditor initial={await getCatalogContent()} /></SettingsDetailPage>;
+// Phần đầu trang Phần mềm/Giải pháp/Dịch vụ nay là "Trang danh sách" trong Trang website,
+// mở từ nút "Trang danh sách" ở màn quản lý từng loại.
+export default function LegacyCatalogTitlesPage() {
+  redirect("/admin/san-pham");
 }

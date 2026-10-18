@@ -1,0 +1,93 @@
+/* Token giao diện CMS. Mọi màu, bo góc, chiều cao điều khiển và khoảng cách đều lấy từ đây;
+   component không dùng số cứng để mọi màn cùng một nhịp. */
+:root {
+  --cms-primary: #0d5fc7;
+  --cms-primary-strong: #0a4fa8;
+  --cms-primary-soft: #edf3fc;
+  --cms-background: #f5f6f8;
+  --cms-sidebar: #ffffff;
+  --cms-card: #ffffff;
+  --cms-input-background: #ffffff;
+  --cms-border: #e2e5e9;
+  --cms-text: #1c2128;
+  --cms-muted: #626b76;
+  --cms-hover: #f2f4f6;
+  --cms-on-primary: #ffffff;
+
+  /* Suy ra từ màu theme nên tự đổi theo mọi theme. */
+  --cms-border-strong: color-mix(in srgb, var(--cms-border), var(--cms-text) 14%);
+  --cms-subtle: color-mix(in srgb, var(--cms-card), var(--cms-background) 55%);
+  --cms-focus-ring: 0 0 0 3px color-mix(in srgb, var(--cms-primary) 20%, transparent);
+
+  --cms-status-neutral-background: #f0f2f4;
+  --cms-status-neutral-border: #dde1e6;
+  --cms-status-neutral-text: #4f5966;
+  --cms-status-info-background: #ebf3fd;
+  --cms-status-info-border: #cbdcf5;
+  --cms-status-info-text: #1d5fae;
+  --cms-status-success-background: #e9f6ef;
+  --cms-status-success-border: #c4e5d2;
+  --cms-status-success-text: #17694a;
+  --cms-status-warning-background: #fdf5e3;
+  --cms-status-warning-border: #ecd9a8;
+  --cms-status-warning-text: #8a5a0f;
+  --cms-status-error-background: #fdf0f1;
+  --cms-status-error-border: #f0c8cd;
+  --cms-status-error-text: #a8354a;
+
+  --cms-font: var(--font-inter), Inter, ui-sans-serif, system-ui, sans-serif;
+  --cms-font-size: 14px;
+  --cms-text-sm: 13px;
+  --cms-text-xs: 12px;
+
+  --cms-radius-sm: 4px;
+  --cms-radius-component: 6px;
+  --cms-radius-card: 8px;
+  --cms-radius-modal: 10px;
+
+  --cms-control-height: 34px;
+  --cms-control-height-sm: 28px;
+  --cms-table-row: 44px;
+
+  /* Lề trang, padding trong ô, khoảng cách giữa các khối. */
+  --cms-page-gutter: 20px;
+  --cms-card-padding: 16px;
+  --cms-block-gap: 12px;
+
+  --cms-topbar-height: 56px;
+  --cms-shadow-popover: 0 8px 24px rgb(16 24 40 / 12%), 0 1px 2px rgb(16 24 40 / 6%);
+  --cms-shadow-panel: -12px 0 32px rgb(16 24 40 / 12%);
+}
+
+@media (max-width: 680px) {
+  :root { --cms-page-gutter: 12px; --cms-card-padding: 14px; }
+}
+
+/* Theme cá nhân của người vận hành (chọn ở "Giao diện CMS"); không ảnh hưởng website public. */
+html[data-cms-theme="teal-mist"] { --cms-primary: #0f766e; --cms-primary-strong: #0b5f59; --cms-primary-soft: #e6f4f2; --cms-background: #f3f8f7; --cms-border: #dbe7e5; --cms-text: #15302e; --cms-muted: #56706d; --cms-hover: #edf5f4; --cms-font: var(--font-manrope), Manrope, var(--font-inter), sans-serif; }
+html[data-cms-theme="indigo-soft"] { --cms-primary: #4f46e5; --cms-primary-strong: #4038be; --cms-primary-soft: #eeedfd; --cms-background: #f6f5fb; --cms-border: #e3e1f0; --cms-text: #24223f; --cms-muted: #66647f; --cms-hover: #f1f0f9; --cms-font: var(--font-plus-jakarta-sans), "Plus Jakarta Sans", var(--font-inter), sans-serif; }
+html[data-cms-theme="emerald-light"] { --cms-primary: #047857; --cms-primary-strong: #03664b; --cms-primary-soft: #e5f4ed; --cms-background: #f4f8f6; --cms-border: #dbe8e1; --cms-text: #15302a; --cms-muted: #57706a; --cms-hover: #edf5f1; }
+html[data-cms-theme="warm-sand"] { --cms-primary: #8b4a22; --cms-primary-strong: #743c1b; --cms-primary-soft: #f6ede4; --cms-background: #f8f6f2; --cms-sidebar: #fffefb; --cms-card: #fffefb; --cms-input-background: #fffefb; --cms-border: #e8e0d5; --cms-text: #3b2c22; --cms-muted: #76675c; --cms-hover: #f4eee7; --cms-font: var(--font-dm-sans), "DM Sans", var(--font-inter), sans-serif; }
+html[data-cms-theme="slate-minimal"] { --cms-primary: #334155; --cms-primary-strong: #1e293b; --cms-primary-soft: #eceff3; --cms-background: #f6f7f8; --cms-border: #e1e5e9; --cms-text: #1e293b; --cms-muted: #5f6b7b; --cms-hover: #f1f3f5; --cms-font: var(--font-manrope), Manrope, var(--font-inter), sans-serif; }
+html[data-cms-theme="purple-mist"] { --cms-primary: #7c3aed; --cms-primary-strong: #6930cf; --cms-primary-soft: #f2ecfd; --cms-background: #f8f6fb; --cms-border: #e7e1f1; --cms-text: #2f2147; --cms-muted: #706584; --cms-hover: #f3eff9; --cms-font: var(--font-plus-jakarta-sans), "Plus Jakarta Sans", var(--font-inter), sans-serif; }
+html[data-cms-theme="sky-ice"] { --cms-primary: #0369a1; --cms-primary-strong: #075985; --cms-primary-soft: #e8f3fa; --cms-background: #f4f8fb; --cms-border: #dce7ef; --cms-text: #16334a; --cms-muted: #5b6f80; --cms-hover: #edf4f9; }
+html[data-cms-theme="mint-blue"] { --cms-primary: #06758f; --cms-primary-strong: #155e75; --cms-primary-soft: #e6f3f5; --cms-background: #f3f8f8; --cms-border: #dae8e8; --cms-text: #153840; --cms-muted: #587076; --cms-hover: #ecf5f5; --cms-font: var(--font-manrope), Manrope, var(--font-inter), sans-serif; }
+html[data-cms-theme="dark"] {
+  color-scheme: dark;
+  --cms-primary: #6aa8fb; --cms-primary-strong: #8bbcfc; --cms-primary-soft: #1f3150;
+  --cms-background: #11161d; --cms-sidebar: #161c24; --cms-card: #181f28; --cms-input-background: #12181f;
+  --cms-border: #2b3440; --cms-text: #e6eaef; --cms-muted: #98a3b1; --cms-hover: #212a35; --cms-on-primary: #0b1420;
+  --cms-status-neutral-background: #232c37; --cms-status-neutral-border: #36414e; --cms-status-neutral-text: #c8d0da;
+  --cms-status-info-background: #172c47; --cms-status-info-border: #29486f; --cms-status-info-text: #9cc6fb;
+  --cms-status-success-background: #15322b; --cms-status-success-border: #285a4c; --cms-status-success-text: #86d9b5;
+  --cms-status-warning-background: #362d18; --cms-status-warning-border: #5f5131; --cms-status-warning-text: #eac56c;
+  --cms-status-error-background: #3c2228; --cms-status-error-border: #643943; --cms-status-error-text: #f0a3b1;
+  --cms-shadow-popover: 0 8px 24px rgb(0 0 0 / 40%);
+  --cms-shadow-panel: -12px 0 32px rgb(0 0 0 / 40%);
+}
+
+/* Font chọn độc lập với bảng màu. */
+html[data-cms-font="inter"] { --cms-font: var(--font-inter), Inter, ui-sans-serif, system-ui, sans-serif; }
+html[data-cms-font="manrope"] { --cms-font: var(--font-manrope), Manrope, var(--font-inter), sans-serif; }
+html[data-cms-font="plus-jakarta-sans"] { --cms-font: var(--font-plus-jakarta-sans), "Plus Jakarta Sans", var(--font-inter), sans-serif; }
+html[data-cms-font="dm-sans"] { --cms-font: var(--font-dm-sans), "DM Sans", var(--font-inter), sans-serif; }

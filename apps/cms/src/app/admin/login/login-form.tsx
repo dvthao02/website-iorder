@@ -1,5 +1,6 @@
 "use client";
 
+import { apiErrorMessage } from "@/lib/admin-api";
 import { FormEvent, useState } from "react";
 
 type LoginFormProps = {
@@ -29,8 +30,7 @@ export function LoginForm({ initialError }: LoginFormProps) {
 
     if (!response?.ok) {
       const payload = await response?.json().catch(() => undefined);
-      const message = payload?.error?.message;
-      setError(typeof message === "string" ? message : "Không thể đăng nhập. Vui lòng thử lại.");
+      setError(apiErrorMessage(payload, "Không thể đăng nhập. Vui lòng thử lại."));
       return;
     }
 
@@ -38,29 +38,29 @@ export function LoginForm({ initialError }: LoginFormProps) {
   }
 
   return (
-    <form action="/api/admin/session" className="grid gap-5" method="post" onSubmit={handleSubmit}>
-      <label className="grid gap-2 text-sm font-semibold text-[var(--cms-text)]">
+    <form action="/api/admin/session" className="grid gap-4" method="post" onSubmit={handleSubmit}>
+      <label className="admin-field">
         Tên đăng nhập
         <input
           autoComplete="username"
-          className="rounded-xl border border-[var(--cms-border)] bg-[var(--cms-card)] px-4 py-3 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
+          className="admin-input"
           name="username"
           required
         />
       </label>
-      <label className="grid gap-2 text-sm font-semibold text-[var(--cms-text)]">
+      <label className="admin-field">
         Mật khẩu
         <input
           autoComplete="current-password"
-          className="rounded-xl border border-[var(--cms-border)] bg-[var(--cms-card)] px-4 py-3 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
+          className="admin-input"
           name="password"
           required
           type="password"
         />
       </label>
-      {error ? <p className="text-sm font-medium text-red-700">{error}</p> : null}
+      {error ? <p className="admin-help admin-text-error">{error}</p> : null}
       <button
-        className="rounded-xl bg-[var(--cms-text)] px-4 py-3 font-bold text-white transition hover:bg-[var(--cms-primary-strong)] disabled:cursor-wait disabled:opacity-70"
+        className="admin-button admin-button--primary w-full"
         disabled={isSubmitting}
         type="submit"
       >

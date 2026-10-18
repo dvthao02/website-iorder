@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 
+import { AdminPageBarActions, AdminPageBarMeta } from "./admin-page-bar";
+
 type AdminListHeaderProps = {
   actions?: ReactNode;
   description: string;
@@ -8,15 +10,14 @@ type AdminListHeaderProps = {
   title: string;
 };
 
-export function AdminListHeader({ actions, description, eyebrow, headingLevel = 2, title }: AdminListHeaderProps) {
+// Tên màn đã hiện trên thanh vị trí của khung CMS, nên ở đây tiêu đề chỉ dành cho trình đọc màn hình;
+// số liệu tóm tắt và nút hành động được đưa lên thanh đó để không lặp thông tin.
+export function AdminListHeader({ actions, description, headingLevel = 1, title }: AdminListHeaderProps) {
   const Heading = headingLevel === 1 ? "h1" : "h2";
 
-  return <header className="admin-list-header">
-    <div className="min-w-0">
-      {eyebrow ? <p className="admin-list-header__eyebrow">{eyebrow}</p> : null}
-      <Heading>{title}</Heading>
-      <p className="admin-list-header__description">{description}</p>
-    </div>
-    {actions ? <div className="admin-list-header__actions">{actions}</div> : null}
-  </header>;
+  return <>
+    <Heading className="admin-list-header sr-only">{title}</Heading>
+    <AdminPageBarMeta>{description}</AdminPageBarMeta>
+    {actions ? <AdminPageBarActions>{actions}</AdminPageBarActions> : null}
+  </>;
 }

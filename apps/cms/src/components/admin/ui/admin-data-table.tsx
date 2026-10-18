@@ -187,18 +187,14 @@ export function AdminDataTable<Row>({ tableId, columns, rows, getRowId, emptyMes
 
   return <>
     <div className="admin-data-table">
-      <div className="admin-data-table__toolbar">
-        <span>{visibleColumns.length}/{columns.length} cột đang hiển thị</span>
-        {showSettingsButton ? <button className="admin-data-table__settings-button" onClick={openSettings} type="button"><Settings2 aria-hidden="true" size={16} />Cài đặt cột</button> : null}
-      </div>
       <div className="admin-data-table__scroll">
         <table style={{ minWidth: minTableWidth }}>
           <colgroup>{columnLayout.map(({ column, width }) => <col key={column.id} style={{ width }} />)}</colgroup>
-          <thead><tr>{columnLayout.map(({ column, pinned, left }) => {
+          <thead><tr>{columnLayout.map(({ column, pinned, left }, index) => {
             const isActionsColumn = column.id === "actions";
             const style: CSSProperties = isActionsColumn ? { right: 0, position: "sticky", width: settings.widths[column.id], zIndex: 5 } : pinned ? { left, position: "sticky", width: settings.widths[column.id], zIndex: 3 } : { width: settings.widths[column.id] };
             const className = [pinned ? "admin-data-table__pinned-cell" : "", isActionsColumn ? "admin-data-table__actions-cell" : ""].filter(Boolean).join(" ");
-            return <th className={className || undefined} key={column.id} style={style}><span>{settings.labels[column.id] ?? column.label}</span><button aria-label={`Thay đổi độ rộng cột ${settings.labels[column.id] ?? column.label}`} className="admin-data-table__resize-handle" onPointerDown={(event) => startResize(event, column)} type="button" /></th>;
+            return <th className={className || undefined} key={column.id} style={style}><span>{settings.labels[column.id] ?? column.label}</span><button aria-label={`Thay đổi độ rộng cột ${settings.labels[column.id] ?? column.label}`} className="admin-data-table__resize-handle" onPointerDown={(event) => startResize(event, column)} type="button" />{showSettingsButton && index === columnLayout.length - 1 ? <button aria-label="Cài đặt cột" className="admin-data-table__settings-button" onClick={openSettings} title={`Cài đặt cột (${visibleColumns.length}/${columns.length} cột đang hiển thị)`} type="button"><Settings2 aria-hidden="true" size={15} /></button> : null}</th>;
           })}</tr></thead>
           <tbody>{rows.map((row) => <tr className={onRowClick ? "admin-data-table__row--interactive" : undefined} key={getRowId(row)} onClick={(event) => {
             if (!onRowClick || event.target instanceof Element && event.target.closest("a, button, input, select, textarea, label")) return;

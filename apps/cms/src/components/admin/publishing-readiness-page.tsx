@@ -1,21 +1,21 @@
 import Link from "next/link";
 
 import { AdminStatusBadge } from "@/components/admin/ui/admin-feedback";
+import { AdminPageBarMeta } from "@/components/admin/ui/admin-page-bar";
 import { getPublishingReadiness } from "@/lib/backend";
 
 export async function PublishingReadinessPage() {
   const items = await getPublishingReadiness();
+  const ready = items.filter((item) => item.status === "ready").length;
 
   return <main className="admin-settings-page">
-    <section className="admin-settings-page__section">
-      <Link className="text-sm font-bold text-blue-700 hover:underline" href="/admin/seo">← Quay lại SEO & Xuất bản</Link>
-      <h1 className="mb-2 mt-5 text-3xl font-bold text-[var(--cms-text)]">Kiểm tra sẵn sàng xuất bản</h1>
-      <p className="mb-6 max-w-3xl leading-7 text-[var(--cms-muted)]">Kiểm tra các cấu hình và nội dung quan trọng trước khi đưa website vào vận hành chính thức.</p>
-      <div className="grid gap-3">{items.map(item => <Link className="grid grid-cols-[10px_minmax(0,1fr)_auto] items-center gap-3 rounded-xl border border-[var(--cms-border)] p-4 hover:border-blue-300 hover:bg-blue-50" href={item.href} key={item.id}>
-        <span className={item.status === "ready" ? "admin-status admin-status--ready" : "admin-status"} />
-        <span><strong className="block text-[var(--cms-text)]">{item.label}</strong><small className="mt-1 block text-[var(--cms-muted)]">{item.detail}</small></span>
-        <AdminStatusBadge tone={item.status === "ready" ? "success" : "warning"}>{item.status === "ready" ? "Sẵn sàng" : "Cần xử lý"}</AdminStatusBadge>
-      </Link>)}</div>
-    </section>
+    <h1 className="sr-only">Kiểm tra xuất bản</h1>
+    <AdminPageBarMeta>{ready}/{items.length} mục đạt</AdminPageBarMeta>
+    <p className="admin-help">Kiểm tra cấu hình và nội dung quan trọng trước khi đưa website vào vận hành.</p>
+    <div className="admin-check-list">{items.map(item => <Link href={item.href} key={item.id}>
+      <span className={item.status === "ready" ? "admin-status admin-status--ready" : "admin-status"} />
+      <span><strong>{item.label}</strong><small>{item.detail}</small></span>
+      <AdminStatusBadge tone={item.status === "ready" ? "success" : "warning"}>{item.status === "ready" ? "Sẵn sàng" : "Cần xử lý"}</AdminStatusBadge>
+    </Link>)}</div>
   </main>;
 }

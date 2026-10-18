@@ -1,22 +1,25 @@
 "use client";
 
-import { ArrowRight, Edit3, Link2, Plus, RotateCcw, Save, Settings2 } from "lucide-react";
+import { adminApiError } from "@/lib/admin-api";
+import { ArrowRight, Edit3, Link2, Plus, RotateCcw, Save } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { redirectInputSchema } from "@iorder/core/server/redirects/redirects.contract";
 
 import { AdminButton } from "./ui/admin-button";
 import { AdminCard } from "./ui/admin-card";
+import { useAdminConfirm } from "./ui/admin-confirm-dialog";
 import { AdminDataTable, type AdminDataTableColumn } from "./ui/admin-data-table";
 import { AdminNotice, AdminStatusBadge, useAdminToast } from "./ui/admin-feedback";
 import { AdminFilterBar } from "./ui/admin-filter-bar";
 import { AdminListHeader } from "./ui/admin-list-header";
 import { AdminListPage } from "./ui/admin-list-page";
+import { AdminSearchField } from "./ui/admin-search-field";
 import { AdminSidePanel } from "./ui/admin-side-panel";
 import { useNavigationGuard } from "./ui/use-navigation-guard";
 
 type RedirectInput = { sourcePath: string; destinationPath: string; statusCode: 301 | 308; isEnabled: boolean };
-type Redirect = RedirectInput & { id: string };
+type Redirect = RedirectInput & { id: string; version: number };
 type RedirectStatusFilter = "all" | "enabled" | "disabled";
 
 const blank: RedirectInput = { sourcePath: "", destinationPath: "", statusCode: 301, isEnabled: true };
@@ -27,6 +30,7 @@ function valuesOf(item: Redirect): RedirectInput {
 
 export function RedirectsManager({ initialRedirects }: { initialRedirects: Redirect[] }) {
   const router = useRouter();
+  const { confirm } = useAdminConfirm();
   const { show: showToast } = useAdminToast();
   const [rows, setRows] = useState(initialRedirects);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -95,12 +99,12 @@ export function RedirectsManager({ initialRedirects }: { initialRedirects: Redir
       const response = await fetch("/api/admin/redirects", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ id: activeId, values }),
+        body: JSON.stringify({ id: activeId, values, ...(active ? { expectedVersion: active.version } : {}) }),
       });
       const body = await response.json();
-      if (!response.ok) throw new Error(body.error?.message ?? "Không thể lưu chuyển hướng.");
+      if (!response.ok) throw adminApiError(body, "Không thể lưu chuyển hướng.");
       if (typeof body.id !== "string" || !body.id || (activeId && body.id !== activeId)) throw new Error("Phản hồi lưu chuyển hướng không hợp lệ. Hãy kiểm tra danh sách trước khi thử lại.");
-      const saved: Redirect = { id: body.id, ...values };
+      const saved: Redirect = { id: body.id, version: active ? active.version + 1 : 0, ...values };
       setRows((current) => (current.some((item) => item.id === saved.id) ? current.map((item) => item.id === saved.id ? saved : item) : [...current, saved]).sort((first, second) => first.sourcePath.localeCompare(second.sourcePath, "vi")));
       setActiveId(saved.id);
       setForm(values);
@@ -121,14 +125,14 @@ export function RedirectsManager({ initialRedirects }: { initialRedirects: Redir
       if (dirty) showToast("Hãy lưu hoặc bỏ thay đổi trước khi xóa.", "warning");
       return;
     }
-    if (!window.confirm(`Xóa chuyển hướng ${active.sourcePath}? Thao tác không thể hoàn tác.`)) return;
+    if (!await confirm({ title: "Xác nhận xóa chuyển hướng", message: `Xóa chuyển hướng ${active.sourcePath}? Thao tác không thể hoàn tác.`, confirmLabel: "Xóa", tone: "danger" })) return;
 
     mutationPending.current = true;
     setBusy(true);
     try {
-      const response = await fetch(`/api/admin/redirects?id=${active.id}`, { method: "DELETE" });
+      const response = await fetch(`/api/admin/redirects?id=${active.id}&expectedVersion=${active.version}`, { method: "DELETE" });
       const body = await response.json();
-      if (!response.ok) throw new Error(body.error?.message ?? "Không thể xóa chuyển hướng.");
+      if (!response.ok) throw adminApiError(body, "Không thể xóa chuyển hướng.");
       if (body.deletedId !== active.id) throw new Error("Phản hồi xóa chuyển hướng không hợp lệ. Hãy tải lại danh sách để kiểm tra.");
       setRows((current) => current.filter((item) => item.id !== active.id));
       setActiveId(null);
@@ -145,7 +149,7 @@ export function RedirectsManager({ initialRedirects }: { initialRedirects: Redir
   }
 
   const columns: AdminDataTableColumn<Redirect>[] = [
-    { id: "source", label: "Đường dẫn cũ", defaultWidth: 250, minWidth: 180, cell: (item) => <button className="admin-list-manager__identity admin-list-manager__path" onClick={(event) => { event.stopPropagation(); select(item); }} type="button"><strong>{item.sourcePath}</strong><small>URL cần chuyển hướng</small></button> },
+    { id: "source", label: "Đường dẫn cũ", defaultWidth: 250, minWidth: 180, cell: (item) => <button className="admin-list-manager__identity admin-list-manager__path" onClick={(event) => { event.stopPropagation(); select(item); }} type="button"><strong>{item.sourcePath}</strong></button> },
     { id: "destination", label: "Đích đến", defaultWidth: 270, minWidth: 190, cell: (item) => <span className="admin-list-manager__destination"><ArrowRight aria-hidden="true" size={14} />{item.destinationPath}</span> },
     { id: "code", label: "Mã", defaultWidth: 105, minWidth: 92, cell: (item) => <span>{item.statusCode}</span> },
     { id: "status", label: "Trạng thái", defaultWidth: 140, minWidth: 120, cell: (item) => <AdminStatusBadge tone={item.isEnabled ? "success" : "neutral"}>{item.isEnabled ? "Đang bật" : "Đang tắt"}</AdminStatusBadge> },
@@ -154,15 +158,15 @@ export function RedirectsManager({ initialRedirects }: { initialRedirects: Redir
 
   const enabledCount = rows.filter((item) => item.isEnabled).length;
   const footer = form ? <>
-    <span className="admin-list-manager__footer-start">{active ? <AdminButton disabled={busy} onClick={removeCurrent} variant="danger">Xóa</AdminButton> : null}</span>
-    <span className="flex gap-2">{dirty ? <AdminButton disabled={busy} onClick={discardChanges} variant="secondary"><RotateCcw aria-hidden="true" size={16} />Bỏ thay đổi</AdminButton> : null}<AdminButton disabled={busy || !dirty} form="redirect-editor" type="submit"><Save aria-hidden="true" size={16} />{busy ? "Đang lưu…" : "Lưu"}</AdminButton></span>
+    <span className="admin-list-manager__footer-start">{active ? <AdminButton disabled={busy} hideWithoutPermission onClick={removeCurrent} permission="redirects.delete" variant="danger">Xóa</AdminButton> : null}</span>
+    <span className="flex gap-2">{dirty ? <AdminButton disabled={busy} onClick={discardChanges} variant="secondary"><RotateCcw aria-hidden="true" size={16} />Bỏ thay đổi</AdminButton> : null}<AdminButton disabled={busy || !dirty} form="redirect-editor" permission={active ? "redirects.update" : "redirects.create"} type="submit"><Save aria-hidden="true" size={16} />{busy ? "Đang lưu…" : "Lưu"}</AdminButton></span>
   </> : null;
 
   return <AdminListPage className="admin-list-manager" variant="dense">
     <AdminCard className="admin-list-manager__card">
-      <AdminListHeader actions={<><AdminButton onClick={() => setIsColumnSettingsOpen(true)} variant="secondary"><Settings2 aria-hidden="true" size={16} />Cài đặt cột</AdminButton><AdminButton leadingIcon={<Plus aria-hidden="true" size={16} />} onClick={() => select()}>Tạo chuyển hướng</AdminButton></>} description={`${rows.length} đường dẫn đang được quản lý; ${enabledCount} mục đang bật.`} headingLevel={1} title="Chuyển hướng URL" />
-      <AdminFilterBar onSubmit={(event) => event.preventDefault()}><div><label className="sr-only" htmlFor="redirect-search">Tìm chuyển hướng</label><input className="admin-input" id="redirect-search" onChange={(event) => setQuery(event.target.value)} placeholder="Tìm đường dẫn cũ hoặc đích đến…" value={query} /></div><div><label className="sr-only" htmlFor="redirect-status">Lọc trạng thái</label><select className="admin-input" id="redirect-status" onChange={(event) => setStatusFilter(event.target.value as RedirectStatusFilter)} value={statusFilter}><option value="all">Tất cả trạng thái</option><option value="enabled">Đang bật</option><option value="disabled">Đang tắt</option></select></div></AdminFilterBar>
-      <AdminDataTable columns={columns} emptyMessage={rows.length ? "Không có chuyển hướng phù hợp với bộ lọc." : "Chưa có chuyển hướng URL."} getRowId={(item) => item.id} onRowClick={select} onSettingsOpenChange={setIsColumnSettingsOpen} rows={visibleRows} settingsOpen={isColumnSettingsOpen} showSettingsButton={false} tableId="cms-redirects" />
+      <AdminListHeader actions={<><AdminButton hideWithoutPermission permission="redirects.create" leadingIcon={<Plus aria-hidden="true" size={16} />} onClick={() => select()}>Tạo chuyển hướng</AdminButton></>} description={`${rows.length} đường dẫn · ${enabledCount} đang bật`} headingLevel={1} title="Chuyển hướng URL" />
+      <AdminFilterBar onSubmit={(event) => event.preventDefault()}><AdminSearchField id="redirect-search" label="Tìm chuyển hướng" onChange={(event) => setQuery(event.target.value)} placeholder="Tìm đường dẫn cũ hoặc đích đến" value={query} /><select aria-label="Lọc trạng thái" id="redirect-status" onChange={(event) => setStatusFilter(event.target.value as RedirectStatusFilter)} value={statusFilter}><option value="all">Tất cả trạng thái</option><option value="enabled">Đang bật</option><option value="disabled">Đang tắt</option></select></AdminFilterBar>
+      <AdminDataTable columns={columns} emptyMessage={rows.length ? "Không có chuyển hướng phù hợp với bộ lọc." : "Chưa có chuyển hướng URL."} getRowId={(item) => item.id} onRowClick={select} onSettingsOpenChange={setIsColumnSettingsOpen} rows={visibleRows} settingsOpen={isColumnSettingsOpen} tableId="cms-redirects" />
     </AdminCard>
     <AdminSidePanel footer={footer} isOpen={form !== null} onClose={closeEditor}>
       <header className="admin-list-manager__panel-header"><span className="admin-list-manager__panel-icon"><Link2 aria-hidden="true" size={18} /></span><div><p>{active ? "Chỉnh sửa chuyển hướng" : "Tạo chuyển hướng"}</p><h2>{active?.sourcePath || "Chuyển hướng mới"}</h2><small className={dirty ? "admin-list-manager__dirty" : undefined}>{dirty ? "Có thay đổi chưa lưu." : active ? `${active.destinationPath} · ${active.statusCode}` : "Khai báo URL cũ và đích đến mới."}</small></div></header>

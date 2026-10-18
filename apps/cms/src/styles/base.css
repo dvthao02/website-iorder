@@ -1,0 +1,73 @@
+/* Mặc định của phần tử HTML trong CMS. Nằm ở layer base nên utility của Tailwind vẫn ghi đè được
+   khi cần bố cục riêng; màn hình không phải tự style lại ô nhập, tiêu đề hay checkbox. */
+@layer base {
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--cms-background);
+    color: var(--cms-text);
+    font-family: var(--cms-font);
+    font-size: var(--cms-font-size);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: inherit; text-decoration: none; }
+  button { cursor: pointer; font: inherit; }
+  button:disabled { cursor: not-allowed; }
+  :focus-visible { outline: 2px solid var(--cms-primary); outline-offset: 2px; }
+
+  * { scrollbar-color: color-mix(in srgb, var(--cms-muted) 40%, transparent) transparent; scrollbar-width: thin; }
+
+  h1, h2, h3, h4 { margin: 0; color: var(--cms-text); font-weight: 600; letter-spacing: -0.01em; }
+  h1 { font-size: 20px; line-height: 1.3; }
+  h2 { font-size: 15px; line-height: 1.4; }
+  h3 { font-size: 14px; line-height: 1.4; }
+  h4 { font-size: var(--cms-text-sm); line-height: 1.4; }
+  p { margin: 0; }
+  small { font-size: var(--cms-text-xs); }
+  code { border-radius: var(--cms-radius-sm); background: var(--cms-hover); padding: 1px 5px; font-size: 0.92em; }
+
+  input:where(:not([type="checkbox"], [type="radio"], [type="range"], [type="file"], [type="color"], [type="hidden"])),
+  select,
+  textarea {
+    min-width: 0;
+    border: 1px solid var(--cms-border-strong);
+    border-radius: var(--cms-radius-component);
+    background-color: var(--cms-input-background);
+    color: var(--cms-text);
+    font: inherit;
+    font-size: var(--cms-font-size);
+    transition: border-color 120ms ease, box-shadow 120ms ease;
+  }
+  input:where(:not([type="checkbox"], [type="radio"], [type="range"], [type="file"], [type="color"], [type="hidden"])),
+  select { height: var(--cms-control-height); padding: 0 10px; }
+  textarea { min-height: 88px; padding: 7px 10px; line-height: 1.5; resize: vertical; }
+  select {
+    appearance: none;
+    padding-right: 30px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23697482' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-position: right 8px center;
+    background-repeat: no-repeat;
+    background-size: 16px;
+    cursor: pointer;
+  }
+  select[multiple] { height: auto; padding: 4px; background-image: none; }
+  :is(input, select, textarea)::placeholder { color: color-mix(in srgb, var(--cms-muted) 80%, transparent); }
+  :is(input, select, textarea):where(:not([type="checkbox"], [type="radio"])):focus { border-color: var(--cms-primary); box-shadow: var(--cms-focus-ring); outline: 0; }
+  :is(input, select, textarea):disabled { background-color: var(--cms-hover); color: var(--cms-muted); cursor: not-allowed; }
+  input[type="checkbox"], input[type="radio"] { width: 16px; height: 16px; flex: 0 0 auto; margin: 0; accent-color: var(--cms-primary); cursor: pointer; }
+  input[type="file"] { color: var(--cms-muted); font-size: var(--cms-text-sm); }
+  input[type="file"]::file-selector-button { height: var(--cms-control-height-sm); margin-right: 10px; border: 1px solid var(--cms-border-strong); border-radius: var(--cms-radius-component); background: var(--cms-card); padding: 0 10px; color: var(--cms-text); font: inherit; font-weight: 500; cursor: pointer; }
+  input[type="file"]::file-selector-button:hover { background: var(--cms-hover); }
+  fieldset { min-width: 0; margin: 0; border: 0; padding: 0; }
+
+  /* Nhãn và nút chưa gắn class trong CMS nhận kiểu chuẩn (trường nhập, nút phụ cỡ nhỏ). */
+  .admin-shell label:not([class]) { display: grid; min-width: 0; gap: 6px; font-size: var(--cms-text-sm); font-weight: 500; }
+  .admin-shell label:not([class]) > :is(input:not([type="checkbox"], [type="radio"]), select, textarea) { width: 100%; font-weight: 400; }
+  .admin-shell label:not([class]):has(> input:is([type="checkbox"], [type="radio"])) { display: flex; align-items: center; gap: 8px; font-weight: 400; }
+  .admin-shell button:not([class]) { display: inline-flex; height: var(--cms-control-height-sm); align-items: center; justify-content: center; gap: 4px; border: 1px solid var(--cms-border-strong); border-radius: var(--cms-radius-component); background: var(--cms-card); padding: 0 10px; color: var(--cms-text); font-size: var(--cms-text-sm); font-weight: 500; }
+  .admin-shell button:not([class]):hover:not(:disabled) { background: var(--cms-hover); }
+  .admin-shell button:not([class]):disabled { opacity: 0.45; }
+  .admin-shell legend { margin-bottom: 6px; font-size: var(--cms-text-sm); font-weight: 500; }
+  table { border-collapse: collapse; }
+}
