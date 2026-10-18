@@ -8,7 +8,7 @@ import { PostContent } from "@/components/site/post-content";
 import { SiteHeader } from "@/components/site/site-header";
 import { getPublishedPostBySlug, getPublishingConfig, getSiteProfile } from "@/lib/backend";
 import { JsonLd } from "@/components/site/json-ld";
-import { articleJsonLd, breadcrumbJsonLd, productJsonLd, serviceJsonLd } from "@/lib/structured-data";
+import { articleJsonLd, breadcrumbJsonLd } from "@/lib/structured-data";
 
 export const revalidate = 0;
 

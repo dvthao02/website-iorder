@@ -6,7 +6,7 @@ import Link from "next/link";
 import { SiteHeader } from "@/components/site/site-header";
 import { getEquipment, getPublishingConfig, getSiteProfile } from "@/lib/backend";
 import { JsonLd } from "@/components/site/json-ld";
-import { articleJsonLd, breadcrumbJsonLd, productJsonLd, serviceJsonLd } from "@/lib/structured-data";
+import { breadcrumbJsonLd, productJsonLd } from "@/lib/structured-data";
 export const revalidate = 0;
 type Props = { params: Promise<{ slug: string }> };
 export async function generateMetadata({ params }: Props, parent: ResolvingMetadata) {

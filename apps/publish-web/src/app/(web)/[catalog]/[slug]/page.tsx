@@ -8,7 +8,7 @@ import { OfferingContent } from "@/components/site/offering-content";
 import { SiteHeader } from "@/components/site/site-header";
 import { getOfferingTypeFromCatalogPath, getPublishedOfferingBySlug, getPublishingConfig, getSiteProfile } from "@/lib/backend";
 import { JsonLd } from "@/components/site/json-ld";
-import { articleJsonLd, breadcrumbJsonLd, productJsonLd, serviceJsonLd } from "@/lib/structured-data";
+import { breadcrumbJsonLd, serviceJsonLd } from "@/lib/structured-data";
 
 export const revalidate = 0;
 
