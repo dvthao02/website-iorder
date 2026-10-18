@@ -5,6 +5,7 @@ import { toAdminListPage, type AdminListQuery } from "@iorder/core/server/shared
 import type { PageInput } from "./pages.contract";
 import { publicationDate } from "../shared/publication-date";
 import { assertPageVersion } from "./page-version";
+import { listOrder, workflowStatusRank, vietnameseText } from "../shared/list-order";
 
 const selectPage = { id: pages.id, title: pages.title, slug: pages.slug, template: pages.template, status: pages.status, draftVersion: pages.draftVersion, seoTitle: pages.seoTitle, seoDescription: pages.seoDescription, canonicalUrl: pages.canonicalUrl, scheduledAt: pages.scheduledAt, publishedAt: pages.publishedAt, updatedAt: pages.updatedAt };
 
@@ -48,7 +49,7 @@ export async function listAdminPages() {
 export async function listAdminPagesPage(query: PageListQuery, database = getDb()) {
   const condition = pageListCondition(query);
   return database.transaction(async tx => {
-    const rows = await tx.select(selectPage).from(pages).where(condition).orderBy(desc(pages.updatedAt), asc(pages.id)).limit(query.pageSize).offset((query.page - 1) * query.pageSize);
+    const rows = await tx.select(selectPage).from(pages).where(condition).orderBy(...listOrder({ title: vietnameseText(pages.title), status: workflowStatusRank(pages.status), updatedAt: pages.updatedAt }, query, [desc(pages.updatedAt), asc(pages.id)])).limit(query.pageSize).offset((query.page - 1) * query.pageSize);
     const [totals] = await tx.select({ total: count() }).from(pages).where(condition);
     const blocks = rows.length ? await tx.select({ pageId: pageBlocks.pageId, type: pageBlocks.type, data: pageBlocks.data, isEnabled: pageBlocks.isEnabled }).from(pageBlocks).where(inArray(pageBlocks.pageId, rows.map(page => page.id))).orderBy(asc(pageBlocks.sortOrder), asc(pageBlocks.id)) : [];
     const blocksByPage = new Map(rows.map(page => [page.id, [] as Array<{ type: typeof pageBlocks.$inferSelect.type; data: typeof pageBlocks.$inferSelect.data; isEnabled: boolean }>]));

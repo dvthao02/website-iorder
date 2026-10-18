@@ -7,6 +7,7 @@ import { LoginRateLimitError } from "@iorder/core/server/auth/login-throttle";
 import { getRequestAdministrator } from "@iorder/core/server/auth/request-administrator";
 import { getClientAddress } from "@/lib/client-address";
 import { logger } from "@iorder/core/server/shared/logger";
+import { withRequestContext } from "@/lib/request-context";
 
 export const runtime = "nodejs";
 
@@ -15,7 +16,7 @@ function fail(code: string, message: string, status: number) {
 }
 
 // Mọi tài khoản đã đăng nhập tự đổi mật khẩu của mình; không cần quyền "Người dùng CMS".
-export async function POST(request: Request) {
+async function handlePOST(request: Request) {
   const actor = await getRequestAdministrator();
   if (!actor) return fail("UNAUTHORIZED", "Vui lòng đăng nhập lại.", 401);
   try {
@@ -34,3 +35,5 @@ export async function POST(request: Request) {
     return fail("INTERNAL_ERROR", "Không thể đổi mật khẩu lúc này. Vui lòng thử lại.", 500);
   }
 }
+
+export const POST = withRequestContext(handlePOST);

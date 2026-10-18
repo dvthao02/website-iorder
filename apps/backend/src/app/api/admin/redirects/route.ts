@@ -7,14 +7,15 @@ import { deleteAdminRedirect, getRedirects, writeRedirect } from "@iorder/core/s
 import { denyUnless } from "@/lib/admin-access";
 import { ContentVersionConflictError } from "@iorder/core/server/shared/content-version";
 import { revalidatePath } from "@/lib/publish-cache-revalidation";
+import { withRequestContext } from "@/lib/request-context";
 
-export async function GET() {
+async function handleGET() {
   const user = await getRequestAdministrator();
   if (!user) return NextResponse.json({ error: { code: "UNAUTHORIZED", message: "Vui lòng đăng nhập lại." } }, { status: 401 });
   return NextResponse.json({ redirects: await getRedirects() });
 }
 
-export async function POST(request: Request) {
+async function handlePOST(request: Request) {
   const user = await getRequestAdministrator();
   if (!user) return NextResponse.json({ error: { code: "UNAUTHORIZED", message: "Vui lòng đăng nhập lại." } }, { status: 401 });
   try {
@@ -34,7 +35,7 @@ export async function POST(request: Request) {
   }
 }
 
-export async function DELETE(request: Request) {
+async function handleDELETE(request: Request) {
   const user = await getRequestAdministrator();
   if (!user) return NextResponse.json({ error: { code: "UNAUTHORIZED", message: "Vui lòng đăng nhập lại." } }, { status: 401 });
   const query = new URL(request.url).searchParams;
@@ -54,3 +55,7 @@ export async function DELETE(request: Request) {
   revalidatePath("/", "layout");
   return NextResponse.json({ deletedId });
 }
+
+export const GET = withRequestContext(handleGET);
+export const POST = withRequestContext(handlePOST);
+export const DELETE = withRequestContext(handleDELETE);

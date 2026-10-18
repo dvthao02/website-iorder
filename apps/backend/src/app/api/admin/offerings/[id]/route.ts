@@ -10,6 +10,7 @@ import { publicOfferingTypeSchema } from "@iorder/core/server/offerings/offering
 import { changeAdminOfferingState, deleteArchivedAdminOffering, getAdminOfferingById, updateAdminOffering } from "@iorder/core/server/offerings/offerings.service";
 import { denyPublishUnless, requestedStatusOf } from "@/lib/admin-access";
 import { logger } from "@iorder/core/server/shared/logger";
+import { withRequestContext } from "@/lib/request-context";
 
 export const runtime = "nodejs";
 
@@ -36,7 +37,7 @@ function layLoaiDaKhoa(request: Request) {
   return parsed.success ? parsed.data : null;
 }
 
-export async function GET(_: Request, { params }: OfferingRouteProps) {
+async function handleGET(_: Request, { params }: OfferingRouteProps) {
   const administrator = await getRequestAdministrator();
   if (!administrator) return phanHoiLoi("UNAUTHORIZED", "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.", 401);
   const { id } = await params;
@@ -44,7 +45,7 @@ export async function GET(_: Request, { params }: OfferingRouteProps) {
   return adminDetailResponse("offering", () => getAdminOfferingById(id), { missing: "Không tìm thấy nội dung.", failed: "Không thể tải nội dung lúc này. Vui lòng thử lại." });
 }
 
-export async function PATCH(request: Request, { params }: OfferingRouteProps) {
+async function handlePATCH(request: Request, { params }: OfferingRouteProps) {
   const administrator = await getRequestAdministrator();
   if (!administrator) {
     return phanHoiLoi("UNAUTHORIZED", "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.", 401);
@@ -105,7 +106,7 @@ export async function PATCH(request: Request, { params }: OfferingRouteProps) {
   }
 }
 
-export async function DELETE(request: Request, { params }: OfferingRouteProps) {
+async function handleDELETE(request: Request, { params }: OfferingRouteProps) {
   const administrator = await getRequestAdministrator();
   if (!administrator) {
     return phanHoiLoi("UNAUTHORIZED", "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.", 401);
@@ -137,3 +138,7 @@ export async function DELETE(request: Request, { params }: OfferingRouteProps) {
     return phanHoiLoi("INTERNAL_ERROR", "Không thể xóa nội dung lúc này. Vui lòng thử lại.", 500);
   }
 }
+
+export const GET = withRequestContext(handleGET);
+export const PATCH = withRequestContext(handlePATCH);
+export const DELETE = withRequestContext(handleDELETE);

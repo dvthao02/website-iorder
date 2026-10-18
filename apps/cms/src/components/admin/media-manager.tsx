@@ -13,7 +13,7 @@ import { AdminCard } from "./ui/admin-card";
 import { AdminEmptyState } from "./ui/admin-empty-state";
 import { useAdminConfirm } from "./ui/admin-confirm-dialog";
 import { AdminNotice, AdminStatusBadge, useAdminToast } from "./ui/admin-feedback";
-import { AdminFilterBar } from "./ui/admin-filter-bar";
+import { AdminFilterBar, type AdminFilterChip } from "./ui/admin-filter-bar";
 import { AdminListHeader } from "./ui/admin-list-header";
 import { AdminListPage } from "./ui/admin-list-page";
 import { AdminSearchField } from "./ui/admin-search-field";
@@ -34,6 +34,12 @@ export function MediaManager({ initialPage, initialQuery }: { initialPage: { ass
   const [query, setQuery] = useState(initialQuery.query);
   const [searchDraft, setSearchDraft] = useState(initialQuery.query);
   const [filter, setFilter] = useState<MediaFilter>(initialQuery.type);
+  // Thứ tự dạng "khóa:chiều"; mặc định mới tải lên trước.
+  const [order, setOrder] = useState(`${initialQuery.sort ?? "createdAt"}:${initialQuery.dir ?? "desc"}`);
+  const chips: AdminFilterChip[] = [
+    ...(query ? [{ key: "query", label: `Từ khóa: “${query}”`, onRemove: () => { setSearchDraft(""); void loadPage(1, filter, ""); } }] : []),
+    ...(filter !== "all" ? [{ key: "type", label: `Loại: ${filter === "images" ? "Hình ảnh" : "Tài liệu"}`, onRemove: () => void loadPage(1, "all") }] : []),
+  ];
   const [busy, setBusy] = useState(false);
   const uploading = useRef(false);
   const editorStates = useRef(new Map<string, { dirty: boolean; pending: boolean }>());
@@ -43,7 +49,7 @@ export function MediaManager({ initialPage, initialQuery }: { initialPage: { ass
   }, []);
   useNavigationGuard(busy, () => showToast("Đang tải tệp lên. Vui lòng chờ trước khi rời thư viện.", "info"));
 
-  async function loadPage(nextPage: number, nextFilter: MediaFilter = filter, nextQuery: string = query) {
+  async function loadPage(nextPage: number, nextFilter: MediaFilter = filter, nextQuery: string = query, nextOrder: string = order) {
     if (listing.current || uploading.current || [...editorStates.current.values()].some(state => state.pending || state.dirty)) {
       showToast("Hãy hoàn tất xử lý và lưu hoặc bỏ thay đổi thông tin tệp trước khi chuyển bộ lọc.", "warning");
       return;
@@ -52,7 +58,8 @@ export function MediaManager({ initialPage, initialQuery }: { initialPage: { ass
     setLoading(true);
     setListError("");
     try {
-      const params = new URLSearchParams({ page: String(nextPage), pageSize: "25", type: nextFilter, query: nextQuery });
+      const [sort, dir] = nextOrder.split(":");
+      const params = new URLSearchParams({ page: String(nextPage), pageSize: "25", type: nextFilter, query: nextQuery, sort, dir });
       const response = await fetch(`/api/admin/media?${params}`);
       const body = await response.json();
       if (!response.ok) throw adminApiError(body, "Không tải được danh sách tệp.");
@@ -63,10 +70,12 @@ export function MediaManager({ initialPage, initialQuery }: { initialPage: { ass
       setTotal(result.data.total);
       setFilter(nextFilter);
       setQuery(nextQuery);
+      setOrder(nextOrder);
       const url = new URL(window.location.href);
       url.searchParams.set("page", String(result.data.page));
       url.searchParams.set("type", nextFilter);
       if (nextQuery) url.searchParams.set("query", nextQuery); else url.searchParams.delete("query");
+      if (nextOrder === "createdAt:desc") { url.searchParams.delete("sort"); url.searchParams.delete("dir"); } else { url.searchParams.set("sort", sort); url.searchParams.set("dir", dir); }
       window.history.replaceState(null, "", url);
     } catch (error) { setListError(error instanceof Error ? error.message : "Không tải được danh sách tệp."); }
     finally { listing.current = false; setLoading(false); }
@@ -120,9 +129,10 @@ export function MediaManager({ initialPage, initialQuery }: { initialPage: { ass
         <span className="admin-field__hint">PNG, JPEG, WebP, PDF hoặc ZIP; tối đa 20 MB.</span>
         <AdminButton className="ml-auto" disabled={busy || loading} permission="media.create" type="submit"><UploadCloud aria-hidden="true" />{busy ? "Đang tải…" : "Tải lên"}</AdminButton>
       </form>
-      <AdminFilterBar onSubmit={(event) => { event.preventDefault(); void loadPage(1, filter, searchDraft); }}>
-        <AdminSearchField disabled={loading || busy} label="Tìm tệp" maxLength={160} onChange={event => setSearchDraft(event.target.value)} placeholder="Tên tệp, mô tả hoặc chú thích" value={searchDraft} />
+      <AdminFilterBar onSubmit={(event) => { event.preventDefault(); void loadPage(1, filter, searchDraft); }} chips={chips} onClearAll={() => { setSearchDraft(""); void loadPage(1, "all", ""); }} search={<AdminSearchField disabled={loading || busy} label="Tìm tệp" maxLength={160} onChange={event => setSearchDraft(event.target.value)} placeholder="Tên tệp, mô tả hoặc chú thích" value={searchDraft} />}>
+
         <select aria-label="Lọc loại tệp" disabled={loading || busy} onChange={(event) => changeFilter(event.target.value as MediaFilter)} value={filter}><option value="all">Tất cả loại tệp</option><option value="images">Hình ảnh</option><option value="documents">Tài liệu</option></select>
+        <select aria-label="Sắp xếp tệp" disabled={loading || busy} onChange={(event) => void loadPage(1, filter, query, event.target.value)} value={order}><option value="createdAt:desc">Mới tải lên trước</option><option value="createdAt:asc">Cũ nhất trước</option><option value="name:asc">Tên A → Z</option><option value="name:desc">Tên Z → A</option><option value="size:desc">Dung lượng lớn nhất</option><option value="size:asc">Dung lượng nhỏ nhất</option></select>
       </AdminFilterBar>
       {listError ? <div className="admin-list-toolbar"><AdminNotice tone="error">{listError}</AdminNotice><AdminButton disabled={loading} onClick={() => void loadPage(page)} size="sm" variant="secondary">Thử lại</AdminButton></div> : null}
       <fieldset className="min-w-0" disabled={loading || busy}>

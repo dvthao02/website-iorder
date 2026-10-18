@@ -6,9 +6,10 @@ import { getRequestAdministrator } from "@iorder/core/server/auth/request-admini
 import { hasDatabaseErrorCode } from "@iorder/core/server/shared/database-error";
 import { publicOfferingTypeSchema } from "@iorder/core/server/offerings/offering-content.contract";
 import { createAdminOffering, getAdminOfferingsPage, getAdminOfferingSummariesPage } from "@iorder/core/server/offerings/offerings.service";
-import { adminListQuerySchema } from "@iorder/core/server/shared/admin-list.contract";
+import { adminListQuerySchema, listSortParams } from "@iorder/core/server/shared/admin-list.contract";
 import { denyPublishUnless, requestedStatusOf } from "@/lib/admin-access";
 import { logger } from "@iorder/core/server/shared/logger";
+import { withRequestContext } from "@/lib/request-context";
 
 export const runtime = "nodejs";
 
@@ -35,14 +36,14 @@ function kiemTraLoaiDaKhoa(request: Request, body: unknown) {
   return undefined;
 }
 
-export async function GET(request: Request) {
+async function handleGET(request: Request) {
   const administrator = await getRequestAdministrator();
   if (!administrator) {
     return phanHoiLoi("UNAUTHORIZED", "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.", 401);
   }
 
   const query = new URL(request.url).searchParams;
-  const pagination = adminListQuerySchema.safeParse({ page: query.get("page") ?? undefined, pageSize: query.get("pageSize") ?? undefined, query: query.get("query") ?? undefined });
+  const pagination = adminListQuerySchema.safeParse({ page: query.get("page") ?? undefined, pageSize: query.get("pageSize") ?? undefined, query: query.get("query") ?? undefined, ...listSortParams(query) });
   const status = z.enum(["draft", "review", "scheduled", "published", "archived"]).optional().safeParse(query.get("status") || undefined);
   const type = publicOfferingTypeSchema.optional().safeParse(query.get("type") || undefined);
   if (!pagination.success || !status.success || !type.success) return phanHoiLoi("INVALID_INPUT", "Bộ lọc danh sách nội dung catalog không hợp lệ.", 400);
@@ -54,7 +55,7 @@ export async function GET(request: Request) {
   }
 }
 
-export async function POST(request: Request) {
+async function handlePOST(request: Request) {
   const administrator = await getRequestAdministrator();
   if (!administrator) {
     return phanHoiLoi("UNAUTHORIZED", "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.", 401);
@@ -88,3 +89,6 @@ export async function POST(request: Request) {
     return phanHoiLoi("INTERNAL_ERROR", "Không thể tạo Offering lúc này. Vui lòng thử lại.", 500);
   }
 }
+
+export const GET = withRequestContext(handleGET);
+export const POST = withRequestContext(handlePOST);

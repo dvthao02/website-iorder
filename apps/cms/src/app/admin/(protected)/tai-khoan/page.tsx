@@ -9,10 +9,10 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
   const actor = await getRequestAdministrator();
   if (!actor || !hasCmsPermission(actor, "users.view")) redirect("/admin/khong-co-quyen");
   const params = await searchParams;
-  const query = cmsUserListQuerySchema.parse({ page: params.page, pageSize: params.pageSize, query: params.query, status: params.status, role: params.role });
+  const query = cmsUserListQuerySchema.parse({ page: params.page, pageSize: params.pageSize, query: params.query, status: params.status, role: params.role, sort: params.sort, dir: params.dir });
   const { page: result, roles } = await getCmsUsersPage(query);
   if (query.page > result.totalPages) {
-    const target = new URLSearchParams(Object.entries({ ...query, page: result.totalPages }).map(([key, value]) => [key, String(value)]));
+    const target = new URLSearchParams(Object.entries({ ...query, page: result.totalPages }).filter(([, value]) => value !== undefined).map(([key, value]) => [key, String(value)]));
     redirect(`/admin/tai-khoan?${target}`);
   }
   return <main className="admin-page">

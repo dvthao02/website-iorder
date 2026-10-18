@@ -12,6 +12,7 @@ import { SupportDownloadVersionConflictError } from "@iorder/core/server/support
 import { denyUnless } from "@/lib/admin-access";
 import { revisionTargetModules } from "@/lib/admin-permission";
 import type { CmsPermissionCode } from "@iorder/core/server/auth/permissions";
+import { withRequestContext } from "@/lib/request-context";
 
 type Context = { params: Promise<{ target: string; id: string }> };
 const fail = (code: string, message: string, status: number) => NextResponse.json({ error: { code, message } }, { status });
@@ -47,5 +48,8 @@ async function handle(request: Request, context: Context, restore: boolean) {
   }
 }
 
-export const GET = (request: Request, context: Context) => handle(request, context, false);
-export const POST = (request: Request, context: Context) => handle(request, context, true);
+const handleGET = async (request: Request, context: Context) => handle(request, context, false);
+const handlePOST = async (request: Request, context: Context) => handle(request, context, true);
+
+export const GET = withRequestContext(handleGET);
+export const POST = withRequestContext(handlePOST);

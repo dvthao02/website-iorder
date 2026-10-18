@@ -5,15 +5,16 @@ import { z } from "zod";
 import { getRequestAdministrator } from "@iorder/core/server/auth/request-administrator";
 import { getExternalLinksWithVersion, updateExternalLinks } from "@iorder/core/server/settings/external-links.service";
 import { ContentVersionConflictError, versionedWriteRequestSchema } from "@iorder/core/server/shared/content-version";
+import { withRequestContext } from "@/lib/request-context";
 
 const fail = (code: string, message: string, status: number) => NextResponse.json({ error: { code, message } }, { status });
 
-export async function GET() {
+async function handleGET() {
   const user = await getRequestAdministrator();
   if (!user) return fail("UNAUTHORIZED", "Vui lòng đăng nhập lại.", 401);
   return NextResponse.json(await getExternalLinksWithVersion());
 }
-export async function PUT(request: Request) {
+async function handlePUT(request: Request) {
   const user = await getRequestAdministrator();
   if (!user) return fail("UNAUTHORIZED", "Vui lòng đăng nhập lại.", 401);
   try {
@@ -27,3 +28,6 @@ export async function PUT(request: Request) {
     return fail("INTERNAL_ERROR", "Không thể lưu liên kết ngoài lúc này.", 500);
   }
 }
+
+export const GET = withRequestContext(handleGET);
+export const PUT = withRequestContext(handlePUT);

@@ -15,7 +15,7 @@ import { AdminCard } from "./ui/admin-card";
 import { AdminDataTable, type AdminDataTableColumn } from "./ui/admin-data-table";
 import { AdminEmptyState } from "./ui/admin-empty-state";
 import { AdminNotice, AdminStatusBadge, useAdminToast, type AdminFeedbackTone } from "./ui/admin-feedback";
-import { AdminFilterBar } from "./ui/admin-filter-bar";
+import { AdminFilterBar, type AdminFilterChip } from "./ui/admin-filter-bar";
 import { AdminListHeader } from "./ui/admin-list-header";
 import { AdminListPage } from "./ui/admin-list-page";
 import { AdminSearchField } from "./ui/admin-search-field";
@@ -56,6 +56,11 @@ export function UsersManager({ canAssignSuperAdmin, initialPage, initialQuery, r
   const mutationPending = useRef(false);
   const [query, setQuery] = useState(initialQuery.query);
   const statusFilter = initialQuery.status;
+  const chips: AdminFilterChip[] = [
+    ...(initialQuery.query ? [{ key: "query", label: `Từ khóa: “${initialQuery.query}”`, onRemove: () => { setQuery(""); navigate({ page: 1, query: "" }); } }] : []),
+    ...(statusFilter !== "all" ? [{ key: "status", label: `Trạng thái: ${statusFilter === "active" ? "Đang hoạt động" : "Đã khóa"}`, onRemove: () => navigate({ page: 1, status: "all" }) }] : []),
+    ...(initialQuery.role !== "all" ? [{ key: "role", label: `Vai trò: ${roleLabel(roles, initialQuery.role)}`, onRemove: () => navigate({ page: 1, role: "all" }) }] : []),
+  ];
   const [isColumnSettingsOpen, setIsColumnSettingsOpen] = useState(false);
   const dirty = JSON.stringify(form) !== JSON.stringify(initialValues);
   useNavigationGuard(dirty || busy, busy ? () => showToast("Đang lưu tài khoản. Vui lòng chờ trước khi rời trang.", "info") : undefined);
@@ -64,7 +69,7 @@ export function UsersManager({ canAssignSuperAdmin, initialPage, initialQuery, r
   function navigate(patch: Partial<CmsUserListQuery>) {
     if (!allowSelectionChange()) return;
     const next = { ...initialQuery, ...patch };
-    const params = new URLSearchParams(Object.entries(next).map(([key, value]) => [key, String(value)]));
+    const params = new URLSearchParams(Object.entries(next).filter(([, value]) => value !== undefined && value !== "").map(([key, value]) => [key, String(value)]));
     startTransition(() => router.push(`/admin/tai-khoan?${params}`, { scroll: false }));
   }
 
@@ -138,10 +143,10 @@ export function UsersManager({ canAssignSuperAdmin, initialPage, initialQuery, r
   }
 
   const columns: AdminDataTableColumn<CmsUser>[] = [
-    { id: "user", label: "Người dùng", defaultWidth: 270, minWidth: 200, cell: (user) => <button className="admin-list-manager__identity" onClick={(event) => { event.stopPropagation(); select(user); }} type="button"><strong>{user.fullName}</strong><small>@{user.username}{user.email ? ` · ${user.email}` : ""}</small></button> },
-    { id: "role", label: "Vai trò", defaultWidth: 190, minWidth: 160, cell: (user) => <span>{roleLabel(roles, user.role)}</span> },
-    { id: "status", label: "Trạng thái", defaultWidth: 145, minWidth: 128, cell: (user) => <AdminStatusBadge tone={statusTone[user.status]}>{statusLabel[user.status]}</AdminStatusBadge> },
-    { id: "lastLogin", label: "Đăng nhập gần nhất", defaultWidth: 200, minWidth: 165, cell: (user) => <span className="admin-list-manager__muted">{dateLabel(user.lastLoginAt)}</span> },
+    { id: "user", label: "Người dùng", defaultWidth: 270, minWidth: 200, sortKey: "fullName", cell: (user) => <button className="admin-list-manager__identity" onClick={(event) => { event.stopPropagation(); select(user); }} type="button"><strong>{user.fullName}</strong><small>@{user.username}{user.email ? ` · ${user.email}` : ""}</small></button> },
+    { id: "role", label: "Vai trò", defaultWidth: 190, minWidth: 160, sortKey: "role", cell: (user) => <span>{roleLabel(roles, user.role)}</span> },
+    { id: "status", label: "Trạng thái", defaultWidth: 145, minWidth: 128, sortKey: "status", cell: (user) => <AdminStatusBadge tone={statusTone[user.status]}>{statusLabel[user.status]}</AdminStatusBadge> },
+    { id: "lastLogin", label: "Đăng nhập gần nhất", defaultWidth: 200, minWidth: 165, sortKey: "lastLoginAt", sortFirst: "desc", cell: (user) => <span className="admin-list-manager__muted">{dateLabel(user.lastLoginAt)}</span> },
     { id: "actions", label: "Thao tác", defaultWidth: 126, minWidth: 116, align: "right", cell: (user) => <button aria-label={`Chỉnh sửa ${user.fullName}`} className="admin-list-manager__row-action" onClick={(event) => { event.stopPropagation(); select(user); }} type="button"><Edit3 aria-hidden="true" size={15} />Sửa</button> },
   ];
 
@@ -152,8 +157,8 @@ export function UsersManager({ canAssignSuperAdmin, initialPage, initialQuery, r
   return <AdminListPage className="admin-list-manager" variant="dense">
     <AdminCard className="admin-list-manager__card">
       <AdminListHeader actions={<><AdminButton hideWithoutPermission permission="users.create" leadingIcon={<Plus aria-hidden="true" size={16} />} onClick={() => select()}>Tạo tài khoản</AdminButton></>} description={loading ? "Đang tải danh sách…" : `${initialPage.counts.all} tài khoản · ${activeCount} đang hoạt động · ${adminCount} quản trị viên`} headingLevel={1} title="Người dùng CMS" />
-      <AdminFilterBar onSubmit={(event) => { event.preventDefault(); navigate({ page: 1, query: query.trim() }); }}><AdminSearchField disabled={busy || loading} id="cms-user-search" label="Tìm người dùng" onChange={(event) => setQuery(event.target.value)} placeholder="Tìm họ tên, tên đăng nhập hoặc email" value={query} /><select aria-label="Lọc trạng thái" disabled={busy || loading} id="cms-user-status" onChange={(event) => navigate({ page: 1, status: event.target.value as UserStatusFilter })} value={statusFilter}><option value="all">Tất cả trạng thái</option><option value="active">Đang hoạt động</option><option value="disabled">Đã khóa</option></select><label className="sr-only" htmlFor="cms-user-role">Lọc vai trò</label><select disabled={busy || loading} className="admin-input" id="cms-user-role" value={initialQuery.role} onChange={event => navigate({ page: 1, role: event.target.value as CmsUserListQuery["role"] })}><option value="all">Tất cả vai trò</option>{roles.map((role) => <option key={role.code} value={role.code}>{role.name}</option>)}</select></AdminFilterBar>
-      <AdminDataTable columns={columns} emptyMessage={initialPage.counts.all ? "Không có người dùng phù hợp với bộ lọc." : "Chưa có tài khoản CMS."} getRowId={(user) => user.id} onRowClick={select} onSettingsOpenChange={setIsColumnSettingsOpen} rows={visibleRows} settingsOpen={isColumnSettingsOpen} tableId="cms-users" />
+      <AdminFilterBar onSubmit={(event) => { event.preventDefault(); navigate({ page: 1, query: query.trim() }); }} chips={chips} onClearAll={() => { setQuery(""); navigate({ page: 1, query: "", status: "all", role: "all" }); }} search={<AdminSearchField disabled={busy || loading} id="cms-user-search" label="Tìm người dùng" onChange={(event) => setQuery(event.target.value)} placeholder="Tìm họ tên, tên đăng nhập hoặc email" value={query} />}><select aria-label="Lọc trạng thái" disabled={busy || loading} id="cms-user-status" onChange={(event) => navigate({ page: 1, status: event.target.value as UserStatusFilter })} value={statusFilter}><option value="all">Tất cả trạng thái</option><option value="active">Đang hoạt động</option><option value="disabled">Đã khóa</option></select><select aria-label="Lọc vai trò" disabled={busy || loading} className="admin-input" id="cms-user-role" value={initialQuery.role} onChange={event => navigate({ page: 1, role: event.target.value as CmsUserListQuery["role"] })}><option value="all">Tất cả vai trò</option>{roles.map((role) => <option key={role.code} value={role.code}>{role.name}</option>)}</select></AdminFilterBar>
+      <AdminDataTable columns={columns} emptyMessage={initialPage.counts.all ? "Không có người dùng phù hợp với bộ lọc." : "Chưa có tài khoản CMS."} getRowId={(user) => user.id} onRowClick={select} onSettingsOpenChange={setIsColumnSettingsOpen} onSortChange={(next) => navigate({ page: 1, sort: next?.key, dir: next?.dir })} rows={visibleRows} settingsOpen={isColumnSettingsOpen} sort={initialQuery.sort ? { key: initialQuery.sort, dir: initialQuery.dir ?? "desc" } : null} tableId="cms-users" />
       <div className="admin-pagination"><label className="admin-check">Mỗi trang<select disabled={busy || loading} value={initialPage.pageSize} onChange={event => navigate({ page: 1, pageSize: Number(event.target.value) })}>{pageSizeOptions(initialPage.pageSize).map(size => <option key={size} value={size}>{size}</option>)}</select></label><div className="flex gap-2"><AdminButton variant="secondary" disabled={busy || loading || initialPage.page <= 1} onClick={() => navigate({ page: initialPage.page - 1 })}>Trang trước</AdminButton><AdminButton variant="secondary" disabled={busy || loading || initialPage.page >= initialPage.totalPages} onClick={() => navigate({ page: initialPage.page + 1 })}>Trang sau</AdminButton></div></div>
     </AdminCard>
     <AdminSidePanel footer={footer} isOpen={form !== null} onClose={closeEditor}>

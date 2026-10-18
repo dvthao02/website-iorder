@@ -19,6 +19,7 @@ import type { MediaMetadata } from "./media.contract";
 import type { MediaUsage } from "./media.contract";
 import type { MediaListQuery } from "./media.contract";
 import { toAdminListPage } from "../shared/admin-list.contract";
+import { listOrder, vietnameseText } from "../shared/list-order";
 
 export async function listMediaAssetsPage(query: MediaListQuery, database = getDb()) {
   const keyword = query.query ? `%${query.query.replace(/[\\%_]/g, "\\$&")}%` : undefined;
@@ -28,7 +29,7 @@ export async function listMediaAssetsPage(query: MediaListQuery, database = getD
     keyword ? or(ilike(mediaAssets.originalName, keyword), ilike(mediaAssets.altText, keyword), ilike(mediaAssets.caption, keyword)) : undefined,
   );
   return database.transaction(async (tx) => {
-    const items = await tx.select().from(mediaAssets).where(condition).orderBy(desc(mediaAssets.createdAt), asc(mediaAssets.id)).limit(query.pageSize).offset((query.page - 1) * query.pageSize);
+    const items = await tx.select().from(mediaAssets).where(condition).orderBy(...listOrder({ createdAt: mediaAssets.createdAt, name: vietnameseText(mediaAssets.originalName), size: mediaAssets.fileSize }, query, [desc(mediaAssets.createdAt), asc(mediaAssets.id)])).limit(query.pageSize).offset((query.page - 1) * query.pageSize);
     const totals = await tx.select({ total: count() }).from(mediaAssets).where(condition);
     return toAdminListPage(items, query, totals[0]?.total ?? 0);
   }, { isolationLevel: "repeatable read", accessMode: "read only" });

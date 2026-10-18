@@ -1,4 +1,5 @@
 import type { LeadStatus } from "./leads.contract";
+import { buildXlsx } from "../shared/xlsx";
 
 export type LeadCsvRow = {
   name: string; phone: string; email: string | null; businessModel: string | null; branches: string | null;
@@ -25,4 +26,14 @@ export function leadsToCsv(rows: readonly LeadCsvRow[]) {
     row.need, row.message, statusLabels[row.status], row.handledAt ? dateTime.format(row.handledAt) : null,
   ].map(cell).join(","))];
   return `﻿${lines.join("\r\n")}\r\n`;
+}
+
+const xlsxWidths = [18, 24, 16, 28, 22, 12, 28, 48, 14, 18];
+
+/** Excel thật (.xlsx): ngày là kiểu ngày giờ, số điện thoại giữ nguyên dạng chữ (không cần dấu '). */
+export function leadsToXlsx(rows: readonly LeadCsvRow[]) {
+  return buildXlsx("Khách hàng tiềm năng", columns.map((header, index) => ({ header, width: xlsxWidths[index] })), rows.map((row) => [
+    row.createdAt, row.name, row.phone, row.email, row.businessModel, row.branches,
+    row.need, row.message, statusLabels[row.status], row.handledAt,
+  ]));
 }

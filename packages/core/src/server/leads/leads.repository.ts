@@ -1,10 +1,21 @@
-import { and, asc, count, desc, eq, gte, ilike, or, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, ilike, lt, or, sql } from "drizzle-orm";
 import { getDb } from "@iorder/core/db/client";
 import { auditLogs, contactLeads } from "@iorder/core/db/schema";
 import type { LeadExportQuery, LeadListQuery, LeadStatus, PublicLeadInput } from "./leads.contract";
-import { toAdminListPage } from "../shared/admin-list.contract";
+import { toAdminListPage, vietnamDayRange } from "../shared/admin-list.contract";
+import { listOrder, vietnameseText } from "../shared/list-order";
 
 const leadListFields = { id: contactLeads.id, name: contactLeads.name, phone: contactLeads.phone, email: contactLeads.email, businessModel: contactLeads.businessModel, branches: contactLeads.branches, need: contactLeads.need, message: contactLeads.message, status: contactLeads.status, createdAt: contactLeads.createdAt, handledAt: contactLeads.handledAt };
+
+// Khoảng ngày áp cho cả danh sách, bộ đếm theo trạng thái và file CSV.
+function leadDateRange(query: { from?: string; to?: string }) {
+  const { start, end } = vietnamDayRange(query.from, query.to);
+  return and(start ? gte(contactLeads.createdAt, start) : undefined, end ? lt(contactLeads.createdAt, end) : undefined);
+}
+
+function leadOrder(query: { sort?: string; dir?: "asc" | "desc" }) {
+  return listOrder({ createdAt: contactLeads.createdAt, name: vietnameseText(contactLeads.name) }, query, [desc(contactLeads.createdAt), asc(contactLeads.id)]);
+}
 
 function leadSearch(query: string | undefined) {
   const keyword = query ? `%${query.replace(/[\\%_]/g, "\\$&")}%` : undefined;
@@ -12,12 +23,12 @@ function leadSearch(query: string | undefined) {
 }
 
 export async function listLeadsPage(query: LeadListQuery, database = getDb()) {
-  const search = leadSearch(query.query);
+  const search = and(leadSearch(query.query), leadDateRange(query));
   // Một snapshot cho hàng, tổng và bộ đếm; không để chúng lệch khi có mutation đồng thời.
   return database.transaction(async tx => {
     const condition = and(search, query.status === "all" ? undefined : eq(contactLeads.status, query.status));
     const items = await tx.select(leadListFields).from(contactLeads).where(condition)
-      .orderBy(desc(contactLeads.createdAt), asc(contactLeads.id)).limit(query.pageSize).offset((query.page - 1) * query.pageSize);
+      .orderBy(...leadOrder(query)).limit(query.pageSize).offset((query.page - 1) * query.pageSize);
     const counts = { all: 0, new: 0, contacted: 0, closed: 0 };
     const totals = await tx.select({ status: contactLeads.status, total: count() }).from(contactLeads).where(search).groupBy(contactLeads.status);
     for (const row of totals) { counts[row.status] = row.total; counts.all += row.total; }
@@ -57,9 +68,9 @@ export function updateLeadStatus(id: string, status: LeadStatus, userId: string,
 export async function listLeadsForExport(query: LeadExportQuery, actorId: string, limit: number, database = getDb()) {
   return database.transaction(async tx => {
     const rows = await tx.select(leadListFields).from(contactLeads)
-      .where(and(leadSearch(query.query), query.status === "all" ? undefined : eq(contactLeads.status, query.status)))
-      .orderBy(desc(contactLeads.createdAt), asc(contactLeads.id)).limit(limit);
-    await tx.insert(auditLogs).values({ userId: actorId, action: "lead.export", entityType: "contact_lead", entityId: null, beforeData: null, afterData: { status: query.status, query: query.query ?? null, rows: rows.length } });
+      .where(and(leadSearch(query.query), leadDateRange(query), query.status === "all" ? undefined : eq(contactLeads.status, query.status)))
+      .orderBy(...leadOrder(query)).limit(limit);
+    await tx.insert(auditLogs).values({ userId: actorId, action: "lead.export", entityType: "contact_lead", entityId: null, beforeData: null, afterData: { format: query.format, status: query.status, query: query.query ?? null, from: query.from ?? null, to: query.to ?? null, rows: rows.length } });
     return rows;
   });
 }

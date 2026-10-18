@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import { AnyPgColumn, boolean, index, integer, jsonb, pgTable, text, timestamp, uniqueIndex, uuid, varchar } from "drizzle-orm/pg-core";
 
+import { currentRequestContext } from "../../server/shared/request-context";
 import { mediaAssets } from "./media";
 import { users } from "./identity";
 import { timestamps } from "./shared";
@@ -104,7 +105,11 @@ export const auditLogs = pgTable(
     beforeData: jsonb("before_data").$type<unknown>(),
     afterData: jsonb("after_data").$type<unknown>(),
     ipHash: varchar("ip_hash", { length: 128 }),
+    // Lấy từ ngữ cảnh request khi insert (xem request-context.ts); script/seed để trống.
+    ipAddress: varchar("ip_address", { length: 64 }).$defaultFn(() => currentRequestContext()?.ipAddress ?? sql`null`),
+    userAgent: varchar("user_agent", { length: 500 }).$defaultFn(() => currentRequestContext()?.userAgent ?? sql`null`),
+    requestId: varchar("request_id", { length: 128 }).$defaultFn(() => currentRequestContext()?.requestId ?? sql`null`),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
-  (table) => [index("audit_logs_entity_index").on(table.entityType, table.entityId), index("audit_logs_user_created_at_index").on(table.userId, table.createdAt)],
+  (table) => [index("audit_logs_entity_index").on(table.entityType, table.entityId), index("audit_logs_user_created_at_index").on(table.userId, table.createdAt), index("audit_logs_ip_address_index").on(table.ipAddress)],
 );

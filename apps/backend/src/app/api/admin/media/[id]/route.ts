@@ -4,8 +4,9 @@ import { getRequestAdministrator } from "@iorder/core/server/auth/request-admini
 import { deleteAdminMedia, editAdminMedia, getMediaById, MediaInUseError } from "@iorder/core/server/media/media.service";
 import { revalidatePath } from "@/lib/publish-cache-revalidation";
 import { logger } from "@iorder/core/server/shared/logger";
+import { withRequestContext } from "@/lib/request-context";
 
-export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
+async function handleGET(_: Request, { params }: { params: Promise<{ id: string }> }) {
   const fail = (code: string, message: string, status: number) => NextResponse.json({ error: { code, message } }, { status });
   if (!await getRequestAdministrator()) return fail("UNAUTHORIZED", "Vui lòng đăng nhập lại.", 401);
   const { id } = await params;
@@ -16,7 +17,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
   } catch { return fail("INTERNAL_ERROR", "Không thể tải thông tin tệp.", 500); }
 }
 
-export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
+async function handlePATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const administrator = await getRequestAdministrator();
   const fail = (code: string, message: string, status: number) => NextResponse.json({ error: { code, message } }, { status });
   if (!administrator) return fail("UNAUTHORIZED", "Vui lòng đăng nhập lại.", 401);
@@ -36,7 +37,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   }
 }
 
-export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
+async function handleDELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const administrator = await getRequestAdministrator();
   const fail = (code: string, message: string, status: number) => NextResponse.json({ error: { code, message } }, { status });
   if (!administrator) return fail("UNAUTHORIZED", "Vui lòng đăng nhập lại.", 401);
@@ -52,3 +53,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     return fail("INTERNAL_ERROR", "Không thể xóa tệp lúc này. Vui lòng thử lại.", 500);
   }
 }
+
+export const GET = withRequestContext(handleGET);
+export const PATCH = withRequestContext(handlePATCH);
+export const DELETE = withRequestContext(handleDELETE);

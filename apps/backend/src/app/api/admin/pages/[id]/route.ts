@@ -9,6 +9,7 @@ import { deleteArchivedAdminPage, FixedWebsitePageBindingError, getAdminPageById
 import { pagePermissionCodes } from "@iorder/core/server/pages/pages.contract";
 import { denyUnless } from "@/lib/admin-access";
 import { logger } from "@iorder/core/server/shared/logger";
+import { withRequestContext } from "@/lib/request-context";
 
 type PageRouteProps = { params: Promise<{ id: string }> };
 
@@ -16,7 +17,7 @@ function fail(code: string, message: string, status: number) {
   return NextResponse.json({ error: { code, message } }, { status });
 }
 
-export async function GET(_: Request, { params }: PageRouteProps) {
+async function handleGET(_: Request, { params }: PageRouteProps) {
   const administrator = await getRequestAdministrator();
   if (!administrator) return fail("UNAUTHORIZED", "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.", 401);
   const { id } = await params;
@@ -26,7 +27,7 @@ export async function GET(_: Request, { params }: PageRouteProps) {
   return denyUnless(administrator, pagePermissionCodes(page.slug, "view")) ?? NextResponse.json({ page });
 }
 
-export async function DELETE(request: Request, { params }: PageRouteProps) {
+async function handleDELETE(request: Request, { params }: PageRouteProps) {
   const administrator = await getRequestAdministrator();
   if (!administrator) return fail("UNAUTHORIZED", "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.", 401);
   const { id } = await params;
@@ -46,3 +47,6 @@ export async function DELETE(request: Request, { params }: PageRouteProps) {
     return fail("INTERNAL_ERROR", "Không thể xóa trang lúc này. Vui lòng thử lại.", 500);
   }
 }
+
+export const GET = withRequestContext(handleGET);
+export const DELETE = withRequestContext(handleDELETE);

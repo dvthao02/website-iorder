@@ -8,6 +8,7 @@ import { equipmentPublishedAt } from "./equipment-publication";
 import { assertEquipmentVersion } from "./equipment-version";
 import { contentStateAfterAction, contentStateRequestSchema } from "../shared/content-version";
 import { toAdminListPage, type AdminListQuery } from "@iorder/core/server/shared/admin-list.contract";
+import { listOrder, workflowStatusRank, vietnameseText } from "../shared/list-order";
 
 export function listEquipmentGroups() {
   return getDb().select().from(equipmentGroups).where(isNull(equipmentGroups.deletedAt)).orderBy(asc(equipmentGroups.sortOrder), asc(equipmentGroups.id));
@@ -49,7 +50,7 @@ function equipmentListCondition(query: EquipmentListQuery) {
 export async function listEquipmentPage(query: EquipmentListQuery, database = getDb()) {
   const condition = equipmentListCondition(query);
   return database.transaction(async (tx) => {
-    const rows = await tx.select({ item: salesEquipment, group: equipmentGroups, coverKey: mediaAssets.storageKey, coverAlt: mediaAssets.altText }).from(salesEquipment).innerJoin(equipmentGroups, eq(salesEquipment.groupId, equipmentGroups.id)).leftJoin(mediaAssets, eq(salesEquipment.coverMediaId, mediaAssets.id)).where(condition).orderBy(desc(salesEquipment.updatedAt), asc(salesEquipment.sortOrder), asc(salesEquipment.name), asc(salesEquipment.id)).limit(query.pageSize).offset((query.page - 1) * query.pageSize);
+    const rows = await tx.select({ item: salesEquipment, group: equipmentGroups, coverKey: mediaAssets.storageKey, coverAlt: mediaAssets.altText }).from(salesEquipment).innerJoin(equipmentGroups, eq(salesEquipment.groupId, equipmentGroups.id)).leftJoin(mediaAssets, eq(salesEquipment.coverMediaId, mediaAssets.id)).where(condition).orderBy(...listOrder({ name: vietnameseText(salesEquipment.name), group: vietnameseText(equipmentGroups.name), priceVnd: salesEquipment.priceVnd, status: workflowStatusRank(salesEquipment.status), updatedAt: salesEquipment.updatedAt }, query, [desc(salesEquipment.updatedAt), asc(salesEquipment.sortOrder), asc(salesEquipment.name), asc(salesEquipment.id)])).limit(query.pageSize).offset((query.page - 1) * query.pageSize);
     const totals = await tx.select({ total: count() }).from(salesEquipment).innerJoin(equipmentGroups, eq(salesEquipment.groupId, equipmentGroups.id)).where(condition);
     return toAdminListPage(rows, query, totals[0]?.total ?? 0);
   }, { isolationLevel: "repeatable read", accessMode: "read only" });

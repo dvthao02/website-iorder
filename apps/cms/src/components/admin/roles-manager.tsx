@@ -127,10 +127,10 @@ export function RolesManager({ roles, modules, actionLabels }: RolesManagerProps
   }
 
   const columns: AdminDataTableColumn<CmsRole>[] = [
-    { id: "name", label: "Vai trò", defaultWidth: 280, minWidth: 200, cell: (role) => <button className="admin-list-manager__identity" onClick={(event) => { event.stopPropagation(); select(role); }} type="button"><strong>{role.name}</strong><small>{role.description || "Chưa có mô tả"}</small></button> },
-    { id: "permissions", label: "Quyền", defaultWidth: 120, minWidth: 100, cell: (role) => <span>{role.isSystem ? "Toàn quyền" : `${role.permissions.length} quyền`}</span> },
-    { id: "users", label: "Tài khoản", defaultWidth: 120, minWidth: 100, cell: (role) => <span>{role.userCount}</span> },
-    { id: "type", label: "Loại", defaultWidth: 130, minWidth: 110, cell: (role) => <AdminStatusBadge tone={role.isSystem ? "info" : "neutral"}>{role.isSystem ? "Hệ thống" : "Tùy chỉnh"}</AdminStatusBadge> },
+    { id: "name", label: "Vai trò", defaultWidth: 280, minWidth: 200, sortValue: (role) => role.name, cell: (role) => <button className="admin-list-manager__identity" onClick={(event) => { event.stopPropagation(); select(role); }} type="button"><strong>{role.name}</strong><small>{role.description || "Chưa có mô tả"}</small></button> },
+    { id: "permissions", label: "Quyền", defaultWidth: 120, minWidth: 100, sortValue: (role) => (role.isSystem ? Number.MAX_SAFE_INTEGER : role.permissions.length), sortFirst: "desc", cell: (role) => <span>{role.isSystem ? "Toàn quyền" : `${role.permissions.length} quyền`}</span> },
+    { id: "users", label: "Tài khoản", defaultWidth: 120, minWidth: 100, sortValue: (role) => role.userCount, sortFirst: "desc", cell: (role) => <span>{role.userCount}</span> },
+    { id: "type", label: "Loại", defaultWidth: 130, minWidth: 110, sortValue: (role) => (role.isSystem ? 0 : 1), cell: (role) => <AdminStatusBadge tone={role.isSystem ? "info" : "neutral"}>{role.isSystem ? "Hệ thống" : "Tùy chỉnh"}</AdminStatusBadge> },
     { id: "actions", label: "Thao tác", defaultWidth: 116, minWidth: 104, align: "right", cell: (role) => <button aria-label={`Mở ${role.name}`} className="admin-list-manager__row-action" onClick={(event) => { event.stopPropagation(); select(role); }} type="button">{role.isSystem ? <Lock aria-hidden="true" size={15} /> : <Edit3 aria-hidden="true" size={15} />}{role.isSystem ? "Xem" : "Sửa"}</button> },
   ];
 

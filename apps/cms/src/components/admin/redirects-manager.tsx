@@ -11,7 +11,7 @@ import { AdminCard } from "./ui/admin-card";
 import { useAdminConfirm } from "./ui/admin-confirm-dialog";
 import { AdminDataTable, type AdminDataTableColumn } from "./ui/admin-data-table";
 import { AdminNotice, AdminStatusBadge, useAdminToast } from "./ui/admin-feedback";
-import { AdminFilterBar } from "./ui/admin-filter-bar";
+import { AdminFilterBar, type AdminFilterChip } from "./ui/admin-filter-bar";
 import { AdminListHeader } from "./ui/admin-list-header";
 import { AdminListPage } from "./ui/admin-list-page";
 import { AdminSearchField } from "./ui/admin-search-field";
@@ -45,13 +45,20 @@ export function RedirectsManager({ initialRedirects }: { initialRedirects: Redir
   const dirty = JSON.stringify(form) !== JSON.stringify(initialValues);
   useNavigationGuard(dirty || busy);
 
+  const [codeFilter, setCodeFilter] = useState("all");
+  const chips: AdminFilterChip[] = [
+    ...(query.trim() ? [{ key: "query", label: `Từ khóa: “${query.trim()}”`, onRemove: () => setQuery("") }] : []),
+    ...(statusFilter !== "all" ? [{ key: "status", label: `Trạng thái: ${statusFilter === "enabled" ? "Đang bật" : "Đang tắt"}`, onRemove: () => setStatusFilter("all") }] : []),
+    ...(codeFilter !== "all" ? [{ key: "code", label: `Mã: ${codeFilter}`, onRemove: () => setCodeFilter("all") }] : []),
+  ];
+  const statusCodes = [...new Set(rows.map((item) => item.statusCode))].sort();
   const visibleRows = useMemo(() => {
     const keyword = query.trim().toLocaleLowerCase("vi");
     return rows.filter((item) => {
       const matchesQuery = !keyword || `${item.sourcePath} ${item.destinationPath}`.toLocaleLowerCase("vi").includes(keyword);
-      return matchesQuery && (statusFilter === "all" || (statusFilter === "enabled" && item.isEnabled) || (statusFilter === "disabled" && !item.isEnabled));
+      return matchesQuery && (codeFilter === "all" || String(item.statusCode) === codeFilter) && (statusFilter === "all" || (statusFilter === "enabled" && item.isEnabled) || (statusFilter === "disabled" && !item.isEnabled));
     });
-  }, [query, rows, statusFilter]);
+  }, [codeFilter, query, rows, statusFilter]);
 
   function allowSelectionChange() {
     if (mutationPending.current) {
@@ -149,10 +156,10 @@ export function RedirectsManager({ initialRedirects }: { initialRedirects: Redir
   }
 
   const columns: AdminDataTableColumn<Redirect>[] = [
-    { id: "source", label: "Đường dẫn cũ", defaultWidth: 250, minWidth: 180, cell: (item) => <button className="admin-list-manager__identity admin-list-manager__path" onClick={(event) => { event.stopPropagation(); select(item); }} type="button"><strong>{item.sourcePath}</strong></button> },
-    { id: "destination", label: "Đích đến", defaultWidth: 270, minWidth: 190, cell: (item) => <span className="admin-list-manager__destination"><ArrowRight aria-hidden="true" size={14} />{item.destinationPath}</span> },
-    { id: "code", label: "Mã", defaultWidth: 105, minWidth: 92, cell: (item) => <span>{item.statusCode}</span> },
-    { id: "status", label: "Trạng thái", defaultWidth: 140, minWidth: 120, cell: (item) => <AdminStatusBadge tone={item.isEnabled ? "success" : "neutral"}>{item.isEnabled ? "Đang bật" : "Đang tắt"}</AdminStatusBadge> },
+    { id: "source", label: "Đường dẫn cũ", defaultWidth: 250, minWidth: 180, sortValue: (item) => item.sourcePath, cell: (item) => <button className="admin-list-manager__identity admin-list-manager__path" onClick={(event) => { event.stopPropagation(); select(item); }} type="button"><strong>{item.sourcePath}</strong></button> },
+    { id: "destination", label: "Đích đến", defaultWidth: 270, minWidth: 190, sortValue: (item) => item.destinationPath, cell: (item) => <span className="admin-list-manager__destination"><ArrowRight aria-hidden="true" size={14} />{item.destinationPath}</span> },
+    { id: "code", label: "Mã", defaultWidth: 105, minWidth: 92, sortValue: (item) => item.statusCode, cell: (item) => <span>{item.statusCode}</span> },
+    { id: "status", label: "Trạng thái", defaultWidth: 140, minWidth: 120, sortValue: (item) => (item.isEnabled ? 0 : 1), cell: (item) => <AdminStatusBadge tone={item.isEnabled ? "success" : "neutral"}>{item.isEnabled ? "Đang bật" : "Đang tắt"}</AdminStatusBadge> },
     { id: "actions", label: "Thao tác", defaultWidth: 126, minWidth: 116, align: "right", cell: (item) => <button aria-label={`Chỉnh sửa ${item.sourcePath}`} className="admin-list-manager__row-action" onClick={(event) => { event.stopPropagation(); select(item); }} type="button"><Edit3 aria-hidden="true" size={15} />Sửa</button> },
   ];
 
@@ -165,7 +172,7 @@ export function RedirectsManager({ initialRedirects }: { initialRedirects: Redir
   return <AdminListPage className="admin-list-manager" variant="dense">
     <AdminCard className="admin-list-manager__card">
       <AdminListHeader actions={<><AdminButton hideWithoutPermission permission="redirects.create" leadingIcon={<Plus aria-hidden="true" size={16} />} onClick={() => select()}>Tạo chuyển hướng</AdminButton></>} description={`${rows.length} đường dẫn · ${enabledCount} đang bật`} headingLevel={1} title="Chuyển hướng URL" />
-      <AdminFilterBar onSubmit={(event) => event.preventDefault()}><AdminSearchField id="redirect-search" label="Tìm chuyển hướng" onChange={(event) => setQuery(event.target.value)} placeholder="Tìm đường dẫn cũ hoặc đích đến" value={query} /><select aria-label="Lọc trạng thái" id="redirect-status" onChange={(event) => setStatusFilter(event.target.value as RedirectStatusFilter)} value={statusFilter}><option value="all">Tất cả trạng thái</option><option value="enabled">Đang bật</option><option value="disabled">Đang tắt</option></select></AdminFilterBar>
+      <AdminFilterBar onSubmit={(event) => event.preventDefault()} chips={chips} onClearAll={() => { setQuery(""); setStatusFilter("all"); setCodeFilter("all"); }} search={<AdminSearchField id="redirect-search" label="Tìm chuyển hướng" onChange={(event) => setQuery(event.target.value)} placeholder="Tìm đường dẫn cũ hoặc đích đến" value={query} />}><select aria-label="Lọc trạng thái" id="redirect-status" onChange={(event) => setStatusFilter(event.target.value as RedirectStatusFilter)} value={statusFilter}><option value="all">Tất cả trạng thái</option><option value="enabled">Đang bật</option><option value="disabled">Đang tắt</option></select>{statusCodes.length > 1 ? <select aria-label="Lọc mã chuyển hướng" onChange={(event) => setCodeFilter(event.target.value)} value={codeFilter}><option value="all">Mọi mã</option>{statusCodes.map((code) => <option key={code} value={String(code)}>{code}</option>)}</select> : null}</AdminFilterBar>
       <AdminDataTable columns={columns} emptyMessage={rows.length ? "Không có chuyển hướng phù hợp với bộ lọc." : "Chưa có chuyển hướng URL."} getRowId={(item) => item.id} onRowClick={select} onSettingsOpenChange={setIsColumnSettingsOpen} rows={visibleRows} settingsOpen={isColumnSettingsOpen} tableId="cms-redirects" />
     </AdminCard>
     <AdminSidePanel footer={footer} isOpen={form !== null} onClose={closeEditor}>

@@ -3,10 +3,11 @@ import { NextResponse } from "next/server";
 import { getRequestAdministrator } from "@iorder/core/server/auth/request-administrator";
 import { getLeadsPage } from "@iorder/core/server/leads/leads.service";
 import { leadListQuerySchema } from "@iorder/core/server/leads/leads.contract";
+import { withRequestContext } from "@/lib/request-context";
 
 export const runtime = "nodejs";
 
-export async function GET(request: Request) {
+async function handleGET(request: Request) {
   const administrator = await getRequestAdministrator();
   if (!administrator) {
     return NextResponse.json({ error: { code: "UNAUTHORIZED", message: "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại." } }, { status: 401 });
@@ -21,3 +22,5 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: { code: "INTERNAL_ERROR", message: "Không thể tải danh sách liên hệ. Vui lòng thử lại." } }, { status: 500 });
   }
 }
+
+export const GET = withRequestContext(handleGET);

@@ -15,7 +15,7 @@ import { AdminButton } from "./ui/admin-button";
 import { AdminEmptyState } from "./ui/admin-empty-state";
 import { AdminNotice, AdminStatusBadge, useAdminToast, type AdminFeedbackTone } from "./ui/admin-feedback";
 import { AdminCard } from "./ui/admin-card";
-import { AdminFilterBar } from "./ui/admin-filter-bar";
+import { AdminFilterBar, type AdminFilterChip } from "./ui/admin-filter-bar";
 import { AdminListHeader } from "./ui/admin-list-header";
 import { AdminListPage } from "./ui/admin-list-page";
 import { AdminSearchField } from "./ui/admin-search-field";
@@ -124,6 +124,10 @@ export function SupportDownloadManagerList({
     { label: statusLabel.published, value: "published" },
     { label: statusLabel.draft, value: "draft" },
     { label: statusLabel.archived, value: "archived" },
+  ];
+  const chips: AdminFilterChip[] = [
+    ...(query.trim() ? [{ key: "query", label: `Từ khóa: “${query.trim()}”`, onRemove: () => setQuery("") }] : []),
+    ...(filter !== "all" ? [{ key: "status", label: `Trạng thái: ${(filterItems.find((item) => item.value === filter)?.label ?? filter).replace(/ \(\d+\)$/, "")}`, onRemove: () => setFilter("all") }] : []),
   ];
 
   const visibleRows = useMemo(() => {
@@ -276,7 +280,7 @@ export function SupportDownloadManagerList({
   const sidebar = <>
       <AdminListHeader actions={<AdminButton hideWithoutPermission permission="support_downloads.create" leadingIcon={<Plus aria-hidden="true" size={16} />} onClick={create}>Thêm</AdminButton>} description={`${rows.length} tệp tải xuống`} headingLevel={1} title="Hỗ trợ cài đặt" />
       {tabs}
-      <AdminFilterBar onSubmit={(event) => event.preventDefault()}><AdminSearchField id="support-download-search" label="Tìm tài nguyên" onChange={(event) => setQuery(event.target.value)} placeholder="Tìm tên hoặc tệp" value={query} /><select aria-label="Lọc trạng thái" onChange={(event) => setFilter(event.target.value as Filter)} value={filter}>{filterItems.map((item) => <option key={item.value} value={item.value}>{item.value === "all" ? "Tất cả trạng thái" : item.label}</option>)}</select></AdminFilterBar>
+      <AdminFilterBar onSubmit={(event) => event.preventDefault()} chips={chips} onClearAll={() => { setQuery(""); setFilter("all"); }} search={<AdminSearchField id="support-download-search" label="Tìm tài nguyên" onChange={(event) => setQuery(event.target.value)} placeholder="Tìm tên hoặc tệp" value={query} />}><select aria-label="Lọc trạng thái" onChange={(event) => setFilter(event.target.value as Filter)} value={filter}>{filterItems.map((item) => <option key={item.value} value={item.value}>{item.value === "all" ? "Tất cả trạng thái" : item.label}</option>)}</select></AdminFilterBar>
     <div className="admin-select-list">
       {visibleRows.map((item) => <button aria-current={activeId === item.id ? "true" : undefined} className={activeId === item.id ? "admin-select-list__item admin-select-list__item--active" : "admin-select-list__item"} key={item.id} onClick={() => select(item)} type="button"><span className="flex items-center justify-between gap-2"><strong className="truncate">{item.title}</strong><AdminStatusBadge tone={statusTone[item.status]}>{statusLabel[item.status]}</AdminStatusBadge></span><small className="truncate">{item.originalName ?? "Chưa chọn tệp"}</small></button>)}
       {visibleRows.length === 0 ? <AdminEmptyState action={<AdminButton hideWithoutPermission onClick={create} permission="support_downloads.create">Tải PDF hoặc ZIP</AdminButton>} description={rows.length ? "Không có tài nguyên phù hợp với bộ lọc." : "Tải tệp trực tiếp; hệ thống sẽ tự tạo bản nháp để bạn hoàn thiện nội dung."} icon={<Download aria-hidden="true" size={19} />} title={rows.length ? "Không có kết quả" : "Chưa có tài nguyên"} /> : null}

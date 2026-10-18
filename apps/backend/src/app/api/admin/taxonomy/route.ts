@@ -8,14 +8,15 @@ import { hasDatabaseErrorCode } from "@iorder/core/server/shared/database-error"
 import { deleteAdminTaxonomy, getTaxonomy, TaxonomyInUseError, writeTaxonomy } from "@iorder/core/server/taxonomy/taxonomy.service";
 import { denyUnless } from "@/lib/admin-access";
 import { logger } from "@iorder/core/server/shared/logger";
+import { withRequestContext } from "@/lib/request-context";
 
-export async function GET() {
+async function handleGET() {
   const user = await getRequestAdministrator();
   if (!user) return NextResponse.json({ error: { code: "UNAUTHORIZED", message: "Vui lòng đăng nhập lại." } }, { status: 401 });
   return NextResponse.json({ taxonomy: await getTaxonomy() });
 }
 
-export async function POST(request: Request) {
+async function handlePOST(request: Request) {
   const user = await getRequestAdministrator();
   if (!user) return NextResponse.json({ error: { code: "UNAUTHORIZED", message: "Vui lòng đăng nhập lại." } }, { status: 401 });
   try {
@@ -37,7 +38,7 @@ export async function POST(request: Request) {
   }
 }
 
-export async function DELETE(request: Request) {
+async function handleDELETE(request: Request) {
   const user = await getRequestAdministrator();
   if (!user) return NextResponse.json({ error: { code: "UNAUTHORIZED", message: "Vui lòng đăng nhập lại." } }, { status: 401 });
   const query = new URL(request.url).searchParams;
@@ -54,3 +55,7 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: { code: "INTERNAL_ERROR", message: "Không thể xóa phân loại lúc này." } }, { status: 500 });
   }
 }
+
+export const GET = withRequestContext(handleGET);
+export const POST = withRequestContext(handlePOST);
+export const DELETE = withRequestContext(handleDELETE);

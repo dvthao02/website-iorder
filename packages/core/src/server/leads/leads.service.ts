@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { getDb } from "@iorder/core/db/client";
 import { leadExportQuerySchema, leadListQuerySchema, publicLeadInputSchema, type LeadStatus } from "./leads.contract";
-import { leadsToCsv } from "./leads.csv";
+import { leadsToCsv, leadsToXlsx } from "./leads.csv";
 import { createRateLimitedLead, listLeadsForExport, listLeadsPage, updateLeadStatus } from "./leads.repository";
 
 const leadRateLimitWindowMs = 15 * 60 * 1000;
@@ -22,9 +22,12 @@ export async function submitPublicLead(input: unknown, ipAddress: string | null,
 export async function getLeadsPage(input: unknown) { return listLeadsPage(leadListQuerySchema.parse(input)); }
 
 export const leadExportRowLimit = 10_000;
-/** CSV khách hàng tiềm năng theo bộ lọc; tối đa 10.000 dòng mới nhất. */
-export async function exportLeadsCsv(input: unknown, actorId: string) {
-  const rows = await listLeadsForExport(leadExportQuerySchema.parse(input), actorId, leadExportRowLimit);
-  return { csv: leadsToCsv(rows), rows: rows.length };
+/** Khách hàng tiềm năng theo bộ lọc, dạng CSV hoặc Excel; tối đa 10.000 dòng. */
+export async function exportLeads(input: unknown, actorId: string) {
+  const query = leadExportQuerySchema.parse(input);
+  const rows = await listLeadsForExport(query, actorId, leadExportRowLimit);
+  return query.format === "xlsx"
+    ? { body: leadsToXlsx(rows), contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", extension: "xlsx", rows: rows.length }
+    : { body: leadsToCsv(rows), contentType: "text/csv; charset=utf-8", extension: "csv", rows: rows.length };
 }
 export async function changeLeadStatus(id: string, status: LeadStatus, userId: string) { return updateLeadStatus(id, status, userId); }

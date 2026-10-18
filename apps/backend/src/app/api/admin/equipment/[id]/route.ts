@@ -8,6 +8,7 @@ import { EquipmentVersionConflictError } from "@iorder/core/server/equipment/equ
 import { changeAdminEquipmentState } from "@iorder/core/server/equipment/equipment.service";
 import { contentStateRequestSchema, ContentVersionConflictError } from "@iorder/core/server/shared/content-version";
 import { denyPublishUnless } from "@/lib/admin-access";
+import { withRequestContext } from "@/lib/request-context";
 
 type EquipmentRouteProps = { params: Promise<{ id: string }> };
 
@@ -15,7 +16,7 @@ function fail(code: string, message: string, status: number) {
   return NextResponse.json({ error: { code, message } }, { status });
 }
 
-export async function PATCH(request: Request, { params }: EquipmentRouteProps) {
+async function handlePATCH(request: Request, { params }: EquipmentRouteProps) {
   const administrator = await getRequestAdministrator();
   if (!administrator) return fail("UNAUTHORIZED", "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.", 401);
   const { id } = await params;
@@ -37,7 +38,7 @@ export async function PATCH(request: Request, { params }: EquipmentRouteProps) {
   }
 }
 
-export async function DELETE(request: Request, { params }: EquipmentRouteProps) {
+async function handleDELETE(request: Request, { params }: EquipmentRouteProps) {
   const administrator = await getRequestAdministrator();
   if (!administrator) return fail("UNAUTHORIZED", "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.", 401);
   const { id } = await params;
@@ -67,10 +68,14 @@ export async function DELETE(request: Request, { params }: EquipmentRouteProps) 
   return NextResponse.json({ deletedId: deleted.id });
 }
 
-export async function GET(_: Request, { params }: EquipmentRouteProps) {
+async function handleGET(_: Request, { params }: EquipmentRouteProps) {
   const administrator = await getRequestAdministrator();
   if (!administrator) return fail("UNAUTHORIZED", "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.", 401);
   const { id } = await params;
   const equipment = await getEquipmentById(id);
   return equipment ? NextResponse.json({ equipment }) : fail("NOT_FOUND", "Không tìm thấy thiết bị.", 404);
 }
+
+export const PATCH = withRequestContext(handlePATCH);
+export const DELETE = withRequestContext(handleDELETE);
+export const GET = withRequestContext(handleGET);

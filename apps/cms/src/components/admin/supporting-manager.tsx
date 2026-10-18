@@ -19,7 +19,7 @@ import { AdminCard } from "./ui/admin-card";
 import { useAdminConfirm } from "./ui/admin-confirm-dialog";
 import { AdminStatusBadge, useAdminToast } from "./ui/admin-feedback";
 import { AdminEmptyState } from "./ui/admin-empty-state";
-import { AdminFilterBar } from "./ui/admin-filter-bar";
+import { AdminFilterBar, type AdminFilterChip } from "./ui/admin-filter-bar";
 import { AdminFilterTabs } from "./ui/admin-filter-tabs";
 import { AdminListHeader } from "./ui/admin-list-header";
 import { AdminListPage } from "./ui/admin-list-page";
@@ -118,6 +118,11 @@ export function SupportingManager({
   const filter = initialQuery.visibility;
   const partnerKindFilter = initialQuery.partnerKind;
   const [search, setSearch] = useState(initialQuery.query);
+  const chips: AdminFilterChip[] = [
+    ...(initialQuery.query ? [{ key: "query", label: `Từ khóa: “${initialQuery.query}”`, onRemove: () => { setSearch(""); navigate({ page: 1, query: "" }); } }] : []),
+    ...(kind === "partners" && partnerKindFilter !== "all" ? [{ key: "partnerKind", label: `Nhóm: ${partnerKindFilterLabel[partnerKindFilter]}`, onRemove: () => navigate({ page: 1, partnerKind: "all" }) }] : []),
+    ...(filter !== "all" ? [{ key: "visibility", label: `Trạng thái: ${visibilityLabel[filter]}`, onRemove: () => navigate({ page: 1, visibility: "all" }) }] : []),
+  ];
   const [loading, startTransition] = useTransition();
   const [activeId, setActiveId] = useState<string | null>(null);
   const [partnerForm, setPartnerForm] = useState<PartnerInput | null>(null);
@@ -307,8 +312,8 @@ export function SupportingManager({
       <AdminCard>
         <AdminListHeader actions={<AdminButton hideWithoutPermission permission="supporting.create" leadingIcon={<Plus aria-hidden="true" size={16} />} onClick={createCurrentKind}>{kind === "testimonials" ? "Thêm đánh giá" : partnerKindFilter === "customer" ? "Thêm khách hàng" : "Thêm đối tác"}</AdminButton>} description={loading ? "Đang tải danh sách…" : `${pagination.total} ${kind === "testimonials" ? "đánh giá" : "mục"}`} title="Đối tác & Đánh giá" />
         <AdminFilterTabs<SupportingKind> restoreNavigationFocus ariaLabel="Loại nội dung" disabled={processing || loading} items={[{ label: "Đối tác & khách hàng", value: "partners" }, { label: "Đánh giá", value: "testimonials" }]} value={kind} onValueChange={changeKind} />
-        <AdminFilterBar onSubmit={(event) => { event.preventDefault(); navigate({ page: 1, query: search.trim() }); }}>
-          <AdminSearchField disabled={processing || loading} label="Tìm kiếm" onChange={event => setSearch(event.target.value)} placeholder="Tên, doanh nghiệp hoặc nội dung" value={search} />
+        <AdminFilterBar onSubmit={(event) => { event.preventDefault(); navigate({ page: 1, query: search.trim() }); }} chips={chips} onClearAll={() => { setSearch(""); navigate({ page: 1, query: "", partnerKind: "all", visibility: "all" }); }} search={<AdminSearchField disabled={processing || loading} label="Tìm kiếm" onChange={event => setSearch(event.target.value)} placeholder="Tên, doanh nghiệp hoặc nội dung" value={search} />}>
+
           {kind === "partners" ? <select aria-label="Nhóm đối tác" disabled={processing || loading} onChange={(event) => navigate({ page: 1, partnerKind: event.target.value as PartnerKindFilter })} value={partnerKindFilter}>
             {(["all", "partner", "customer"] as const).map((value) => <option key={value} value={value}>{value === "all" ? "Tất cả nhóm" : partnerKindFilterLabel[value]}</option>)}
           </select> : null}

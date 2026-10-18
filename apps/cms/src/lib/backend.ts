@@ -4,7 +4,7 @@ import { supportDownloadListResponseSchema } from "@iorder/core/server/support/s
 import { adminPostListItemSchema, adminPostSchema, publicPostTypeSchema } from "@iorder/core/server/posts/posts.contract";
 import { adminOfferingListItemSchema, adminOfferingSchema, publicOfferingTypeSchema } from "@iorder/core/server/offerings/offering-content.contract";
 import { adminPageSchema, adminPagesPageSchema, pageListQuerySchema } from "@iorder/core/server/pages/pages.contract";
-import type { z } from "zod";
+import { z } from "zod";
 import { parseAdminDetailPayload } from "./admin-detail-payload";
 import { cache } from "react";
 import { mediaListQuerySchema, mediaListResponseSchema, type MediaListQuery } from "@iorder/core/server/media/media.contract";
@@ -19,7 +19,7 @@ import type { getDashboardContentSummary as getDashboardContentSummaryFromCore }
 import type { getRequestAdministrator as getRequestAdministratorFromCore } from "@iorder/core/server/auth/request-administrator";
 import type { getRecentAuditLogs as getRecentAuditLogsFromCore } from "@iorder/core/server/audit/audit.service";
 import type { getAuditLogsPage as getAuditLogsPageFromCore } from "@iorder/core/server/audit/audit.service";
-import { auditListPageSchema, auditListQuerySchema, type AuditListQuery } from "@iorder/core/server/audit/audit.contract";
+import { auditActorSchema, auditListPageSchema, auditListQuerySchema, type AuditListQuery } from "@iorder/core/server/audit/audit.contract";
 import type { getEquipment as getEquipmentFromCore, getEquipmentGroups as getEquipmentGroupsFromCore } from "@iorder/core/server/equipment/equipment.service";
 import type { getEquipmentPage as getEquipmentPageFromCore } from "@iorder/core/server/equipment/equipment.service";
 import type { getLeadsPage as getLeadsPageFromCore } from "@iorder/core/server/leads/leads.service";
@@ -136,14 +136,21 @@ export async function getAdminNotifications(): Promise<AdminNotifications> {
 }
 export async function getPublishingReadiness(): Promise<PublishingReadiness> { return (await getDashboard())?.readiness ?? []; }
 export async function getRecentAuditLogs(): Promise<AuditLogs> { return (await getDashboard())?.auditLogs ?? []; }
-export async function getAuditLogsPage(input: AuditListQuery): Promise<Awaited<ReturnType<typeof getAuditLogsPageFromCore>>> {
+// Bỏ tham số rỗng/undefined để URL gọi Backend gọn và không gửi chuỗi "undefined".
+function listParams(query: Record<string, unknown>, extra: Record<string, string> = {}) {
+  const params = new URLSearchParams(extra);
+  for (const [key, value] of Object.entries(query)) if (value !== undefined && value !== null && value !== "") params.set(key, String(value));
+  return params;
+}
+
+export async function getAuditLogsPage(input: AuditListQuery): Promise<Awaited<ReturnType<typeof getAuditLogsPageFromCore>> & { actors: z.infer<typeof auditActorSchema>[] }> {
   const query = auditListQuerySchema.parse(input);
-  const params = new URLSearchParams(Object.entries(query).map(([key, value]) => [key, String(value)]));
-  const data = await getData<{ result: Awaited<ReturnType<typeof getAuditLogsPageFromCore>> }>(`/api/admin/audit?${params}`);
+  const params = listParams(query);
+  const data = await getData<{ result: Awaited<ReturnType<typeof getAuditLogsPageFromCore>>; actors?: unknown }>(`/api/admin/audit?${params}`);
   if (!data?.result || !Array.isArray(data.result.items)) throw new Error("Không tải được nhật ký. Vui lòng đăng nhập lại hoặc thử lại.");
   const parsed = auditListPageSchema.safeParse(data.result);
   if (!parsed.success || parsed.data.page !== query.page || parsed.data.pageSize !== query.pageSize || (query.entityType && parsed.data.items.some(row => row.entityType !== query.entityType))) throw new Error("Dữ liệu phân trang nhật ký không hợp lệ. Vui lòng thử lại.");
-  return parsed.data;
+  return { ...parsed.data, actors: z.array(auditActorSchema).catch([]).parse(data.actors) };
 }
 export async function getDashboardContentSummary(): Promise<DashboardContentSummary> { return (await getDashboard())?.content ?? { pages: emptyContentStat, posts: emptyContentStat, offerings: { products: emptyContentStat, solutions: emptyContentStat, services: emptyContentStat }, equipment: emptyContentStat, downloads: { enabled: 0, total: 0 }, leads: { new: 0, total: 0 }, recent: [] }; }
 
@@ -153,7 +160,7 @@ export async function getAdminOfferings(): Promise<AdminOfferings> {
   if (!parsed.success) throw new Error("Phản hồi danh sách nội dung không hợp lệ. Vui lòng tải lại.");
   return parsed.data.items;
 }
-export async function getAdminOfferingsPage(params: { page?: string | number; pageSize?: string | number; query?: string; status?: string; type?: string } = {}): Promise<AdminOfferingsPage> {
+export async function getAdminOfferingsPage(params: { page?: string | number; pageSize?: string | number; query?: string; status?: string; type?: string; sort?: string; dir?: string } = {}): Promise<AdminOfferingsPage> {
   const input = pageListQuerySchema.extend({ type: publicOfferingTypeSchema.optional() }).parse({ ...params, status: params.status || undefined, type: params.type || undefined });
   const query = new URLSearchParams();
   Object.entries(input).forEach(([key, value]) => { if (value !== undefined && value !== "") query.set(key, String(value)); });
@@ -165,7 +172,7 @@ export async function getAdminOfferingsPage(params: { page?: string | number; pa
 }
 export async function getAdminOfferingById(id: string) { return getDetail(`/api/admin/offerings/${encodeURIComponent(id)}`, "offering", adminOfferingSchema, id); }
 export async function getAdminPages(): Promise<AdminPages> { return (await getAdminPagesPage())?.items ?? []; }
-export async function getAdminPagesPage(params: { page?: string | number; pageSize?: string | number; query?: string; status?: string } = {}): Promise<AdminPagesPage> {
+export async function getAdminPagesPage(params: { page?: string | number; pageSize?: string | number; query?: string; status?: string; sort?: string; dir?: string } = {}): Promise<AdminPagesPage> {
   const input = pageListQuerySchema.parse({ ...params, status: params.status || undefined });
   const query = new URLSearchParams();
   Object.entries(input).forEach(([key, value]) => { if (value !== undefined && value !== "") query.set(key, String(value)); });
@@ -189,8 +196,8 @@ export async function getAdminPosts(): Promise<AdminPosts> {
   if (!parsed.success) throw new Error("Phản hồi danh sách bài viết không hợp lệ. Vui lòng tải lại.");
   return parsed.data.items;
 }
-export async function getAdminPostsPage(params: { excludeType?: string; page?: string | number; pageSize?: string | number; query?: string; status?: string; type?: string } = {}): Promise<AdminPostsPage> {
-  const input = pageListQuerySchema.extend({ type: publicPostTypeSchema.optional(), excludeType: publicPostTypeSchema.optional() }).parse({ ...params, status: params.status || undefined, type: params.type || undefined, excludeType: params.excludeType || undefined });
+export async function getAdminPostsPage(params: { excludeType?: string; page?: string | number; pageSize?: string | number; query?: string; status?: string; type?: string; sort?: string; dir?: string; categoryId?: string; tagId?: string } = {}): Promise<AdminPostsPage> {
+  const input = pageListQuerySchema.extend({ type: publicPostTypeSchema.optional(), excludeType: publicPostTypeSchema.optional(), categoryId: z.string().uuid().optional().catch(undefined), tagId: z.string().uuid().optional().catch(undefined) }).parse({ ...params, status: params.status || undefined, type: params.type || undefined, excludeType: params.excludeType || undefined });
   const query = new URLSearchParams();
   Object.entries(input).forEach(([key, value]) => { if (value !== undefined && value !== "") query.set(key, String(value)); });
   query.set("view", "summary");
@@ -201,10 +208,10 @@ export async function getAdminPostsPage(params: { excludeType?: string; page?: s
 }
 export async function getAdminPostById(id: string) { return getDetail(`/api/admin/posts/${encodeURIComponent(id)}`, "post", adminPostSchema, id); }
 export async function getEquipment(publicOnly = false): Promise<Equipment> { void publicOnly; return (await getEquipmentPage({ pageSize: 100 })).items; }
-export async function getEquipmentPage(params: { groupId?: string; page?: string | number; pageSize?: string | number; query?: string; status?: string } = {}): Promise<EquipmentPage> {
+export async function getEquipmentPage(params: { groupId?: string; page?: string | number; pageSize?: string | number; query?: string; status?: string; sort?: string; dir?: string } = {}): Promise<EquipmentPage> {
   return (await getEquipmentPageWithGroups(params)).result;
 }
-export async function getEquipmentPageWithGroups(params: { groupId?: string; page?: string | number; pageSize?: string | number; query?: string; status?: string } = {}): Promise<EquipmentPayload> {
+export async function getEquipmentPageWithGroups(params: { groupId?: string; page?: string | number; pageSize?: string | number; query?: string; status?: string; sort?: string; dir?: string } = {}): Promise<EquipmentPayload> {
   const query = new URLSearchParams();
   Object.entries(params).forEach(([key, value]) => { if (value !== undefined && value !== "") query.set(key, String(value)); });
   return (await getEquipmentPayload(`?${query.toString()}`)) ?? { result: { items: [], page: 1, pageSize: 25, total: 0, totalPages: 1 }, equipmentGroups: [] };
@@ -213,7 +220,7 @@ export async function getEquipmentById(id: string): Promise<Equipment[number] | 
 export async function getEquipmentGroups(): Promise<EquipmentGroups> { return (await getEquipmentGroupsPayload())?.equipmentGroups ?? []; }
 export async function getLeadsPage(input: LeadListQuery): Promise<LeadsPage> {
   const query = leadListQuerySchema.parse(input);
-  const params = new URLSearchParams(Object.entries(query).map(([key, value]) => [key, String(value)]));
+  const params = listParams(query);
   const data = await getData<{ result: LeadsPage }>(`/api/admin/leads?${params}`);
   if (!data?.result || !Array.isArray(data.result.items)) throw new Error("Không tải được danh sách liên hệ. Vui lòng đăng nhập lại hoặc thử lại.");
   const parsed = leadListPageSchema.safeParse(data.result);
@@ -239,7 +246,7 @@ export async function getExternalLinksVersion() { return getSettingVersion("/api
 export async function getRedirects(): Promise<Redirects> { return (await getData<{ redirects: Redirects }>("/api/admin/redirects"))?.redirects ?? []; }
 export async function getPartnersPage(input: PartnerListQuery) {
   const query = partnerListQuerySchema.parse(input);
-  const params = new URLSearchParams({ kind: "partners", ...Object.fromEntries(Object.entries(query).map(([key, value]) => [key, String(value)])) });
+  const params = listParams(query, { kind: "partners" });
   const data = await getData<{ kind: string; result: unknown }>(`/api/admin/supporting?${params}`);
   const parsed = partnerListPageSchema.safeParse(data?.result);
   if (data?.kind !== "partners" || !parsed.success || parsed.data.page !== query.page || parsed.data.pageSize !== query.pageSize || parsed.data.items.some(row => (query.visibility !== "all" && row.isEnabled !== (query.visibility === "enabled")) || (query.partnerKind !== "all" && row.kind !== query.partnerKind))) {
@@ -249,7 +256,7 @@ export async function getPartnersPage(input: PartnerListQuery) {
 }
 export async function getTestimonialsPage(input: TestimonialListQuery) {
   const query = testimonialListQuerySchema.parse(input);
-  const params = new URLSearchParams({ kind: "testimonials", ...Object.fromEntries(Object.entries(query).map(([key, value]) => [key, String(value)])) });
+  const params = listParams(query, { kind: "testimonials" });
   const data = await getData<{ kind: string; result: unknown }>(`/api/admin/supporting?${params}`);
   const parsed = testimonialListPageSchema.safeParse(data?.result);
   if (data?.kind !== "testimonials" || !parsed.success || parsed.data.page !== query.page || parsed.data.pageSize !== query.pageSize || parsed.data.items.some(row => query.visibility !== "all" && row.isEnabled !== (query.visibility === "enabled"))) {
@@ -259,7 +266,7 @@ export async function getTestimonialsPage(input: TestimonialListQuery) {
 }
 export async function getAdminMediaPage(input: Partial<MediaListQuery> = {}) {
   const query = mediaListQuerySchema.parse({ ...input, pageSize: 25 });
-  const params = new URLSearchParams({ page: String(query.page), pageSize: "25", type: query.type, query: query.query });
+  const params = listParams({ ...query, pageSize: 25 });
   const result = await getData<{ assets: AdminMedia; page: number; pageSize: number; total: number; totalPages: number }>(`/api/admin/media?${params}`);
   if (!result) throw new Error("Không tải được trang thư viện tệp.");
   const parsed = mediaListResponseSchema.safeParse(result);
@@ -268,7 +275,7 @@ export async function getAdminMediaPage(input: Partial<MediaListQuery> = {}) {
 }
 export async function getCmsUsersPage(input: CmsUserListQuery) {
   const query = cmsUserListQuerySchema.parse(input);
-  const params = new URLSearchParams(Object.entries(query).map(([key, value]) => [key, String(value)]));
+  const params = listParams(query);
   const data = await getData<{ result: unknown; roles: unknown }>(`/api/admin/users?${params}`);
   const parsed = cmsUserListPageSchema.safeParse(data?.result);
   if (!parsed.success || parsed.data.page !== query.page || parsed.data.pageSize !== query.pageSize || parsed.data.items.some(user => (query.status !== "all" && user.status !== query.status) || (query.role !== "all" && user.role !== query.role))) {

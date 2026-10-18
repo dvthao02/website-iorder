@@ -3,10 +3,11 @@ import { getRequestAdministrator } from "@iorder/core/server/auth/request-admini
 import { getAdminMediaPage, InvalidMediaError, uploadAdminMedia } from "@iorder/core/server/media/media.service";
 import { z } from "zod";
 import { getOriginalRequestHost, isMediaUploadOriginAllowed } from "@iorder/core/server/media/media-origin";
+import { withRequestContext } from "@/lib/request-context";
 
 export const runtime = "nodejs";
 
-export async function POST(request: Request) {
+async function handlePOST(request: Request) {
   const fail = (code: string, message: string, status: number) => NextResponse.json({ error: { code, message } }, { status });
   const administrator = await getRequestAdministrator();
   if (!administrator) return fail("UNAUTHORIZED", "Vui lòng đăng nhập lại.", 401);
@@ -41,7 +42,7 @@ export async function POST(request: Request) {
   }
 }
 
-export async function GET(request: Request) {
+async function handleGET(request: Request) {
   if (!await getRequestAdministrator()) return NextResponse.json({ error: { code: "UNAUTHORIZED", message: "Vui lòng đăng nhập lại." } }, { status: 401 });
   try {
     const params = new URL(request.url).searchParams;
@@ -52,3 +53,6 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: { code: "INTERNAL_ERROR", message: "Không thể tải thư viện tệp." } }, { status: 500 });
   }
 }
+
+export const POST = withRequestContext(handlePOST);
+export const GET = withRequestContext(handleGET);

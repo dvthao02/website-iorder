@@ -3,7 +3,7 @@ import { revalidatePath } from "@/lib/publish-cache-revalidation";
 import { z } from "zod";
 import { getRequestAdministrator } from "@iorder/core/server/auth/request-administrator";
 import { getEquipmentGroups, getEquipmentPage, writeEquipment } from "@iorder/core/server/equipment/equipment.service";
-import { adminListQuerySchema } from "@iorder/core/server/shared/admin-list.contract";
+import { adminListQuerySchema, listSortParams } from "@iorder/core/server/shared/admin-list.contract";
 import { equipmentWriteRequestSchema } from "@iorder/core/server/equipment/equipment.contract";
 import { EquipmentVersionConflictError } from "@iorder/core/server/equipment/equipment-version";
 import { ContentVersionConflictError } from "@iorder/core/server/shared/content-version";
@@ -12,18 +12,19 @@ import { denyPublishUnless, denyUnless, forbiddenResponse, requestedStatusOf } f
 import { getEquipmentById, getEquipmentGroupVisibility } from "@iorder/core/server/equipment/equipment.service";
 import { hasCmsPermission } from "@iorder/core/server/auth/permissions";
 import { logger } from "@iorder/core/server/shared/logger";
+import { withRequestContext } from "@/lib/request-context";
 
 function requestedGroupVisibility(values: unknown) {
   return values && typeof values === "object" && "isEnabled" in values && values.isEnabled === true ? "published" : "draft";
 }
 
-export async function GET(request: Request) {
+async function handleGET(request: Request) {
   const user = await getRequestAdministrator();
   if (!user) return NextResponse.json({ error: { code: "UNAUTHORIZED", message: "Vui lòng đăng nhập lại." } }, { status: 401 });
   try {
     const query = new URL(request.url).searchParams;
     if (query.get("groupsOnly") === "1") return NextResponse.json({ equipmentGroups: await getEquipmentGroups() });
-    const pagination = adminListQuerySchema.safeParse({ page: query.get("page") ?? undefined, pageSize: query.get("pageSize") ?? undefined, query: query.get("query") ?? undefined });
+    const pagination = adminListQuerySchema.safeParse({ page: query.get("page") ?? undefined, pageSize: query.get("pageSize") ?? undefined, query: query.get("query") ?? undefined, ...listSortParams(query) });
     const status = z.enum(["draft", "review", "scheduled", "published", "archived"]).optional().safeParse(query.get("status") || undefined);
     const groupId = z.string().uuid().optional().safeParse(query.get("groupId") || undefined);
     if (!pagination.success || !status.success || !groupId.success) return NextResponse.json({ error: { code: "INVALID_INPUT", message: "Bộ lọc danh sách thiết bị không hợp lệ." } }, { status: 400 });
@@ -35,7 +36,7 @@ export async function GET(request: Request) {
   }
 }
 
-export async function POST(request: Request) {
+async function handlePOST(request: Request) {
   const user = await getRequestAdministrator();
   const fail = (code: string, message: string, status: number) => NextResponse.json({ error: { code, message } }, { status });
   if (!user) return fail("UNAUTHORIZED", "Vui lòng đăng nhập lại.", 401);
@@ -61,3 +62,6 @@ export async function POST(request: Request) {
     return fail("INTERNAL_ERROR", "Không thể lưu thiết bị hoặc nhóm lúc này.", 500);
   }
 }
+
+export const GET = withRequestContext(handleGET);
+export const POST = withRequestContext(handlePOST);

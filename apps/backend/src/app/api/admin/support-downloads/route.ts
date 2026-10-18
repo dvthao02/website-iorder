@@ -5,8 +5,9 @@ import { getRequestAdministrator } from "@iorder/core/server/auth/request-admini
 import { supportDownloadCreateRequestSchema } from "@iorder/core/server/support/support-downloads.contract";
 import { createAdminSupportDownload, getAdminSupportDownloads } from "@iorder/core/server/support/support-downloads.service";
 import { denyPublishUnless } from "@/lib/admin-access";
+import { withRequestContext } from "@/lib/request-context";
 
-export async function GET() {
+async function handleGET() {
   const user = await getRequestAdministrator();
   if (!user) return NextResponse.json({ error: { code: "UNAUTHORIZED", message: "Vui lòng đăng nhập lại." } }, { status: 401 });
   try {
@@ -16,7 +17,7 @@ export async function GET() {
   }
 }
 
-export async function POST(request: Request) {
+async function handlePOST(request: Request) {
   const user = await getRequestAdministrator();
   const fail = (code: string, message: string, status: number) => NextResponse.json({ error: { code, message } }, { status });
   if (!user) return fail("UNAUTHORIZED", "Vui lòng đăng nhập lại.", 401);
@@ -34,3 +35,6 @@ export async function POST(request: Request) {
       : fail("INTERNAL_ERROR", "Không thể tạo mục tải xuống.", 500);
   }
 }
+
+export const GET = withRequestContext(handleGET);
+export const POST = withRequestContext(handlePOST);

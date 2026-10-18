@@ -7,10 +7,11 @@ import { getCmsUsersPage, saveCmsUser } from "@iorder/core/server/users/users.se
 import { CmsAccessError } from "@iorder/core/server/roles/roles.errors";
 import { getCmsRoles } from "@iorder/core/server/roles/roles.service";
 import { denyUnless } from "@/lib/admin-access";
+import { withRequestContext } from "@/lib/request-context";
 
 const fail = (code: string, message: string, status: number) => NextResponse.json({ error: { code, message } }, { status });
 
-export async function GET(request: Request) {
+async function handleGET(request: Request) {
   const actor = await getRequestAdministrator();
   if (!actor) return fail("UNAUTHORIZED", "Vui lòng đăng nhập lại.", 401);
   const denied = denyUnless(actor, "users.view", "Bạn không có quyền xem tài khoản.");
@@ -27,7 +28,7 @@ export async function GET(request: Request) {
   }
 }
 
-export async function POST(request: Request) {
+async function handlePOST(request: Request) {
   const actor = await getRequestAdministrator();
   if (!actor) return fail("UNAUTHORIZED", "Vui lòng đăng nhập lại.", 401);
   try {
@@ -44,3 +45,6 @@ export async function POST(request: Request) {
     return fail("INTERNAL_ERROR", "Không thể lưu tài khoản lúc này.", 500);
   }
 }
+
+export const GET = withRequestContext(handleGET);
+export const POST = withRequestContext(handlePOST);

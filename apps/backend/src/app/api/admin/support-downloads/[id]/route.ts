@@ -14,6 +14,7 @@ import {
   updateAdminSupportDownload,
 } from "@iorder/core/server/support/support-downloads.service";
 import { logger } from "@iorder/core/server/shared/logger";
+import { withRequestContext } from "@/lib/request-context";
 
 export const runtime = "nodejs";
 
@@ -23,7 +24,7 @@ function phanHoiLoi(ma: string, thongBao: string, trangThai: number) {
   return NextResponse.json({ error: { code: ma, message: thongBao } }, { status: trangThai });
 }
 
-export async function PATCH(request: Request, { params }: SupportDownloadRouteProps) {
+async function handlePATCH(request: Request, { params }: SupportDownloadRouteProps) {
   const administrator = await getRequestAdministrator();
   if (!administrator) {
     return phanHoiLoi("UNAUTHORIZED", "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.", 401);
@@ -71,7 +72,7 @@ export async function PATCH(request: Request, { params }: SupportDownloadRoutePr
   }
 }
 
-export async function DELETE(request: Request, { params }: SupportDownloadRouteProps) {
+async function handleDELETE(request: Request, { params }: SupportDownloadRouteProps) {
   const administrator = await getRequestAdministrator();
   if (!administrator) return phanHoiLoi("UNAUTHORIZED", "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.", 401);
   const { id } = await params;
@@ -91,3 +92,6 @@ export async function DELETE(request: Request, { params }: SupportDownloadRouteP
     return phanHoiLoi("INTERNAL_ERROR", "Không thể xóa tài nguyên lúc này. Vui lòng thử lại.", 500);
   }
 }
+
+export const PATCH = withRequestContext(handlePATCH);
+export const DELETE = withRequestContext(handleDELETE);

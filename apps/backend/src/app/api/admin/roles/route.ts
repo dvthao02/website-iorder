@@ -6,6 +6,7 @@ import { cmsRoleDeleteRequestSchema, cmsRoleRequestSchema } from "@iorder/core/s
 import { CmsAccessError } from "@iorder/core/server/roles/roles.errors";
 import { getCmsRoles, removeCmsRole, saveCmsRole } from "@iorder/core/server/roles/roles.service";
 import { denyUnless } from "@/lib/admin-access";
+import { withRequestContext } from "@/lib/request-context";
 
 export const runtime = "nodejs";
 
@@ -19,7 +20,7 @@ function mutationFailure(error: unknown, fallback: string) {
 
 // The permission catalog travels with the roles so the CMS matrix never
 // hard-codes modules or actions.
-export async function GET() {
+async function handleGET() {
   const actor = await getRequestAdministrator();
   if (!actor) return fail("UNAUTHORIZED", "Vui lòng đăng nhập lại.", 401);
   const denied = denyUnless(actor, "roles.view", "Bạn không có quyền xem vai trò.");
@@ -31,7 +32,7 @@ export async function GET() {
   }
 }
 
-export async function POST(request: Request) {
+async function handlePOST(request: Request) {
   const actor = await getRequestAdministrator();
   if (!actor) return fail("UNAUTHORIZED", "Vui lòng đăng nhập lại.", 401);
   try {
@@ -44,7 +45,7 @@ export async function POST(request: Request) {
   }
 }
 
-export async function DELETE(request: Request) {
+async function handleDELETE(request: Request) {
   const actor = await getRequestAdministrator();
   if (!actor) return fail("UNAUTHORIZED", "Vui lòng đăng nhập lại.", 401);
   try {
@@ -54,3 +55,7 @@ export async function DELETE(request: Request) {
     return mutationFailure(error, "Không thể xóa vai trò lúc này.");
   }
 }
+
+export const GET = withRequestContext(handleGET);
+export const POST = withRequestContext(handlePOST);
+export const DELETE = withRequestContext(handleDELETE);

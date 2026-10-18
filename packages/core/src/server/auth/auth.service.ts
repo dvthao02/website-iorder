@@ -7,6 +7,7 @@ import {
   createSessionForUser,
   findActiveAdministratorByUsername,
   findActiveAdministratorSession,
+  recordFailedLogin,
   revokeSessionByTokenHash,
 } from "./auth.repository";
 import { verifyPassword } from "./password";
@@ -23,6 +24,7 @@ export async function signInAdministrator(input: AdministratorLoginInput, userAg
   const user = await findActiveAdministratorByUsername(input.username);
 
   if (!user || !(await verifyPassword(input.password, user.passwordHash))) {
+    if (user) await recordFailedLogin(user.id);
     throw new InvalidAdministratorCredentialsError();
   }
 

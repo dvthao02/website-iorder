@@ -10,9 +10,11 @@ test("query media mặc định và chuẩn hóa từ khóa chỉ khi parse", ()
 });
 
 test("query media từ chối trang/limit/type/trường lạ", () => {
-  for (const input of [{ page: 0 }, { page: 1.5 }, { page: "abc" }, { pageSize: 4 }, { pageSize: 101 }, { type: "videos" }, { query: "a".repeat(161) }, { sort: "arbitrary" }]) {
+  for (const input of [{ page: 0 }, { page: 1.5 }, { page: "abc" }, { pageSize: 4 }, { pageSize: 101 }, { type: "videos" }, { query: "a".repeat(161) }, { unknownField: "x" }]) {
     assert.equal(mediaListQuerySchema.safeParse(input).success, false);
   }
+  // sort là tham số chung: giá trị sai dạng bị bỏ, khóa không có trong danh sách trắng do repository bỏ qua.
+  assert.equal(mediaListQuerySchema.parse({ sort: "name; drop" }).sort, undefined);
 });
 
 const asset = { id: "11111111-1111-4111-8111-111111111111", originalName: "Ảnh.png", mimeType: "image/png", fileSize: 1, altText: null, caption: null, url: "/media/test.png" };

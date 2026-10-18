@@ -6,6 +6,7 @@ import { auditLogs, categories, mediaAssets, postCategories, postRevisions, post
 import { toAdminListPage, type AdminListQuery } from "@iorder/core/server/shared/admin-list.contract";
 
 import type { AdminPostInput, PublicPostType } from "./posts.contract";
+import { listOrder, workflowStatusRank, vietnameseText } from "../shared/list-order";
 
 function publicPostCondition() {
   const now = new Date();
@@ -121,6 +122,8 @@ const adminPostSelection = {
 };
 
 type PostListQuery = AdminListQuery & {
+  categoryId?: string;
+  tagId?: string;
   excludeType?: PublicPostType;
   status?: "draft" | "review" | "scheduled" | "published" | "archived";
   type?: PublicPostType;
@@ -133,8 +136,14 @@ function postListCondition(query: PostListQuery) {
     query.type ? eq(posts.type, query.type) : undefined,
     query.excludeType ? ne(posts.type, query.excludeType) : undefined,
     query.status ? eq(posts.status, query.status) : undefined,
+    query.categoryId ? inArray(posts.id, getDb().select({ id: postCategories.postId }).from(postCategories).where(eq(postCategories.categoryId, query.categoryId))) : undefined,
+    query.tagId ? inArray(posts.id, getDb().select({ id: postTags.postId }).from(postTags).where(eq(postTags.tagId, query.tagId))) : undefined,
     keyword ? or(ilike(posts.title, keyword), ilike(posts.slug, keyword)) : undefined,
   );
+}
+
+function postListOrder(query: PostListQuery) {
+  return listOrder({ title: vietnameseText(posts.title), type: posts.type, status: workflowStatusRank(posts.status), updatedAt: posts.updatedAt }, query, [desc(posts.updatedAt), desc(posts.createdAt), asc(posts.id)]);
 }
 
 const publishedPostDetailSelection = {
@@ -170,7 +179,7 @@ export async function listAdminPosts() {
 export async function listAdminPostsPage(query: PostListQuery, database = getDb()) {
   const condition = postListCondition(query);
   return database.transaction(async (tx) => {
-    const rows = await tx.select(adminPostSelection).from(posts).where(condition).orderBy(desc(posts.updatedAt), desc(posts.createdAt), asc(posts.id)).limit(query.pageSize).offset((query.page - 1) * query.pageSize);
+    const rows = await tx.select(adminPostSelection).from(posts).where(condition).orderBy(...postListOrder(query)).limit(query.pageSize).offset((query.page - 1) * query.pageSize);
     const [totals] = await tx.select({ total: count() }).from(posts).where(condition);
     return toAdminListPage(await withTaxonomyBatch(rows, tx), query, totals?.total ?? 0);
   }, { isolationLevel: "repeatable read", accessMode: "read only" });
@@ -185,7 +194,7 @@ export async function listAdminPostSummariesPage(query: PostListQuery, database 
   const condition = postListCondition(query);
   return database.transaction(async tx => {
     const rows = await tx.select({ id: posts.id, type: posts.type, title: posts.title, slug: posts.slug, status: posts.status, draftVersion: posts.draftVersion, updatedAt: posts.updatedAt })
-      .from(posts).where(condition).orderBy(desc(posts.updatedAt), desc(posts.createdAt), asc(posts.id)).limit(query.pageSize).offset((query.page - 1) * query.pageSize);
+      .from(posts).where(condition).orderBy(...postListOrder(query)).limit(query.pageSize).offset((query.page - 1) * query.pageSize);
     const [totals] = await tx.select({ total: count() }).from(posts).where(condition);
     return toAdminListPage(rows, query, totals?.total ?? 0);
   }, { isolationLevel: "repeatable read", accessMode: "read only" });

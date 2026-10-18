@@ -4,8 +4,9 @@ import { z } from "zod";
 import { getRequestAdministrator } from "@iorder/core/server/auth/request-administrator";
 import { navigationLocationSchema, navigationRequestSchema } from "@iorder/core/server/navigation/navigation.contract";
 import { getAdminNavigation, NavigationVersionConflictError, saveNavigation } from "@iorder/core/server/navigation/navigation.service";
+import { withRequestContext } from "@/lib/request-context";
 
-export async function GET(request: Request) {
+async function handleGET(request: Request) {
   const user = await getRequestAdministrator();
   if (!user) return NextResponse.json({ error: { code: "UNAUTHORIZED", message: "Vui lòng đăng nhập lại." } }, { status: 401 });
   const location = navigationLocationSchema.safeParse(new URL(request.url).searchParams.get("location") ?? "header");
@@ -13,7 +14,7 @@ export async function GET(request: Request) {
   return NextResponse.json({ menu: await getAdminNavigation(location.data) });
 }
 
-export async function PUT(request: Request) {
+async function handlePUT(request: Request) {
   const user = await getRequestAdministrator();
   const fail = (code: string, message: string, status: number) => NextResponse.json({ error: { code, message } }, { status });
   if (!user) return fail("UNAUTHORIZED", "Vui lòng đăng nhập lại.", 401);
@@ -30,3 +31,6 @@ export async function PUT(request: Request) {
     return fail("INTERNAL_ERROR", "Không thể lưu menu.", 500);
   }
 }
+
+export const GET = withRequestContext(handleGET);
+export const PUT = withRequestContext(handlePUT);

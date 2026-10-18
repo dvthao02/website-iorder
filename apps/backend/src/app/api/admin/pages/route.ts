@@ -3,15 +3,16 @@ import { revalidatePath } from "@/lib/publish-cache-revalidation";
 import { z } from "zod";
 import { getRequestAdministrator } from "@iorder/core/server/auth/request-administrator";
 import { FixedWebsitePageBindingError, getAdminPageBySlug, getAdminPagesPage, saveAdminPage } from "@iorder/core/server/pages/pages.service";
-import { adminListQuerySchema } from "@iorder/core/server/shared/admin-list.contract";
+import { adminListQuerySchema, listSortParams } from "@iorder/core/server/shared/admin-list.contract";
 import { hasDatabaseErrorCode } from "@iorder/core/server/shared/database-error";
 import { PageVersionConflictError } from "@iorder/core/server/pages/page-version";
 import { getFixedWebsitePage, pagePermissionCodes, pageSaveRequestSchema } from "@iorder/core/server/pages/pages.contract";
 import { denyPublishUnless, denyUnless, requestedStatusOf } from "@/lib/admin-access";
 import { getAdminPageById } from "@iorder/core/server/pages/pages.service";
+import { withRequestContext } from "@/lib/request-context";
 
 const fail = (code: string, message: string, status: number) => NextResponse.json({ error: { code, message } }, { status });
-export async function GET(request: Request) {
+async function handleGET(request: Request) {
   const user = await getRequestAdministrator();
   if (!user) return fail("UNAUTHORIZED", "Vui lòng đăng nhập lại.", 401);
   const query = new URL(request.url).searchParams;
@@ -29,7 +30,7 @@ export async function GET(request: Request) {
   }
   const deniedList = denyUnless(user, "pages.view");
   if (deniedList) return deniedList;
-  const parsed = adminListQuerySchema.safeParse({ page: query.get("page") ?? undefined, pageSize: query.get("pageSize") ?? undefined, query: query.get("query") ?? undefined });
+  const parsed = adminListQuerySchema.safeParse({ page: query.get("page") ?? undefined, pageSize: query.get("pageSize") ?? undefined, query: query.get("query") ?? undefined, ...listSortParams(query) });
   const status = z.enum(["draft", "review", "scheduled", "published", "archived"]).optional().safeParse(query.get("status") || undefined);
   if (!parsed.success || !status.success) return fail("INVALID_INPUT", "Bộ lọc danh sách trang không hợp lệ.", 400);
   try {
@@ -38,7 +39,7 @@ export async function GET(request: Request) {
     return fail("INTERNAL_ERROR", "Không thể tải danh sách trang lúc này. Vui lòng thử lại.", 500);
   }
 }
-export async function POST(request: Request) {
+async function handlePOST(request: Request) {
   const user = await getRequestAdministrator();
   if (!user) return fail("UNAUTHORIZED", "Vui lòng đăng nhập lại.", 401);
   let body: unknown;
@@ -63,3 +64,6 @@ export async function POST(request: Request) {
     return fail("INTERNAL_ERROR", "Không thể lưu trang lúc này.", 500);
   }
 }
+
+export const GET = withRequestContext(handleGET);
+export const POST = withRequestContext(handlePOST);

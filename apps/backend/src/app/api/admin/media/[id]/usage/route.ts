@@ -3,8 +3,9 @@ import { z } from "zod";
 
 import { getRequestAdministrator } from "@iorder/core/server/auth/request-administrator";
 import { getAdminMediaUsage } from "@iorder/core/server/media/media.service";
+import { withRequestContext } from "@/lib/request-context";
 
-export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+async function handleGET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const administrator = await getRequestAdministrator();
   const fail = (code: string, message: string, status: number) => NextResponse.json({ error: { code, message } }, { status });
   if (!administrator) return fail("UNAUTHORIZED", "Vui lòng đăng nhập lại.", 401);
@@ -17,3 +18,5 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     return fail("INTERNAL_ERROR", "Không thể kiểm tra nơi đang sử dụng tệp.", 500);
   }
 }
+
+export const GET = withRequestContext(handleGET);

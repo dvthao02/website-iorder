@@ -4,15 +4,16 @@ import { z } from "zod";
 import { getRequestAdministrator } from "@iorder/core/server/auth/request-administrator";
 import { getSiteProfileWithVersion, updateSiteProfile } from "@iorder/core/server/settings/profile.service";
 import { ContentVersionConflictError, versionedWriteRequestSchema } from "@iorder/core/server/shared/content-version";
+import { withRequestContext } from "@/lib/request-context";
 
 const fail = (code: string, message: string, status: number) => NextResponse.json({ error: { code, message } }, { status });
 
-export async function GET() {
+async function handleGET() {
   const user = await getRequestAdministrator();
   if (!user) return fail("UNAUTHORIZED", "Vui lòng đăng nhập lại.", 401);
   return NextResponse.json(await getSiteProfileWithVersion());
 }
-export async function PUT(request: Request) {
+async function handlePUT(request: Request) {
   const user = await getRequestAdministrator();
   if (!user) return fail("UNAUTHORIZED", "Vui lòng đăng nhập lại.", 401);
   let input: unknown;
@@ -28,3 +29,6 @@ export async function PUT(request: Request) {
       : fail("INTERNAL_ERROR", "Không thể lưu thông tin doanh nghiệp.", 500);
   }
 }
+
+export const GET = withRequestContext(handleGET);
+export const PUT = withRequestContext(handlePUT);

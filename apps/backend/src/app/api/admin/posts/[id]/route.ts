@@ -9,6 +9,7 @@ import { contentDeleteRequestSchema, contentStateRequestSchema, contentUpdateReq
 import { changeAdminPostState, deleteArchivedAdminPost, getAdminPostById, updateAdminPost } from "@iorder/core/server/posts/posts.service";
 import { denyPublishUnless, requestedStatusOf } from "@/lib/admin-access";
 import { logger } from "@iorder/core/server/shared/logger";
+import { withRequestContext } from "@/lib/request-context";
 
 export const runtime = "nodejs";
 
@@ -30,7 +31,7 @@ function lamMoiNoiDungBaiViet(slug: string) {
   revalidatePath("/sitemap.xml");
 }
 
-export async function GET(_: Request, { params }: PostRouteProps) {
+async function handleGET(_: Request, { params }: PostRouteProps) {
   const administrator = await getRequestAdministrator();
   if (!administrator) return phanHoiLoi("UNAUTHORIZED", "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.", 401);
 
@@ -39,7 +40,7 @@ export async function GET(_: Request, { params }: PostRouteProps) {
   return adminDetailResponse("post", () => getAdminPostById(id), { missing: "Không tìm thấy bài viết.", failed: "Không thể tải bài viết lúc này. Vui lòng thử lại." });
 }
 
-export async function PATCH(request: Request, { params }: PostRouteProps) {
+async function handlePATCH(request: Request, { params }: PostRouteProps) {
   const administrator = await getRequestAdministrator();
   if (!administrator) return phanHoiLoi("UNAUTHORIZED", "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.", 401);
 
@@ -81,7 +82,7 @@ export async function PATCH(request: Request, { params }: PostRouteProps) {
   }
 }
 
-export async function DELETE(request: Request, { params }: PostRouteProps) {
+async function handleDELETE(request: Request, { params }: PostRouteProps) {
   const administrator = await getRequestAdministrator();
   if (!administrator) return phanHoiLoi("UNAUTHORIZED", "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.", 401);
 
@@ -106,3 +107,7 @@ export async function DELETE(request: Request, { params }: PostRouteProps) {
     return phanHoiLoi("INTERNAL_ERROR", "Không thể xóa bài viết lúc này. Vui lòng thử lại.", 500);
   }
 }
+
+export const GET = withRequestContext(handleGET);
+export const PATCH = withRequestContext(handlePATCH);
+export const DELETE = withRequestContext(handleDELETE);

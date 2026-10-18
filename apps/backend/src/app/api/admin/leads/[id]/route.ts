@@ -3,8 +3,9 @@ import { z } from "zod";
 import { getRequestAdministrator } from "@iorder/core/server/auth/request-administrator";
 import { leadStatusUpdateResponseSchema, leadStatusUpdateSchema } from "@iorder/core/server/leads/leads.contract";
 import { changeLeadStatus } from "@iorder/core/server/leads/leads.service";
+import { withRequestContext } from "@/lib/request-context";
 
-export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
+async function handlePATCH(request: Request, context: { params: Promise<{ id: string }> }) {
   const user = await getRequestAdministrator();
   if (!user) return NextResponse.json({ error: { code: "UNAUTHORIZED", message: "Vui lòng đăng nhập lại." } }, { status: 401 });
   try {
@@ -22,3 +23,5 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     return NextResponse.json({ error: { code: "INTERNAL_ERROR", message: "Không thể cập nhật liên hệ lúc này." } }, { status: 500 });
   }
 }
+
+export const PATCH = withRequestContext(handlePATCH);

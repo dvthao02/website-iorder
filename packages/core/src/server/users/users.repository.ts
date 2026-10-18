@@ -8,6 +8,7 @@ import { assertCanGrant, loadActorAccess, requireActorPermission, rolePermission
 import { accessErrors } from "../roles/roles.errors";
 import type { CmsUserListQuery } from "./users.contract";
 import { toAdminListPage } from "../shared/admin-list.contract";
+import { listOrder, vietnameseText } from "../shared/list-order";
 
 export async function listCmsUsersPage(query: CmsUserListQuery, database = getDb()) {
   return database.transaction(async tx => {
@@ -23,7 +24,7 @@ export async function listCmsUsersPage(query: CmsUserListQuery, database = getDb
       query.role === "all" ? undefined : eq(members.role, query.role),
       keyword ? or(ilike(members.username, keyword), ilike(members.fullName, keyword), ilike(members.email, keyword)) : undefined,
     );
-    const items = await tx.select().from(members).where(condition).orderBy(asc(members.username), asc(members.id))
+    const items = await tx.select().from(members).where(condition).orderBy(...listOrder({ fullName: vietnameseText(members.fullName), username: members.username, role: sql`"cms_role"`, status: members.status, lastLoginAt: members.lastLoginAt }, query, [asc(members.username), asc(members.id)]))
       .limit(query.pageSize).offset((query.page - 1) * query.pageSize);
     const [totals] = await tx.select({ total: count() }).from(members).where(condition);
     const [counts] = await tx.select({

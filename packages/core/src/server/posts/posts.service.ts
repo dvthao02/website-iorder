@@ -61,7 +61,7 @@ export async function getPublishedPostsByTaxonomy(kind: "category" | "tag", slug
 export async function getAdminPosts() {
   return adminPostSchema.array().parse((await listAdminPosts()).map(withoutTaxonomy));
 }
-export async function getAdminPostsPage(query: AdminListQuery & { excludeType?: PublicPostType; status?: AdminPost["status"]; type?: PublicPostType }): Promise<AdminListPage<AdminPost>> {
+export async function getAdminPostsPage(query: AdminListQuery & { excludeType?: PublicPostType; status?: AdminPost["status"]; type?: PublicPostType; categoryId?: string; tagId?: string }): Promise<AdminListPage<AdminPost>> {
   const result = await listAdminPostsPage(query);
   return { ...result, items: adminPostSchema.array().parse(result.items.map(withoutTaxonomy)) };
 }

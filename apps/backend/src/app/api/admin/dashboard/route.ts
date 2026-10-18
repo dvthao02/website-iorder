@@ -6,10 +6,11 @@ import { hasCmsPermission } from "@iorder/core/server/auth/permissions";
 import { getRecentAuditLogs } from "@iorder/core/server/audit/audit.service";
 import { getPublishingReadiness } from "@iorder/core/server/publishing-readiness/publishing-readiness.service";
 import { getDashboardContentSummary } from "@iorder/core/server/dashboard/dashboard-content.service";
+import { withRequestContext } from "@/lib/request-context";
 
 export const runtime = "nodejs";
 
-export async function GET() {
+async function handleGET() {
   const administrator = await getRequestAdministrator();
   if (!administrator) {
     return NextResponse.json({ error: { code: "UNAUTHORIZED", message: "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại." } }, { status: 401 });
@@ -25,3 +26,5 @@ export async function GET() {
 
   return NextResponse.json({ administrator, analytics, readiness, auditLogs, content });
 }
+
+export const GET = withRequestContext(handleGET);

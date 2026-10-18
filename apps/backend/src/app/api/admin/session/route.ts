@@ -12,6 +12,7 @@ import {
 import { getRequestAdministrator } from "@iorder/core/server/auth/request-administrator";
 import { getClientAddress } from "@/lib/client-address";
 import { logger } from "@iorder/core/server/shared/logger";
+import { withRequestContext } from "@/lib/request-context";
 
 export const runtime = "nodejs";
 
@@ -37,7 +38,7 @@ function chuyenHuongBieuMau(duongDan: string) {
   });
 }
 
-export async function POST(request: Request) {
+async function handlePOST(request: Request) {
   const laBieuMauTrinhDuyet = request.headers.get("content-type")?.includes("application/x-www-form-urlencoded") ?? false;
   let body: unknown;
 
@@ -107,7 +108,7 @@ function phanHoiLoiBieuMauHoacJson(
   return chuyenHuongBieuMau(`/admin/login?error=${encodeURIComponent(ma)}`);
 }
 
-export async function DELETE(request: Request) {
+async function handleDELETE(request: Request) {
   await signOutAdministrator(request.headers.get("cookie")?.match(new RegExp(`(?:^|; )${administratorSessionCookieName}=([^;]*)`))?.[1]);
 
   const response = new NextResponse(null, { status: 204 });
@@ -117,8 +118,12 @@ export async function DELETE(request: Request) {
 
 // Current administrator for the CMS shell. Needs only a valid session, not a
 // module permission, so roles without dashboard access can still use the CMS.
-export async function GET() {
+async function handleGET() {
   const administrator = await getRequestAdministrator();
   if (!administrator) return phanHoiLoi("UNAUTHORIZED", "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.", 401);
   return NextResponse.json({ administrator });
 }
+
+export const POST = withRequestContext(handlePOST);
+export const DELETE = withRequestContext(handleDELETE);
+export const GET = withRequestContext(handleGET);

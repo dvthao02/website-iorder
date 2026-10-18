@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { adminListQuerySchema } from "../shared/admin-list.contract";
+import { adminListQuerySchema, listDateSchema } from "../shared/admin-list.contract";
 
 const optionalText = (maximum: number) => z.string().trim().max(maximum).transform((value) => value || null);
 
@@ -17,9 +17,11 @@ export const publicLeadInputSchema = z.object({
 export const leadStatusSchema = z.enum(["new", "contacted", "closed"]);
 export const leadListQuerySchema = adminListQuerySchema.extend({
   status: z.enum(["all", "new", "contacted", "closed"]).default("all"),
+  from: listDateSchema,
+  to: listDateSchema,
 });
 export type LeadListQuery = z.infer<typeof leadListQuerySchema>;
-export const leadExportQuerySchema = z.object({ status: leadListQuerySchema.shape.status, query: z.string().trim().max(160).optional() }).strict();
+export const leadExportQuerySchema = z.object({ status: leadListQuerySchema.shape.status, query: z.string().trim().max(160).optional(), from: listDateSchema, to: listDateSchema, sort: adminListQuerySchema.shape.sort, dir: adminListQuerySchema.shape.dir, format: z.enum(["csv", "xlsx"]).default("csv") }).strict();
 export type LeadExportQuery = z.infer<typeof leadExportQuerySchema>;
 const leadListItemSchema = z.object({
   id: z.string().uuid(), name: z.string().max(180), phone: z.string().max(30),

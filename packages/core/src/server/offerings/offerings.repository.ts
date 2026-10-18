@@ -6,6 +6,7 @@ import { auditLogs, mediaAssets, offeringRevisions, offerings } from "@iorder/co
 
 import type { AdminOfferingInput, PublicOfferingType } from "./offering-content.contract";
 import { toAdminListPage, type AdminListQuery } from "@iorder/core/server/shared/admin-list.contract";
+import { listOrder, workflowStatusRank, vietnameseText } from "../shared/list-order";
 
 function publishedOfferingCondition(type: PublicOfferingType) {
   const now = new Date();
@@ -125,6 +126,10 @@ type OfferingListQuery = AdminListQuery & {
   type?: PublicOfferingType;
 };
 
+function offeringListOrder(query: OfferingListQuery) {
+  return listOrder({ title: vietnameseText(offerings.title), status: workflowStatusRank(offerings.status), updatedAt: offerings.updatedAt }, query, [desc(offerings.updatedAt), asc(offerings.sortOrder), asc(offerings.title), asc(offerings.id)]);
+}
+
 function offeringListCondition(query: OfferingListQuery) {
   const keyword = query.query ? `%${query.query.replace(/[\\%_]/g, "\\$&")}%` : undefined;
   return and(
@@ -145,7 +150,7 @@ export async function listAdminOfferings() {
 export async function listAdminOfferingsPage(query: OfferingListQuery, database = getDb()) {
   const condition = offeringListCondition(query);
   return database.transaction(async (tx) => {
-    const rows = await tx.select(adminOfferingSelection).from(offerings).where(condition).orderBy(desc(offerings.updatedAt), asc(offerings.sortOrder), asc(offerings.title), asc(offerings.id)).limit(query.pageSize).offset((query.page - 1) * query.pageSize);
+    const rows = await tx.select(adminOfferingSelection).from(offerings).where(condition).orderBy(...offeringListOrder(query)).limit(query.pageSize).offset((query.page - 1) * query.pageSize);
     const [totals] = await tx.select({ total: count() }).from(offerings).where(condition);
     return toAdminListPage(rows, query, totals?.total ?? 0);
   }, { isolationLevel: "repeatable read", accessMode: "read only" });
@@ -165,7 +170,7 @@ export async function listAdminOfferingSummariesPage(query: OfferingListQuery, d
   const condition = offeringListCondition(query);
   return database.transaction(async tx => {
     const rows = await tx.select({ id: offerings.id, type: offerings.type, title: offerings.title, slug: offerings.slug, status: offerings.status, draftVersion: offerings.draftVersion, updatedAt: offerings.updatedAt })
-      .from(offerings).where(condition).orderBy(desc(offerings.updatedAt), asc(offerings.sortOrder), asc(offerings.title), asc(offerings.id)).limit(query.pageSize).offset((query.page - 1) * query.pageSize);
+      .from(offerings).where(condition).orderBy(...offeringListOrder(query)).limit(query.pageSize).offset((query.page - 1) * query.pageSize);
     const [totals] = await tx.select({ total: count() }).from(offerings).where(condition);
     return toAdminListPage(rows, query, totals?.total ?? 0);
   }, { isolationLevel: "repeatable read", accessMode: "read only" });

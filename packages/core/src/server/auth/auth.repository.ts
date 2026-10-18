@@ -46,7 +46,13 @@ export async function createSessionForUser(input: {
       .update(users)
       .set({ lastLoginAt: new Date(), updatedAt: new Date() })
       .where(eq(users.id, input.userId));
+    await tx.insert(auditLogs).values({ userId: input.userId, action: "user.login", entityType: "user", entityId: input.userId });
   });
+}
+
+// Sai mật khẩu với tài khoản có thật. Không ghi tên đăng nhập không tồn tại: người dùng hay gõ nhầm mật khẩu vào ô đó.
+export async function recordFailedLogin(userId: string, database = getDb()) {
+  await database.insert(auditLogs).values({ userId, action: "user.login_failed", entityType: "user", entityId: userId });
 }
 
 export async function findActiveAdministratorSession(tokenHash: string, now: Date, database = getDb()) {
@@ -82,10 +88,14 @@ export async function findActiveAdministratorSession(tokenHash: string, now: Dat
 }
 
 export async function revokeSessionByTokenHash(tokenHash: string) {
-  await getDb()
-    .update(sessions)
-    .set({ revokedAt: new Date() })
-    .where(and(eq(sessions.tokenHash, tokenHash), isNull(sessions.revokedAt)));
+  await getDb().transaction(async (tx) => {
+    const [session] = await tx
+      .update(sessions)
+      .set({ revokedAt: new Date() })
+      .where(and(eq(sessions.tokenHash, tokenHash), isNull(sessions.revokedAt)))
+      .returning({ userId: sessions.userId });
+    if (session) await tx.insert(auditLogs).values({ userId: session.userId, action: "user.logout", entityType: "user", entityId: session.userId });
+  });
 }
 
 export async function findActivePasswordHash(userId: string, database = getDb()) {

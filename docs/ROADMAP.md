@@ -26,7 +26,7 @@ Tham chiếu các năng lực phổ biến của Strapi 5, Payload 3, Directus 1
 |---|---|---|---|
 | Vòng đời nháp/duyệt/hẹn giờ/xuất bản | Có | Có (5 trạng thái, hẹn giờ lọc ngay lúc truy vấn) | Đạt |
 | Lịch sử phiên bản, khôi phục | Có | Có (revision theo domain + khôi phục) | Đạt |
-| Audit log | Directus, Payload | Có | Đạt |
+| Audit log | Directus, Payload | Có: người, thao tác, đối tượng, trường thay đổi, IP, thiết bị, mã request; ghi cả đăng nhập/đăng nhập sai/đăng xuất | Đạt |
 | SEO: meta, sitemap, robots, redirect, structured data | Plugin | Có sẵn + checklist sẵn sàng xuất bản | Đạt |
 | Block builder cho trang | Có | Có (15 loại block, form theo loại) | Đạt |
 | Phân quyền theo vai trò | RBAC chi tiết | Module × view/create/update/delete (+publish), role tạo/sửa trong CMS, ma trận checkbox | Đạt (chưa thử trình duyệt) |
@@ -64,7 +64,7 @@ Tham chiếu các năng lực phổ biến của Strapi 5, Payload 3, Directus 1
 10. **Lên lịch job dọn dẹp** (media, session, audit) sau khi chốt thời hạn lưu.
 
 18. ~~Tự đổi mật khẩu~~: đã có màn "Tài khoản của tôi" (`/admin/tai-khoan-cua-toi`), cần mật khẩu hiện tại, tính chung giới hạn thử với đăng nhập, đăng xuất các phiên khác và ghi nhật ký.
-19. ~~Xuất CSV khách hàng tiềm năng~~: đã có nút "Xuất CSV" theo bộ lọc đang xem (UTF-8 có BOM, chống CSV injection, tối đa 10.000 dòng, ghi nhật ký). Còn: lọc theo khoảng ngày.
+19. ~~Xuất CSV/Excel khách hàng tiềm năng~~: nút "Xuất Excel" (.xlsx, bộ tạo tự viết `shared/xlsx.ts`, không thêm dependency; đã đối chiếu bằng openpyxl: ngày theo giờ VN, tiêu đề cố định + bộ lọc, số điện thoại là chữ, chuỗi giống công thức không thành công thức) và "CSV", theo đúng trạng thái/từ khóa/khoảng thời gian/thứ tự đang xem; tối đa 10.000 dòng, ghi nhật ký kèm định dạng. Màn liên hệ là bảng (sắp xếp, chọn nhiều để đổi trạng thái hàng loạt, panel chi tiết), khoảng thời gian chọn nhanh (hôm nay, 7/30 ngày, tháng này/trước, tùy chọn).
 
 ### P2: cải tiến
 
@@ -75,7 +75,8 @@ Tham chiếu các năng lực phổ biến của Strapi 5, Payload 3, Directus 1
 15. Image ứng dụng dùng tag/digest bất biến do CI phát hành; đặt resource limit sau khi đo.
 16. `EXPLAIN ANALYZE` trên bản sao dữ liệu thật trước khi thêm index.
 17. **Từ audit navigation 15/10:** ~~JSON-LD Article/Product/Service/Breadcrumb~~ đã có ở trang chi tiết bài viết, hướng dẫn, sản phẩm/giải pháp/dịch vụ, thiết bị (`lib/structured-data.ts`); ~~nút "Tải bản mới nhất" khi gặp 409~~ đã có (thanh xung đột chung của khung CMS). Còn: `.site-shell h2` trong CSS public nằm ngoài layer; version cho sửa alt media.
-20. Thao tác hàng loạt trên bảng (chọn nhiều để lưu trữ/xuất bản); kéo thả để sắp thứ tự khối trang và menu.
+21. ~~Nhật ký chi tiết~~: đã xong. `audit_logs` có `ip_address`, `user_agent`, `request_id` (migration 0013, chỉ thêm cột), tự điền từ ngữ cảnh request (route admin bọc `withRequestContext`, AsyncLocalStorage `run`; không dùng `enterWith` vì Node 22 rò ngữ cảnh). Ghi `user.login`, `user.login_failed` (chỉ với tài khoản có thật), `user.logout`. Màn Nhật ký có cột IP/Thiết bị, tìm theo IP, panel chi tiết. Bản ghi trước 18/10 không có IP/thiết bị. Còn: chính sách thời hạn lưu (IP là dữ liệu cá nhân).
+20. ~~Bảng danh sách: sắp xếp, ghim cột, chọn nhiều~~: đã xong. `AdminDataTable` bấm tiêu đề để sắp xếp (tăng → giảm → bỏ), nút ghim/bỏ ghim ngay trên tiêu đề, cột checkbox + `ContentBulkBar` lưu trữ/khôi phục hàng loạt (bài viết, hướng dẫn, sản phẩm/giải pháp/dịch vụ, thiết bị, trang). Sắp xếp ở máy chủ qua `sort`/`dir` với danh sách trắng cột (`listOrder`), chữ theo collation `vi-x-icu`, trạng thái theo vòng đời; danh sách nhỏ (chuyển hướng, vai trò, nhóm thiết bị) sắp tại chỗ. Bộ lọc mới: bài viết theo loại/chuyên mục/thẻ; nhật ký theo người thực hiện/loại thao tác/khoảng ngày; khách hàng tiềm năng theo khoảng ngày + thứ tự (áp cho cả CSV); media theo thứ tự; chuyển hướng theo mã. Thanh lọc chung (`AdminFilterBar`): ô tìm kiếm + bộ lọc chính trên một hàng, bộ lọc ít dùng trong "Bộ lọc khác (n)", nhãn bộ lọc đang áp dụng gỡ từng cái/"Xóa tất cả"; màn ≤680px chỉ còn ô tìm kiếm + nút "Bộ lọc (n)" mở khung trượt. Khoảng thời gian dùng chung `AdminPeriodFilter` (Nhật ký, Khách hàng tiềm năng). Áp dụng cho 11 màn danh sách. Còn: xuất bản hàng loạt (cần kiểm tra điều kiện xuất bản từng mục), kéo thả sắp thứ tự khối trang và menu.
 
 ## 4. Quyết định đang chờ chủ sản phẩm
 
