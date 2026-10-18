@@ -43,6 +43,8 @@ services:
     environment:
       BACKEND_URL: http://backend:3000
       PUBLISH_WEB_REVALIDATE_SECRET: ${PUBLISH_WEB_REVALIDATE_SECRET:?missing}
+      # Để trống tới khi tạo website trong Umami; khi có thì website chèn script /stats/script.js.
+      UMAMI_WEBSITE_ID: ${UMAMI_WEBSITE_ID:-}
     depends_on:
       backend:
         condition: service_healthy
@@ -77,6 +79,10 @@ services:
       S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:?missing}
       PUBLISH_WEB_REVALIDATE_URL: http://publish-web:3000/api/internal/revalidate
       PUBLISH_WEB_REVALIDATE_SECRET: ${PUBLISH_WEB_REVALIDATE_SECRET:?missing}
+      # Số liệu truy cập cho CMS; thiếu API key hoặc mã website thì CMS báo "chưa kết nối".
+      UMAMI_API_URL: http://umami:3000
+      UMAMI_API_KEY: ${UMAMI_API_KEY:-}
+      UMAMI_WEBSITE_ID: ${UMAMI_WEBSITE_ID:-}
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -142,6 +148,43 @@ services:
       timeout: 5s
       retries: 12
 
+  # Umami dùng chung PostgreSQL nhưng database riêng. Job này tạo database nếu chưa có,
+  # chạy được cả với volume đã có dữ liệu (init script của Postgres chỉ chạy ở volume rỗng).
+  umami-db-init:
+    image: postgres:17.11-alpine3.24@sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24
+    restart: "no"
+    command: ["sh", "-c", "psql -tAc \"select 1 from pg_database where datname = 'umami'\" | grep -q 1 || psql -c 'create database umami'"]
+    environment:
+      PGHOST: db
+      PGUSER: ${POSTGRES_USER:?missing}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?missing}
+      PGDATABASE: ${POSTGRES_DB:?missing}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - internal
+
+  umami:
+    image: ghcr.io/umami-software/umami:3.4.0@sha256:85909afc45bdcda1917394594a087421fdbb05610fded0fa9f6fb861abb2f367
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:?missing}:${POSTGRES_PASSWORD:?missing}@db:5432/umami
+      APP_SECRET: ${UMAMI_APP_SECRET:?missing}
+      TWO_FACTOR_ENCRYPTION_KEY: ${UMAMI_TWO_FACTOR_ENCRYPTION_KEY:?missing}
+      DISABLE_TELEMETRY: "1"
+    depends_on:
+      umami-db-init:
+        condition: service_completed_successfully
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:3000/api/heartbeat"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+
   s3:
     image: chrislusf/seaweedfs@sha256:4e61d15fd35994cb1e43e1e553dff106794841fd9a99ade2fc8c8bfce4d7872d
     restart: unless-stopped
@@ -170,9 +213,11 @@ services:
         condition: service_healthy
       backend:
         condition: service_healthy
+      # Không phụ thuộc umami: thống kê lỗi chỉ làm hỏng /stats/*, không chặn website khởi động.
     environment:
       CMS_SITE_ADDRESS: ${CMS_SITE_ADDRESS:?missing}
       SITE_ADDRESS: ${SITE_ADDRESS:?missing}
+      ANALYTICS_SITE_ADDRESS: ${ANALYTICS_SITE_ADDRESS:?missing}
     ports:
       - "80:80"
       - "443:443"

@@ -21,6 +21,7 @@ Yêu cầu hiện tại của người dùng → source/runtime thực tế → 
 - CMS: dùng component trong `apps/cms/src/components/admin/ui/` (`AdminButton`, `AdminPagination`, `AdminDataTable`, `AdminSidePanel`…) và `apps/cms/src/lib/admin-api.ts` thay vì tự viết lại. Người vận hành không bao giờ phải nhập JSON.
 - Mutation nội dung gửi `expectedVersion` và xử lý được HTTP 409.
 - Viết theo phong cách code xung quanh. Một số file dùng CRLF, nên khi sửa bằng regex/sed phải kiểm tra lại.
+- Mọi file ghi bằng UTF-8 (không BOM). Sau khi sửa, kiểm tra tiếng Việt không bị vỡ thành dạng `Ã´`, `áº¡`. PowerShell 5.1 `Set-Content` mặc định không dùng UTF-8.
 
 ## An toàn
 

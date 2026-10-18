@@ -14,6 +14,18 @@
 		respond "Not Found" 404
 	}
 
+	# Thống kê Umami qua cùng domain: chỉ mở script theo dõi và điểm nhận sự kiện,
+	# giao diện quản trị Umami nằm ở ANALYTICS_SITE_ADDRESS.
+	handle /stats/script.js {
+		rewrite * /script.js
+		reverse_proxy umami:3000
+	}
+
+	handle /stats/api/send {
+		rewrite * /api/send
+		reverse_proxy umami:3000
+	}
+
 	reverse_proxy publish-web:3000
 }
 
@@ -34,4 +46,15 @@
 	}
 
 	reverse_proxy cms:3000
+}
+
+{$ANALYTICS_SITE_ADDRESS} {
+	encode zstd gzip
+	header {
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+	}
+
+	reverse_proxy umami:3000
 }

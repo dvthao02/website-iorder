@@ -44,17 +44,17 @@ Quy ước:
 - UUID do database sinh, mọi bảng có `created_at`/`updated_at`.
 - Vòng đời nội dung: `draft → review → scheduled → published → archived`. Xóa mềm bằng `deleted_at`. Nội dung hẹn giờ tự hiện khi `published_at <= now()`, lọc ngay lúc truy vấn, không cần job.
 - Revision là snapshot JSONB bất biến, không thay cho `audit_logs`. `audit_logs` chỉ ghi thêm.
-- Optimistic concurrency: mutation gửi `expectedVersion`; sai version trả HTTP 409, form giữ nguyên dữ liệu.
+- Optimistic concurrency: mutation gửi `expectedVersion`; sai version trả HTTP 409, form giữ nguyên dữ liệu. Nội dung xuất bản dùng `draft_version`; cấu hình và danh mục (`site_settings`, `site_profile`, `redirects`, `categories`, `tags`, `partners`, `testimonials`, `equipment_groups`, `menus`) dùng cột `version`, API admin nhận `{ values, expectedVersion }` (bắt buộc khi sửa). Seed/script gọi service không truyền version thì bỏ qua kiểm tra.
 - Media lưu `storage_key`, không lưu URL cố định; DTO dựng URL theo môi trường.
 - JSONB chỉ dùng cho cấu trúc biến thiên (block, nội dung bài, section offering, thông số thiết bị) và luôn có Zod schema.
 - Giá thiết bị là `bigint price_vnd`.
 
 | Domain | Bảng |
 |---|---|
-| Tài khoản & quyền | `users`, `roles`, `permissions`, `user_roles`, `role_permissions`, `sessions`, `login_throttle_buckets` |
+| Tài khoản & quyền | `users`, `roles` (`is_system` cho Super Admin), `permissions`, `user_roles`, `role_permissions`, `sessions`, `login_throttle_buckets` |
 | Media | `media_assets` |
 | Bài viết | `posts`, `post_revisions`, `categories`, `tags`, `post_categories`, `post_tags` |
-| Catalog | `offerings`, `offering_revisions` (type: software/solution/service/industry) |
+| Catalog | `offerings`, `offering_revisions` (type: software/solution/service; loại `industry` đã bỏ ở migration `0011`) |
 | Thiết bị | `equipment_groups`, `sales_equipment`, `sales_equipment_revisions` |
 | Trang | `pages`, `page_blocks`, `page_revisions` (homepage là page `template = home`) |
 | Điều hướng & cấu hình | `menus`, `menu_items`, `menu_revisions`, `site_profile`, `site_settings`, `redirects` |
@@ -66,14 +66,15 @@ Quyết định thiết kế đáng nhớ:
 - Một mô hình trang duy nhất (`pages` + `page_blocks`). `page_blocks.type` là text + Zod discriminated union, nên thêm block không cần migration.
 - Header/footer/CTA đều là `menus` theo `location`.
 - `redirects` chỉ nhận đường dẫn nội bộ bắt đầu bằng `/`, mã 301/308, thực thi trong `apps/publish-web/src/proxy.ts`.
-- `site_settings` giữ liên kết ngoài và tiêu đề listing. Khi thêm key mới phải có default tương thích, và seed chỉ bổ sung key còn thiếu.
+- `site_settings` giữ cấu hình xuất bản và liên kết ngoài. Khi thêm key mới phải có default tương thích, và seed chỉ bổ sung key còn thiếu.
+- **Mọi URL public là một Trang.** Trang hệ thống (`fixedWebsitePages` trong `pages.contract.ts`) có route do code giữ; CMS sửa nội dung, SEO, trạng thái nhưng không tạo/xóa/đổi slug. Trang danh sách (`kind: "listing"`: `/tin-tuc`, `/thiet-bi`, `/ho-tro/cai-dat`, `/phan-mem`, `/giai-phap`, `/dich-vu`) lấy phần đầu từ khối "Mở đầu" đầu tiên và SEO của trang; các khối còn lại hiển thị theo thứ tự, danh sách là khối `collection_list` (nguồn: bài viết, hướng dẫn, tệp cài đặt, thiết bị, phần mềm, giải pháp, dịch vụ) đặt được ở mọi trang. Trang danh sách thiếu khối danh sách thì route tự thêm danh sách mặc định (`defaultListingCollections`). `featured_posts`/`download_list` là loại cũ: vẫn đọc và render qua `collection_list`, CMS không cho thêm mới. Người có quyền `update`/`publish` của module sở hữu (`ownerModule`) sửa được trang danh sách của module đó. Key cũ `listing_content`/`catalog_content` chỉ còn là dự phòng tới khi chạy `pnpm db:backfill-listing-pages`.
 
 ### Quy tắc khi thêm nội dung public
 
 | Nghiệp vụ | Nguồn dữ liệu | Route public |
 |---|---|---|
-| Trang, homepage | `pages`, `page_blocks` | `/`, `/trang/[slug]`, các trang tĩnh |
-| Catalog | `offerings` | `/phan-mem`, `/giai-phap`, `/dich-vu`, `/nganh-nghe` |
+| Trang, homepage, phần đầu trang danh sách | `pages`, `page_blocks` | `/`, `/trang/[slug]`, các trang tĩnh, trang danh sách |
+| Catalog | `offerings` | `/phan-mem`, `/giai-phap`, `/dich-vu` |
 | Thiết bị | `equipment_groups`, `sales_equipment` | `/thiet-bi` |
 | Bài viết, hướng dẫn | `posts`, taxonomy | `/tin-tuc`, `/ho-tro/cai-dat` |
 | Header, CTA, footer | `menus`, `site_settings` | layout public |
@@ -90,7 +91,7 @@ Quyết định thiết kế đáng nhớ:
 | Phiên đăng nhập | Token 32 byte ngẫu nhiên, DB chỉ lưu SHA-256; cookie `HttpOnly`, `SameSite=Lax`, `Secure` ở production, hạn 7 ngày |
 | Chống dò mật khẩu | Quota PostgreSQL nguyên tử: 5 lần/15 phút theo username, 10 lần/15 phút theo IP; HTTP 429 kèm `Retry-After`; DB chỉ lưu HMAC |
 | Chống request khác nguồn | `apps/backend/src/proxy.ts`: mutation `/api/admin/*` có `Origin` khác host public (theo `X-Forwarded-Host`) trả 403 |
-| Phân quyền | `packages/core/src/server/auth/permissions.ts`: 14 permission, 7 role (admin, content_manager, editor, publisher, marketing, support, analyst), kiểm tra tập trung trong `proxy.ts`. **Đang triển khai**, xem ROADMAP |
+| Phân quyền | RBAC `module.action` (`view/create/update/delete`, thêm `publish` cho nội dung xuất bản). Danh mục quyền là code (`permissions.ts`), seed đồng bộ vào DB; role là dữ liệu do admin tạo/sửa ở trang Vai trò, mỗi user một role. Kiểm tra 2 lớp: `apps/backend/src/proxy.ts` theo module + method, route handler kiểm tra đúng hành động và `publish` (`lib/admin-access.ts`). Super Admin (`is_system`) không sửa/xóa được, luôn đủ quyền, không mất Super Admin cuối. Chống leo thang: chỉ cấp quyền mình có, không tự sửa role/khóa mình, chỉ Super Admin đụng tài khoản Super Admin. CMS dùng `useAdminPermissions().can()` chỉ để ẩn thao tác |
 | Input | Zod strict ở mọi ranh giới; Drizzle tham số hóa truy vấn |
 | Media | Kiểm magic bytes (PNG/JPEG/WebP/PDF/ZIP), tối đa 20 MB, object đã xóa mềm trả 404 |
 | Lead | Honeypot, tối đa 1 lần/15 phút cho mỗi IP đã băm; khóa advisory chống request đồng thời |
@@ -115,13 +116,14 @@ pnpm dev                      # 3000
 
 ### Production (VPS + Docker Compose)
 
-Dịch vụ: `proxy` (Caddy), `publish-web`, `cms`, `backend`, `db` (PostgreSQL 17), `s3` (SeaweedFS một node), cùng hai job chạy một lần là `migrate` và `seed-admin`. Image nền được ghim digest.
+Dịch vụ: `proxy` (Caddy), `publish-web`, `cms`, `backend`, `db` (PostgreSQL 17), `s3` (SeaweedFS một node), `umami` (thống kê truy cập, database `umami` riêng trên cùng PostgreSQL), cùng các job chạy một lần `migrate`, `seed-admin`, `umami-db-init`. Image nền được ghim digest.
 
-1. Trỏ DNS `SITE_ADDRESS` và `CMS_SITE_ADDRESS` về VPS, mở cổng 80/443.
+1. Trỏ DNS `SITE_ADDRESS`, `CMS_SITE_ADDRESS` và `ANALYTICS_SITE_ADDRESS` về VPS, mở cổng 80/443.
 2. `cp .env.production.example .env.production && chmod 600 .env.production`, rồi thay mọi giá trị `replace_with_...`.
 3. `docker compose --env-file .env.production -f compose.production.yaml up -d --build`
 4. Kiểm tra `logs seed-admin`. Job này tạo hoặc nâng quyền tài khoản `INITIAL_ADMIN_*`, không ghi đè mật khẩu đã có.
 5. Kiểm tra storage: `... run --rm migrate node scripts/audit-s3-storage.mjs`
+6. Thống kê: mở `ANALYTICS_SITE_ADDRESS`, đăng nhập `admin`/`umami` và **đổi mật khẩu ngay**, thêm website (domain = `SITE_ADDRESS`), tạo API key; điền `UMAMI_WEBSITE_ID`, `UMAMI_API_KEY` vào `.env.production` rồi chạy lại lệnh `up -d`. Chưa điền thì website không chèn script và CMS báo "chưa kết nối".
 
 Cập nhật: `git pull --ff-only`, rồi chạy lại lệnh `up -d --build`. Migration chạy trước khi thay container; nếu release không lên, xem `logs migrate`.
 
@@ -139,6 +141,11 @@ Sao lưu:
 - Phải thử restore trước khi tin vào bản sao lưu.
 
 Chuyển dữ liệu từ MinIO cũ: volume `seaweed-data` là volume mới. Nếu production đã có media thì phải sao chép object và đối soát với `storage_key` trước khi cutover, đồng thời giữ volume cũ cho đến khi restore đạt.
+
+### Thống kê truy cập (Umami)
+
+- Website chèn `/stats/script.js` khi có `UMAMI_WEBSITE_ID`; script và sự kiện (`/stats/api/send`) đi qua cùng domain website. Production: Caddy chỉ mở hai đường này tới `umami`; giao diện Umami ở `ANALYTICS_SITE_ADDRESS`. Local: rewrite của publish-web khi có `UMAMI_URL`, chạy `docker compose --profile analytics up -d` (cổng 3005).
+- Backend đọc số liệu qua Umami API bằng API key (`Authorization: Bearer umami_…`), response kiểm bằng Zod; Umami lỗi thì CMS hiện trạng thái lỗi, không làm hỏng dashboard. Không dùng cookie nên không cần banner đồng ý.
 
 ## 5. Kiểm thử và cổng chất lượng
 
