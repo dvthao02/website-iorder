@@ -73,6 +73,8 @@ export async function getExternalLinks() { return (await getSharedContent()).set
 export async function getCatalogContent() { return (await getSharedContent()).settings.catalogContent; }
 export async function getListingContent() { return (await getSharedContent()).settings.listingContent; }
 export async function getNavigation(location = "header") { const navigation = (await getSharedContent()).navigation; return location === "header_cta" ? navigation.headerCta : location === "footer" ? navigation.footer : navigation.header; }
+// Trang hệ thống: kèm cờ "đã tồn tại" để phân biệt trang bị ẩn với trang chưa tạo.
+export async function getPublishedPageState(slug: string) { const result = await publicResource<{ page: PublishedPage | null; systemPageExists?: boolean }>("page", { slug }); return { page: result.page ?? undefined, exists: Boolean(result.page || result.systemPageExists) }; }
 export async function getPublishedPage(slug: string) { return (await publicResource<{ page: PublishedPage | null }>("page", { slug })).page ?? undefined; }
 export async function getPublishedPageSummaries() { return (await publicResource<{ pages: PublishedPageSummaries }>("page-summaries")).pages; }
 export async function getPublishedPostSummaries(type?: PublicPostType): Promise<PublicPostSummary[]> { return (await publicResource<{ posts: PublicPostSummary[] }>("post-summaries", { postType: type })).posts; }
@@ -87,12 +89,17 @@ export async function getEquipment(_publicOnly = false): Promise<PublicEquipment
 export async function getEnabledSupportDownloads(): Promise<PublicSupportDownloads> { return (await publicResource<{ downloads: PublicSupportDownloads }>("downloads")).downloads; }
 export async function getPartners(_enabledOnly = false): Promise<PublicPartners> { void _enabledOnly; return (await publicResource<{ partners: PublicPartners }>("partners")).partners; }
 export async function getTestimonials(_enabledOnly = false): Promise<PublicTestimonials> { void _enabledOnly; return (await publicResource<{ testimonials: PublicTestimonials }>("testimonials")).testimonials; }
+// Logo/OG image are decorative: a failed lookup renders the page without them.
 export async function getMediaById(id: string) {
-  const response = await fetch(`${backendUrl}/api/public/media/${encodeURIComponent(id)}`, publicCacheOptions);
-  if (!response.ok) return null;
-  return (await response.json() as { asset: PublicMedia }).asset;
+  try {
+    const response = await fetch(`${backendUrl}/api/public/media/${encodeURIComponent(id)}`, publicCacheOptions);
+    if (!response.ok) return null;
+    return (await response.json() as { asset: PublicMedia }).asset;
+  } catch {
+    return null;
+  }
 }
-export async function getEnabledRedirect(path: string) {
+export async function getEnabledRedirect(path: string): Promise<{ destinationPath: string; statusCode: 301 | 308 } | null> {
   const response = await fetch(`${backendUrl}/api/public/redirect?path=${encodeURIComponent(path)}`, publicCacheOptions);
   if (!response.ok) return null;
   return (await response.json()).redirect;

@@ -1,20 +1,26 @@
 import { notFound } from "next/navigation";
+import type { ResolvingMetadata } from "next";
+import { contentMetadata } from "@/lib/page-metadata";
 import Image from "next/image";
 import Link from "next/link";
 import { SiteHeader } from "@/components/site/site-header";
-import { getEquipment } from "@/lib/backend";
+import { getEquipment, getPublishingConfig, getSiteProfile } from "@/lib/backend";
+import { JsonLd } from "@/components/site/json-ld";
+import { articleJsonLd, breadcrumbJsonLd, productJsonLd, serviceJsonLd } from "@/lib/structured-data";
 export const revalidate = 0;
 type Props = { params: Promise<{ slug: string }> };
-export async function generateMetadata({ params }: Props) {
+export async function generateMetadata({ params }: Props, parent: ResolvingMetadata) {
   const { slug } = await params;
   const item = (await getEquipment(true)).find(row => row.slug === slug);
-  return item ? { title: `${item.seoTitle || item.name} | iOrder`, description: item.seoDescription || item.summary, alternates: item.canonicalUrl ? { canonical: item.canonicalUrl } : undefined } : { title: "Không tìm thấy thiết bị" };
+  return item ? contentMetadata({ title: `${item.seoTitle || item.name} | iOrder`, description: item.seoDescription || item.summary, path: `/thiet-bi/${item.slug}`, canonicalUrl: item.canonicalUrl, image: item.coverUrl ? { url: item.coverUrl, alt: item.coverAlt } : null }, parent) : { title: "Không tìm thấy thiết bị | iOrder" };
 }
 export default async function EquipmentDetail({ params }: Props) {
   const { slug } = await params;
   const item = (await getEquipment(true)).find(row => row.slug === slug);
   if (!item) notFound();
-  return <><SiteHeader /><main className="mx-auto max-w-4xl p-6"><Link href="/thiet-bi">← Thiết bị</Link><h1 className="my-6 text-3xl font-bold">{item.name}</h1>
+  const [config, profile] = await Promise.all([getPublishingConfig(), getSiteProfile()]);
+  const site = config.siteUrl;
+  return <><SiteHeader />{site ? <JsonLd data={[productJsonLd(site, { name: item.name, description: item.seoDescription || item.summary, path: `/thiet-bi/${item.slug}`, imagePath: item.coverUrl ?? null, sku: item.modelCode, priceVnd: item.priceVnd, brand: profile?.companyName ?? "iOrder" }), breadcrumbJsonLd(site, [{ name: "Trang chủ", path: "/" }, { name: "Thiết bị", path: "/thiet-bi" }, { name: item.name, path: `/thiet-bi/${item.slug}` }])]} /> : null}<main className="mx-auto max-w-4xl p-6"><Link href="/thiet-bi">← Thiết bị</Link><h1 className="my-6 text-3xl font-bold">{item.name}</h1>
     {item.coverUrl ? <Image src={item.coverUrl} alt={item.coverAlt ?? item.name} width={1000} height={700} className="h-auto w-full" /> : null}
     <p>{item.groupName} · {item.modelCode}</p><p>{new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(item.priceVnd)}</p><p>Bảo hành: {item.warrantyMonths} tháng</p><p>{item.summary}</p>
     {item.specificationGroups.map((group, index) => <section key={index} className="my-6"><h2 className="text-xl font-bold">{group.title}</h2><dl>{group.items.map((spec, i) => {

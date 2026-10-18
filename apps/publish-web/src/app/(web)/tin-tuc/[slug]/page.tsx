@@ -1,11 +1,14 @@
-import type { Metadata } from "next";
+import type { Metadata, ResolvingMetadata } from "next";
+import { contentMetadata } from "@/lib/page-metadata";
 import Link from "next/link";
 import Image from "next/image";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 
 import { PostContent } from "@/components/site/post-content";
 import { SiteHeader } from "@/components/site/site-header";
-import { getPublishedPostBySlug } from "@/lib/backend";
+import { getPublishedPostBySlug, getPublishingConfig, getSiteProfile } from "@/lib/backend";
+import { JsonLd } from "@/components/site/json-ld";
+import { articleJsonLd, breadcrumbJsonLd, productJsonLd, serviceJsonLd } from "@/lib/structured-data";
 
 export const revalidate = 0;
 
@@ -13,7 +16,7 @@ type NewsDetailPageProps = {
   params: Promise<{ slug: string }>;
 };
 
-export async function generateMetadata({ params }: NewsDetailPageProps): Promise<Metadata> {
+export async function generateMetadata({ params }: NewsDetailPageProps, parent: ResolvingMetadata): Promise<Metadata> {
   const { slug } = await params;
   const post = await getPublishedPostBySlug(slug);
 
@@ -21,11 +24,7 @@ export async function generateMetadata({ params }: NewsDetailPageProps): Promise
     return { title: "Không tìm thấy bài viết | iOrder" };
   }
 
-  return {
-    title: `${post.seoTitle ?? post.title} | iOrder`,
-    description: post.seoDescription ?? post.excerpt ?? undefined,
-    alternates: post.canonicalUrl ? { canonical: post.canonicalUrl } : undefined,
-  };
+  return contentMetadata({ title: `${post.seoTitle ?? post.title} | iOrder`, description: post.seoDescription ?? post.excerpt, path: `/tin-tuc/${post.slug}`, canonicalUrl: post.canonicalUrl, image: post.cover ? { url: post.cover.url, alt: post.cover.altText } : null, type: "article" }, parent);
 }
 
 const postTypeLabel = {
@@ -43,10 +42,15 @@ export default async function NewsDetailPage({ params }: NewsDetailPageProps) {
   if (!post) {
     notFound();
   }
+  // Bài hướng dẫn có trang riêng; tránh trùng nội dung dưới hai URL.
+  if (post.type === "guide") permanentRedirect(`/ho-tro/cai-dat/${post.slug}`);
+  const [config, profile] = await Promise.all([getPublishingConfig(), getSiteProfile()]);
+  const site = config.siteUrl;
 
   return (
     <>
       <SiteHeader />
+      {site ? <JsonLd data={[articleJsonLd(site, { title: post.title, description: post.seoDescription ?? post.excerpt, path: `/tin-tuc/${post.slug}`, imagePath: post.cover?.url ?? null, publishedAt: post.publishedAt, publisherName: profile?.companyName ?? "iOrder" }), breadcrumbJsonLd(site, [{ name: "Trang chủ", path: "/" }, { name: "Tin tức", path: "/tin-tuc" }, { name: post.title, path: `/tin-tuc/${post.slug}` }])]} /> : null}
       <main className="mx-auto max-w-3xl px-6 py-16 sm:py-24">
         <Link className="mb-8 inline-flex text-sm font-bold text-blue-700 hover:text-blue-900" href="/tin-tuc">
           ← Tất cả bài viết

@@ -14,7 +14,13 @@ export async function proxy(request: NextRequest) {
   // participate in CMS URL redirects.
   if (pathname.startsWith("/api")) return NextResponse.next();
 
-  const redirect = await getEnabledRedirect(request.nextUrl.pathname);
+  // Redirects are an optimisation for old URLs; a Backend outage must not block every page.
+  let redirect: Awaited<ReturnType<typeof getEnabledRedirect>> = null;
+  try {
+    redirect = await getEnabledRedirect(request.nextUrl.pathname);
+  } catch {
+    console.error("Không kiểm tra được chuyển hướng URL từ Backend; tiếp tục hiển thị trang.");
+  }
   if (!redirect) return NextResponse.next();
   const destination = new URL(redirect.destinationPath, request.url);
   destination.search = request.nextUrl.search;

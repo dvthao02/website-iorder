@@ -1,12 +1,13 @@
 import { SiteHeader } from "@/components/site/site-header";
 import { PageBlockRenderer } from "@/components/site/page-block-renderer";
 import { getPublishedPage } from "@/lib/backend";
-import type { Metadata } from "next";
+import type { Metadata, ResolvingMetadata } from "next";
+import { contentMetadata } from "@/lib/page-metadata";
 
 export const revalidate = 0;
-export async function generateMetadata(): Promise<Metadata> {
+export async function generateMetadata(_: unknown, parent: ResolvingMetadata): Promise<Metadata> {
   const page = await getPublishedPage("home");
-  return page ? { title: page.seoTitle || page.title, description: page.seoDescription || undefined, alternates: page.canonicalUrl ? { canonical: page.canonicalUrl } : undefined } : {};
+  return page ? contentMetadata({ title: page.seoTitle || page.title, description: page.seoDescription, path: "/", canonicalUrl: page.canonicalUrl }, parent) : {};
 }
 export default async function Home() {
   const page = await getPublishedPage("home");

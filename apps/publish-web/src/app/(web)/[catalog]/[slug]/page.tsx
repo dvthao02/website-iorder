@@ -1,11 +1,14 @@
-import type { Metadata } from "next";
+import type { Metadata, ResolvingMetadata } from "next";
+import { contentMetadata } from "@/lib/page-metadata";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { OfferingContent } from "@/components/site/offering-content";
 import { SiteHeader } from "@/components/site/site-header";
-import { getOfferingTypeFromCatalogPath, getPublishedOfferingBySlug } from "@/lib/backend";
+import { getOfferingTypeFromCatalogPath, getPublishedOfferingBySlug, getPublishingConfig, getSiteProfile } from "@/lib/backend";
+import { JsonLd } from "@/components/site/json-ld";
+import { articleJsonLd, breadcrumbJsonLd, productJsonLd, serviceJsonLd } from "@/lib/structured-data";
 
 export const revalidate = 0;
 
@@ -19,7 +22,7 @@ const catalogLabel = {
   "phan-mem": "Phần mềm",
 } as const;
 
-export async function generateMetadata({ params }: OfferingDetailPageProps): Promise<Metadata> {
+export async function generateMetadata({ params }: OfferingDetailPageProps, parent: ResolvingMetadata): Promise<Metadata> {
   const { catalog, slug } = await params;
   const type = getOfferingTypeFromCatalogPath(catalog);
 
@@ -30,7 +33,7 @@ export async function generateMetadata({ params }: OfferingDetailPageProps): Pro
   const offering = await getPublishedOfferingBySlug(type, slug);
 
   return offering
-    ? { title: `${offering.seoTitle ?? offering.title} | iOrder`, description: offering.seoDescription ?? offering.summary ?? undefined, alternates: offering.canonicalUrl ? { canonical: offering.canonicalUrl } : undefined }
+    ? contentMetadata({ title: `${offering.seoTitle ?? offering.title} | iOrder`, description: offering.seoDescription ?? offering.summary, path: `/${catalog}/${offering.slug}`, canonicalUrl: offering.canonicalUrl, image: offering.cover ? { url: offering.cover.url, alt: offering.cover.altText } : null }, parent)
     : { title: "Không tìm thấy nội dung | iOrder" };
 }
 
@@ -43,7 +46,8 @@ export default async function OfferingDetailPage({ params }: OfferingDetailPageP
     notFound();
   }
 
-  const offering = await getPublishedOfferingBySlug(type, slug);
+  const [offering, config, profile] = await Promise.all([getPublishedOfferingBySlug(type, slug), getPublishingConfig(), getSiteProfile()]);
+  const site = config.siteUrl;
 
   if (!offering) {
     notFound();
@@ -52,6 +56,7 @@ export default async function OfferingDetailPage({ params }: OfferingDetailPageP
   return (
     <>
       <SiteHeader />
+      {site ? <JsonLd data={[serviceJsonLd(site, { name: offering.title, description: offering.seoDescription ?? offering.summary, path: `/${catalog}/${offering.slug}`, imagePath: offering.cover?.url ?? null, providerName: profile?.companyName ?? "iOrder" }), breadcrumbJsonLd(site, [{ name: "Trang chủ", path: "/" }, { name: label, path: `/${catalog}` }, { name: offering.title, path: `/${catalog}/${offering.slug}` }])]} /> : null}
       <main className="mx-auto max-w-3xl px-6 py-16 sm:py-24">
         <Link className="mb-8 inline-flex text-sm font-bold text-blue-700 hover:text-blue-900" href={`/${catalog}`}>
           ← Tất cả {label.toLowerCase()}

@@ -2,9 +2,8 @@ import Image from "next/image";
 import Link from "next/link";
 import type { PageBlock } from "@iorder/core/server/pages/pages.contract";
 import { getMediaById } from "@/lib/backend";
-import { getPublishedPostSummaries } from "@/lib/backend";
-import { getEnabledSupportDownloads } from "@/lib/backend";
 import { getPartners, getTestimonials } from "@/lib/backend";
+import { CollectionList } from "./collection-list";
 import { LeadForm } from "./lead-form";
 
 export async function PageBlockRenderer({ blocks }: { blocks: PageBlock[] }) {
@@ -23,9 +22,11 @@ async function Block({ block }: { block: PageBlock }) {
   if (block.type === "lead_form") return <LeadForm {...block.data} />;
   if (block.type === "rich_text") return <section className={section}>{block.data.heading ? <h2 className="text-3xl font-bold">{block.data.heading}</h2> : null}{block.data.body.split("\n").map((paragraph, index) => paragraph ? <p key={index}>{paragraph}</p> : null)}</section>;
   if (block.type === "image") { const media = await getMediaById(block.data.mediaId); return media?.mimeType.startsWith("image/") ? <figure className={section}><Image src={media.url} alt={block.data.alt ?? media.altText ?? ""} width={1200} height={800} className="h-auto w-full" />{block.data.caption ? <figcaption>{block.data.caption}</figcaption> : null}</figure> : null; }
-  if (block.type === "featured_posts") { const posts = (await getPublishedPostSummaries()).slice(0, block.data.limit); return <section className={section}><p>{block.data.eyebrow}</p><h2 className="text-3xl font-bold">{block.data.title}</h2>{posts.map(post => <Link key={post.id} href={post.type === "guide" ? `/ho-tro/cai-dat/${post.slug}` : `/tin-tuc/${post.slug}`}><article><h3>{post.title}</h3><p>{post.excerpt}</p></article></Link>)}</section>; }
-  const downloads = await getEnabledSupportDownloads();
-  return <section className={section}><p>{block.data.eyebrow}</p><h2 className="text-3xl font-bold">{block.data.title}</h2>{downloads.map(download => <a href={download.downloadUrl} key={download.id}>{download.title}</a>)}</section>;
+  // featured_posts/download_list are kept for stored pages; both render as a collection_list.
+  if (block.type === "collection_list") return <CollectionList data={block.data} />;
+  if (block.type === "featured_posts") return <CollectionList data={{ source: "posts", eyebrow: block.data.eyebrow, title: block.data.title, description: null, limit: block.data.limit, anchor: null }} />;
+  if (block.type === "download_list") return <CollectionList data={{ source: "downloads", eyebrow: block.data.eyebrow, title: block.data.title, description: null, limit: null, anchor: null }} />;
+  return null;
 }
 
 function Actions({ actions }: { actions: Array<{ label: string; href: string } | null> }) { return <div className="flex gap-3">{actions.filter((action): action is { label: string; href: string } => Boolean(action)).map(action => <Link key={action.href} href={action.href}>{action.label}</Link>)}</div>; }

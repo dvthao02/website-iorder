@@ -1,29 +1,35 @@
-import type { Metadata } from "next";
+import type { Metadata, ResolvingMetadata } from "next";
+import { contentMetadata } from "@/lib/page-metadata";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { PostContent } from "@/components/site/post-content";
 import { SiteHeader } from "@/components/site/site-header";
-import { getPublishedPostBySlug } from "@/lib/backend";
+import { getPublishedPostBySlug, getPublishingConfig, getSiteProfile } from "@/lib/backend";
+import { JsonLd } from "@/components/site/json-ld";
+import { articleJsonLd, breadcrumbJsonLd, productJsonLd, serviceJsonLd } from "@/lib/structured-data";
 
 export const revalidate = 0;
 
 type SupportGuideDetailPageProps = { params: Promise<{ slug: string }> };
 
-export async function generateMetadata({ params }: SupportGuideDetailPageProps): Promise<Metadata> {
+export async function generateMetadata({ params }: SupportGuideDetailPageProps, parent: ResolvingMetadata): Promise<Metadata> {
   const post = await getPublishedPostBySlug((await params).slug);
   return post?.type === "guide"
-    ? { title: `${post.seoTitle ?? post.title} | iOrder`, description: post.seoDescription ?? post.excerpt ?? undefined, alternates: post.canonicalUrl ? { canonical: post.canonicalUrl } : undefined }
+    ? contentMetadata({ title: `${post.seoTitle ?? post.title} | iOrder`, description: post.seoDescription ?? post.excerpt, path: `/ho-tro/cai-dat/${post.slug}`, canonicalUrl: post.canonicalUrl, image: post.cover ? { url: post.cover.url, alt: post.cover.altText } : null, type: "article" }, parent)
     : { title: "Không tìm thấy hướng dẫn | iOrder" };
 }
 
 export default async function SupportGuideDetailPage({ params }: SupportGuideDetailPageProps) {
   const post = await getPublishedPostBySlug((await params).slug);
   if (!post || post.type !== "guide") notFound();
+  const [config, profile] = await Promise.all([getPublishingConfig(), getSiteProfile()]);
+  const site = config.siteUrl;
 
   return (
     <>
       <SiteHeader />
+      {site ? <JsonLd data={[articleJsonLd(site, { title: post.title, description: post.seoDescription ?? post.excerpt, path: `/ho-tro/cai-dat/${post.slug}`, imagePath: post.cover?.url ?? null, publishedAt: post.publishedAt, publisherName: profile?.companyName ?? "iOrder" }), breadcrumbJsonLd(site, [{ name: "Trang chủ", path: "/" }, { name: "Hỗ trợ cài đặt", path: "/ho-tro/cai-dat" }, { name: post.title, path: `/ho-tro/cai-dat/${post.slug}` }])]} /> : null}
       <main className="mx-auto max-w-3xl px-6 py-16 sm:py-24">
         <Link className="mb-8 inline-flex text-sm font-bold text-blue-700 hover:text-blue-900" href="/ho-tro/cai-dat#huong-dan">← Hướng dẫn sử dụng</Link>
         <article>

@@ -22,6 +22,12 @@ const nextConfig: NextConfig = {
     return [
       { source: "/api/leads", destination: `${process.env.BACKEND_URL ?? "http://localhost:3002"}/api/leads` },
       { source: "/media/:path*", destination: `${process.env.BACKEND_URL ?? "http://localhost:3002"}/media/:path*` },
+      // Local: chuyển script và sự kiện thống kê sang Umami. Production để Caddy chuyển tiếp
+      // (giữ đúng X-Forwarded-For), nên image không đặt UMAMI_URL.
+      ...(process.env.UMAMI_URL ? [
+        { source: "/stats/script.js", destination: `${process.env.UMAMI_URL}/script.js` },
+        { source: "/stats/api/send", destination: `${process.env.UMAMI_URL}/api/send` },
+      ] : []),
     ];
   },
 };
