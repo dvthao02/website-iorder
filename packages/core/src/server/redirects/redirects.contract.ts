@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { expectedVersionSchema } from "../shared/content-version";
 
 const internalPath = z.string().trim().min(1).max(1_000).refine((value) => value.startsWith("/") && !value.startsWith("//") && !/[\\\u0000-\u0020\u007f]/.test(value), "Đường dẫn nội bộ phải bắt đầu bằng một dấu gạch chéo và không chứa khoảng trắng, ký tự điều khiển hoặc gạch chéo ngược.");
 
@@ -17,5 +18,7 @@ export const redirectInputSchema = z.object({
   }
 });
 
-export const redirectRequestSchema = z.object({ id: z.string().uuid().nullable(), values: redirectInputSchema }).strict();
+export const redirectRequestSchema = z.object({ id: z.string().uuid().nullable(), values: redirectInputSchema, expectedVersion: expectedVersionSchema.optional() }).strict().superRefine((value, context) => {
+  if (value.id && value.expectedVersion === undefined) context.addIssue({ code: "custom", path: ["expectedVersion"], message: "Vui lòng tải lại để lấy phiên bản trước khi lưu." });
+});
 export type RedirectInput = z.infer<typeof redirectInputSchema>;

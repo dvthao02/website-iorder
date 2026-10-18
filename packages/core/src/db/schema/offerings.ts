@@ -60,7 +60,7 @@ export const equipmentGroups = pgTable(
     sortOrder: integer("sort_order").default(0).notNull(),
     isEnabled: boolean("is_enabled").default(true).notNull(),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
-    ...timestamps(),
+    version: integer("version").default(0).notNull(), ...timestamps(),
   },
   (table) => [
     uniqueIndex("equipment_groups_active_slug_unique").on(table.slug).where(sql`${table.deletedAt} is null`),

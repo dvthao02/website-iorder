@@ -22,8 +22,9 @@ export type TestimonialInput = z.infer<typeof testimonialInputSchema>;
 export const supportingSaveResponseSchema = z.object({ id: z.string().uuid() });
 
 const supportingImageSchema = z.object({ url: z.string().min(1), altText: z.string().nullable() }).nullable();
-export const partnerListItemSchema = partnerInputSchema.extend({ id: z.string().uuid(), logo: supportingImageSchema }).strip();
-export const testimonialListItemSchema = testimonialInputSchema.extend({ id: z.string().uuid(), avatar: supportingImageSchema }).strip();
+// `version` chỉ có ở danh sách admin (optimistic concurrency), không có trong dữ liệu public.
+export const partnerListItemSchema = partnerInputSchema.extend({ id: z.string().uuid(), version: z.number().int().nonnegative(), logo: supportingImageSchema }).strip();
+export const testimonialListItemSchema = testimonialInputSchema.extend({ id: z.string().uuid(), version: z.number().int().nonnegative(), avatar: supportingImageSchema }).strip();
 
 function supportingPageSchema<T extends z.ZodType<{ id: string }>>(item: T) {
   return z.object({

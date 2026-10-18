@@ -9,7 +9,7 @@ import { listCmsUsers, listCmsUsersPage, writeCmsUser } from "../packages/core/s
 import { cmsUserListQuerySchema } from "../packages/core/src/server/users/users.contract";
 import { findActiveAdministratorByUsername, findActiveAdministratorSession } from "../packages/core/src/server/auth/auth.repository";
 import { hasDatabaseErrorCode } from "../packages/core/src/server/shared/database-error";
-import { CmsUserPermissionError } from "../packages/core/src/server/users/users.errors";
+import { CmsAccessError } from "../packages/core/src/server/roles/roles.errors";
 
 config({ quiet: true });
 
@@ -23,7 +23,7 @@ async function main() {
   try {
     await control`create schema ${control(scope)}`;
     created = true;
-    for (const table of ["users", "roles", "user_roles", "sessions", "audit_logs"]) {
+    for (const table of ["users", "roles", "permissions", "role_permissions", "user_roles", "sessions", "audit_logs"]) {
       await control`create table ${control(scope)}.${control(table)} (like public.${control(table)} including all)`;
     }
     for (const client of clients) {
@@ -66,7 +66,7 @@ async function main() {
     ]);
     assert.equal(outcomes.filter((result) => result.status === "fulfilled").length, 1);
     const rejected = outcomes.find((result) => result.status === "rejected");
-    assert.ok(rejected?.status === "rejected" && (rejected.reason instanceof z.ZodError || rejected.reason instanceof CmsUserPermissionError));
+    assert.ok(rejected?.status === "rejected" && (rejected.reason instanceof z.ZodError || rejected.reason instanceof CmsAccessError));
     const [admins] = await clients[0]`select count(*)::int as total from users u join user_roles ur on ur.user_id=u.id join roles r on r.id=ur.role_id where u.status='active' and r.code='admin'`;
     assert.equal(admins.total, 1);
     const editorId = outcomes[0].status === "fulfilled" ? first : second;
@@ -74,8 +74,8 @@ async function main() {
     const adminId = editorId === first ? second : first;
     const adminName = adminId === first ? "audit-a" : "audit-b";
     actor = adminId;
-    await assert.rejects(writeCmsUser(null, { ...base, username: "audit-forbidden-editor" }, editorId, db[0]), CmsUserPermissionError);
-    await assert.rejects(writeCmsUser(null, { ...base, username: "audit-forbidden-missing" }, randomUUID(), db[0]), CmsUserPermissionError);
+    await assert.rejects(writeCmsUser(null, { ...base, username: "audit-forbidden-editor" }, editorId, db[0]), CmsAccessError);
+    await assert.rejects(writeCmsUser(null, { ...base, username: "audit-forbidden-missing" }, randomUUID(), db[0]), CmsAccessError);
     const editorToken = editorId === first ? "fixture-role-a" : "fixture-role-b";
     const adminToken = adminId === first ? "fixture-role-a" : "fixture-role-b";
     assert.equal((await findActiveAdministratorSession(editorToken, new Date(), db[0]))?.role, "editor");
@@ -92,14 +92,14 @@ async function main() {
     const [revoked] = await clients[0]`select count(*)::int as total, count(*) filter (where revoked_at is not null)::int as revoked from sessions where user_id=${editorId}`;
     assert.equal(revoked.total, 3);
     assert.equal(revoked.revoked, 3);
-    await assert.rejects(writeCmsUser(null, { ...base, username: "audit-forbidden-disabled" }, editorId, db[0]), CmsUserPermissionError);
+    await assert.rejects(writeCmsUser(null, { ...base, username: "audit-forbidden-disabled" }, editorId, db[0]), CmsAccessError);
     assert.equal(await findActiveAdministratorSession("fixture-editor-session-1", new Date(), db[0]), undefined);
     // Session chưa revoked vẫn không được nhận khi user disabled.
     await clients[0]`insert into sessions (user_id, token_hash, expires_at) values (${editorId}, 'fixture-disabled-user', now() + interval '1 day')`;
     assert.equal(await findActiveAdministratorSession("fixture-disabled-user", new Date(), db[0]), undefined);
     await clients[0]`insert into sessions (user_id, token_hash, expires_at, revoked_at) values (${adminId}, 'fixture-revoked-admin', now() + interval '1 day', now())`;
     assert.equal(await findActiveAdministratorSession("fixture-revoked-admin", new Date(), db[0]), undefined);
-    await assert.rejects(writeCmsUser(adminId, { ...base, username: adminName, status: "disabled" }, actor, db[1]), z.ZodError);
+    await assert.rejects(writeCmsUser(adminId, { ...base, username: adminName, status: "disabled" }, actor, db[1]), (error: unknown) => error instanceof z.ZodError || error instanceof CmsAccessError);
     const [retained] = await clients[0]`select u.status, s.revoked_at from users u join sessions s on s.user_id=u.id where u.id=${adminId} and s.token_hash='fixture-admin-session'`;
     assert.equal(retained.status, "active");
     assert.equal(retained.revoked_at, null);
@@ -143,7 +143,7 @@ async function main() {
       await clients[0]`commit`;
       committed = true;
       const result = await pendingWrite;
-      assert.ok(result.status === "rejected" && result.reason instanceof CmsUserPermissionError);
+      assert.ok(result.status === "rejected" && result.reason instanceof CmsAccessError);
       const [afterWaiting] = await clients[0]`select count(*)::int as total from users where username='audit-forbidden-waiting'`;
       assert.equal(afterWaiting.total, 0);
       const [afterWaitingLogs] = await clients[0]`select count(*)::int as total from audit_logs`;
@@ -208,7 +208,8 @@ async function main() {
   }
 }
 
-void main().catch(() => {
+void main().catch((error: unknown) => {
+  if (process.env.AUDIT_DEBUG) console.error(error instanceof Error ? error.stack : error);
   console.error("Audit DB tài khoản thất bại; kiểm tra runner/schema local. Không in dữ liệu tài khoản hoặc secret.");
   process.exitCode = 1;
 });

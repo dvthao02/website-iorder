@@ -24,7 +24,7 @@ test("Bộ lọc tài khoản giới hạn phân trang, role/status và không n
   const input = { page: "2", pageSize: "5", query: "  Nguyễn Văn  ", status: "disabled", role: "editor" };
   assert.deepEqual(cmsUserListQuerySchema.parse(input), { page: 2, pageSize: 5, query: "Nguyễn Văn", status: "disabled", role: "editor" });
   assert.equal(input.query, "  Nguyễn Văn  ");
-  for (const invalid of [{ page: 0 }, { page: 1.5 }, { pageSize: 101 }, { pageSize: 4 }, { role: "owner" }, { status: "deleted" }, { query: "a".repeat(161) }, { password: "fixture" }]) assert.equal(cmsUserListQuerySchema.safeParse(invalid).success, false);
+  for (const invalid of [{ page: 0 }, { page: 1.5 }, { pageSize: 101 }, { pageSize: 4 }, { role: "Owner Role!" }, { status: "deleted" }, { query: "a".repeat(161) }, { password: "fixture" }]) assert.equal(cmsUserListQuerySchema.safeParse(invalid).success, false);
 });
 
 const base = { username: "editor-test", email: null, fullName: "Người biên tập", role: "editor", status: "active", password: null };
@@ -43,7 +43,7 @@ test("chuẩn hóa text lúc submit nhưng giữ nguyên mật khẩu và dữ l
   assert.equal(input.values.fullName, " Người biên tập  ");
 });
 test("từ chối role/status lạ, email sai và thuộc tính không được phép", () => {
-  for (const change of [{ role: "owner" }, { status: "deleted" }, { email: "invalid" }, { password: "short" }, { passwordHash: "unexpected" }]) {
+  for (const change of [{ role: "Owner Role!" }, { status: "deleted" }, { email: "invalid" }, { password: "short" }, { passwordHash: "unexpected" }]) {
     assert.equal(cmsUserRequestSchema.safeParse({ id, values: { ...base, ...change } }).success, false);
   }
 });

@@ -35,9 +35,6 @@ const catalogTypeByPath = {
   "phan-mem": "software",
 } as const;
 
-// `industry` remains a legacy database value so old records can be retained,
-// but it is no longer a public catalog and must never be published by route.
-const publicCatalogTypeSchema = publicOfferingTypeSchema.exclude(["industry"]);
 
 export function getOfferingTypeFromCatalogPath(path: string) {
   const type = catalogTypeByPath[path as keyof typeof catalogTypeByPath];
@@ -46,21 +43,21 @@ export function getOfferingTypeFromCatalogPath(path: string) {
 }
 
 export async function getPublishedOfferingSummaries(type: string) {
-  const parsedType = publicCatalogTypeSchema.parse(type);
+  const parsedType = publicOfferingTypeSchema.parse(type);
   const rows = await listPublishedOfferings(parsedType);
 
   return rows.map((row) => publicOfferingSummarySchema.parse(serializeOffering(row)));
 }
 
 export async function getPublishedOfferingBySlug(type: string, slug: string) {
-  const parsedType = publicCatalogTypeSchema.parse(type);
+  const parsedType = publicOfferingTypeSchema.parse(type);
   const parsedSlug = offeringSlugSchema.parse(slug);
   const offering = await findPublishedOfferingBySlug(parsedType, parsedSlug);
 
   return offering ? publicOfferingDetailSchema.parse(serializeOffering(offering)) : undefined;
 }
 export async function getPublishedOfferingDetails(type: string) {
-  const parsedType = publicCatalogTypeSchema.parse(type);
+  const parsedType = publicOfferingTypeSchema.parse(type);
   return publicOfferingDetailSchema.array().parse((await listPublishedOfferingDetails(parsedType)).map(serializeOffering));
 }
 

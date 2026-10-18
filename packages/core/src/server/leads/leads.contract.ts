@@ -19,6 +19,8 @@ export const leadListQuerySchema = adminListQuerySchema.extend({
   status: z.enum(["all", "new", "contacted", "closed"]).default("all"),
 });
 export type LeadListQuery = z.infer<typeof leadListQuerySchema>;
+export const leadExportQuerySchema = z.object({ status: leadListQuerySchema.shape.status, query: z.string().trim().max(160).optional() }).strict();
+export type LeadExportQuery = z.infer<typeof leadExportQuerySchema>;
 const leadListItemSchema = z.object({
   id: z.string().uuid(), name: z.string().max(180), phone: z.string().max(30),
   email: z.string().max(320).nullable(), businessModel: z.string().max(120).nullable(),

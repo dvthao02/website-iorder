@@ -1,7 +1,8 @@
-import { and, asc, count, desc, eq, ilike, isNull, lte, or } from "drizzle-orm";
+import { and, asc, count, desc, eq, ilike, isNull, lte, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@iorder/core/db/client";
 import { auditLogs, equipmentGroups, salesEquipment, salesEquipmentRevisions, mediaAssets } from "@iorder/core/db/schema";
+import { ContentVersionConflictError } from "../shared/content-version";
 import type { EquipmentInput, EquipmentGroupInput } from "./equipment.contract";
 import { equipmentPublishedAt } from "./equipment-publication";
 import { assertEquipmentVersion } from "./equipment-version";
@@ -60,10 +61,21 @@ export async function findEquipmentById(id: string) {
     .where(and(eq(salesEquipment.id, id), isNull(salesEquipment.deletedAt), isNull(equipmentGroups.deletedAt))).limit(1);
   return row;
 }
-export function saveEquipmentGroup(id: string | null, values: EquipmentGroupInput, userId: string, database = getDb()) {
+export async function findEquipmentGroupVisibility(id: string) {
+  const [row] = await getDb().select({ isEnabled: equipmentGroups.isEnabled }).from(equipmentGroups).where(and(eq(equipmentGroups.id, id), isNull(equipmentGroups.deletedAt))).limit(1);
+  return row?.isEnabled;
+}
+// onlyIfHidden: callers without publish permission may only touch hidden groups;
+// the condition sits in the UPDATE itself so a concurrent enable cannot slip through.
+export function saveEquipmentGroup(id: string | null, values: EquipmentGroupInput, userId: string, database = getDb(), options: { onlyIfHidden?: boolean; expectedVersion?: number } = {}) {
   return database.transaction(async tx => {
-    const [row] = id ? await tx.update(equipmentGroups).set({ ...values, updatedAt: new Date() }).where(and(eq(equipmentGroups.id, id), isNull(equipmentGroups.deletedAt))).returning()
+    const [row] = id ? await tx.update(equipmentGroups).set({ ...values, version: sql`${equipmentGroups.version} + 1`, updatedAt: new Date() }).where(and(eq(equipmentGroups.id, id), isNull(equipmentGroups.deletedAt), options.onlyIfHidden ? eq(equipmentGroups.isEnabled, false) : undefined, options.expectedVersion !== undefined ? eq(equipmentGroups.version, options.expectedVersion) : undefined)).returning()
       : await tx.insert(equipmentGroups).values(values).returning();
+    // Không cập nhật được: còn bản ghi nhưng lệch version → 409; ngược lại giữ nghĩa cũ (không tìm thấy/đang hiển thị).
+    if (!row && id && options.expectedVersion !== undefined) {
+      const [current] = await tx.select({ version: equipmentGroups.version }).from(equipmentGroups).where(and(eq(equipmentGroups.id, id), isNull(equipmentGroups.deletedAt)));
+      if (current && current.version !== options.expectedVersion) throw new ContentVersionConflictError();
+    }
     if (!row) return undefined;
     await tx.insert(auditLogs).values({ userId, action: id ? "equipment_group.update" : "equipment_group.create", entityType: "equipment_group", entityId: row.id, afterData: values });
     return row.id;

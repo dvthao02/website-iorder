@@ -2,7 +2,7 @@ import { z } from "zod";
 
 const shortTextSchema = z.string().trim().min(1).max(500);
 
-export const publicOfferingTypeSchema = z.enum(["software", "solution", "service", "industry"]);
+export const publicOfferingTypeSchema = z.enum(["software", "solution", "service"]);
 export const offeringSlugSchema = z.string().trim().min(1).max(180);
 
 export const offeringContentSchema = z

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { equipmentGroupInputSchema, equipmentInputSchema } from "./equipment.contract";
-import { deleteArchivedEquipment, deleteEquipmentGroup, findEquipmentById, listEquipment, listEquipmentGroups, listEquipmentPage, saveEquipment, saveEquipmentGroup } from "./equipment.repository";
+import { deleteArchivedEquipment, deleteEquipmentGroup, findEquipmentById, findEquipmentGroupVisibility, listEquipment, listEquipmentGroups, listEquipmentPage, saveEquipment, saveEquipmentGroup } from "./equipment.repository";
 import { validateCoverMedia } from "@iorder/core/server/media/media.service";
 import { mediaPath } from "@iorder/core/server/media/storage";
 import type { AdminListPage, AdminListQuery } from "@iorder/core/server/shared/admin-list.contract";
@@ -17,7 +17,7 @@ function pick<T extends Record<string, unknown>>(row: T, keys: string[]) {
   return Object.fromEntries(keys.map(key => [key, row[key]]));
 }
 export async function getEquipmentGroups() {
-  return (await listEquipmentGroups()).map(row => ({ id: row.id, ...equipmentGroupInputSchema.parse(pick(row, Object.keys(equipmentGroupInputSchema.shape))) }));
+  return (await listEquipmentGroups()).map(row => ({ id: row.id, version: row.version, ...equipmentGroupInputSchema.parse(pick(row, Object.keys(equipmentGroupInputSchema.shape))) }));
 }
 export async function getEquipment(publicOnly = false) {
   return (await listEquipment(publicOnly)).map(({ item, group, coverKey, coverAlt }) => ({ id: item.id, ...equipmentInputSchema.parse(pick(item, Object.keys(equipmentInputSchema.shape))), groupName: group.name, coverUrl: coverKey ? mediaPath(coverKey) : null, coverAlt, version: item.draftVersion, updatedAt: item.updatedAt }));
@@ -34,11 +34,16 @@ export async function getEquipmentById(id: string) {
   const row = await findEquipmentById(id);
   return row ? { id: row.item.id, ...equipmentInputSchema.parse(pick(row.item, Object.keys(equipmentInputSchema.shape))), groupName: row.group.name, coverUrl: row.coverKey ? mediaPath(row.coverKey) : null, coverAlt: row.coverAlt, version: row.item.draftVersion, updatedAt: row.item.updatedAt } : undefined;
 }
-export async function writeEquipment(kind: "groups" | "items", id: string | null, input: unknown, userId: string, changeNote?: string, expectedVersion?: number) {
+export async function getEquipmentGroupVisibility(id: string) {
+  if (!z.string().uuid().safeParse(id).success) return undefined;
+  return findEquipmentGroupVisibility(id);
+}
+export async function writeEquipment(kind: "groups" | "items", id: string | null, input: unknown, userId: string, changeNote?: string, expectedVersion?: number, options: { onlyIfHidden?: boolean } = {}) {
+  // Nhóm dùng cột version riêng; thiết bị dùng draftVersion (xem saveEquipment).
   if (kind === "groups") {
     const values = equipmentGroupInputSchema.parse(input);
     await validateCoverMedia(values.coverMediaId);
-    return saveEquipmentGroup(id, values, userId);
+    return saveEquipmentGroup(id, values, userId, undefined, { ...options, expectedVersion });
   }
   const values = equipmentInputSchema.parse(input);
   await validateCoverMedia(values.coverMediaId);

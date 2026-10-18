@@ -47,3 +47,21 @@ test("Request cập nhật bắt buộc version và tách khỏi nội dung khô
   assert.deepEqual(source, { expectedVersion: 3, title: "  Bản nhập tiếng Việt  " });
   for (const bad of [{}, { expectedVersion: null }, { expectedVersion: "3" }, { expectedVersion: -1 }, { expectedVersion: 3.5 }]) assert.equal(contentUpdateRequestSchema.safeParse(bad).success, false);
 });
+
+test("Ghi cấu hình/danh mục có version: bắt buộc expectedVersion khi sửa", async () => {
+  const { versionedWriteRequestSchema } = await import("./content-version");
+  const { redirectRequestSchema } = await import("../redirects/redirects.contract");
+  const { taxonomyRequestSchema } = await import("../taxonomy/taxonomy.contract");
+  const { equipmentWriteRequestSchema } = await import("../equipment/equipment.contract");
+  const id = "12345678-1234-4123-8123-123456789012";
+  assert.equal(versionedWriteRequestSchema.safeParse({ values: {}, expectedVersion: 0 }).success, true);
+  assert.equal(versionedWriteRequestSchema.safeParse({ values: {} }).success, false);
+  const redirect = { sourcePath: "/cu", destinationPath: "/moi", statusCode: 301, isEnabled: true };
+  assert.equal(redirectRequestSchema.safeParse({ id: null, values: redirect }).success, true);
+  assert.equal(redirectRequestSchema.safeParse({ id, values: redirect }).success, false);
+  assert.equal(redirectRequestSchema.safeParse({ id, values: redirect, expectedVersion: 2 }).success, true);
+  assert.equal(taxonomyRequestSchema.safeParse({ kind: "tags", id, values: {} }).success, false);
+  assert.equal(taxonomyRequestSchema.safeParse({ kind: "tags", id, values: {}, expectedVersion: 0 }).success, true);
+  assert.equal(equipmentWriteRequestSchema.safeParse({ kind: "groups", id, values: {} }).success, false);
+  assert.equal(equipmentWriteRequestSchema.safeParse({ kind: "groups", id: null, values: {} }).success, true);
+});

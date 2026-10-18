@@ -64,7 +64,7 @@ export const categories = pgTable(
     slug: varchar("slug", { length: 180 }).notNull(),
     description: text("description"),
     sortOrder: integer("sort_order").default(0).notNull(),
-    ...timestamps(),
+    version: integer("version").default(0).notNull(), ...timestamps(),
   },
   (table) => [
     uniqueIndex("categories_slug_unique").on(table.slug),
@@ -74,7 +74,7 @@ export const categories = pgTable(
 
 export const tags = pgTable(
   "tags",
-  { id: uuid("id").defaultRandom().primaryKey(), name: varchar("name", { length: 120 }).notNull(), slug: varchar("slug", { length: 140 }).notNull(), ...timestamps() },
+  { id: uuid("id").defaultRandom().primaryKey(), name: varchar("name", { length: 120 }).notNull(), slug: varchar("slug", { length: 140 }).notNull(), version: integer("version").default(0).notNull(), ...timestamps() },
   (table) => [uniqueIndex("tags_slug_unique").on(table.slug)],
 );
 

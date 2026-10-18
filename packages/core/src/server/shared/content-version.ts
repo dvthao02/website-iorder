@@ -1,6 +1,9 @@
 import { z } from "zod";
 
-export const contentUpdateRequestSchema = z.object({ expectedVersion: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER) }).passthrough();
+export const expectedVersionSchema = z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER);
+export const contentUpdateRequestSchema = z.object({ expectedVersion: expectedVersionSchema }).passthrough();
+// Ghi dữ liệu cấu hình/danh mục có version: { values, expectedVersion }; sai version → 409.
+export const versionedWriteRequestSchema = z.object({ values: z.unknown(), expectedVersion: expectedVersionSchema }).strict();
 export const contentDeleteRequestSchema = contentUpdateRequestSchema.strict();
 export const contentStateRequestSchema = z.object({ action: z.enum(["archive", "restore"]), expectedVersion: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER) }).strict();
 

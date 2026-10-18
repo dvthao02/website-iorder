@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { adminPagesPageSchema, pageListQuerySchema, pageSaveRequestSchema } from "./pages.contract";
+import { adminPagesPageSchema, fixedWebsitePages, isListingPageSlug, listingHeaderFromBlocks, listingLayoutFromBlocks, pageBlockInputSchema, pageListQuerySchema, pagePermissionCodes, pageSaveRequestSchema } from "./pages.contract";
 import { publicationDate } from "../shared/publication-date";
 import { assertPageVersion, PageVersionConflictError } from "./page-version";
 
@@ -38,4 +38,44 @@ test("Query Trang chuẩn hóa ở biên và giữ số mục hợp lệ ngoài 
   assert.equal(pageListQuerySchema.parse(source).query, "Trang thử");
   assert.equal(source.query, "  Trang thử  ");
   for (const bad of [{ page: 0 }, { pageSize: 101 }, { status: "sai" }, { unknown: true }]) assert.equal(pageListQuerySchema.safeParse(bad).success, false);
+});
+
+test("Trang danh sách nhận quyền của module sở hữu, trang thường chỉ nhận quyền Trang website", () => {
+  assert.deepEqual(pagePermissionCodes("listing-news", "update"), ["pages.update", "posts.update"]);
+  assert.deepEqual(pagePermissionCodes("listing-software", "publish"), ["pages.publish", "offerings.publish"]);
+  assert.deepEqual(pagePermissionCodes("about", "update"), ["pages.update"]);
+  assert.deepEqual(pagePermissionCodes("trang-tu-tao", "view"), ["pages.view"]);
+  assert.deepEqual(pagePermissionCodes(null, "publish"), ["pages.publish"]);
+});
+
+test("Registry trang hệ thống: slug và đường dẫn không trùng, trang danh sách luôn có module sở hữu", () => {
+  assert.equal(new Set(fixedWebsitePages.map(page => page.slug)).size, fixedWebsitePages.length);
+  assert.equal(new Set(fixedWebsitePages.map(page => page.publicPath)).size, fixedWebsitePages.length);
+  for (const page of fixedWebsitePages) assert.equal(page.kind === "listing", page.ownerModule !== null, page.slug);
+  assert.equal(isListingPageSlug("listing-equipment"), true);
+  assert.equal(isListingPageSlug("about"), false);
+});
+
+test("Phần đầu trang danh sách lấy từ khối Mở đầu đầu tiên đang bật", () => {
+  const hero = (title: string, isEnabled: boolean) => ({ type: "hero" as const, isEnabled, data: { eyebrow: "Blog", title, description: null, primaryAction: null, secondaryAction: null } });
+  assert.deepEqual(listingHeaderFromBlocks([hero("Ẩn", false), hero("Tin tức", true)]), { eyebrow: "Blog", title: "Tin tức", description: null });
+  assert.equal(listingHeaderFromBlocks([]), undefined);
+});
+
+test("Trang danh sách: bỏ khối Mở đầu khỏi thân trang, giữ thứ tự, tự thêm danh sách mặc định khi thiếu", () => {
+  const hero = { type: "hero" as const, isEnabled: true, data: { eyebrow: null, title: "Tin tức", description: null, primaryAction: null, secondaryAction: null } };
+  const faq = { type: "faq" as const, isEnabled: true, data: { eyebrow: null, title: "Hỏi đáp", items: [{ question: "Q", answer: "A" }] } };
+  const posts = { type: "collection_list" as const, isEnabled: true, data: { source: "posts" as const, eyebrow: null, title: null, description: null, limit: null, anchor: null } };
+  assert.deepEqual(listingLayoutFromBlocks("listing-news", [hero, posts, faq])?.blocks, [posts, faq]);
+  assert.deepEqual(listingLayoutFromBlocks("listing-news", [hero, faq])?.blocks.map(block => block.type), ["faq", "collection_list"]);
+  assert.deepEqual(listingLayoutFromBlocks("listing-support", [hero])?.blocks.map(block => block.type === "collection_list" ? block.data.source : block.type), ["downloads", "guides"]);
+  assert.equal(listingLayoutFromBlocks("listing-news", [faq]), undefined);
+});
+
+test("Khối Danh sách nội dung kiểm tra nguồn, số lượng và mã neo", () => {
+  const valid = { type: "collection_list", isEnabled: true, data: { source: "equipment", eyebrow: null, title: "Thiết bị", description: null, limit: 6, anchor: "thiet-bi" } };
+  assert.equal(pageBlockInputSchema.safeParse(valid).success, true);
+  assert.equal(pageBlockInputSchema.safeParse({ ...valid, data: { ...valid.data, source: "industry" } }).success, false);
+  assert.equal(pageBlockInputSchema.safeParse({ ...valid, data: { ...valid.data, limit: 0 } }).success, false);
+  assert.equal(pageBlockInputSchema.safeParse({ ...valid, data: { ...valid.data, anchor: "Hướng dẫn" } }).success, false);
 });

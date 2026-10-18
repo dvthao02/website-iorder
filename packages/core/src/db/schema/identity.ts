@@ -1,4 +1,4 @@
-import { index, integer, pgTable, primaryKey, timestamp, uniqueIndex, uuid, varchar } from "drizzle-orm/pg-core";
+import { boolean, index, integer, pgTable, primaryKey, timestamp, uniqueIndex, uuid, varchar } from "drizzle-orm/pg-core";
 
 import { userStatusEnum } from "./enums";
 import { timestamps } from "./shared";
@@ -28,6 +28,8 @@ export const roles = pgTable(
     id: uuid("id").defaultRandom().primaryKey(),
     code: varchar("code", { length: 80 }).notNull(),
     name: varchar("name", { length: 120 }).notNull(),
+    description: varchar("description", { length: 500 }),
+    isSystem: boolean("is_system").default(false).notNull(),
     ...timestamps(),
   },
   (table) => [uniqueIndex("roles_code_unique").on(table.code)],

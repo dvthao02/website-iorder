@@ -30,14 +30,14 @@ export function createTaxonomyService(repository: TaxonomyRepository) {
     return { categories, tags };
   }
 
-  async function writeTaxonomy(kind: "categories" | "tags", id: string | null, input: unknown, userId: string) {
+  async function writeTaxonomy(kind: "categories" | "tags", id: string | null, input: unknown, userId: string, expectedVersion?: number) {
     if (kind === "categories") {
       const values = categoryInputSchema.parse(input);
       const categories = await repository.listCategories();
       assertCategoryParent(categories, id, values.parentId);
-      return repository.saveCategory(id, values, userId);
+      return repository.saveCategory(id, values, userId, undefined, { expectedVersion });
     }
-    return repository.saveTag(id, tagInputSchema.parse(input), userId);
+    return repository.saveTag(id, tagInputSchema.parse(input), userId, { expectedVersion });
   }
 
   async function ensureTaxonomyIds(categoryIds: string[], tagIds: string[]) {

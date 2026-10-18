@@ -30,7 +30,7 @@ export const equipmentWriteRequestSchema = z.object({
   values: z.unknown(),
   expectedVersion: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER).optional(),
 }).strict().superRefine((value, context) => {
-  if (value.kind === "items" && value.id && value.expectedVersion === undefined) {
-    context.addIssue({ code: "custom", path: ["expectedVersion"], message: "Vui lòng tải lại thiết bị để lấy phiên bản mới nhất trước khi lưu." });
+  if (value.id && value.expectedVersion === undefined) {
+    context.addIssue({ code: "custom", path: ["expectedVersion"], message: "Vui lòng tải lại để lấy phiên bản mới nhất trước khi lưu." });
   }
 });

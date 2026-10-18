@@ -18,7 +18,7 @@ export const partners = pgTable(
     sortOrder: integer("sort_order").default(0).notNull(),
     isEnabled: boolean("is_enabled").default(true).notNull(),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
-    ...timestamps(),
+    version: integer("version").default(0).notNull(), ...timestamps(),
   },
   (table) => [uniqueIndex("partners_name_unique").on(table.name).where(sql`${table.deletedAt} is null`), index("partners_enabled_sort_index").on(table.isEnabled, table.sortOrder), index("partners_deleted_at_index").on(table.deletedAt)],
 );
@@ -36,7 +36,7 @@ export const testimonials = pgTable(
     sortOrder: integer("sort_order").default(0).notNull(),
     isEnabled: boolean("is_enabled").default(true).notNull(),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
-    ...timestamps(),
+    version: integer("version").default(0).notNull(), ...timestamps(),
   },
   (table) => [index("testimonials_enabled_sort_index").on(table.isEnabled, table.sortOrder), index("testimonials_deleted_at_index").on(table.deletedAt)],
 );

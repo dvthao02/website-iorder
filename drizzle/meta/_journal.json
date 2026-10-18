@@ -71,6 +71,27 @@
       "when": 1791972367877,
       "tag": "0009_flippant_masked_marvel",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792037866392,
+      "tag": "0010_hard_mandrill",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1792059364663,
+      "tag": "0011_remove_industry_offering_type",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1792059445478,
+      "tag": "0012_add_row_versions",
+      "breakpoints": true
     }
   ]
 }

@@ -12,7 +12,7 @@ const valid: EquipmentInput = {
 const now = new Date("2026-10-08T00:00:00Z");
 const future = new Date("2026-10-09T00:00:00Z");
 
-test("Cập nhật thiết bị bắt buộc expectedVersion, tạo mới và nhóm không bị ảnh hưởng", () => {
+test("Cập nhật thiết bị và nhóm thiết bị bắt buộc expectedVersion, tạo mới thì không", () => {
   const request = { kind: "items", id: valid.groupId, values: valid };
   assert.equal(equipmentWriteRequestSchema.safeParse(request).success, false);
   assert.equal(equipmentWriteRequestSchema.safeParse({ ...request, expectedVersion: 2 }).success, true);
@@ -21,7 +21,8 @@ test("Cập nhật thiết bị bắt buộc expectedVersion, tạo mới và nh
     assert.equal(equipmentWriteRequestSchema.safeParse({ ...request, expectedVersion }).success, false);
   }
   assert.equal(equipmentWriteRequestSchema.safeParse({ ...request, id: null }).success, true);
-  assert.equal(equipmentWriteRequestSchema.safeParse({ ...request, kind: "groups" }).success, true);
+  assert.equal(equipmentWriteRequestSchema.safeParse({ ...request, kind: "groups" }).success, false);
+  assert.equal(equipmentWriteRequestSchema.safeParse({ ...request, kind: "groups", expectedVersion: 0 }).success, true);
 });
 test("Phiên bản cũ hoặc thiếu bị từ chối; bản mới được phép", () => {
   assert.doesNotThrow(() => assertEquipmentVersion(3, 3));

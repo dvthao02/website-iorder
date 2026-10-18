@@ -3,28 +3,31 @@ import { getDb } from "@iorder/core/db/client";
 import { auditLogs, categories, postCategories, postTags, tags } from "@iorder/core/db/schema";
 import type { CategoryInput, TagInput } from "./taxonomy.contract";
 import { assertCategoryParent } from "./category-tree-policy";
+import { assertContentVersion } from "../shared/content-version";
 
 export function listCategories() { return getDb().select().from(categories).orderBy(asc(categories.sortOrder), asc(categories.name)); }
 export function listTags() { return getDb().select().from(tags).orderBy(asc(tags.name)); }
 export async function findCategoryBySlug(slug: string) { const [row] = await getDb().select().from(categories).where(eq(categories.slug, slug)).limit(1); return row; }
 export async function findTagBySlug(slug: string) { const [row] = await getDb().select().from(tags).where(eq(tags.slug, slug)).limit(1); return row; }
-export function saveCategory(id: string | null, values: CategoryInput, userId: string, database = getDb()) {
+export function saveCategory(id: string | null, values: CategoryInput, userId: string, database = getDb(), options: { expectedVersion?: number } = {}) {
   return database.transaction(async tx => {
     // Serialize tree changes before reading: row locks alone cannot prevent A→B/B→A.
     // Ordinary SELECT remains available while this short transaction holds the lock.
     await tx.execute(sql`lock table ${categories} in share row exclusive mode`);
     const nodes = await tx.select({ id: categories.id, parentId: categories.parentId }).from(categories);
     if (id && !nodes.some(node => node.id === id)) return undefined;
+    const [current] = id ? await tx.select({ version: categories.version }).from(categories).where(eq(categories.id, id)).for("update") : [];
+    if (current && options.expectedVersion !== undefined) assertContentVersion(current.version, options.expectedVersion);
     assertCategoryParent(nodes, id, values.parentId);
     const [row] = id
-      ? await tx.update(categories).set({ ...values, updatedAt: new Date() }).where(eq(categories.id, id)).returning()
+      ? await tx.update(categories).set({ ...values, version: (current?.version ?? 0) + 1, updatedAt: new Date() }).where(eq(categories.id, id)).returning()
       : await tx.insert(categories).values(values).returning();
     if (!row) return undefined;
     await tx.insert(auditLogs).values({ userId, action: id ? "category.update" : "category.create", entityType: "category", entityId: row.id, afterData: values });
     return row.id;
   });
 }
-export function saveTag(id: string | null, values: TagInput, userId: string) { return getDb().transaction(async tx => { const [row] = id ? await tx.update(tags).set({ ...values, updatedAt: new Date() }).where(eq(tags.id, id)).returning() : await tx.insert(tags).values(values).returning(); if (!row) return undefined; await tx.insert(auditLogs).values({ userId, action: id ? "tag.update" : "tag.create", entityType: "tag", entityId: row.id, afterData: values }); return row.id; }); }
+export function saveTag(id: string | null, values: TagInput, userId: string, options: { expectedVersion?: number } = {}) { return getDb().transaction(async tx => { const [current] = id ? await tx.select({ version: tags.version }).from(tags).where(eq(tags.id, id)).for("update") : []; if (id && !current) return undefined; if (current && options.expectedVersion !== undefined) assertContentVersion(current.version, options.expectedVersion); const [row] = id ? await tx.update(tags).set({ ...values, version: (current?.version ?? 0) + 1, updatedAt: new Date() }).where(eq(tags.id, id)).returning() : await tx.insert(tags).values(values).returning(); if (!row) return undefined; await tx.insert(auditLogs).values({ userId, action: id ? "tag.update" : "tag.create", entityType: "tag", entityId: row.id, afterData: values }); return row.id; }); }
 
 export type TaxonomyDeleteResult = { id: string } | { blockedBy: "children" | "posts" } | undefined;
 

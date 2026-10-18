@@ -61,7 +61,7 @@ export const siteProfile = pgTable(
     address: text("address"),
     workingHours: varchar("working_hours", { length: 255 }),
     logoMediaId: uuid("logo_media_id").references(() => mediaAssets.id, { onDelete: "set null" }),
-    ...timestamps(),
+    version: integer("version").default(0).notNull(), ...timestamps(),
   },
   (table) => [uniqueIndex("site_profile_key_unique").on(table.profileKey)],
 );
@@ -74,7 +74,7 @@ export const siteSettings = pgTable(
     value: jsonb("value").$type<unknown>().notNull(),
     description: varchar("description", { length: 500 }),
     updatedBy: uuid("updated_by").references(() => users.id, { onDelete: "set null" }),
-    ...timestamps(),
+    version: integer("version").default(0).notNull(), ...timestamps(),
   },
   (table) => [uniqueIndex("site_settings_key_unique").on(table.key)],
 );
@@ -88,7 +88,7 @@ export const redirects = pgTable(
     statusCode: integer("status_code").default(301).notNull(),
     isEnabled: boolean("is_enabled").default(true).notNull(),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
-    ...timestamps(),
+    version: integer("version").default(0).notNull(), ...timestamps(),
   },
   (table) => [uniqueIndex("redirects_source_path_unique").on(table.sourcePath).where(sql`${table.deletedAt} is null`), index("redirects_enabled_index").on(table.isEnabled), index("redirects_deleted_at_index").on(table.deletedAt)],
 );

@@ -13,7 +13,7 @@ const actionSubjects: Record<string, string> = {
 };
 const verbs: Record<string, string> = {
   create: "Tạo", update: "Cập nhật", delete: "Xóa", archive: "Lưu trữ", restore: "Khôi phục",
-  upload: "Tải lên", delete_queue: "Đưa vào hàng đợi xóa", status_update: "Cập nhật trạng thái",
+  upload: "Tải lên", delete_queue: "Đưa vào hàng đợi xóa", status_update: "Cập nhật trạng thái", password_change: "Đổi mật khẩu", export: "Xuất dữ liệu",
 };
 export function auditEntityLabel(code: string) {
   return Object.hasOwn(auditEntityLabels, code) ? auditEntityLabels[code] : code;

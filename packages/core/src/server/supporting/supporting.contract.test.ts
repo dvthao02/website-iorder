@@ -28,8 +28,8 @@ test("Phản hồi thương hiệu kiểm số hàng/tổng/trùng ID và chỉ 
     assert.equal(schema.safeParse(empty).success, true);
     for (const patch of [{ total: 1 }, { totalPages: 2 }, { pageSize: 101 }, { total: -1 }]) assert.equal(schema.safeParse({ ...empty, ...patch }).success, false);
   }
-  const partner = { id, logoMediaId: null, kind: "partner", name: "Đối tác", description: null, websiteUrl: null, sortOrder: 0, isEnabled: true, logo: null };
-  const testimonial = { id, avatarMediaId: null, authorName: "Tác giả", authorRole: null, company: null, quote: "Nội dung", rating: 5, sortOrder: 0, isEnabled: true, avatar: null };
+  const partner = { id, version: 3, logoMediaId: null, kind: "partner", name: "Đối tác", description: null, websiteUrl: null, sortOrder: 0, isEnabled: true, logo: null };
+  const testimonial = { id, version: 0, avatarMediaId: null, authorName: "Tác giả", authorRole: null, company: null, quote: "Nội dung", rating: 5, sortOrder: 0, isEnabled: true, avatar: null };
   assert.deepEqual(partnerListPageSchema.parse({ ...empty, total: 1, items: [{ ...partner, deletedAt: "fixture" }] }).items, [partner]);
   assert.deepEqual(testimonialListPageSchema.parse({ ...empty, total: 1, items: [testimonial] }).items, [testimonial]);
   assert.equal(partnerListPageSchema.safeParse({ ...empty, total: 2, items: [partner, partner] }).success, false);

@@ -52,6 +52,7 @@ type SourceMedia = {
 type SourceOffering = {
   id: string;
   cover_media_id: string | null;
+  // V1 còn mục "industry" (ngành nghề); V2 đã bỏ loại này nên bỏ qua khi nhập.
   type: "software" | "solution" | "service" | "industry";
   title: string;
   slug: string;
@@ -314,6 +315,10 @@ async function main() {
     }
 
     for (const item of sourceOfferings) {
+      if (item.type === "industry") {
+        summary.offerings.skipped += 1;
+        continue;
+      }
       const [existing] = await db.select({ id: offerings.id }).from(offerings).where(and(eq(offerings.type, item.type), eq(offerings.slug, item.slug), isNull(offerings.deletedAt))).limit(1);
       if (existing) {
         summary.offerings.skipped += 1;

@@ -91,7 +91,7 @@ export async function writePage(id: string | null, input: PageInput, editorId: s
   });
 }
 
-export async function deleteArchivedPage(id: string, editorId: string, database = getDb()) {
+export async function deleteArchivedPage(id: string, editorId: string, database = getDb(), options: { expectedVersion?: number } = {}) {
   return database.transaction(async (tx) => {
     const [existing] = await tx
       .select()
@@ -99,6 +99,7 @@ export async function deleteArchivedPage(id: string, editorId: string, database 
       .where(and(eq(pages.id, id), eq(pages.status, "archived"), isNull(pages.deletedAt)))
       .for("update");
     if (!existing) return undefined;
+    if (options.expectedVersion !== undefined) assertPageVersion(existing.draftVersion, options.expectedVersion);
 
     const [deleted] = await tx
       .update(pages)

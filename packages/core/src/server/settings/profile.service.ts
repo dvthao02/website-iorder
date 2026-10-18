@@ -12,8 +12,15 @@ export async function getSiteProfile() {
   return row ? serialize(row) : null;
 }
 
-export async function updateSiteProfile(input: unknown, userId: string) {
+// Giá trị và version đọc từ cùng một dòng để CMS không nhận dữ liệu cũ kèm version mới.
+export async function getSiteProfileWithVersion() {
+  const row = await findSiteProfile();
+  return { profile: row ? serialize(row) : null, version: row?.version ?? 0 };
+}
+
+export async function updateSiteProfile(input: unknown, userId: string, expectedVersion?: number) {
   const values = profileInputSchema.parse(input);
   await validateCoverMedia(values.logoMediaId);
-  return serialize(await saveSiteProfile(values, userId));
+  const saved = await saveSiteProfile(values, userId, expectedVersion);
+  return { profile: serialize(saved), version: saved.version };
 }
