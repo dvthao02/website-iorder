@@ -19,6 +19,8 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: 22
+          # package.json có "packageManager": setup-node v5 tự bật cache pnpm khi pnpm chưa có → lỗi ngay bước này.
+          package-manager-cache: false
       - name: Enable Corepack
         run: corepack enable
       - name: Validate Caddyfile
@@ -27,6 +29,7 @@ jobs:
           --mount "type=bind,src=${{ github.workspace }}/Caddyfile,dst=/etc/caddy/Caddyfile,readonly"
           -e SITE_ADDRESS=example.com
           -e CMS_SITE_ADDRESS=cms.example.com
+          -e ANALYTICS_SITE_ADDRESS=stats.example.com
           caddy:2-alpine@sha256:d8542f48d34a9cf4e4c11a478865229840e87e4c96ea3f439101f31a5d35f75f caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
