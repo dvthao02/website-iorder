@@ -65,3 +65,12 @@ test("Ghi cấu hình/danh mục có version: bắt buộc expectedVersion khi s
   assert.equal(equipmentWriteRequestSchema.safeParse({ kind: "groups", id, values: {} }).success, false);
   assert.equal(equipmentWriteRequestSchema.safeParse({ kind: "groups", id: null, values: {} }).success, true);
 });
+
+test("xuất bản hàng loạt: bản nháp/chờ duyệt lên đã xuất bản; mục lưu trữ hoặc đã xuất bản bị từ chối rõ lý do", async () => {
+  const { contentStateAfterAction, ContentStateTransitionError, ContentVersionConflictError } = await import("./content-version");
+  assert.equal(contentStateAfterAction({ status: "draft", draftVersion: 3 }, "publish", 3), "published");
+  assert.equal(contentStateAfterAction({ status: "review", draftVersion: 1 }, "publish", 1), "published");
+  assert.throws(() => contentStateAfterAction({ status: "archived", draftVersion: 1 }, "publish", 1), (error: unknown) => error instanceof ContentStateTransitionError && error instanceof ContentVersionConflictError && /khôi phục/.test((error as Error).message));
+  assert.throws(() => contentStateAfterAction({ status: "published", draftVersion: 1 }, "publish", 1), ContentStateTransitionError);
+  assert.throws(() => contentStateAfterAction({ status: "draft", draftVersion: 2 }, "publish", 1), ContentVersionConflictError);
+});

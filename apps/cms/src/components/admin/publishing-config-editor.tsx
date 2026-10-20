@@ -1,6 +1,6 @@
 "use client";
 
-import { adminApiError } from "@/lib/admin-api";
+import { adminApiError, readAdminJson } from "@/lib/admin-api";
 import { useCallback, useRef, useState, type FormEvent } from "react";
 import { publishingConfigSchema, type PublishingConfig } from "@iorder/core/server/settings/publishing.contract";
 import { useAdminToast } from "@/components/admin/ui/admin-feedback";
@@ -37,7 +37,7 @@ export function PublishingConfigEditor({ initial, initialVersion }: { initial: P
     setBusy(true);
     try {
       const response = await fetch("/api/admin/publishing-config", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ values: parsed.data, expectedVersion: version.current }) });
-      const body = await response.json();
+      const body = await readAdminJson(response);
       if (!response.ok) throw adminApiError(body, "Không thể lưu cấu hình.");
       const result = publishingConfigSchema.safeParse(body.config);
       if (!result.success) throw new Error("Phản hồi lưu cấu hình không hợp lệ. Hãy kiểm tra lại cấu hình trước khi thử lưu lần nữa.");

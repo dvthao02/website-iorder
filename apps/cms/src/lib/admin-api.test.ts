@@ -19,3 +19,13 @@ test("adminApiError giữ mã lỗi để màn hình nhận ra xung đột phiê
   assert.equal(error.message, "Nội dung đã được người khác cập nhật.");
   assert.equal(adminApiError("<html>", "Dự phòng").code, undefined);
 });
+
+test("readAdminJson: trang lỗi dạng chữ không làm văng lỗi JSON kỹ thuật", async () => {
+  const { readAdminJson, adminApiError, upstreamUnavailableMessage } = await import("./admin-api");
+  const proxyError = await readAdminJson(new Response("Internal Server Error", { status: 500 }));
+  assert.equal(adminApiError(proxyError, "Không thể lưu trang.").message, upstreamUnavailableMessage);
+  assert.equal(await readAdminJson(new Response("<html>", { status: 404 })), null);
+  assert.equal(adminApiError(await readAdminJson(new Response("", { status: 404 })), "Không thể lưu trang.").message, "Không thể lưu trang.");
+  assert.deepEqual(await readAdminJson(Response.json({ page: { id: "a" } })), { page: { id: "a" } });
+  assert.equal(adminApiError(await readAdminJson(Response.json({ error: { code: "X", message: "Lỗi cụ thể" } }, { status: 500 })), "fallback").message, "Lỗi cụ thể");
+});

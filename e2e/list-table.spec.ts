@@ -25,7 +25,7 @@ test.afterEach(async ({ page, baseURL }) => {
   for (const id of ids.splice(0)) await removePost(page.request, baseURL!, id);
 });
 
-test("Bảng danh sách: sắp xếp, ghim cột ở tiêu đề, chọn nhiều và lưu trữ/khôi phục hàng loạt", async ({ page }) => {
+test("Bảng danh sách: sắp xếp, ghim cột ở tiêu đề, chọn nhiều và lưu trữ/khôi phục/xuất bản hàng loạt", async ({ page }) => {
   await loginAsAdmin(page);
   const origin = new URL(page.url()).origin;
   {
@@ -68,6 +68,12 @@ test("Bảng danh sách: sắp xếp, ghim cột ở tiêu đề, chọn nhiều
     await page.getByLabel("Chọn tất cả dòng trên trang").check();
     await bulkBar.getByRole("button", { name: "Khôi phục (2)" }).click();
     await expect(rows.filter({ hasText: "Bản nháp" })).toHaveCount(2);
+
+    // Xuất bản hàng loạt (có hộp xác nhận) → cả hai lên "Đã xuất bản".
+    await page.getByLabel("Chọn tất cả dòng trên trang").check();
+    await bulkBar.getByRole("button", { name: "Xuất bản (2)" }).click();
+    await page.getByRole("alertdialog").getByRole("button", { name: "Xuất bản" }).click();
+    await expect(rows.filter({ hasText: "Đã xuất bản" })).toHaveCount(2);
   }
 });
 

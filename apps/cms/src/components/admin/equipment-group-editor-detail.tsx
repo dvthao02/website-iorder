@@ -1,6 +1,6 @@
 "use client";
 
-import { adminApiError } from "@/lib/admin-api";
+import { adminApiError, readAdminJson } from "@/lib/admin-api";
 import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 
@@ -67,7 +67,7 @@ export function EquipmentGroupEditorDetail({ group }: { group?: EquipmentGroupRe
     setError(undefined);
     try {
       const response = await fetch("/api/admin/equipment", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ kind: "groups", id: group?.id ?? null, values: form, ...(group ? { expectedVersion: version.current } : {}) }) });
-      const payload = await response.json();
+      const payload = await readAdminJson(response);
       if (!response.ok) throw adminApiError(payload, "Không thể lưu nhóm thiết bị.");
       const savedId = parseSavedEntityId(payload, group?.id);
       // Chỉ đánh dấu đúng bản đã gửi; thay đổi nhập thêm khi request đang chạy vẫn dirty.

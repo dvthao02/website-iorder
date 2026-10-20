@@ -169,6 +169,12 @@ Lệnh hay dùng (`dc` = `docker compose --env-file .env.production -f compose.p
 
 Chưa có: cảnh báo tự động khi healthcheck lỗi hoặc lỗi tăng đột biến (cần chọn kênh nhận: email/Zalo/dịch vụ uptime).
 
+### Xem trước bản nháp
+
+- Trình soạn thảo trang, bài viết, sản phẩm/giải pháp/dịch vụ có nút "Xem trước bản nháp" khi nội dung chưa xuất bản. Website hiện **bản đã lưu** (không phải bản đang gõ dở) kèm thanh vàng "Đang xem bản nháp" và `noindex`.
+- Liên kết hết hạn sau 1 giờ và chỉ mở đúng nội dung được cấp. Người không có liên kết vẫn thấy 404 như trước.
+- Khóa ký: `PREVIEW_SECRET` nếu đặt, nếu không thì suy ra từ `PUBLISH_WEB_REVALIDATE_SECRET` (production bắt buộc có một trong hai). Đổi khóa làm mọi liên kết cũ mất hiệu lực.
+
 ### Thống kê truy cập (Umami)
 
 - Website chèn `/stats/script.js` khi có `UMAMI_WEBSITE_ID`; script và sự kiện (`/stats/api/send`) đi qua cùng domain website. Production: Caddy chỉ mở hai đường này tới `umami`; giao diện Umami ở `ANALYTICS_SITE_ADDRESS`. Local: rewrite của publish-web khi có `UMAMI_URL`, chạy `docker compose --profile analytics up -d` (cổng 3005).

@@ -16,7 +16,7 @@ import { useUnsavedChanges } from "./ui/use-unsaved-changes";
 import { useNavigationGuard } from "./ui/use-navigation-guard";
 import { useAdminPermissions } from "./ui/admin-permissions";
 import { AdminInlineCreate } from "./ui/admin-inline-create";
-import { requestAdminJson, adminApiError } from "@/lib/admin-api";
+import { requestAdminJson, adminApiError, readAdminJson } from "@/lib/admin-api";
 
 export type EquipmentGroup = EquipmentGroupInput & { id: string; version: number };
 export type EquipmentItem = EquipmentInput & { id: string; groupName: string; coverUrl: string | null; coverAlt: string | null; version: number; updatedAt: Date };
@@ -126,7 +126,7 @@ export function EquipmentManager({ groups, items, initialItemId, startCreatingIt
     setMessage("");
     try {
       const response = await fetch("/api/admin/equipment", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ kind, id, values, ...(id ? { expectedVersion: kind === "items" ? version : groups.find((group) => group.id === id)?.version ?? 0 } : {}) }) });
-      const payload = await response.json();
+      const payload = await readAdminJson(response);
       if (!response.ok) {
         setMessage(adminApiError(payload, "Không thể lưu thiết bị.").message);
         return;

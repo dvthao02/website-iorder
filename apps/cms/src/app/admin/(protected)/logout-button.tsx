@@ -12,7 +12,7 @@ export function LogoutButton() {
   const [error, setError] = useState("");
 
   async function signOut() {
-    if (submitting.current || !confirmLeavingUnsavedChanges()) return;
+    if (submitting.current || !(await confirmLeavingUnsavedChanges())) return;
     submitting.current = true;
     setIsSubmitting(true);
     setError("");

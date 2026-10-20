@@ -1,6 +1,6 @@
 # Access log JSON (trạng thái, thời gian xử lý, IP, user agent) và một mã X-Request-Id cho mỗi request.
 # Mã này đi tiếp vào CMS/Backend để nối log; giá trị client tự gửi bị thay. Cookie/Authorization
-# được Caddy che sẵn; tham số "query" (từ khóa tìm kiếm, có thể là SĐT khách) bị bỏ khỏi URI.
+# được Caddy che sẵn; tham số "query" (từ khóa tìm kiếm, có thể là SĐT khách) và "token" (xem trước) bị bỏ khỏi URI.
 (observability) {
 	log {
 		output stdout
@@ -9,6 +9,8 @@
 			fields {
 				request>uri query {
 					delete query
+					# Token xem trước bản nháp: ai có log là mở được bản nháp trong 1 giờ.
+					delete token
 				}
 				# Mã thật nằm ở trường "uuid"; bỏ giá trị client tự gửi cho khỏi nhầm.
 				request>headers>X-Request-Id delete

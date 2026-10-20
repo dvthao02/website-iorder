@@ -9,6 +9,7 @@ import { SiteHeader } from "@/components/site/site-header";
 import { getPublishedPostBySlug, getPublishingConfig, getSiteProfile } from "@/lib/backend";
 import { JsonLd } from "@/components/site/json-ld";
 import { articleJsonLd, breadcrumbJsonLd } from "@/lib/structured-data";
+import { suggestSeoDescription } from "@iorder/core/server/shared/seo";
 
 export const revalidate = 0;
 
@@ -24,7 +25,7 @@ export async function generateMetadata({ params }: NewsDetailPageProps, parent: 
     return { title: "Không tìm thấy bài viết | iOrder" };
   }
 
-  return contentMetadata({ title: `${post.seoTitle ?? post.title} | iOrder`, description: post.seoDescription ?? post.excerpt, path: `/tin-tuc/${post.slug}`, canonicalUrl: post.canonicalUrl, image: post.cover ? { url: post.cover.url, alt: post.cover.altText } : null, type: "article" }, parent);
+  return contentMetadata({ title: `${post.seoTitle ?? post.title} | iOrder`, description: post.seoDescription ?? suggestSeoDescription(post.excerpt, post.content), path: `/tin-tuc/${post.slug}`, canonicalUrl: post.canonicalUrl, image: post.cover ? { url: post.cover.url, alt: post.cover.altText } : null, type: "article" }, parent);
 }
 
 const postTypeLabel = {
@@ -50,7 +51,7 @@ export default async function NewsDetailPage({ params }: NewsDetailPageProps) {
   return (
     <>
       <SiteHeader />
-      {site ? <JsonLd data={[articleJsonLd(site, { title: post.title, description: post.seoDescription ?? post.excerpt, path: `/tin-tuc/${post.slug}`, imagePath: post.cover?.url ?? null, publishedAt: post.publishedAt, publisherName: profile?.companyName ?? "iOrder" }), breadcrumbJsonLd(site, [{ name: "Trang chủ", path: "/" }, { name: "Tin tức", path: "/tin-tuc" }, { name: post.title, path: `/tin-tuc/${post.slug}` }])]} /> : null}
+      {site ? <JsonLd data={[articleJsonLd(site, { title: post.title, description: post.seoDescription ?? suggestSeoDescription(post.excerpt, post.content), path: `/tin-tuc/${post.slug}`, imagePath: post.cover?.url ?? null, publishedAt: post.publishedAt, publisherName: profile?.companyName ?? "iOrder" }), breadcrumbJsonLd(site, [{ name: "Trang chủ", path: "/" }, { name: "Tin tức", path: "/tin-tuc" }, { name: post.title, path: `/tin-tuc/${post.slug}` }])]} /> : null}
       <main className="mx-auto max-w-3xl px-6 py-16 sm:py-24">
         <Link className="mb-8 inline-flex text-sm font-bold text-blue-700 hover:text-blue-900" href="/tin-tuc">
           ← Tất cả bài viết

@@ -1,6 +1,6 @@
 "use client";
 
-import { adminApiError } from "@/lib/admin-api";
+import { adminApiError, readAdminJson } from "@/lib/admin-api";
 import { ArrowRight, Edit3, Link2, Plus, RotateCcw, Save } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
@@ -108,7 +108,7 @@ export function RedirectsManager({ initialRedirects }: { initialRedirects: Redir
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ id: activeId, values, ...(active ? { expectedVersion: active.version } : {}) }),
       });
-      const body = await response.json();
+      const body = await readAdminJson(response);
       if (!response.ok) throw adminApiError(body, "Không thể lưu chuyển hướng.");
       if (typeof body.id !== "string" || !body.id || (activeId && body.id !== activeId)) throw new Error("Phản hồi lưu chuyển hướng không hợp lệ. Hãy kiểm tra danh sách trước khi thử lại.");
       const saved: Redirect = { id: body.id, version: active ? active.version + 1 : 0, ...values };
@@ -138,7 +138,7 @@ export function RedirectsManager({ initialRedirects }: { initialRedirects: Redir
     setBusy(true);
     try {
       const response = await fetch(`/api/admin/redirects?id=${active.id}&expectedVersion=${active.version}`, { method: "DELETE" });
-      const body = await response.json();
+      const body = await readAdminJson(response);
       if (!response.ok) throw adminApiError(body, "Không thể xóa chuyển hướng.");
       if (body.deletedId !== active.id) throw new Error("Phản hồi xóa chuyển hướng không hợp lệ. Hãy tải lại danh sách để kiểm tra.");
       setRows((current) => current.filter((item) => item.id !== active.id));

@@ -72,7 +72,8 @@ export async function listPublishedPostsByTaxonomy(kind: "category" | "tag", slu
   return withTaxonomyBatch(rows);
 }
 
-export async function findPublishedPostBySlug(slug: string) {
+// previewId: đang xem trước bản nháp → lấy đúng bài đó (mọi trạng thái) nếu slug khớp.
+export async function findPublishedPostBySlug(slug: string, previewId?: string) {
   const [post] = await getDb()
     .select({
       id: posts.id,
@@ -91,7 +92,7 @@ export async function findPublishedPostBySlug(slug: string) {
     })
     .from(posts)
     .leftJoin(mediaAssets, eq(posts.coverMediaId, mediaAssets.id))
-    .where(and(eq(posts.slug, slug), publicPostCondition()))
+    .where(previewId ? and(eq(posts.slug, slug), eq(posts.id, previewId), isNull(posts.deletedAt)) : and(eq(posts.slug, slug), publicPostCondition()))
     .limit(1);
 
   return post ? withTaxonomy(post) : undefined;

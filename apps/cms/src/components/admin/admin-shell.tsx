@@ -338,8 +338,11 @@ export function AdminShell({ administrator, children, notifications }: { adminis
             </div>
             <div className="admin-page-bar__actions" id={adminPageBarActionsId} />
           </div>}
-          <AdminVersionConflictBanner />
-          {children}
+          {/* Vùng cuộn duy nhất của nội dung: thanh tiêu đề trang đứng yên phía trên. */}
+          <div className="admin-shell__scroll">
+            <AdminVersionConflictBanner />
+            {children}
+          </div>
         </div>
         </div>
       </div>

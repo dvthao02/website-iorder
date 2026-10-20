@@ -1,6 +1,6 @@
 "use client";
 
-import { adminApiError } from "@/lib/admin-api";
+import { adminApiError, readAdminJson } from "@/lib/admin-api";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
@@ -242,7 +242,7 @@ export function SupportingManager({
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ kind, id: activeId, values: submitted.data, ...(activeVersion !== undefined ? { expectedVersion: activeVersion } : {}) }),
       });
-      const payload = await response.json();
+      const payload = await readAdminJson(response);
       if (!response.ok) {
         throw adminApiError(payload, "Không thể lưu nội dung hỗ trợ.");
       }
@@ -290,7 +290,7 @@ export function SupportingManager({
     setBusy(true);
     try {
       const response = await fetch(`/api/admin/supporting?kind=${kind}&id=${activeId}`, { method: "DELETE" });
-      const payload = await response.json();
+      const payload = await readAdminJson(response);
       if (!response.ok) throw adminApiError(payload, `Không thể xóa ${label}.`);
       if (payload.deletedId !== activeId) throw new Error("Phản hồi xóa nội dung không hợp lệ. Hãy tải lại danh sách để kiểm tra.");
       setActiveId(null);

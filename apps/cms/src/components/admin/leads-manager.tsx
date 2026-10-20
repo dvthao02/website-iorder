@@ -1,6 +1,6 @@
 "use client";
 
-import { adminApiError } from "@/lib/admin-api";
+import { adminApiError, readAdminJson } from "@/lib/admin-api";
 import { FileSpreadsheet, FileText, Mail, Phone } from "lucide-react";
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -77,7 +77,7 @@ export function LeadsManager({ initialPage, initialQuery }: { initialPage: ListR
     setBusy(new Set(pending.current));
     try {
       const response = await fetch(`/api/admin/leads/${id}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ status }) });
-      const payload = await response.json();
+      const payload = await readAdminJson(response);
       if (!response.ok) throw adminApiError(payload, "Không thể cập nhật liên hệ.");
       const parsed = leadStatusUpdateResponseSchema.safeParse(payload.lead);
       if (!parsed.success) throw new Error("Phản hồi cập nhật liên hệ không hợp lệ. Tải lại danh sách để kiểm tra.");

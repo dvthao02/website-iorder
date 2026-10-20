@@ -6,15 +6,17 @@ import { getNavigation } from "@/lib/backend";
 import type { NavigationItems } from "@iorder/core/server/navigation/navigation.contract";
 import { getExternalLinks } from "@/lib/backend";
 import Link from "next/link";
+import { draftMode } from "next/headers";
+import { PreviewBanner } from "@/components/site/preview-banner";
 
 export const revalidate = 0;
 
 export default async function PublicLayout({ children }: { children: ReactNode }) {
-  const [profile, footerNavigation, externalLinks] = await Promise.all([getSiteProfile(), getNavigation("footer"), getExternalLinks()]);
+  const [profile, footerNavigation, externalLinks, draft] = await Promise.all([getSiteProfile(), getNavigation("footer"), getExternalLinks(), draftMode()]);
   const footerItems = footerNavigation ?? [];
   const logo = profile?.logoMediaId ? await getMediaById(profile.logoMediaId) : null;
   const externalItems = externalLinks ? [["Đăng nhập ứng dụng", externalLinks.appLogin], ["Dùng thử", externalLinks.trial], ["Facebook", externalLinks.facebook], ["Zalo", externalLinks.zalo], ["YouTube", externalLinks.youtube], ["App Store", externalLinks.appStore], ["Google Play", externalLinks.googlePlay]].filter((item): item is [string, string] => Boolean(item[1])) : [];
-  return <div className="site-shell">{children}{profile || footerItems.length > 0 || externalItems.length > 0 ? <footer className="site-footer">
+  return <div className="site-shell">{draft.isEnabled ? <PreviewBanner /> : null}{children}{profile || footerItems.length > 0 || externalItems.length > 0 ? <footer className="site-footer">
     <div className="site-footer__inner">
       {profile ? <section className="site-footer__profile">
         {logo ? <Image src={logo.url} alt={profile.companyName} width={160} height={80} className="h-auto w-40" /> : null}

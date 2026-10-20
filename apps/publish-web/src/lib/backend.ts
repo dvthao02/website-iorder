@@ -14,6 +14,7 @@ import type { getPartners as getPartnersFromService, getTestimonials as getTesti
 import type { getTaxonomy as getTaxonomyFromService } from "@iorder/core/server/taxonomy/taxonomy.service";
 import { publicContentCacheTag } from "@iorder/core/server/publishing/cache-invalidation";
 import { cache } from "react";
+import { cookies, draftMode } from "next/headers";
 
 type SharedContent = {
   settings: {
@@ -51,14 +52,27 @@ function reviveDates(value: unknown, key = ""): unknown {
 const fetchPublicResource = cache(async (resource: string, encodedParams = "") => {
   const query = new URLSearchParams(encodedParams);
   query.set("resource", resource);
-  const response = await fetch(`${backendUrl}/api/public/content?${query.toString()}`, publicCacheOptions);
+  // Bản nháp đang xem trước không bao giờ đi qua cache.
+  const response = await fetch(`${backendUrl}/api/public/content?${query.toString()}`, query.has("preview") ? { cache: "no-store" } : publicCacheOptions);
   if (!response.ok) throw new Error("Không thể tải dữ liệu website từ Backend.");
   return reviveDates(await response.json() as unknown);
 });
 
-function publicResource<T>(resource: string, params: Record<string, string | undefined> = {}) {
+// Chế độ xem trước (Draft Mode + cookie token do /api/preview đặt): chỉ trang, bài viết và catalog nhận bản nháp.
+export const previewCookieName = "iorder_preview";
+const previewableResources = new Set(["page", "post", "offering"]);
+async function previewToken() {
+  if (!(await draftMode()).isEnabled) return undefined;
+  return (await cookies()).get(previewCookieName)?.value;
+}
+
+async function publicResource<T>(resource: string, params: Record<string, string | undefined> = {}) {
   const query = new URLSearchParams();
   Object.entries(params).forEach(([key, value]) => { if (value) query.set(key, value); });
+  if (previewableResources.has(resource)) {
+    const token = await previewToken();
+    if (token) query.set("preview", token);
+  }
   return fetchPublicResource(resource, query.toString()) as Promise<T>;
 }
 

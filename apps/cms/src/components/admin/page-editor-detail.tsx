@@ -1,5 +1,5 @@
 "use client";
-import { adminApiError } from "@/lib/admin-api";
+import { adminApiError, readAdminJson } from "@/lib/admin-api";
 import { PublishPermissionHint, PublishStatusOptions } from "./ui/publish-status-options";
 import { formatLocalDateTime } from "@/lib/local-date-time";
 
@@ -73,7 +73,7 @@ export function PageEditorDetail({ page }: { page?: AdminPage }) {
     setBusy(true); setMessage("");
     try {
       const response = await fetch("/api/admin/pages", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: page?.id ?? null, expectedVersion: savedVersion, values: { ...form, seoTitle: form.seoTitle || null, seoDescription: form.seoDescription || null, canonicalUrl: form.canonicalUrl || null, scheduledAt: form.scheduledAt || null } }) });
-      const payload = await response.json();
+      const payload = await readAdminJson(response);
       if (!response.ok) throw adminApiError(payload, "Không thể lưu trang.");
       const savedId = payload.page?.id;
       if (typeof savedId !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(savedId) || (page && savedId !== page.id)) {
@@ -91,7 +91,7 @@ export function PageEditorDetail({ page }: { page?: AdminPage }) {
     finally { saving.current = false; setBusy(false); }
   }
 
-  return <AdminDetailPanel actions={<PublishedPreviewLink kind="page" slug={page?.slug} status={page?.status} />} backHref={backHref} description={`Đường dẫn hiển thị: ${publicPath}`} eyebrow={pageType} hasUnsavedChanges={isDirty} title={page?.title ?? "Tạo trang mới"}>
+  return <AdminDetailPanel actions={<PublishedPreviewLink id={page?.id} kind="page" slug={page?.slug} status={page?.status} />} backHref={backHref} description={`Đường dẫn hiển thị: ${publicPath}`} eyebrow={pageType} hasUnsavedChanges={isDirty} title={page?.title ?? "Tạo trang mới"}>
     <form id="page-editor" className="grid gap-4" onSubmit={submit}>
       <AdminEditorTabs activeId={activeTab} onChange={setActiveTab} tabs={tabs} />
       <fieldset className="grid min-w-0 gap-3" disabled={processing}>

@@ -7,6 +7,8 @@ export const revisionHistoryResponseSchema = z.object({
     version: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
     note: z.string().nullable(),
     snapshot: z.unknown().refine(value => value !== undefined),
+    // Thời điểm lưu phiên bản (để hiển thị); dữ liệu cũ thiếu trường này vẫn hợp lệ.
+    createdAt: z.string().optional(),
   })).superRefine((rows, context) => {
     if (new Set(rows.map(row => row.id)).size !== rows.length) {
       context.addIssue({ code: "custom", message: "Lịch sử có phiên bản trùng lặp." });

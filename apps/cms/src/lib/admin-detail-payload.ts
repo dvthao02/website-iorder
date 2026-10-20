@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export function validateContentStateResponse(payload: unknown, requestUrl: string, body: unknown, action: "archive" | "restore"): void {
+export function validateContentStateResponse(payload: unknown, requestUrl: string, body: unknown, action: "archive" | "restore" | "publish"): void {
   const fail = () => { throw new Error("Chưa xác nhận được kết quả cập nhật. Hãy tải lại danh sách để kiểm tra trước khi thử lại."); };
   const request = z.object({ id: z.string().uuid().optional(), expectedVersion: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER - 1) }).safeParse(body);
   if (!request.success) return fail();

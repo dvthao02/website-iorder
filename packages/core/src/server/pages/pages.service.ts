@@ -7,9 +7,10 @@ export class FixedWebsitePageBindingError extends Error {}
 function serialize(row: NonNullable<Awaited<ReturnType<typeof findPageBySlug>>>) {
   return { ...row, blocks: row.blocks.map(block => pageBlockInputSchema.parse(block)) };
 }
-export async function getPublishedPage(slug: string) {
-  const page = await findPageBySlug(slug, true);
-  if (!page) return undefined;
+// previewId: đang xem trước bản nháp → lấy trang theo slug ở mọi trạng thái, chỉ khi đúng trang được cấp token.
+export async function getPublishedPage(slug: string, previewId?: string) {
+  const page = await findPageBySlug(slug, !previewId);
+  if (!page || (previewId && page.id !== previewId)) return undefined;
   const { title, template, seoTitle, seoDescription, canonicalUrl, blocks } = serialize(page);
   return publicPageSchema.parse({ title, slug: page.slug, template, seoTitle, seoDescription, canonicalUrl, blocks: blocks.filter(block => block.isEnabled) });
 }

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { richDocumentSchema } from "../shared/rich-text";
 import { adminListQuerySchema } from "../shared/admin-list.contract";
 import type { CmsModuleKey, CmsPermissionCode } from "../auth/permissions";
 
@@ -86,7 +87,7 @@ const cardSchema = z.object({ title: z.string().trim().min(1).max(220), descript
 const cardBlockDataSchema = z.object({ eyebrow: z.string().trim().max(160).nullable(), title: z.string().trim().min(1).max(220), description: z.string().trim().max(10_000).nullable(), items: z.array(cardSchema).max(30) }).strict();
 
 export const pageBlockInputSchema = z.discriminatedUnion("type", [
-  z.object({ type: z.literal("hero"), data: z.object({ eyebrow: z.string().trim().max(160).nullable(), title: z.string().trim().min(1).max(220), description: z.string().trim().max(10_000).nullable(), primaryAction: actionSchema.nullable(), secondaryAction: actionSchema.nullable() }).strict(), isEnabled: z.boolean() }).strict(),
+  z.object({ type: z.literal("hero"), data: z.object({ eyebrow: z.string().trim().max(160).nullable(), title: z.string().trim().min(1).max(220), description: z.string().trim().max(10_000).nullable(), primaryAction: actionSchema.nullable(), secondaryAction: actionSchema.nullable(), mediaId: z.string().uuid().nullable().optional() }).strict(), isEnabled: z.boolean() }).strict(),
   z.object({ type: z.literal("stats"), data: z.object({ eyebrow: z.string().trim().max(160).nullable(), title: z.string().trim().max(220).nullable(), items: z.array(z.object({ value: z.string().trim().min(1).max(120), label: z.string().trim().min(1).max(220), note: z.string().trim().max(500).nullable() }).strict()).min(1).max(12) }).strict(), isEnabled: z.boolean() }).strict(),
   z.object({ type: z.enum(["features", "industries", "ecosystem", "process"]), data: cardBlockDataSchema, isEnabled: z.boolean() }).strict(),
   z.object({ type: z.literal("testimonials"), data: z.object({ eyebrow: z.string().trim().max(160).nullable(), title: z.string().trim().min(1).max(220), limit: z.number().int().min(1).max(30) }).strict(), isEnabled: z.boolean() }).strict(),
@@ -95,7 +96,8 @@ export const pageBlockInputSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("faq"), data: z.object({ eyebrow: z.string().trim().max(160).nullable(), title: z.string().trim().min(1).max(220), items: z.array(z.object({ question: z.string().trim().min(1).max(500), answer: z.string().trim().min(1).max(10_000) }).strict()).min(1).max(40) }).strict(), isEnabled: z.boolean() }).strict(),
   z.object({ type: z.literal("cta"), data: z.object({ id: z.string().trim().max(100).nullable(), eyebrow: z.string().trim().max(160).nullable(), title: z.string().trim().min(1).max(220), action: actionSchema }).strict(), isEnabled: z.boolean() }).strict(),
   z.object({ type: z.literal("lead_form"), data: z.object({ title: z.string().trim().min(1).max(220), description: z.string().trim().max(2_000).nullable(), submitLabel: z.string().trim().min(1).max(120), needOptions: z.array(z.string().trim().min(1).max(200)).max(20) }).strict(), isEnabled: z.boolean() }).strict(),
-  z.object({ type: z.literal("rich_text"), data: z.object({ heading: z.string().trim().max(220).nullable(), body: z.string().trim().min(1).max(50_000) }).strict(), isEnabled: z.boolean() }).strict(),
+  // body: chữ thuần (khối cũ) hoặc tài liệu soạn thảo kiểu Word (xem shared/rich-text).
+  z.object({ type: z.literal("rich_text"), data: z.object({ heading: z.string().trim().max(220).nullable(), body: z.union([z.string().trim().min(1).max(50_000), richDocumentSchema]) }).strict(), isEnabled: z.boolean() }).strict(),
   z.object({ type: z.literal("image"), data: z.object({ mediaId: z.string().uuid(), alt: z.string().trim().max(500).nullable(), caption: z.string().trim().max(2_000).nullable() }).strict(), isEnabled: z.boolean() }).strict(),
   z.object({ type: z.literal("collection_list"), data: collectionListDataSchema, isEnabled: z.boolean() }).strict(),
   z.object({ type: z.literal("download_list"), data: z.object({ eyebrow: z.string().trim().max(160).nullable(), title: z.string().trim().min(1).max(220) }).strict(), isEnabled: z.boolean() }).strict(),

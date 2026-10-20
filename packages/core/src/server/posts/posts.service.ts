@@ -2,7 +2,7 @@ import { adminPostInputSchema, adminPostListItemSchema, adminPostSchema, publicP
 import type { AdminListPage, AdminListQuery } from "@iorder/core/server/shared/admin-list.contract";
 import { validateCoverMedia } from "../media/media.service";
 import { publicationDate } from "../shared/publication-date";
-import { assertContentVersion, contentStateAfterAction, contentStateRequestSchema, ContentVersionConflictError } from "../shared/content-version";
+import { assertContentVersion, contentStateAfterAction, contentStateChangeNotes, contentStateRequestSchema, ContentVersionConflictError, type ContentStateAction } from "../shared/content-version";
 import { mediaPath } from "../media/storage";
 import { ensureTaxonomyIds } from "@iorder/core/server/taxonomy/taxonomy.service";
 import {
@@ -46,8 +46,8 @@ export async function getPublishedPostSummaries(type?: PublicPostType) {
   return publicPostSummarySchema.array().parse(rows.map(serializeCover));
 }
 
-export async function getPublishedPostBySlug(slug: string) {
-  const post = await findPublishedPostBySlug(slug);
+export async function getPublishedPostBySlug(slug: string, previewId?: string) {
+  const post = await findPublishedPostBySlug(slug, previewId);
 
   return post ? publicPostDetailSchema.parse(serializeCover(post)) : undefined;
 }
@@ -133,11 +133,11 @@ export async function updateAdminPost(id: string, input: unknown, editorId: stri
   return adminPostSchema.parse(withoutTaxonomy(post));
 }
 
-export async function changeAdminPostState(id: string, action: "archive" | "restore", editorId: string, expectedVersion: number) {
+export async function changeAdminPostState(id: string, action: ContentStateAction, editorId: string, expectedVersion: number) {
   contentStateRequestSchema.parse({ action, expectedVersion });
   const current = await findAdminPostById(id);
   if (!current) return undefined;
   const status = contentStateAfterAction(current, action, expectedVersion);
   const values = Object.fromEntries(Object.keys(adminPostInputSchema.shape).map(key => [key, Reflect.get(current, key)]));
-  return updateAdminPost(id, { ...values, status }, editorId, action === "archive" ? "Lưu trữ bài viết" : "Khôi phục bài viết về bản nháp", expectedVersion);
+  return updateAdminPost(id, { ...values, status }, editorId, `${contentStateChangeNotes[action]} bài viết`, expectedVersion);
 }

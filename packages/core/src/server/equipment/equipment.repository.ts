@@ -6,7 +6,7 @@ import { ContentVersionConflictError } from "../shared/content-version";
 import type { EquipmentInput, EquipmentGroupInput } from "./equipment.contract";
 import { equipmentPublishedAt } from "./equipment-publication";
 import { assertEquipmentVersion } from "./equipment-version";
-import { contentStateAfterAction, contentStateRequestSchema } from "../shared/content-version";
+import { contentStateAfterAction, contentStateChangeNotes, contentStateRequestSchema, type ContentStateAction } from "../shared/content-version";
 import { toAdminListPage, type AdminListQuery } from "@iorder/core/server/shared/admin-list.contract";
 import { listOrder, workflowStatusRank, vietnameseText } from "../shared/list-order";
 
@@ -101,14 +101,15 @@ export function saveEquipment(id: string | null, values: EquipmentInput, userId:
   });
 }
 
-export function changeEquipmentState(id: string, action: "archive" | "restore", userId: string, expectedVersion: number, database = getDb()) {
+export function changeEquipmentState(id: string, action: ContentStateAction, userId: string, expectedVersion: number, database = getDb()) {
   contentStateRequestSchema.parse({ action, expectedVersion });
   return database.transaction(async tx => {
     const [before] = await tx.select().from(salesEquipment).where(and(eq(salesEquipment.id, id), isNull(salesEquipment.deletedAt))).for("update");
     if (!before) return undefined;
     const status = contentStateAfterAction(before, action, expectedVersion);
-    const [row] = await tx.update(salesEquipment).set({ status, draftVersion: before.draftVersion + 1, updatedAt: new Date() }).where(eq(salesEquipment.id, id)).returning();
-    await tx.insert(salesEquipmentRevisions).values({ salesEquipmentId: id, editorId: userId, versionNumber: row.draftVersion, snapshot: row, changeNote: action === "archive" ? "Lưu trữ thiết bị từ CMS" : "Khôi phục thiết bị về bản nháp từ CMS" });
+    const now = new Date();
+    const [row] = await tx.update(salesEquipment).set({ status, draftVersion: before.draftVersion + 1, publishedAt: equipmentPublishedAt({ status, scheduledAt: before.scheduledAt }, before, now), updatedAt: now }).where(eq(salesEquipment.id, id)).returning();
+    await tx.insert(salesEquipmentRevisions).values({ salesEquipmentId: id, editorId: userId, versionNumber: row.draftVersion, snapshot: row, changeNote: `${contentStateChangeNotes[action]} thiết bị từ CMS` });
     await tx.insert(auditLogs).values({ userId, action: "equipment.update", entityType: "equipment", entityId: id, beforeData: before, afterData: row });
     return { id: row.id, status: row.status, version: row.draftVersion };
   });

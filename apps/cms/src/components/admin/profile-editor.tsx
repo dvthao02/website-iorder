@@ -1,6 +1,6 @@
 "use client";
 
-import { adminApiError } from "@/lib/admin-api";
+import { adminApiError, readAdminJson } from "@/lib/admin-api";
 import { useCallback, useRef, useState, type FormEvent } from "react";
 import type { ProfileInput } from "@iorder/core/server/settings/profile.contract";
 import { useAdminToast } from "@/components/admin/ui/admin-feedback";
@@ -42,7 +42,7 @@ export function ProfileEditor({ initial, initialVersion }: { initial: ProfileInp
     setMessage("");
     try {
       const response = await fetch("/api/admin/profile", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ values: { ...body, logoMediaId: form.logoMediaId }, expectedVersion: version.current }) });
-      const payload = await response.json();
+      const payload = await readAdminJson(response);
       if (response.ok) { if (typeof payload.version === "number") version.current = payload.version; markSaved(); showToast("Đã cập nhật thông tin doanh nghiệp trên website.", "success"); }
       else { const notice = adminApiError(payload, "Không thể lưu thông tin.").message; setMessage(notice); showToast(notice, "error"); }
     } catch { const notice = "Không kết nối được máy chủ."; setMessage(notice); showToast(notice, "error"); }

@@ -12,7 +12,7 @@ import {
 import { mediaPath } from "../media/storage";
 import { validateCoverMedia } from "../media/media.service";
 import { publicationDate } from "../shared/publication-date";
-import { assertContentVersion, contentStateAfterAction, contentStateRequestSchema, ContentVersionConflictError } from "../shared/content-version";
+import { assertContentVersion, contentStateAfterAction, contentStateChangeNotes, contentStateRequestSchema, ContentVersionConflictError, type ContentStateAction } from "../shared/content-version";
 import {
   createOfferingWithRevision,
   deleteArchivedOffering,
@@ -49,10 +49,10 @@ export async function getPublishedOfferingSummaries(type: string) {
   return rows.map((row) => publicOfferingSummarySchema.parse(serializeOffering(row)));
 }
 
-export async function getPublishedOfferingBySlug(type: string, slug: string) {
+export async function getPublishedOfferingBySlug(type: string, slug: string, previewId?: string) {
   const parsedType = publicOfferingTypeSchema.parse(type);
   const parsedSlug = offeringSlugSchema.parse(slug);
-  const offering = await findPublishedOfferingBySlug(parsedType, parsedSlug);
+  const offering = await findPublishedOfferingBySlug(parsedType, parsedSlug, previewId);
 
   return offering ? publicOfferingDetailSchema.parse(serializeOffering(offering)) : undefined;
 }
@@ -138,13 +138,13 @@ export async function deleteArchivedAdminOffering(id: string, editorId: string, 
   return deleteArchivedOffering(id, editorId, expectedVersion);
 }
 
-export async function changeAdminOfferingState(id: string, action: "archive" | "restore", editorId: string, expectedVersion: number) {
+export async function changeAdminOfferingState(id: string, action: ContentStateAction, editorId: string, expectedVersion: number) {
   contentStateRequestSchema.parse({ action, expectedVersion });
   const current = await findAdminOfferingById(id);
   if (!current) return undefined;
   const status = contentStateAfterAction(current, action, expectedVersion);
   const values = Object.fromEntries(Object.keys(adminOfferingInputSchema.shape).map(key => [key, Reflect.get(current, key)]));
-  return updateAdminOffering(id, { ...values, status }, editorId, action === "archive" ? "Lưu trữ nội dung" : "Khôi phục nội dung về bản nháp", expectedVersion);
+  return updateAdminOffering(id, { ...values, status }, editorId, `${contentStateChangeNotes[action]} nội dung`, expectedVersion);
 }
 
 function serializeOffering<T extends {

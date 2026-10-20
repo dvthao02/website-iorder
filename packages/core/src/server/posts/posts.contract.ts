@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { richDocumentSchema, type RichDocument, type RichNode } from "../shared/rich-text";
 
 export const publicPostTypeSchema = z.enum([
   "news",
@@ -10,7 +11,8 @@ export const publicPostTypeSchema = z.enum([
 export type PublicPostType = z.infer<typeof publicPostTypeSchema>;
 const publicTaxonomyTermSchema = z.object({ id: z.string().uuid(), name: z.string(), slug: z.string() }).strict();
 
-export const postContentDocumentSchema = z
+// v1: khối đoạn văn/danh sách cũ; v2: tài liệu soạn kiểu Word (xem shared/rich-text). Bài cũ vẫn đọc được.
+const postContentV1Schema = z
   .object({
     version: z.literal(1),
     blocks: z
@@ -30,6 +32,8 @@ export const postContentDocumentSchema = z
       .max(250),
   })
   .strict();
+const postContentV2Schema = z.object({ version: z.literal(2), doc: richDocumentSchema }).strict();
+export const postContentDocumentSchema = z.union([postContentV2Schema, postContentV1Schema]);
 
 export const publicPostSummarySchema = z
   .object({
@@ -101,3 +105,18 @@ export const adminPostListItemSchema = z.object({
 }).strict();
 export type AdminPostListItem = z.infer<typeof adminPostListItemSchema>;
 export type AdminPostInput = z.infer<typeof adminPostInputSchema>;
+
+/** Đổi nội dung bài (v1 hoặc v2) sang tài liệu soạn thảo: dùng khi mở bài cũ trong trình soạn mới. */
+export function postContentToRichDocument(content: PostContentDocument): RichDocument {
+  if (content.version === 2) return content.doc;
+  const text = (value: string): RichNode[] => value ? [{ type: "text", text: value }] : [];
+  return {
+    type: "doc",
+    content: content.blocks.flatMap((block): RichNode[] => block.type === "paragraph"
+      ? block.text.split(/\n{2,}/).map((part) => ({ type: "paragraph", content: text(part.trim()) }))
+      : [
+          { type: "heading", attrs: { level: 3 }, content: text(block.heading) },
+          { type: "bulletList", content: block.items.map((item) => ({ type: "listItem", content: [{ type: "paragraph", content: text(item) }] })) },
+        ]),
+  };
+}

@@ -5,9 +5,9 @@ import { validateCoverMedia } from "@iorder/core/server/media/media.service";
 import { mediaPath } from "@iorder/core/server/media/storage";
 import type { AdminListPage, AdminListQuery } from "@iorder/core/server/shared/admin-list.contract";
 import { changeEquipmentState } from "./equipment.repository";
-import { contentStateRequestSchema } from "../shared/content-version";
+import { contentStateRequestSchema, type ContentStateAction } from "../shared/content-version";
 
-export async function changeAdminEquipmentState(id: string, action: "archive" | "restore", userId: string, expectedVersion: number) {
+export async function changeAdminEquipmentState(id: string, action: ContentStateAction, userId: string, expectedVersion: number) {
   contentStateRequestSchema.parse({ action, expectedVersion });
   if (!z.string().uuid().safeParse(id).success) return undefined;
   return changeEquipmentState(id, action, userId, expectedVersion);

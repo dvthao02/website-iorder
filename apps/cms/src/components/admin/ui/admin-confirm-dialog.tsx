@@ -4,6 +4,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 
 import { AdminButton } from "./admin-button";
 import { useAdminFocusTrap } from "./admin-focus-trap";
+import { registerLeaveConfirm } from "./use-navigation-guard";
 
 export type AdminConfirmOptions = {
   cancelLabel?: string;
@@ -41,6 +42,11 @@ export function AdminConfirmProvider({ children }: { children: ReactNode }) {
     setOptions(resolveAdminConfirmOptions(nextOptions));
   }), []);
   const value = useMemo(() => ({ confirm }), [confirm]);
+  // Hộp "rời trang khi chưa lưu" dùng chung hộp xác nhận này thay cho window.confirm của trình duyệt.
+  useEffect(() => {
+    registerLeaveConfirm(confirm);
+    return () => registerLeaveConfirm(undefined);
+  }, [confirm]);
 
   useEffect(() => () => {
     resolveRef.current?.(false);

@@ -1,4 +1,4 @@
-import { mediaAssetSchema, mediaListQuerySchema, mediaMetadataSchema, mediaUsageSchema } from "./media.contract";
+import { mediaAssetSchema, mediaListQuerySchema, mediaMetadataUpdateSchema, mediaUsageSchema } from "./media.contract";
 import { randomUUID } from "node:crypto";
 import { collectMediaUsage, findMediaAsset, insertUploadedMedia, listMediaAssets, listMediaAssetsPage, queueMediaAssetDeletion, updateMediaMetadata } from "./media.repository";
 import { z } from "zod";
@@ -59,7 +59,7 @@ export async function uploadAdminMedia(file: File, userId: string) {
 
 function serialize(row: Awaited<ReturnType<typeof listMediaAssets>>[number]) {
   return mediaAssetSchema.parse({ id: row.id, originalName: row.originalName, mimeType: row.mimeType,
-    fileSize: row.fileSize, altText: row.altText, caption: row.caption, url: mediaPath(row.storageKey) });
+    fileSize: row.fileSize, altText: row.altText, caption: row.caption, url: mediaPath(row.storageKey), version: row.version });
 }
 
 export async function getAdminMedia() {
@@ -77,7 +77,8 @@ export async function getMediaById(id: string) {
 }
 
 export async function editAdminMedia(id: string, input: unknown, userId: string) {
-  const row = await updateMediaMetadata(id, mediaMetadataSchema.parse(input), userId);
+  const { expectedVersion, ...metadata } = mediaMetadataUpdateSchema.parse(input);
+  const row = await updateMediaMetadata(id, metadata, userId, expectedVersion);
   return row ? serialize(row) : undefined;
 }
 

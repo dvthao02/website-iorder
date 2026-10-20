@@ -72,7 +72,7 @@ export function AdminFilterBar({ actions, bulkActions, search, children, more, m
     {bulkActions ? <div className="admin-filter-bar__bulk-actions">{bulkActions}</div> : null}
     {actions ? <div className="admin-filter-bar__actions">{actions}</div> : null}
     {chips.length ? <div aria-label="Bộ lọc đang áp dụng" className="admin-filter-chips" role="group">
-      {chips.map((chip) => <span className="admin-filter-chip" key={chip.key}>{chip.label}<button aria-label={`Bỏ lọc ${chip.label}`} onClick={chip.onRemove} type="button"><X aria-hidden="true" size={13} /></button></span>)}
+      {chips.map((chip) => <span className="admin-filter-chip" key={chip.key}>{chip.label}<button aria-label={`Bỏ lọc ${chip.label}`} className="admin-filter-chip__remove" onClick={chip.onRemove} type="button"><X aria-hidden="true" size={13} /></button></span>)}
       {onClearAll && chips.length > 1 ? <button className="admin-filter-chips__clear" onClick={onClearAll} type="button">Xóa tất cả</button> : null}
     </div> : null}
   </form>;

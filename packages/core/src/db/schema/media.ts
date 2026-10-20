@@ -16,6 +16,8 @@ export const mediaAssets = pgTable(
     height: integer("height"),
     altText: varchar("alt_text", { length: 500 }),
     caption: text("caption"),
+    // Tăng mỗi lần sửa mô tả/chú thích để chặn ghi đè khi hai người cùng sửa.
+    version: integer("version").default(0).notNull(),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
     ...timestamps(),
   },

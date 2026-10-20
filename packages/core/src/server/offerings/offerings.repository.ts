@@ -44,7 +44,8 @@ export async function listPublishedOfferings(type: PublicOfferingType) {
     .orderBy(asc(offerings.sortOrder), asc(offerings.title));
 }
 
-export async function findPublishedOfferingBySlug(type: PublicOfferingType, slug: string) {
+// previewId: đang xem trước bản nháp → lấy đúng mục đó (mọi trạng thái) nếu loại và slug khớp.
+export async function findPublishedOfferingBySlug(type: PublicOfferingType, slug: string, previewId?: string) {
   const [offering] = await getDb()
     .select({
       id: offerings.id,
@@ -67,7 +68,7 @@ export async function findPublishedOfferingBySlug(type: PublicOfferingType, slug
     })
     .from(offerings)
     .leftJoin(mediaAssets, eq(offerings.coverMediaId, mediaAssets.id))
-    .where(and(publishedOfferingCondition(type), eq(offerings.slug, slug)))
+    .where(previewId ? and(eq(offerings.type, type), eq(offerings.id, previewId), eq(offerings.slug, slug), isNull(offerings.deletedAt)) : and(publishedOfferingCondition(type), eq(offerings.slug, slug)))
     .limit(1);
 
   return offering;

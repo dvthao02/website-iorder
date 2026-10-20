@@ -1,6 +1,6 @@
 "use client";
 
-import { adminApiError } from "@/lib/admin-api";
+import { adminApiError, readAdminJson } from "@/lib/admin-api";
 import { FolderTree, Plus, Tags } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useRef, useState, type FormEvent, type ReactNode } from "react";
@@ -157,7 +157,7 @@ export function TaxonomyManager({ categories, tags }: { categories: Category[]; 
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ kind, id: activeId, values, ...(activeVersion !== undefined ? { expectedVersion: activeVersion } : {}) }),
       });
-      const body = await response.json();
+      const body = await readAdminJson(response);
       if (!response.ok) throw adminApiError(body, "Không thể lưu phân loại.");
       if (typeof body.id !== "string" || !body.id || (activeId && body.id !== activeId)) throw new Error("Phản hồi lưu phân loại không hợp lệ. Hãy kiểm tra lại dữ liệu trước khi thử lại.");
 
@@ -189,7 +189,7 @@ export function TaxonomyManager({ categories, tags }: { categories: Category[]; 
     setBusy(true);
     try {
       const response = await fetch(`/api/admin/taxonomy?kind=${kind}&id=${activeId}`, { method: "DELETE" });
-      const body = await response.json();
+      const body = await readAdminJson(response);
       if (!response.ok) throw adminApiError(body, `Không thể xóa ${label}.`);
       if (body.deletedId !== activeId) throw new Error("Phản hồi xóa phân loại không hợp lệ. Hãy tải lại danh sách để kiểm tra.");
       setActiveId(null);

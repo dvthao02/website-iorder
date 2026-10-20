@@ -17,7 +17,7 @@ test("query media từ chối trang/limit/type/trường lạ", () => {
   assert.equal(mediaListQuerySchema.parse({ sort: "name; drop" }).sort, undefined);
 });
 
-const asset = { id: "11111111-1111-4111-8111-111111111111", originalName: "Ảnh.png", mimeType: "image/png", fileSize: 1, altText: null, caption: null, url: "/media/test.png" };
+const asset = { id: "11111111-1111-4111-8111-111111111111", originalName: "Ảnh.png", mimeType: "image/png", fileSize: 1, altText: null, caption: null, url: "/media/test.png", version: 0 };
 const page = { assets: [asset], page: 1, pageSize: 25, total: 1, totalPages: 1 };
 test("response phân trang nhận trang có dữ liệu và trang rỗng", () => {
   assert.equal(mediaListResponseSchema.safeParse(page).success, true);
@@ -35,4 +35,10 @@ test("response từ chối tổng/trang không nhất quán và ID trùng", () =
     assert.equal(mediaListResponseSchema.safeParse(input).success, false);
   }
   assert.equal(mediaListResponseSchema.safeParse({ ...page, assets: [], page: 2 }).success, true);
+});
+
+test("sửa mô tả ảnh bắt buộc gửi phiên bản đang sửa", async () => {
+  const { mediaMetadataUpdateSchema } = await import("./media.contract");
+  assert.equal(mediaMetadataUpdateSchema.safeParse({ altText: "Ảnh", caption: null }).success, false);
+  assert.deepEqual(mediaMetadataUpdateSchema.parse({ altText: " Ảnh ", caption: null, expectedVersion: 2 }), { altText: "Ảnh", caption: null, expectedVersion: 2 });
 });

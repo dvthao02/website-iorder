@@ -1,29 +1,81 @@
 "use client";
 import { useAdminPermissions } from "./ui/admin-permissions";
 import { requestAdminJson } from "@/lib/admin-api";
-import { formatLocalDateTime } from "@/lib/local-date-time";
+import { formatDisplayDateTime, formatLocalDateTime } from "@/lib/local-date-time";
 
 import { type FormEvent, type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { MediaPicker } from "./media-picker";
 import { RevisionHistory } from "./revision-history";
+import { PublishedPreviewLink } from "./published-preview-link";
 import { AdminEditorActions } from "./ui/admin-editor-actions";
 import { useUnsavedChanges } from "./ui/use-unsaved-changes";
-import { AdminEditorTabs } from "./ui/admin-editor-tabs";
-import { PublishPermissionHint, PublishStatusOptions } from "./ui/publish-status-options";
 import { AdminButton } from "./ui/admin-button";
 import { AdminInlineCreate } from "./ui/admin-inline-create";
-import { AdminNotice } from "./ui/admin-feedback";
+import { AdminNotice, AdminStatusBadge } from "./ui/admin-feedback";
 import { useNavigationGuard } from "./ui/use-navigation-guard";
 import { useRevisionRestore } from "./ui/use-revision-restore";
+import { SeoAssistant } from "./ui/seo-assistant";
+import { contentPlainText, seoChecks, truncateAtWord } from "@iorder/core/server/shared/seo";
+import { richFirstParagraph } from "@iorder/core/server/shared/rich-text";
+import { toSlug } from "@/lib/slug";
 
-import type { AdminPost, PostContentDocument } from "@iorder/core/server/posts/posts.contract";
+import { postContentToRichDocument, type AdminPost, type PostContentDocument } from "@iorder/core/server/posts/posts.contract";
+import { RichTextEditor } from "./rich-text/rich-text-editor";
 
 type Notice = { kind: "error" | "success"; message: string } | undefined;
+type PostStatus = AdminPost["status"];
+
+// Trạng thái đã lưu (nhãn trên thanh bên) và nút lưu nói rõ sẽ làm gì với bài.
+const statusBadge: Record<PostStatus, { label: string; tone: "neutral" | "info" | "success" | "warning" }> = {
+  draft: { label: "Bản nháp", tone: "neutral" },
+  review: { label: "Chờ duyệt", tone: "warning" },
+  scheduled: { label: "Đã hẹn giờ", tone: "info" },
+  published: { label: "Đang hiển thị trên website", tone: "success" },
+  archived: { label: "Đã lưu trữ", tone: "neutral" },
+};
+function submitLabel(status: PostStatus, savedStatus: PostStatus | undefined) {
+  if (status === "published") return savedStatus === "published" ? "Cập nhật bài đã đăng" : "Xuất bản";
+  if (status === "scheduled") return "Lên lịch đăng";
+  if (status === "review") return "Gửi duyệt";
+  if (status === "archived") return "Lưu trữ bài";
+  return "Lưu nháp";
+}
+
+// Lựa chọn trạng thái có mô tả ngắn để người viết hiểu ngay hệ quả. "Lưu trữ" chỉ hiện khi bài đang lưu trữ
+// (gỡ bài làm từ danh sách). Người thiếu quyền xuất bản không chọn được "Đăng ngay"/"Hẹn giờ".
+function StatusChoice({ value, savedStatus, canPublish, onChange }: { value: PostStatus; savedStatus: PostStatus | undefined; canPublish: boolean; onChange: (status: PostStatus) => void }) {
+  const choices: Array<{ status: PostStatus; label: string; hint: string }> = [
+    { status: "draft", label: "Bản nháp", hint: "Chỉ người quản trị thấy." },
+    { status: "review", label: "Chờ duyệt", hint: "Gửi người có quyền xuất bản xem lại." },
+    { status: "published", label: savedStatus === "published" ? "Đang hiển thị" : "Đăng ngay", hint: savedStatus === "published" ? "Giữ bài trên website, cập nhật nội dung mới." : "Hiện trên website ngay khi lưu." },
+    { status: "scheduled", label: "Hẹn giờ đăng", hint: "Tự hiện trên website vào thời điểm chọn." },
+    ...(value === "archived" || savedStatus === "archived" ? [{ status: "archived" as const, label: "Lưu trữ", hint: "Đã gỡ khỏi website." }] : []),
+  ];
+  const isLocked = (status: PostStatus) => !canPublish && (status === "published" || status === "scheduled") && status !== savedStatus;
+  const active = choices.find((choice) => choice.status === value);
+  return <fieldset className="admin-status-choice"><legend>Trạng thái</legend>
+    <div className="admin-status-choice__grid">{choices.map((choice) => <label className={value === choice.status ? "admin-status-choice__item admin-status-choice__item--active" : "admin-status-choice__item"} key={choice.status} title={isLocked(choice.status) ? "Cần quyền xuất bản" : choice.hint}>
+      <input checked={value === choice.status} disabled={isLocked(choice.status)} name="post-status" onChange={() => onChange(choice.status)} type="radio" value={choice.status} />
+      <span>{choice.label}</span>
+    </label>)}</div>
+    {active ? <p className="admin-help">{active.hint}</p> : null}
+    {!canPublish ? <p className="admin-help">Đăng ngay và hẹn giờ cần quyền xuất bản.</p> : null}
+  </fieldset>;
+}
+
+// Đưa người dùng tới đúng ô còn thiếu (cuộn tới giữa màn và đặt con trỏ vào).
+function focusField(id: string) {
+  const element = document.getElementById(id);
+  if (!element) return;
+  element.scrollIntoView({ behavior: "smooth", block: "center" });
+  // Ưu tiên vùng soạn thảo, rồi tới ô nhập/nút đầu tiên trong khu vực.
+  const focusable = element.matches("input, textarea, select, button") ? element : element.querySelector<HTMLElement>("[contenteditable=true]") ?? element.querySelector<HTMLElement>("input, textarea, button");
+  focusable?.focus({ preventScroll: true });
+}
 
 const inputClassName = "admin-input";
 const labelClassName = "admin-field";
-type PostBlock = PostContentDocument["blocks"][number];
 
 function EditorSection({ children, description, title }: { children: ReactNode; description?: string; title: string }) {
   return <section className="admin-content-section"><header><h3>{title}</h3>{description ? <p>{description}</p> : null}</header>{children}</section>;
@@ -42,25 +94,6 @@ function dateTimeOrNull(value: string) {
   return value ? new Date(value).toISOString() : null;
 }
 
-function movePostBlock(blocks: PostBlock[], index: number, direction: -1 | 1) {
-  const target = index + direction;
-  if (target < 0 || target >= blocks.length) return blocks;
-  const result = [...blocks];
-  [result[index], result[target]] = [result[target], result[index]];
-  return result;
-}
-
-function PostDocumentEditor({ document, onChange }: { document: PostContentDocument; onChange: (document: PostContentDocument) => void }) {
-  const blocks = document.blocks;
-  function update(index: number, next: PostBlock) { onChange({ ...document, blocks: blocks.map((block, blockIndex) => blockIndex === index ? next : block) }); }
-  return <div className="admin-post-document-editor grid gap-3">
-    {blocks.map((block, index) => <article className="admin-post-document-editor__block admin-subsection" key={index}>
-      <div className="flex flex-wrap items-center justify-between gap-3"><strong className="text-sm">Khối {index + 1}: {block.type === "paragraph" ? "Đoạn văn" : "Danh sách kiểm tra"}</strong><div className="admin-post-document-editor__actions"><button type="button" disabled={index === 0} onClick={() => onChange({ ...document, blocks: movePostBlock(blocks, index, -1) })}>Lên</button><button type="button" disabled={index === blocks.length - 1} onClick={() => onChange({ ...document, blocks: movePostBlock(blocks, index, 1) })}>Xuống</button><button type="button" className="admin-post-document-editor__danger" onClick={() => onChange({ ...document, blocks: blocks.filter((_, blockIndex) => blockIndex !== index) })}>Xóa</button></div></div>
-      {block.type === "paragraph" ? <label className={labelClassName}>Nội dung<textarea className={inputClassName} required rows={7} value={block.text} onChange={event => update(index, { ...block, text: event.target.value })} /></label> : <><label className={labelClassName}>Tiêu đề danh sách<input className={inputClassName} required value={block.heading} onChange={event => update(index, { ...block, heading: event.target.value })} /></label><div className="grid gap-2">{block.items.map((item, itemIndex) => <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]" key={itemIndex}><input className={inputClassName} required value={item} onChange={event => update(index, { ...block, items: block.items.map((entry, entryIndex) => entryIndex === itemIndex ? event.target.value : entry) })} /><button type="button" className="admin-post-document-editor__danger" onClick={() => update(index, { ...block, items: block.items.filter((_, entryIndex) => entryIndex !== itemIndex) })}>Xóa mục</button></div>)}</div><button type="button" className="admin-post-document-editor__add" onClick={() => update(index, { ...block, items: [...block.items, "Mục mới"] })}>+ Thêm mục</button></>}</article>)}
-    <div className="flex flex-wrap gap-2"><button type="button" className="admin-post-document-editor__add" onClick={() => onChange({ ...document, blocks: [...blocks, { type: "paragraph", text: "Nội dung mới" }] })}>+ Thêm đoạn văn</button><button type="button" className="admin-post-document-editor__add" onClick={() => onChange({ ...document, blocks: [...blocks, { type: "checklist", heading: "Danh sách mới", items: ["Mục mới"] }] })}>+ Thêm danh sách</button></div>
-  </div>;
-}
-
 function postToForm(post: AdminPost | undefined, defaultType: AdminPost["type"] = "news") {
   return {
     coverMediaId: post?.coverMediaId ?? null,
@@ -69,7 +102,8 @@ function postToForm(post: AdminPost | undefined, defaultType: AdminPost["type"] 
     title: post?.title ?? "",
     slug: post?.slug ?? "",
     excerpt: post?.excerpt ?? "",
-    content: post?.content ?? { version: 1, blocks: [{ type: "paragraph", text: "Nội dung mới" }] },
+    // Luôn soạn ở định dạng v2; bài cũ (v1) được chuyển ngay khi mở.
+    content: (post ? { version: 2, doc: postContentToRichDocument(post.content) } : { version: 2, doc: { type: "doc", content: [{ type: "paragraph" }] } }) as PostContentDocument,
     seoTitle: post?.seoTitle ?? "",
     seoDescription: post?.seoDescription ?? "",
     canonicalUrl: post?.canonicalUrl ?? "",
@@ -111,9 +145,12 @@ async function requestJson(url: string, method: "PATCH" | "POST", body: unknown)
   return await requestAdminJson(url, method, body, "Không thể lưu bài viết. Vui lòng thử lại.") as { post: AdminPost };
 }
 
-function TaxonomyChecklist({ emptyText, items, onChange, selected }: { emptyText: string; items: Array<{ id: string; name: string }>; onChange: (ids: string[]) => void; selected: string[] }) {
+function TaxonomyChecklist({ emptyText, items, onChange, selected, searchLabel }: { emptyText: string; items: Array<{ id: string; name: string }>; onChange: (ids: string[]) => void; selected: string[]; searchLabel: string }) {
+  const [filter, setFilter] = useState("");
   if (!items.length) return <p className="admin-help">{emptyText}</p>;
-  return <>{items.map((item) => <label className="admin-post-editor__check" key={item.id}><input checked={selected.includes(item.id)} onChange={(event) => onChange(event.target.checked ? [...selected, item.id] : selected.filter((id) => id !== item.id))} type="checkbox" />{item.name}</label>)}</>;
+  const keyword = filter.trim().toLocaleLowerCase("vi");
+  const shown = keyword ? items.filter((item) => selected.includes(item.id) || item.name.toLocaleLowerCase("vi").includes(keyword)) : items;
+  return <>{items.length > 8 ? <input aria-label={searchLabel} className="admin-input admin-post-editor__filter" onChange={(event) => setFilter(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") event.preventDefault(); }} placeholder={`${searchLabel}…`} type="search" value={filter} /> : null}<div className="admin-post-editor__checklist">{shown.length ? null : <p className="admin-help">Không tìm thấy.</p>}{shown.map((item) => <label className="admin-post-editor__check" key={item.id}><input checked={selected.includes(item.id)} onChange={(event) => onChange(event.target.checked ? [...selected, item.id] : selected.filter((id) => id !== item.id))} type="checkbox" />{item.name}</label>)}</div></>;
 }
 
 export type PostTaxonomy = { categories: Array<{ id: string; name: string }>; tags: Array<{ id: string; name: string }> };
@@ -186,7 +223,25 @@ export function PostEditor({ post, taxonomy, onSaved, onError, contentType, onDi
   const [isSaving, setIsSaving] = useState(false);
   const processing = isSaving || isUploading || restore.restoring;
   useNavigationGuard(processing && !restore.completing, () => onError("Đang xử lý bài viết. Vui lòng chờ trước khi rời màn hình."));
-  const [activeTab, setActiveTab] = useState("basic");
+  const [editingSlug, setEditingSlug] = useState(false);
+  const [displayOptionsOpen] = useState(() => Boolean(post?.badgeText || post?.ctaLabel || post?.ctaUrl || post?.type === "promotion"));
+  const formRef = useRef<HTMLFormElement>(null);
+  // Ctrl+S / ⌘+S lưu ngay, không phải cuộn xuống thanh lưu.
+  useEffect(() => {
+    function save(event: KeyboardEvent) {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") { event.preventDefault(); formRef.current?.requestSubmit(); }
+    }
+    window.addEventListener("keydown", save);
+    return () => window.removeEventListener("keydown", save);
+  }, []);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  // Bài mới: slug tự theo tiêu đề cho tới khi người dùng tự sửa slug. Bài đã có giữ slug (đổi slug làm hỏng liên kết).
+  const [slugTouched, setSlugTouched] = useState(Boolean(post));
+  const publicPath = `${form.type === "guide" ? "/ho-tro/cai-dat" : "/tin-tuc"}/${form.slug || "duong-dan"}`;
+  function changeTitle(title: string) {
+    if (saving.current || restore.pending.current) return;
+    setForm((current) => ({ ...current, title, ...(slugTouched ? {} : { slug: toSlug(title, 80) }) }));
+  }
   const canPublish = useAdminPermissions().can("posts.publish");
   const { isDirty, markSaved } = useUnsavedChanges(form);
   useEffect(() => onDirtyChange?.(isDirty), [isDirty, onDirtyChange]);
@@ -230,37 +285,78 @@ export function PostEditor({ post, taxonomy, onSaved, onError, contentType, onDi
     }
   }
 
+  const checks = seoChecks({ title: form.title, seoTitle: form.seoTitle, seoDescription: form.seoDescription, excerpt: form.excerpt, slug: form.slug, hasCover: Boolean(form.coverMediaId), content: form.content });
+  const seoPassed = checks.filter((check) => check.ok).length;
+  const savedStatus = post?.status;
+  const wordCount = contentPlainText(form.content).split(/\s+/).filter(Boolean).length;
+  const firstParagraph = form.content.version === 2 ? richFirstParagraph(form.content.doc) : null;
+  // Gợi ý (không chặn) trước khi đăng; bấm để tới đúng chỗ.
+  const goingLive = form.status === "published" || form.status === "scheduled";
+  const missing = [
+    !form.coverMediaId ? { id: "post-cover", label: "Ảnh bìa" } : null,
+    !form.excerpt.trim() ? { id: "post-excerpt", label: "Tóm tắt" } : null,
+    !form.categoryIds.length ? { id: "post-categories", label: "Chuyên mục" } : null,
+    wordCount < 150 ? { id: "post-content", label: `Nội dung dài hơn (hiện ${wordCount} từ)` } : null,
+  ].filter((item): item is { id: string; label: string } => item !== null);
+
+  // Bố cục 2 cột: trái để viết (tiêu đề → nội dung → tóm tắt → SEO), phải là thiết lập luôn nhìn thấy.
   return (
-    <form className="grid gap-4" onSubmit={submit}>
+    <form className="admin-post-editor" onSubmit={submit} ref={formRef}>
       <fieldset disabled={processing} className="contents">
-      <AdminEditorTabs activeId={activeTab} onChange={setActiveTab} tabs={[{ id: "basic", label: "Thông tin" }, { id: "content", label: "Nội dung" }, { id: "publishing", label: "Xuất bản & SEO" }, ...(post ? [{ id: "history", label: "Lịch sử" }] : [])]} />
+      <div className="admin-post-editor__main">
+        <section className="admin-content-section admin-post-editor__writing" id="post-content">
+          <label className="admin-post-editor__title-field"><span className="sr-only">Tiêu đề</span><input className="admin-post-editor__title" onChange={(event) => changeTitle(event.target.value)} placeholder="Nhập tiêu đề bài viết…" required value={form.title} /></label>
+          {editingSlug ? <div className="admin-post-editor__slug-edit">
+            <div className={labelClassName}><label className="admin-seo__label" htmlFor="post-slug">Đường dẫn (slug)<span className="admin-help">{publicPath}</span></label><span className="admin-post-editor__slug"><input autoFocus className={inputClassName} id="post-slug" onChange={(event) => { setSlugTouched(true); update("slug", event.target.value); }} pattern="[a-z0-9]+(-[a-z0-9]+)*" required value={form.slug} /><AdminButton disabled={!form.title.trim() || toSlug(form.title, 80) === form.slug} onClick={() => { setSlugTouched(true); update("slug", toSlug(form.title, 80)); }} size="sm" variant="secondary">Tạo từ tiêu đề</AdminButton><AdminButton onClick={() => setEditingSlug(false)} size="sm" variant="ghost">Xong</AdminButton></span></div>
+            {savedStatus === "published" ? <small className="admin-help admin-text-warning">Bài đã xuất bản: đổi đường dẫn sẽ làm hỏng liên kết cũ, nên tạo chuyển hướng.</small> : <small className="admin-help">Chỉ dùng chữ thường không dấu, số và dấu gạch ngang.</small>}
+          </div> : <p className="admin-post-editor__slug-line"><span className="admin-help">Đường dẫn:</span> <span className="admin-post-editor__path">{publicPath}</span><button className="admin-post-editor__link" onClick={() => setEditingSlug(true)} type="button">Sửa</button>{!slugTouched ? <span className="admin-help"> · tự tạo theo tiêu đề</span> : null}</p>}
+          <RichTextEditor disabled={processing} onChange={(richDoc) => update("content", { version: 2, doc: richDoc })} onImportTitle={(title) => { if (!form.title.trim()) changeTitle(title); }} placeholder="Viết nội dung bài… Dùng Tiêu đề H2/H3 để chia mục, website tự tạo mục lục." value={form.content.version === 2 ? form.content.doc : postContentToRichDocument(form.content)} />
+        </section>
+        <EditorSection description="1–2 câu giới thiệu. Hiện ở danh sách tin, khi chia sẻ Facebook/Zalo và làm đoạn mô tả trên Google." title="Tóm tắt"><div className="admin-seo__label"><span className={form.excerpt.trim().length > 200 ? "admin-seo__count admin-seo__count--over" : "admin-seo__count"}>{form.excerpt.trim().length}/200 ký tự</span>{firstParagraph ? <button className="admin-post-editor__link" onClick={() => update("excerpt", truncateAtWord(firstParagraph, 200))} type="button">Lấy từ đoạn đầu bài</button> : null}</div><label className={labelClassName}><span className="sr-only">Tóm tắt</span><textarea className={inputClassName} id="post-excerpt" onChange={(event) => update("excerpt", event.target.value)} placeholder="Ví dụ: Danh mục sản phẩm, bảng giá và tài khoản nhân viên là những phần nên chuẩn bị trước khi triển khai." rows={3} value={form.excerpt} /></label></EditorSection>
+        <details className="admin-post-editor__panel">
+          <summary><span><strong>Google &amp; chia sẻ mạng xã hội</strong><small>Mặc định lấy từ tiêu đề và tóm tắt — chỉ mở khi muốn đặt riêng.</small></span><AdminStatusBadge tone={seoPassed === checks.length ? "success" : "warning"}>SEO {seoPassed}/{checks.length} đạt</AdminStatusBadge></summary>
+          <div className="admin-post-editor__panel-body">
+            <SeoAssistant content={form.content} excerpt={form.excerpt} hasCover={Boolean(form.coverMediaId)} onChange={(field, value) => update(field, value)} path={publicPath} seoDescription={form.seoDescription} seoTitle={form.seoTitle} slug={form.slug} title={form.title} />
+            <label className={labelClassName}>URL chuẩn (canonical)<input className={inputClassName} onChange={(event) => update("canonicalUrl", event.target.value)} placeholder="https://… — chỉ điền khi bài này là bản sao của trang khác" type="url" value={form.canonicalUrl} /></label>
+          </div>
+        </details>
+        {/* Phần ít dùng đặt cuối cột viết để hai cột cân nhau. */}
+        <details className="admin-post-editor__panel" open={displayOptionsOpen}>
+          <summary><span><strong>Nhãn &amp; nút kêu gọi hành động</strong><small>Không bắt buộc</small></span></summary>
+          <div className="admin-post-editor__panel-body">
+            <label className={labelClassName}>Nhãn nổi bật<input className={inputClassName} onChange={(event) => update("badgeText", event.target.value)} placeholder="Ví dụ: Mới" value={form.badgeText} /></label>
+            <label className={labelClassName}>Chữ trên nút<input className={inputClassName} onChange={(event) => update("ctaLabel", event.target.value)} placeholder="Ví dụ: Đăng ký tư vấn" value={form.ctaLabel} /></label>
+            <label className={labelClassName}>Nút dẫn tới<input className={inputClassName} onChange={(event) => update("ctaUrl", event.target.value)} placeholder="https://…" type="url" value={form.ctaUrl} /></label>
+            {form.type === "promotion" ? <><label className={labelClassName}>Bắt đầu khuyến mãi<input className={inputClassName} onChange={(event) => update("promotionStartAt", event.target.value)} type="datetime-local" value={form.promotionStartAt} /></label><label className={labelClassName}>Kết thúc khuyến mãi<input className={inputClassName} onChange={(event) => update("promotionEndAt", event.target.value)} type="datetime-local" value={form.promotionEndAt} /></label></> : null}
+          </div>
+        </details>
+        {post ? <details className="admin-post-editor__panel" onToggle={(event) => setHistoryOpen(event.currentTarget.open)}>
+          <summary><span><strong>Lịch sử phiên bản</strong><small>Xem lại hoặc khôi phục bản đã lưu</small></span></summary>
+          {historyOpen ? <div className="admin-post-editor__panel-body"><RevisionHistory target="posts" id={post.id} expectedVersion={savedVersion} disabled={isDirty || processing} onRestorePendingChange={restore.onPendingChange} onRestored={restore.onRestored} /></div> : null}
+        </details> : null}
+      </div>
 
-      {activeTab === "basic" ? <div className="grid gap-4">
-      <EditorSection description="Thông tin nhận diện và đường dẫn dùng cho bài viết." title="Thông tin cơ bản"><div className="admin-form-grid">
-        <label className={labelClassName}>Loại bài viết<select className={inputClassName} disabled={Boolean(contentType)} onChange={(event) => update("type", event.target.value as typeof form.type)} value={form.type}><option value="news">Tin tức</option><option value="promotion">Khuyến mãi</option><option value="case_study">Câu chuyện khách hàng</option><option value="announcement">Thông báo</option>{contentType === "guide" ? <option value="guide">Hướng dẫn</option> : null}</select></label>
-        <label className={labelClassName}>Tiêu đề<input className={inputClassName} onChange={(event) => update("title", event.target.value)} required value={form.title} /></label>
-        <label className={labelClassName}>Slug<input className={inputClassName} onChange={(event) => update("slug", event.target.value)} pattern="[a-z0-9]+(-[a-z0-9]+)*" required value={form.slug} /></label>
-      </div></EditorSection>
+      <aside aria-label="Thiết lập bài viết" className="admin-post-editor__side">
+        <section className="admin-content-section">
+          <header className="admin-post-editor__card-head"><h3>Xuất bản</h3>{post ? <PublishedPreviewLink contentType={post.type} id={post.id} kind="post" slug={post.slug} status={post.status} /> : null}</header>
+          {post && isDirty ? <p className="admin-help">Xem trước hiển thị bản đã lưu — lưu trước để thấy thay đổi mới.</p> : null}
+          {post ? <p className="admin-post-editor__state"><AdminStatusBadge tone={statusBadge[post.status].tone}>{statusBadge[post.status].label}</AdminStatusBadge>{post.publishedAt ? <small className="admin-help">Đăng lúc {formatDisplayDateTime(post.publishedAt)}</small> : null}</p> : <p className="admin-help">Bài mới — chưa lưu.</p>}
+          <StatusChoice canPublish={canPublish} onChange={(status) => update("status", status)} savedStatus={savedStatus} value={form.status} />
+          {form.status === "scheduled" ? <label className={labelClassName}>Thời điểm đăng<input className={inputClassName} onChange={(event) => update("scheduledAt", event.target.value)} required type="datetime-local" value={form.scheduledAt} /></label> : null}
+          {goingLive ? missing.length ? <div className="admin-post-editor__prepublish" role="note"><strong>Nên có trước khi đăng</strong><ul>{missing.map((item) => <li key={item.id}><button className="admin-post-editor__link" onClick={() => focusField(item.id)} type="button">{item.label}</button></li>)}</ul></div> : <p className="admin-post-editor__ready">Đã đủ thông tin để đăng.</p> : null}
+        </section>
+        <section className="admin-content-section" id="post-cover">
+          <MediaPicker preview hint="Hiện ở đầu bài, thẻ tin và khi chia sẻ Facebook/Zalo. Nên dùng ảnh ngang 1200×630." label="Ảnh bìa" onChange={value => update("coverMediaId", value)} onUploadingChange={handleUploadingChange} value={form.coverMediaId} />
+        </section>
+        <section className="admin-content-section">
+          <header><h3>Phân loại</h3></header>
+          <label className={labelClassName}>Loại bài viết<select className={inputClassName} disabled={Boolean(contentType)} onChange={(event) => update("type", event.target.value as typeof form.type)} value={form.type}><option value="news">Tin tức</option><option value="promotion">Khuyến mãi</option><option value="case_study">Câu chuyện khách hàng</option><option value="announcement">Thông báo</option>{contentType === "guide" ? <option value="guide">Hướng dẫn</option> : null}</select></label>
+          <fieldset className="admin-post-editor__group" id="post-categories"><legend>Chuyên mục</legend><TaxonomyChecklist emptyText="Chưa có chuyên mục." searchLabel="Tìm chuyên mục" items={categories} onChange={(ids) => update("categoryIds", ids)} selected={form.categoryIds} /><AdminInlineCreate disabled={processing} label="chuyên mục" onCreate={(name, slug) => createTaxonomy("categories", name, slug)} permission="taxonomy.create" /></fieldset>
+          <fieldset className="admin-post-editor__group"><legend>Thẻ</legend><TaxonomyChecklist emptyText="Chưa có thẻ nào." searchLabel="Tìm thẻ" items={tags} onChange={(ids) => update("tagIds", ids)} selected={form.tagIds} /><AdminInlineCreate disabled={processing} label="thẻ" onCreate={(name, slug) => createTaxonomy("tags", name, slug)} permission="taxonomy.create" /></fieldset>
+        </section>
+      </aside>
 
-      <EditorSection description="Ảnh đại diện hiển thị trong danh sách tin và trang chi tiết." title="Media"><MediaPicker value={form.coverMediaId} onChange={value => update("coverMediaId", value)} onUploadingChange={handleUploadingChange} /></EditorSection>
-      <EditorSection description="Chọn các nhóm giúp người đọc tìm bài viết trong trang tin." title="Phân loại"><div className="admin-form-grid"><fieldset className="grid gap-3"><legend className="admin-field mb-2">Chuyên mục</legend><TaxonomyChecklist emptyText="Chưa có chuyên mục." items={categories} onChange={(ids) => update("categoryIds", ids)} selected={form.categoryIds} /><AdminInlineCreate disabled={processing} label="chuyên mục" onCreate={(name, slug) => createTaxonomy("categories", name, slug)} permission="taxonomy.create" /></fieldset><fieldset className="grid gap-3"><legend className="admin-field mb-2">Thẻ</legend><TaxonomyChecklist emptyText="Chưa có thẻ." items={tags} onChange={(ids) => update("tagIds", ids)} selected={form.tagIds} /><AdminInlineCreate disabled={processing} label="thẻ" onCreate={(name, slug) => createTaxonomy("tags", name, slug)} permission="taxonomy.create" /></fieldset></div></EditorSection>
-      </div> : null}
-
-      {activeTab === "content" ? <div className="grid gap-4"><EditorSection description="Phần tóm tắt hiển thị ở danh sách tin và khi chia sẻ liên kết." title="Tóm tắt"><label className={labelClassName}>Tóm tắt<textarea className={inputClassName} onChange={(event) => update("excerpt", event.target.value)} rows={4} value={form.excerpt} /></label></EditorSection><EditorSection description="Sắp xếp các khối theo đúng thứ tự muốn xuất hiện trên website." title="Nội dung bài viết"><PostDocumentEditor document={form.content} onChange={content => update("content", content)} /></EditorSection></div> : null}
-
-      {activeTab === "publishing" ? <div className="grid gap-4"><EditorSection title="Xuất bản"><div className="admin-form-grid"><label className={labelClassName}>Trạng thái<select className={inputClassName} onChange={(event) => update("status", event.target.value as typeof form.status)} value={form.status}><PublishStatusOptions canPublish={canPublish} current={form.status} /></select></label><PublishPermissionHint canPublish={canPublish} />{form.status === "scheduled" ? <label className={labelClassName}>Thời điểm hẹn giờ<input className={inputClassName} onChange={(event) => update("scheduledAt", event.target.value)} type="datetime-local" value={form.scheduledAt} /></label> : null}</div></EditorSection><EditorSection description="Thông tin dành cho công cụ tìm kiếm, liên kết chia sẻ và lời kêu gọi hành động." title="SEO & hiển thị"><div className="admin-form-grid">
-        <label className={labelClassName}>Tiêu đề SEO<input className={inputClassName} onChange={(event) => update("seoTitle", event.target.value)} value={form.seoTitle} /></label>
-        <label className={labelClassName}>Mô tả SEO<input className={inputClassName} onChange={(event) => update("seoDescription", event.target.value)} value={form.seoDescription} /></label>
-        <label className={labelClassName}>URL chuẩn<input className={inputClassName} onChange={(event) => update("canonicalUrl", event.target.value)} type="url" value={form.canonicalUrl} /></label>
-        <label className={labelClassName}>Nhãn hiển thị<input className={inputClassName} onChange={(event) => update("badgeText", event.target.value)} value={form.badgeText} /></label>
-        <label className={labelClassName}>Nhãn CTA<input className={inputClassName} onChange={(event) => update("ctaLabel", event.target.value)} value={form.ctaLabel} /></label>
-        <label className={labelClassName}>URL CTA<input className={inputClassName} onChange={(event) => update("ctaUrl", event.target.value)} type="url" value={form.ctaUrl} /></label>
-        {form.type === "promotion" ? <><label className={labelClassName}>Bắt đầu khuyến mãi<input className={inputClassName} onChange={(event) => update("promotionStartAt", event.target.value)} type="datetime-local" value={form.promotionStartAt} /></label><label className={labelClassName}>Kết thúc khuyến mãi<input className={inputClassName} onChange={(event) => update("promotionEndAt", event.target.value)} type="datetime-local" value={form.promotionEndAt} /></label></> : null}
-      </div></EditorSection></div> : null}
-
-      {activeTab === "history" && post ? <EditorSection description="Xem lại hoặc khôi phục một phiên bản đã được lưu trước đó." title="Lịch sử phiên bản"><RevisionHistory target="posts" id={post.id} expectedVersion={savedVersion} disabled={isDirty || processing} onRestorePendingChange={restore.onPendingChange} onRestored={restore.onRestored} /></EditorSection> : null}
-
-      <AdminEditorActions>{isDirty ? <p className="admin-help admin-text-warning" role="status">Có thay đổi chưa lưu.</p> : null}<AdminButton disabled={isSaving} permission={post ? "posts.update" : "posts.create"} type="submit">{isSaving ? "Đang lưu..." : post ? "Lưu thay đổi" : "Tạo bài viết"}</AdminButton></AdminEditorActions>
+      <AdminEditorActions><p className={isDirty ? "admin-help admin-text-warning" : "admin-help"} role="status">{isDirty ? "Có thay đổi chưa lưu." : post ? `Đã lưu · ${statusBadge[post.status].label}` : "Bài mới chưa lưu."}</p><AdminButton disabled={isSaving} permission={post ? "posts.update" : "posts.create"} title="Phím tắt: Ctrl+S" type="submit">{isSaving ? "Đang lưu..." : submitLabel(form.status, savedStatus)}</AdminButton></AdminEditorActions>
       </fieldset>
     </form>
   );

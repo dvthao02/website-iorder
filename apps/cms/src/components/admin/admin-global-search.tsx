@@ -1,4 +1,5 @@
 "use client";
+import { readAdminJson } from "@/lib/admin-api";
 
 import Link from "next/link";
 import { FileSearch, LoaderCircle, Search, X } from "lucide-react";
@@ -25,7 +26,7 @@ export function AdminGlobalSearch() {
       setIsLoading(true);
       try {
         const response = await fetch(`/api/admin/tim-kiem?q=${encodeURIComponent(trimmedQuery)}`, { signal: controller.signal });
-        const payload = await response.json();
+        const payload = await readAdminJson(response);
         if (response.ok) {
           const nextItems = payload.items ?? [];
           cachedResults.current.set(cacheKey, nextItems);

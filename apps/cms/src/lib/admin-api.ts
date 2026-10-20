@@ -19,6 +19,19 @@ export class AdminApiError extends Error {
   }
 }
 
+export const upstreamUnavailableMessage = "Máy chủ đang gặp sự cố hoặc mất kết nối tạm thời. Phần bạn đang soạn vẫn còn trên màn hình; hãy thử lại sau ít phút.";
+
+/**
+ * Đọc JSON từ phản hồi mà không văng lỗi kỹ thuật khi máy chủ/proxy trả trang lỗi dạng chữ
+ * (ví dụ "Internal Server Error" lúc Backend mất kết nối). Lỗi 5xx không có JSON được đổi thành
+ * thông báo tiếng Việt chuẩn; các trường hợp khác trả null để màn hình dùng thông báo riêng của nó.
+ */
+export async function readAdminJson(response: Response): ReturnType<Response["json"]> {
+  const payload: unknown = await response.json().catch(() => null);
+  if (payload === null && response.status >= 500) return { error: { code: "UPSTREAM_UNAVAILABLE", message: upstreamUnavailableMessage } };
+  return payload;
+}
+
 // Khung CMS nghe sự kiện này để hiện thanh "Tải bản mới nhất" khi người khác vừa lưu cùng nội dung.
 export const versionConflictEvent = "iorder:version-conflict";
 
@@ -35,7 +48,7 @@ export async function requestAdminJson(url: string, method: "PATCH" | "POST", bo
     headers: { "content-type": "application/json" },
     body: JSON.stringify(body),
   });
-  const payload: unknown = await response.json().catch(() => null);
+  const payload: unknown = await readAdminJson(response);
   if (!response.ok) throw adminApiError(payload, fallbackError);
   return payload;
 }

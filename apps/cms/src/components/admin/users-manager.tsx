@@ -1,6 +1,6 @@
 "use client";
 
-import { adminApiError } from "@/lib/admin-api";
+import { adminApiError, readAdminJson } from "@/lib/admin-api";
 import { Edit3, Plus, RotateCcw, Save, UserRound } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition, type FormEvent, type ReactNode } from "react";
@@ -122,7 +122,7 @@ export function UsersManager({ canAssignSuperAdmin, initialPage, initialQuery, r
         headers: { "content-type": "application/json" },
         body: JSON.stringify(parsed.data),
       });
-      const body = await response.json();
+      const body = await readAdminJson(response);
       if (!response.ok) throw adminApiError(body, "Không thể lưu tài khoản.");
       const responseData = cmsUserSaveResponseSchema.safeParse(body);
       if (!responseData.success || (activeId && responseData.data.id !== activeId)) throw new Error("Phản hồi lưu tài khoản không hợp lệ. Hãy kiểm tra danh sách trước khi thử lại.");

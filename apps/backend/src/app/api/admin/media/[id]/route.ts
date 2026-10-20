@@ -4,6 +4,7 @@ import { getRequestAdministrator } from "@iorder/core/server/auth/request-admini
 import { deleteAdminMedia, editAdminMedia, getMediaById, MediaInUseError } from "@iorder/core/server/media/media.service";
 import { revalidatePath } from "@/lib/publish-cache-revalidation";
 import { logger } from "@iorder/core/server/shared/logger";
+import { ContentVersionConflictError } from "@iorder/core/server/shared/content-version";
 import { withRequestContext } from "@/lib/request-context";
 
 async function handleGET(_: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -32,7 +33,8 @@ async function handlePATCH(request: Request, { params }: { params: Promise<{ id:
     revalidatePath("/", "layout");
     return NextResponse.json({ asset });
   } catch (error) {
-    return error instanceof z.ZodError ? fail("INVALID_INPUT", "Mô tả ảnh tối đa 500 ký tự; chú thích tối đa 10.000 ký tự.", 400)
+    if (error instanceof ContentVersionConflictError) return fail("VERSION_CONFLICT", error.message, 409);
+    return error instanceof z.ZodError ? fail("INVALID_INPUT", "Mô tả ảnh tối đa 500 ký tự; chú thích tối đa 10.000 ký tự. Tải lại trang nếu thiếu phiên bản.", 400)
       : fail("INTERNAL_ERROR", "Không thể lưu thông tin tệp.", 500);
   }
 }

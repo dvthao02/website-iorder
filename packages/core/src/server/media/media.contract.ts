@@ -1,8 +1,10 @@
 import { z } from "zod";
 import { adminListQuerySchema } from "../shared/admin-list.contract";
+import { expectedVersionSchema } from "../shared/content-version";
 
 export const mediaListQuerySchema = adminListQuerySchema.extend({
-  type: z.enum(["all", "images", "documents"]).default("all"),
+  // missing_alt: ảnh chưa có mô tả thay thế (để bổ sung cho SEO/trợ năng).
+  type: z.enum(["all", "images", "documents", "missing_alt"]).default("all"),
 }).strict();
 export type MediaListQuery = z.infer<typeof mediaListQuerySchema>;
 
@@ -10,6 +12,7 @@ export const mediaMetadataSchema = z.object({
   altText: z.string().trim().max(500).nullable(),
   caption: z.string().trim().max(10000).nullable(),
 }).strict();
+export const mediaMetadataUpdateSchema = mediaMetadataSchema.extend({ expectedVersion: expectedVersionSchema }).strict();
 
 export const mediaAssetSchema = mediaMetadataSchema.extend({
   id: z.string().uuid(),
@@ -17,6 +20,7 @@ export const mediaAssetSchema = mediaMetadataSchema.extend({
   mimeType: z.string(),
   fileSize: z.number().nonnegative(),
   url: z.string().startsWith("/media/"),
+  version: z.number().int().nonnegative(),
 });
 
 export type MediaAsset = z.infer<typeof mediaAssetSchema>;

@@ -16,16 +16,20 @@ import {
   testimonials,
 } from "@iorder/core/db/schema";
 import type { MediaMetadata } from "./media.contract";
+import { mediaPath } from "./storage";
 import type { MediaUsage } from "./media.contract";
 import type { MediaListQuery } from "./media.contract";
 import { toAdminListPage } from "../shared/admin-list.contract";
+import { assertContentVersion } from "../shared/content-version";
 import { listOrder, vietnameseText } from "../shared/list-order";
 
 export async function listMediaAssetsPage(query: MediaListQuery, database = getDb()) {
   const keyword = query.query ? `%${query.query.replace(/[\\%_]/g, "\\$&")}%` : undefined;
   const condition = and(
     isNull(mediaAssets.deletedAt),
-    query.type === "images" ? inArray(mediaAssets.mimeType, ["image/png", "image/jpeg", "image/webp"]) : query.type === "documents" ? inArray(mediaAssets.mimeType, ["application/pdf", "application/zip"]) : undefined,
+    query.type === "images" ? inArray(mediaAssets.mimeType, ["image/png", "image/jpeg", "image/webp"])
+      : query.type === "missing_alt" ? and(inArray(mediaAssets.mimeType, ["image/png", "image/jpeg", "image/webp"]), or(isNull(mediaAssets.altText), eq(mediaAssets.altText, "")))
+      : query.type === "documents" ? inArray(mediaAssets.mimeType, ["application/pdf", "application/zip"]) : undefined,
     keyword ? or(ilike(mediaAssets.originalName, keyword), ilike(mediaAssets.altText, keyword), ilike(mediaAssets.caption, keyword)) : undefined,
   );
   return database.transaction(async (tx) => {
@@ -53,11 +57,12 @@ export function insertUploadedMedia(values: typeof mediaAssets.$inferInsert, use
   });
 }
 
-export function updateMediaMetadata(id: string, input: MediaMetadata, userId: string) {
+export function updateMediaMetadata(id: string, input: MediaMetadata, userId: string, expectedVersion: number) {
   return getDb().transaction(async (tx) => {
     const [before] = await tx.select().from(mediaAssets).where(and(eq(mediaAssets.id, id), isNull(mediaAssets.deletedAt))).for("update");
     if (!before) return undefined;
-    const [after] = await tx.update(mediaAssets).set({ ...input, updatedAt: new Date() })
+    assertContentVersion(before.version, expectedVersion);
+    const [after] = await tx.update(mediaAssets).set({ ...input, version: before.version + 1, updatedAt: new Date() })
       .where(and(eq(mediaAssets.id, id), isNull(mediaAssets.deletedAt))).returning();
     await tx.insert(auditLogs).values({ userId, action: "media.update", entityType: "media", entityId: id,
       beforeData: { altText: before.altText, caption: before.caption }, afterData: input });
@@ -106,6 +111,15 @@ export function listPublishingMediaUsage(mediaId: string, database = getDb()) {
 }
 
 export async function collectMediaUsage(mediaId: string): Promise<MediaUsage[]> {
+  // Ảnh chèn trong nội dung soạn thảo được lưu bằng đường dẫn /media/…, không phải mã tệp:
+  // tìm đúng chuỗi đường dẫn (position, không dùng LIKE để tránh ký tự đại diện).
+  const [asset] = await getDb().select({ storageKey: mediaAssets.storageKey }).from(mediaAssets).where(eq(mediaAssets.id, mediaId)).limit(1);
+  const url = asset ? mediaPath(asset.storageKey) : null;
+  const [postContentRows, richBlockRows] = url ? await Promise.all([
+    getDb().select({ id: posts.id, label: posts.title }).from(posts).where(and(isNull(posts.deletedAt), sql<boolean>`position(${url} in ${posts.content}::text) > 0`)),
+    getDb().select({ id: pageBlocks.id, label: pages.title }).from(pageBlocks).innerJoin(pages, eq(pageBlocks.pageId, pages.id))
+      .where(and(isNull(pages.deletedAt), sql<boolean>`position(${url} in ${pageBlocks.data}::text) > 0`)),
+  ]) : [[], []];
   const [pageRows, postRows, offeringRows, groupRows, equipmentRows, partnerRows, testimonialRows, profileRows, downloadRows, publishingRows] = await Promise.all([
     getDb().select({ id: pageBlocks.id, label: pages.title }).from(pageBlocks).innerJoin(pages, eq(pageBlocks.pageId, pages.id))
       .where(and(isNull(pages.deletedAt), sql<boolean>`${pageBlocks.data} ->> 'mediaId' = ${mediaId}`)),
@@ -131,5 +145,7 @@ export async function collectMediaUsage(mediaId: string): Promise<MediaUsage[]> 
     ...profileRows.map((row) => ({ entityType: "site_profile", entityId: row.id, label: row.label, location: "Logo website" })),
     ...downloadRows.map((row) => ({ entityType: "support_download", entityId: row.id, label: row.label, location: "Tệp hỗ trợ tải xuống" })),
     ...publishingRows.map((row) => ({ entityType: "site_setting", entityId: row.id, label: "Cấu hình SEO & Xuất bản", location: "Ảnh chia sẻ mặc định" })),
+    ...postContentRows.map((row) => ({ entityType: "post_content", entityId: row.id, label: row.label, location: "Ảnh trong nội dung bài viết" })),
+    ...richBlockRows.map((row) => ({ entityType: "page_block_content", entityId: row.id, label: row.label, location: "Ảnh trong khối văn bản của trang" })),
   ];
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { adminApiError } from "@/lib/admin-api";
+import { adminApiError, readAdminJson } from "@/lib/admin-api";
 import { useRef, useState, type FormEvent } from "react";
 
 import type { ExternalLinks } from "@iorder/core/server/settings/external-links.contract";
@@ -54,7 +54,7 @@ export function ExternalLinksEditor({ initial, initialVersion }: { initial: Exte
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ values: links, expectedVersion: version.current }),
       });
-      const body = await response.json();
+      const body = await readAdminJson(response);
       if (response.ok) { if (typeof body.version === "number") version.current = body.version; markSaved(); showToast("Đã cập nhật liên kết ngoài trên website.", "success"); }
       else { const notice = adminApiError(body, "Không thể lưu liên kết ngoài.").message; setMessage(notice); showToast(notice, "error"); }
     } catch {
