@@ -13,8 +13,8 @@ export function PostContent({ document }: { document: PostContentDocument }) {
 
         return (
           <section className="rounded-2xl bg-slate-50 p-6" key={`${block.type}-${index}`}>
-            <h2 className="mb-4 text-xl font-extrabold tracking-tight text-slate-950">{block.heading}</h2>
-            <ul className="grid gap-3 pl-5 text-base leading-7 marker:text-blue-700">
+            <h2 className="mb-4 text-xl font-bold tracking-tight text-slate-950">{block.heading}</h2>
+            <ul className="grid gap-3 pl-5 text-base leading-7 marker:text-brand-700">
               {block.items.map((item) => <li key={item}>{item}</li>)}
             </ul>
           </section>

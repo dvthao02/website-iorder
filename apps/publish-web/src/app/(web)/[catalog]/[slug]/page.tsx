@@ -1,9 +1,8 @@
 import type { Metadata, ResolvingMetadata } from "next";
 import { contentMetadata } from "@/lib/page-metadata";
-import Image from "next/image";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { ChipList, DetailHero } from "@/components/site/detail-hero";
 import { OfferingContent } from "@/components/site/offering-content";
 import { SiteHeader } from "@/components/site/site-header";
 import { getOfferingTypeFromCatalogPath, getPublishedOfferingBySlug, getPublishingConfig, getSiteProfile } from "@/lib/backend";
@@ -57,31 +56,20 @@ export default async function OfferingDetailPage({ params }: OfferingDetailPageP
     <>
       <SiteHeader />
       {site ? <JsonLd data={[serviceJsonLd(site, { name: offering.title, description: offering.seoDescription ?? offering.summary, path: `/${catalog}/${offering.slug}`, imagePath: offering.cover?.url ?? null, providerName: profile?.companyName ?? "iOrder" }), breadcrumbJsonLd(site, [{ name: "Trang chủ", path: "/" }, { name: label, path: `/${catalog}` }, { name: offering.title, path: `/${catalog}/${offering.slug}` }])]} /> : null}
-      <main className="mx-auto max-w-3xl px-6 py-16 sm:py-24">
-        <Link className="mb-8 inline-flex text-sm font-bold text-blue-700 hover:text-blue-900" href={`/${catalog}`}>
-          ← Tất cả {label.toLowerCase()}
-        </Link>
-        <article>
-          <p className="mb-5 text-sm font-bold uppercase tracking-[0.16em] text-blue-700">{label}</p>
-          <h1 className="mb-6 text-4xl font-extrabold tracking-tight text-slate-950 sm:text-6xl">{offering.title}</h1>
-          {offering.summary ? <p className="mb-8 text-xl leading-8 text-slate-600">{offering.summary}</p> : null}
-          {offering.cover ? (
-            <Image
-              alt={offering.cover.altText ?? `Ảnh minh họa ${offering.title}`}
-              className="mb-12 h-auto w-full rounded-2xl border border-slate-200 bg-white object-cover"
-              height={offering.cover.height ?? 630}
-              priority
-              src={offering.cover.url}
-              width={offering.cover.width ?? 1200}
-            />
-          ) : null}
-          {offering.content.tags.length > 0 ? (
-            <ul className="mb-12 flex flex-wrap gap-2" aria-label="Chủ đề liên quan">
-              {offering.content.tags.map((tag) => <li className="rounded-full bg-blue-50 px-3 py-1 text-sm font-semibold text-blue-800" key={tag}>{tag}</li>)}
-            </ul>
-          ) : null}
-          <OfferingContent content={offering.content} />
-        </article>
+      {/* Phần đầu chiếm một màn hình như trang chủ; các phần nội dung phía dưới cũng mỗi phần một màn hình. */}
+      <main>
+        <DetailHero
+          back={{ href: `/${catalog}`, label: `Tất cả ${label.toLowerCase()}` }}
+          image={offering.cover ? { url: offering.cover.url, alt: offering.cover.altText ?? `Ảnh minh họa ${offering.title}`, width: offering.cover.width, height: offering.cover.height } : null}
+          label={label}
+          primary={{ label: "Nhận tư vấn miễn phí", href: "/lien-he" }}
+          secondary={offering.content.pricing ? { label: "Xem bảng giá", href: "#bang-gia" } : null}
+          summary={offering.summary}
+          title={offering.title}
+        >
+          <ChipList items={offering.content.tags.map(tag => ({ key: tag, text: tag }))} label="Chủ đề liên quan" />
+        </DetailHero>
+        <OfferingContent content={offering.content} />
       </main>
     </>
   );

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import { Inter } from "next/font/google";
+import { Google_Sans_Flex } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
 import { StructuredData } from "@/components/site/structured-data";
@@ -9,7 +9,8 @@ import { getExternalLinks } from "@/lib/backend";
 import { getSiteProfile } from "@/lib/backend";
 import { getPublishingConfig } from "@/lib/backend";
 
-const inter = Inter({ subsets: ["latin", "vietnamese"], variable: "--font-inter" });
+// Font tròn, dễ đọc như các website phần mềm bán hàng phổ biến (KiotViet); có đủ dấu tiếng Việt.
+const sans = Google_Sans_Flex({ subsets: ["latin", "vietnamese"], variable: "--font-brand", display: "swap" });
 
 // Content and metadata are database-driven. Rendering at request time keeps a
 // container build independent from production data and lets CMS edits publish
@@ -32,7 +33,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   const [config, profile, externalLinks] = await Promise.all([getPublishingConfig(), getSiteProfile(), getExternalLinks()]);
   const logo = profile?.logoMediaId ? await getMediaById(profile.logoMediaId) : null;
   return (
-    <html className={inter.variable} data-scroll-behavior="smooth" lang="vi">
+    <html className={sans.variable} data-scroll-behavior="smooth" lang="vi">
       <body suppressHydrationWarning><StructuredData config={config} externalLinks={externalLinks} logoUrl={logo?.url ?? null} profile={profile} />{children}{umamiWebsiteId ? <Script data-website-id={umamiWebsiteId} src="/stats/script.js" strategy="afterInteractive" /> : null}</body>
     </html>
   );

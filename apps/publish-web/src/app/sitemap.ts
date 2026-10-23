@@ -22,7 +22,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [pages, posts, equipment, taxonomy, ...offeringLists] = await Promise.all([getPublishedPageSummaries(), getPublishedPostSummaries(), getEquipment(true), getTaxonomy(), ...Object.keys(catalogByType).map(type => getPublishedOfferingSummaries(type))]);
   return [
     ...pages.flatMap(page => { const path = pagePath(page.slug); return path ? [{ url: url(path, siteUrl), lastModified: page.updatedAt }] : []; }),
-    ...posts.map(post => ({ url: url(post.type === "guide" ? `/ho-tro/cai-dat/${post.slug}` : `/tin-tuc/${post.slug}`, siteUrl), lastModified: post.publishedAt ?? post.createdAt })),
+    ...posts.map(post => ({ url: url(post.type === "guide" ? `/ho-tro/huong-dan/${post.slug}` : `/tin-tuc/${post.slug}`, siteUrl), lastModified: post.publishedAt ?? post.createdAt })),
     ...equipment.map(item => ({ url: url(`/thiet-bi/${item.slug}`, siteUrl), lastModified: item.updatedAt })),
     ...taxonomy.categories.map(category => ({ url: url(`/tin-tuc/chuyen-muc/${category.slug}`, siteUrl), lastModified: category.updatedAt })),
     ...taxonomy.tags.map(tag => ({ url: url(`/tin-tuc/the/${tag.slug}`, siteUrl), lastModified: tag.updatedAt })),

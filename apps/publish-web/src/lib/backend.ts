@@ -41,6 +41,10 @@ type PublicMedia = Awaited<ReturnType<typeof getMediaByIdFromService>>;
 
 const backendUrl = (process.env.BACKEND_URL ?? "http://localhost:3002").replace(/\/$/, "");
 const publicCacheOptions = { cache: "force-cache" as const, next: { revalidate: 60, tags: [publicContentCacheTag] } };
+// Backend treo (DB mất kết nối…) không được giữ trang website tới hết timeout mặc định 5 phút của Node:
+// nội dung chờ tối đa 10 giây rồi hiện trang lỗi; tra chuyển hướng (chạy ở mọi request) chỉ chờ 2 giây rồi bỏ qua.
+const contentTimeoutMs = 10_000;
+const redirectTimeoutMs = 2_000;
 
 function reviveDates(value: unknown, key = ""): unknown {
   if (typeof value === "string" && /(?:At|Date)$/.test(key) && !Number.isNaN(Date.parse(value))) return new Date(value);
@@ -53,7 +57,8 @@ const fetchPublicResource = cache(async (resource: string, encodedParams = "") =
   const query = new URLSearchParams(encodedParams);
   query.set("resource", resource);
   // Bản nháp đang xem trước không bao giờ đi qua cache.
-  const response = await fetch(`${backendUrl}/api/public/content?${query.toString()}`, query.has("preview") ? { cache: "no-store" } : publicCacheOptions);
+  const signal = AbortSignal.timeout(contentTimeoutMs);
+  const response = await fetch(`${backendUrl}/api/public/content?${query.toString()}`, query.has("preview") ? { cache: "no-store", signal } : { ...publicCacheOptions, signal });
   if (!response.ok) throw new Error("Không thể tải dữ liệu website từ Backend.");
   return reviveDates(await response.json() as unknown);
 });
@@ -106,7 +111,7 @@ export async function getTestimonials(_enabledOnly = false): Promise<PublicTesti
 // Logo/OG image are decorative: a failed lookup renders the page without them.
 export async function getMediaById(id: string) {
   try {
-    const response = await fetch(`${backendUrl}/api/public/media/${encodeURIComponent(id)}`, publicCacheOptions);
+    const response = await fetch(`${backendUrl}/api/public/media/${encodeURIComponent(id)}`, { ...publicCacheOptions, signal: AbortSignal.timeout(contentTimeoutMs) });
     if (!response.ok) return null;
     return (await response.json() as { asset: PublicMedia }).asset;
   } catch {
@@ -114,7 +119,7 @@ export async function getMediaById(id: string) {
   }
 }
 export async function getEnabledRedirect(path: string): Promise<{ destinationPath: string; statusCode: 301 | 308 } | null> {
-  const response = await fetch(`${backendUrl}/api/public/redirect?path=${encodeURIComponent(path)}`, publicCacheOptions);
+  const response = await fetch(`${backendUrl}/api/public/redirect?path=${encodeURIComponent(path)}`, { ...publicCacheOptions, signal: AbortSignal.timeout(redirectTimeoutMs) });
   if (!response.ok) return null;
   return (await response.json()).redirect;
 }

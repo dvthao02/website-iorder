@@ -1,10 +1,10 @@
 import type { Metadata, ResolvingMetadata } from "next";
 import { contentMetadata } from "@/lib/page-metadata";
-import Link from "next/link";
-import Image from "next/image";
 import { notFound, permanentRedirect } from "next/navigation";
 
+import { ChipList, DetailHero } from "@/components/site/detail-hero";
 import { PostContent } from "@/components/site/post-content";
+import { Container } from "@/components/ui";
 import { SiteHeader } from "@/components/site/site-header";
 import { getPublishedPostBySlug, getPublishingConfig, getSiteProfile } from "@/lib/backend";
 import { JsonLd } from "@/components/site/json-ld";
@@ -35,6 +35,7 @@ const postTypeLabel = {
   news: "Tin tức",
   promotion: "Khuyến mãi",
 } as const;
+const dateFormatter = new Intl.DateTimeFormat("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
 
 export default async function NewsDetailPage({ params }: NewsDetailPageProps) {
   const { slug } = await params;
@@ -44,7 +45,7 @@ export default async function NewsDetailPage({ params }: NewsDetailPageProps) {
     notFound();
   }
   // Bài hướng dẫn có trang riêng; tránh trùng nội dung dưới hai URL.
-  if (post.type === "guide") permanentRedirect(`/ho-tro/cai-dat/${post.slug}`);
+  if (post.type === "guide") permanentRedirect(`/ho-tro/huong-dan/${post.slug}`);
   const [config, profile] = await Promise.all([getPublishingConfig(), getSiteProfile()]);
   const site = config.siteUrl;
 
@@ -52,17 +53,14 @@ export default async function NewsDetailPage({ params }: NewsDetailPageProps) {
     <>
       <SiteHeader />
       {site ? <JsonLd data={[articleJsonLd(site, { title: post.title, description: post.seoDescription ?? suggestSeoDescription(post.excerpt, post.content), path: `/tin-tuc/${post.slug}`, imagePath: post.cover?.url ?? null, publishedAt: post.publishedAt, publisherName: profile?.companyName ?? "iOrder" }), breadcrumbJsonLd(site, [{ name: "Trang chủ", path: "/" }, { name: "Tin tức", path: "/tin-tuc" }, { name: post.title, path: `/tin-tuc/${post.slug}` }])]} /> : null}
-      <main className="mx-auto max-w-3xl px-6 py-16 sm:py-24">
-        <Link className="mb-8 inline-flex text-sm font-bold text-blue-700 hover:text-blue-900" href="/tin-tuc">
-          ← Tất cả bài viết
-        </Link>
+      {/* Bài viết: phần đầu cùng kiểu trang chi tiết nhưng không ép cao một màn hình, để người đọc thấy ngay nội dung. */}
+      <main>
         <article>
-          <p className="mb-5 text-sm font-bold uppercase tracking-[0.16em] text-blue-700">{postTypeLabel[post.type]}</p>
-          <h1 className="mb-6 text-4xl font-extrabold tracking-tight text-slate-950 sm:text-6xl">{post.title}</h1>
-          {post.excerpt ? <p className="mb-12 text-xl leading-8 text-slate-600">{post.excerpt}</p> : null}
-          <PostContent document={post.content} />
-          {post.categories.length || post.tags.length ? <section className="mt-8 grid gap-3"><h2 className="text-lg font-bold">Phân loại bài viết</h2>{post.categories.length ? <p>Chuyên mục: {post.categories.map((category, index) => <span key={category.id}>{index ? ", " : ""}<Link className="text-blue-700" href={`/tin-tuc/chuyen-muc/${category.slug}`}>{category.name}</Link></span>)}</p> : null}{post.tags.length ? <p>Thẻ: {post.tags.map((tag, index) => <span key={tag.id}>{index ? " " : ""}<Link className="text-blue-700" href={`/tin-tuc/the/${tag.slug}`}>#{tag.name}</Link></span>)}</p> : null}</section> : null}
-          {post.cover ? <Image src={post.cover.url} alt={post.cover.altText ?? post.title} width={1200} height={675} className="mt-6 h-auto w-full rounded-xl" /> : null}
+          <DetailHero back={{ href: "/tin-tuc", label: "Tất cả bài viết" }} fill={false} image={post.cover ? { url: post.cover.url, alt: post.cover.altText ?? post.title } : null} label={postTypeLabel[post.type]} summary={post.excerpt} title={post.title}>
+            {post.publishedAt ? <p className="mt-5 mb-0 text-sm text-muted">Đăng ngày {dateFormatter.format(post.publishedAt)}</p> : null}
+            <ChipList items={[...post.categories.map(category => ({ key: `c-${category.id}`, text: category.name, href: `/tin-tuc/chuyen-muc/${category.slug}` })), ...post.tags.map(tag => ({ key: `t-${tag.id}`, text: `#${tag.name}`, href: `/tin-tuc/the/${tag.slug}` }))]} label="Chuyên mục và thẻ của bài viết" />
+          </DetailHero>
+          <Container className="py-12 sm:py-16" width="text"><PostContent document={post.content} /></Container>
         </article>
       </main>
     </>

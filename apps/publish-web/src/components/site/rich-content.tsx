@@ -19,7 +19,7 @@ function withMarks(text: ReactNode, marks: RichMark[] | undefined, key: string):
       case "code": return <code className="rounded bg-slate-100 px-1.5 py-0.5 text-[0.9em]" key={markKey}>{child}</code>;
       case "link": {
         const external = /^https?:\/\//i.test(mark.attrs.href);
-        return <a className="font-semibold text-blue-700 underline decoration-blue-300 underline-offset-2 hover:text-blue-900" href={mark.attrs.href} key={markKey} {...(external ? { rel: "noopener noreferrer", target: "_blank" } : {})}>{child}</a>;
+        return <a className="font-semibold text-brand-700 underline decoration-brand-300 underline-offset-2 hover:text-brand-900" href={mark.attrs.href} key={markKey} {...(external ? { rel: "noopener noreferrer", target: "_blank" } : {})}>{child}</a>;
       }
     }
   }, text);
@@ -49,15 +49,15 @@ function RichNodeView({ node, path, headingId }: { node: RichNode; path: string;
     case "hardBreak": return <br />;
     case "paragraph": return <p>{children(node.content, path)}</p>;
     case "heading": {
-      const className = node.attrs.level === 2 ? "clear-both pt-6 scroll-mt-24 text-2xl font-extrabold tracking-tight text-slate-950" : node.attrs.level === 3 ? "pt-2 scroll-mt-24 text-xl font-bold text-slate-950" : "text-lg font-bold text-slate-900";
+      const className = node.attrs.level === 2 ? "clear-both pt-6 scroll-mt-24 text-2xl font-bold tracking-tight text-slate-950" : node.attrs.level === 3 ? "pt-2 scroll-mt-24 text-xl font-bold text-slate-950" : "text-lg font-bold text-slate-900";
       if (node.attrs.level === 2) return <h2 className={className} id={headingId}>{children(node.content, path)}</h2>;
       if (node.attrs.level === 3) return <h3 className={className} id={headingId}>{children(node.content, path)}</h3>;
       return <h4 className={className}>{children(node.content, path)}</h4>;
     }
-    case "bulletList": return <ul className="grid list-disc gap-2 pl-6 marker:text-blue-700">{children(node.content, path)}</ul>;
-    case "orderedList": return <ol className="grid list-decimal gap-2 pl-6 marker:font-bold marker:text-blue-700" start={node.attrs.start}>{children(node.content, path)}</ol>;
+    case "bulletList": return <ul className="grid list-disc gap-2 pl-6 marker:text-brand-700">{children(node.content, path)}</ul>;
+    case "orderedList": return <ol className="grid list-decimal gap-2 pl-6 marker:font-bold marker:text-brand-700" start={node.attrs.start}>{children(node.content, path)}</ol>;
     case "listItem": return <li className="[&>p]:m-0">{children(node.content, path)}</li>;
-    case "blockquote": return <blockquote className="border-l-4 border-blue-200 bg-slate-50 py-3 pl-5 pr-4 italic text-slate-600">{children(node.content, path)}</blockquote>;
+    case "blockquote": return <blockquote className="border-l-4 border-brand-200 bg-slate-50 py-3 pl-5 pr-4 italic text-slate-600">{children(node.content, path)}</blockquote>;
     case "codeBlock": return <pre className="overflow-x-auto rounded-xl bg-slate-900 p-4 text-sm leading-6 text-slate-100"><code>{richPlainText({ type: "doc", content: node.content ?? [] })}</code></pre>;
     case "horizontalRule": return <hr className="clear-both border-slate-200" />;
     case "image": {
@@ -86,7 +86,7 @@ export function RichTableOfContents({ doc }: { doc: RichDocument }) {
   if (entries.length < 2) return null;
   return <nav aria-label="Mục lục bài viết" className="mb-10 rounded-2xl border border-slate-200 bg-slate-50 p-5 text-base">
     <p className="mb-3 text-sm font-bold uppercase tracking-[0.14em] text-slate-500">Nội dung bài viết</p>
-    <ol className="grid gap-2">{entries.map((entry) => <li className={entry.level === 3 ? "pl-5 text-slate-600" : "font-semibold text-slate-800"} key={entry.id}><a className="hover:text-blue-700 hover:underline" href={`#${entry.id}`}>{entry.text}</a></li>)}</ol>
+    <ol className="grid gap-2">{entries.map((entry) => <li className={entry.level === 3 ? "pl-5 text-slate-600" : "font-semibold text-slate-800"} key={entry.id}><a className="hover:text-brand-700 hover:underline" href={`#${entry.id}`}>{entry.text}</a></li>)}</ol>
   </nav>;
 }
 

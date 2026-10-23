@@ -17,15 +17,11 @@ const noSeo = { title: null, description: null, canonicalUrl: null };
 
 // Cấu hình cũ (site_settings) chỉ còn là dự phòng tới khi chạy `db:backfill-listing-pages`.
 async function legacyContent(slug: ListingPageSlug): Promise<ListingPageContent | undefined> {
-  const listing = slug === "listing-news" || slug === "listing-equipment" || slug === "listing-support" ? await getListingContent() : null;
+  const listing = slug === "listing-news" || slug === "listing-equipment" || slug === "listing-support" || slug === "listing-guides" ? await getListingContent() : null;
   const catalog = slug === "listing-software" || slug === "listing-solution" || slug === "listing-service" ? await getCatalogContent() : null;
-  const header = { "listing-news": listing?.news, "listing-equipment": listing?.equipment, "listing-support": listing?.support, "listing-software": catalog?.software, "listing-solution": catalog?.solution, "listing-service": catalog?.service }[slug];
+  const header = { "listing-news": listing?.news, "listing-equipment": listing?.equipment, "listing-support": listing?.support, "listing-guides": listing?.guides, "listing-software": catalog?.software, "listing-solution": catalog?.solution, "listing-service": catalog?.service }[slug];
   if (!header) return undefined;
-  const blocks = defaultListingCollections[slug].map((data): PageBlock => ({
-    type: "collection_list",
-    isEnabled: true,
-    data: data.source === "guides" && listing?.guides ? { ...data, eyebrow: listing.guides.eyebrow || null, title: listing.guides.title, description: listing.guides.description } : data,
-  }));
+  const blocks = defaultListingCollections[slug].map((data): PageBlock => ({ type: "collection_list", isEnabled: true, data }));
   return { header, blocks, seo: noSeo };
 }
 

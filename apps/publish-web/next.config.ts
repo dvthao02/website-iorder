@@ -2,6 +2,8 @@ import path from "node:path";
 import { config as loadEnvironment } from "dotenv";
 import type { NextConfig } from "next";
 
+import { publicRewrites } from "./src/lib/legacy-paths";
+
 const workspaceRoot = path.join(__dirname, "../..");
 
 // Next resolves env files from an app's directory in a workspace. Local
@@ -19,16 +21,20 @@ const nextConfig: NextConfig = {
   // Only proxy what the public site uses from the browser. Admin APIs stay
   // reachable through the CMS host alone; server-side reads call BACKEND_URL.
   async rewrites() {
-    return [
-      { source: "/api/leads", destination: `${process.env.BACKEND_URL ?? "http://localhost:3002"}/api/leads` },
-      { source: "/media/:path*", destination: `${process.env.BACKEND_URL ?? "http://localhost:3002"}/media/:path*` },
-      // Local: chuyển script và sự kiện thống kê sang Umami. Production để Caddy chuyển tiếp
-      // (giữ đúng X-Forwarded-For), nên image không đặt UMAMI_URL.
-      ...(process.env.UMAMI_URL ? [
-        { source: "/stats/script.js", destination: `${process.env.UMAMI_URL}/script.js` },
-        { source: "/stats/api/send", destination: `${process.env.UMAMI_URL}/api/send` },
-      ] : []),
-    ];
+    return {
+      // URL public là tiếng Việt không dấu; thư mục route trong mã nguồn là tiếng Anh.
+      beforeFiles: publicRewrites(),
+      afterFiles: [
+        { source: "/api/leads", destination: `${process.env.BACKEND_URL ?? "http://localhost:3002"}/api/leads` },
+        { source: "/media/:path*", destination: `${process.env.BACKEND_URL ?? "http://localhost:3002"}/media/:path*` },
+        // Local: chuyển script và sự kiện thống kê sang Umami. Production để Caddy chuyển tiếp
+        // (giữ đúng X-Forwarded-For), nên image không đặt UMAMI_URL.
+        ...(process.env.UMAMI_URL ? [
+          { source: "/stats/script.js", destination: `${process.env.UMAMI_URL}/script.js` },
+          { source: "/stats/api/send", destination: `${process.env.UMAMI_URL}/api/send` },
+        ] : []),
+      ],
+    };
   },
 };
 
