@@ -7,6 +7,7 @@ import { auditLogs, mediaAssets, offeringRevisions, offerings } from "@iorder/co
 import type { AdminOfferingInput, PublicOfferingType } from "./offering-content.contract";
 import { toAdminListPage, type AdminListQuery } from "@iorder/core/server/shared/admin-list.contract";
 import { listOrder, workflowStatusRank, vietnameseText } from "../shared/list-order";
+import { applyContentPathChange, type ContentPathChange } from "../redirects/redirects.repository";
 
 function publishedOfferingCondition(type: PublicOfferingType) {
   const now = new Date();
@@ -184,7 +185,7 @@ type OfferingRevisionWrite = {
   versionNumber: number;
 };
 
-export async function createOfferingWithRevision(values: AdminOfferingInput & { publishedAt: Date | null }, revision: OfferingRevisionWrite) {
+export async function createOfferingWithRevision(values: AdminOfferingInput & { publishedAt: Date | null }, revision: OfferingRevisionWrite, pathChange?: ContentPathChange | null) {
   return getDb().transaction(async (tx) => {
     const [created] = await tx
       .insert(offerings)
@@ -195,6 +196,7 @@ export async function createOfferingWithRevision(values: AdminOfferingInput & { 
       throw new Error("Không thể tạo Offering.");
     }
 
+    await applyContentPathChange(tx, pathChange, revision.editorId);
     await tx.insert(offeringRevisions).values({
       offeringId: created.id,
       editorId: revision.editorId,
@@ -214,7 +216,7 @@ export async function createOfferingWithRevision(values: AdminOfferingInput & { 
   });
 }
 
-export async function updateOfferingWithRevision(id: string, values: AdminOfferingInput & { publishedAt: Date | null }, revision: OfferingRevisionWrite) {
+export async function updateOfferingWithRevision(id: string, values: AdminOfferingInput & { publishedAt: Date | null }, revision: OfferingRevisionWrite, pathChange?: ContentPathChange | null) {
   return getDb().transaction(async (tx) => {
     const [updated] = await tx
       .update(offerings)
@@ -225,6 +227,7 @@ export async function updateOfferingWithRevision(id: string, values: AdminOfferi
     if (!updated) {
       return undefined;
     }
+    await applyContentPathChange(tx, pathChange, revision.editorId);
 
     await tx.insert(offeringRevisions).values({
       offeringId: updated.id,

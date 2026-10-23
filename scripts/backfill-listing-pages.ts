@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 
 import { getDb } from "../packages/core/src/db/client";
 import { pages, users } from "../packages/core/src/db/schema";
-import { defaultListingCollections, fixedWebsitePages, type CollectionListData, type ListingHeader, type ListingPageSlug, type PageBlock } from "../packages/core/src/server/pages/pages.contract";
+import { defaultListingCollections, fixedWebsitePages, type ListingHeader, type ListingPageSlug, type PageBlock } from "../packages/core/src/server/pages/pages.contract";
 import { saveAdminPage } from "../packages/core/src/server/pages/pages.service";
 import { getCatalogContent } from "../packages/core/src/server/settings/catalog-content.service";
 import { getListingContent } from "../packages/core/src/server/settings/listing-content.service";
@@ -17,26 +17,24 @@ async function legacyContent() {
     "listing-news": listing?.news,
     "listing-equipment": listing?.equipment,
     "listing-support": listing?.support,
+    "listing-guides": listing?.guides,
     "listing-software": catalog?.software,
     "listing-solution": catalog?.solution,
     "listing-service": catalog?.service,
   };
-  return { headers, guides: listing?.guides };
+  return headers;
 }
 
 // Khối danh sách tường minh để người vận hành thấy và sắp xếp được ngay trong editor.
-function collectionBlocks(slug: ListingPageSlug, guides: ListingHeader | undefined): PageBlock[] {
-  return defaultListingCollections[slug].map((data): PageBlock => {
-    const withLegacy: CollectionListData = data.source === "guides" && guides ? { ...data, eyebrow: guides.eyebrow || null, title: guides.title, description: guides.description } : data;
-    return { type: "collection_list", isEnabled: true, data: withLegacy };
-  });
+function collectionBlocks(slug: ListingPageSlug): PageBlock[] {
+  return defaultListingCollections[slug].map((data): PageBlock => ({ type: "collection_list", isEnabled: true, data }));
 }
 
 async function run() {
   const [user] = await getDb().select({ id: users.id }).from(users).where(eq(users.username, process.env.INITIAL_ADMIN_USERNAME ?? "")).limit(1);
   if (!user) throw new Error("Chưa có tài khoản quản trị (INITIAL_ADMIN_USERNAME) để tạo trang danh sách.");
 
-  const { headers, guides } = await legacyContent();
+  const headers = await legacyContent();
   let created = 0;
   const conflicts: string[] = [];
   for (const fixedPage of fixedWebsitePages) {
@@ -55,7 +53,7 @@ async function run() {
       seoDescription: null,
       canonicalUrl: null,
       scheduledAt: null,
-      blocks: [{ type: "hero", isEnabled: true, data: { eyebrow: header.eyebrow || null, title: header.title, description: header.description, primaryAction: null, secondaryAction: null } }, ...collectionBlocks(fixedPage.slug, guides)],
+      blocks: [{ type: "hero", isEnabled: true, data: { eyebrow: header.eyebrow || null, title: header.title, description: header.description, primaryAction: null, secondaryAction: null } }, ...collectionBlocks(fixedPage.slug)],
     }, user.id, { allowFixedPageCreation: true });
     created += 1;
     console.log(`Đã tạo trang danh sách ${fixedPage.publicPath} từ ${headers[fixedPage.slug] ? "cấu hình cũ" : "giá trị mặc định"}.`);

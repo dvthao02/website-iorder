@@ -2,7 +2,7 @@ import { and, asc, eq, inArray, isNull, lte, or } from "drizzle-orm";
 
 import { getDb } from "@iorder/core/db/client";
 import { auditLogs, equipmentGroups, menuItems, menuRevisions, menus, offerings, pages, posts, salesEquipment } from "@iorder/core/db/schema";
-import { getFixedWebsitePage } from "@iorder/core/server/pages/pages.contract";
+import { equipmentPublicPath, offeringPublicPath, pagePublicPath, postPublicPath } from "@iorder/core/server/shared/content-paths";
 
 import type { NavigationDocument, NavigationItems, NavigationLinkType, NavigationLocation, NavigationTarget } from "./navigation.contract";
 
@@ -31,19 +31,6 @@ function serializeItems(rows: MenuItemRows): NavigationItems {
   }));
 }
 
-function pagePath(slug: string) {
-  return getFixedWebsitePage(slug)?.publicPath ?? `/trang/${slug}`;
-}
-
-function postPath(slug: string, type: string) {
-  return type === "guide" ? `/ho-tro/cai-dat/${slug}` : `/tin-tuc/${slug}`;
-}
-
-function offeringPath(slug: string, type: string) {
-  const catalog = type === "software" ? "phan-mem" : type === "solution" ? "giai-phap" : type === "service" ? "dich-vu" : null;
-  return catalog ? `/${catalog}/${slug}` : null;
-}
-
 type TargetIds = Partial<Record<Exclude<NavigationLinkType, "custom">, string[]>>;
 
 async function readPublishedNavigationTargets(ids?: TargetIds): Promise<NavigationTarget[]> {
@@ -64,13 +51,13 @@ async function readPublishedNavigationTargets(ids?: TargetIds): Promise<Navigati
   ]);
 
   return [
-    ...pageRows.map((row) => ({ id: row.id, linkType: "page" as const, label: row.title, url: pagePath(row.slug), typeLabel: "Trang website" })),
-    ...postRows.map((row) => ({ id: row.id, linkType: "post" as const, label: row.title, url: postPath(row.slug, row.type), typeLabel: row.type === "guide" ? "Hướng dẫn" : "Bài viết" })),
+    ...pageRows.map((row) => ({ id: row.id, linkType: "page" as const, label: row.title, url: pagePublicPath(row.slug), typeLabel: "Trang website" })),
+    ...postRows.map((row) => ({ id: row.id, linkType: "post" as const, label: row.title, url: postPublicPath(row.slug, row.type), typeLabel: row.type === "guide" ? "Hướng dẫn" : "Bài viết" })),
     ...offeringRows.flatMap((row) => {
-      const url = offeringPath(row.slug, row.type);
+      const url = offeringPublicPath(row.slug, row.type);
       return url ? [{ id: row.id, linkType: "offering" as const, label: row.title, url, typeLabel: row.type === "software" ? "Phần mềm" : row.type === "solution" ? "Giải pháp" : "Dịch vụ" }] : [];
     }),
-    ...equipmentRows.map((row) => ({ id: row.id, linkType: "equipment" as const, label: row.name, url: `/thiet-bi/${row.slug}`, typeLabel: "Thiết bị" })),
+    ...equipmentRows.map((row) => ({ id: row.id, linkType: "equipment" as const, label: row.name, url: equipmentPublicPath(row.slug), typeLabel: "Thiết bị" })),
   ];
 }
 

@@ -3,13 +3,14 @@ import { revalidatePath } from "@/lib/publish-cache-revalidation";
 import { z } from "zod";
 import { getRequestAdministrator } from "@iorder/core/server/auth/request-administrator";
 import { revisionTargetSchema, restoreRevisionSchema } from "@iorder/core/server/revisions/revisions.contract";
-import { getRevisionHistory, restoreRevision } from "@iorder/core/server/revisions/revisions.service";
+import { getRevisionHistory, getRevisionTargetState, restoreRevision } from "@iorder/core/server/revisions/revisions.service";
+import { pagePermissionCodes } from "@iorder/core/server/pages/pages.contract";
 import { EquipmentVersionConflictError } from "@iorder/core/server/equipment/equipment-version";
 import { PageVersionConflictError } from "@iorder/core/server/pages/page-version";
 import { ContentVersionConflictError } from "@iorder/core/server/shared/content-version";
 import { NavigationVersionConflictError } from "@iorder/core/server/navigation/navigation.service";
 import { SupportDownloadVersionConflictError } from "@iorder/core/server/support/support-downloads.service";
-import { denyUnless } from "@/lib/admin-access";
+import { denyPublishUnless, denyUnless } from "@/lib/admin-access";
 import { revisionTargetModules } from "@/lib/admin-permission";
 import type { CmsPermissionCode } from "@iorder/core/server/auth/permissions";
 import { withRequestContext } from "@/lib/request-context";
@@ -25,14 +26,30 @@ async function handle(request: Request, context: Context, restore: boolean) {
   if (!parsed.success) return fail("INVALID_INPUT", "Nội dung cần xem lịch sử không hợp lệ.", 400);
   const { target, id } = parsed.data;
   try {
-    if (!restore) return NextResponse.json({ revisions: await getRevisionHistory(target, id) });
+    if (!restore) {
+      // Proxy chỉ kiểm tra quyền chung của nhóm trang; xem lịch sử phải đúng quyền theo slug của trang.
+      if (target === "pages") {
+        const pageState = await getRevisionTargetState(target, id);
+        if (pageState) {
+          const deniedView = denyUnless(user, pagePermissionCodes(pageState.slug, "view"), "Bạn không có quyền xem lịch sử của trang này.");
+          if (deniedView) return deniedView;
+        }
+      }
+      return NextResponse.json({ revisions: await getRevisionHistory(target, id) });
+    }
     const body = restoreRevisionSchema.parse(await request.json());
     if (target === "equipment" && body.expectedVersion === undefined) return fail("INVALID_INPUT", "Vui lòng tải lại thiết bị trước khi khôi phục phiên bản.", 400);
     if (target === "pages" && body.expectedVersion === undefined) return fail("INVALID_INPUT", "Vui lòng tải lại trang trước khi khôi phục phiên bản.", 400);
     if ((target === "posts" || target === "offerings") && body.expectedVersion === undefined) return fail("INVALID_INPUT", "Vui lòng tải lại nội dung trước khi khôi phục phiên bản.", 400);
-    // Restoring can change what is live, so publishable modules require publish.
+    // Khôi phục giữ trạng thái hiện tại: bản nháp chỉ cần quyền sửa, nội dung đang/sắp hiện trên website cần quyền xuất bản.
+    // Menu cần navigation.update; tệp tải về vẫn cần publish (bật/tắt hiển thị nằm trong dữ liệu khôi phục).
     const targetModule = revisionTargetModules[target];
-    const denied = denyUnless(user, (targetModule === "navigation" ? "navigation.update" : `${targetModule}.publish`) as CmsPermissionCode, "Bạn không có quyền khôi phục phiên bản của nội dung này.");
+    const state = await getRevisionTargetState(target, id);
+    const updatePermission = target === "pages" ? pagePermissionCodes(state?.slug, "update") : `${targetModule}.update` as CmsPermissionCode;
+    const publishPermission = target === "pages" ? pagePermissionCodes(state?.slug, "publish") : `${targetModule}.publish` as CmsPermissionCode;
+    const denied = targetModule === "navigation" ? denyUnless(user, "navigation.update", "Bạn không có quyền khôi phục phiên bản của nội dung này.")
+      : !state ? denyUnless(user, publishPermission, "Bạn không có quyền khôi phục phiên bản của nội dung này.")
+      : denyUnless(user, updatePermission, "Bạn không có quyền khôi phục phiên bản của nội dung này.") ?? denyPublishUnless(user, publishPermission, { currentStatus: state.status });
     if (denied) return denied;
     const result = await restoreRevision(target, id, body.revisionId, user.userId, body.expectedVersion);
     if (!result) return fail("NOT_FOUND", "Không tìm thấy nội dung hoặc phiên bản cần khôi phục.", 404);

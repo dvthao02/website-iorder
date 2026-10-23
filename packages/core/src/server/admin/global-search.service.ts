@@ -25,30 +25,36 @@ const resultsPerKind = 4;
 const cmsRoutes: CmsRoute[] = [
   { id: "overview", label: "Tổng quan", slug: "/admin", type: "Điều hướng CMS", href: "/admin" },
   { id: "analytics", label: "Thống kê truy cập", slug: "/admin/analytics", type: "Điều hướng CMS", href: "/admin/analytics", permission: "dashboard.view" },
-  { id: "pages", label: "Trang website", slug: "/admin/pages", type: "Điều hướng CMS", href: "/admin/pages", permission: "pages.view" },
-  { id: "posts", label: "Bài viết & Tin tức", slug: "/admin/tin-tuc", type: "Điều hướng CMS", href: "/admin/tin-tuc", permission: "posts.view" },
-  { id: "downloads", label: "Tệp cài đặt", slug: "/admin/tai-nguyen", type: "Điều hướng CMS", href: "/admin/tai-nguyen", permission: "support_downloads.view" },
-  { id: "guides", label: "Hướng dẫn cài đặt", slug: "/admin/tai-nguyen?tab=guides", type: "Điều hướng CMS", href: "/admin/tai-nguyen?tab=guides", permission: "posts.view" },
+  { id: "home-page", label: "Trang chủ", slug: "/admin/homepage", type: "Điều hướng CMS", href: "/admin/homepage", permission: "pages.view" },
+  { id: "pages", label: "Trang tự tạo", slug: "/admin/pages", type: "Điều hướng CMS", href: "/admin/pages", permission: "pages.view" },
+  { id: "posts", label: "Bài viết & Tin tức", slug: "/admin/news", type: "Điều hướng CMS", href: "/admin/news", permission: "posts.view" },
+  { id: "downloads", label: "Hỗ trợ cài đặt", slug: "/admin/resources", type: "Điều hướng CMS", href: "/admin/resources", permission: "support_downloads.view" },
+  { id: "guides", label: "Hướng dẫn sử dụng", slug: "/admin/guides", type: "Điều hướng CMS", href: "/admin/guides", permission: "posts.view" },
   { id: "media", label: "Thư viện media", slug: "/admin/media", type: "Điều hướng CMS", href: "/admin/media", permission: "media.view" },
-  { id: "products", label: "Sản phẩm", slug: "/admin/san-pham", type: "Điều hướng CMS", href: "/admin/san-pham", permission: "offerings.view" },
-  { id: "solutions", label: "Giải pháp hạ tầng", slug: "/admin/giai-phap", type: "Điều hướng CMS", href: "/admin/giai-phap", permission: "offerings.view" },
-  { id: "services", label: "Dịch vụ", slug: "/admin/dich-vu", type: "Điều hướng CMS", href: "/admin/dich-vu", permission: "offerings.view" },
-  { id: "equipment", label: "Thiết bị", slug: "/admin/thiet-bi", type: "Điều hướng CMS", href: "/admin/thiet-bi", permission: "equipment.view" },
-  { id: "equipment-groups", label: "Nhóm thiết bị", slug: "/admin/thiet-bi?tab=groups", type: "Điều hướng CMS", href: "/admin/thiet-bi?tab=groups", permission: "equipment.view" },
+  { id: "products", label: "Sản phẩm & Dịch vụ", slug: "/admin/products", type: "Điều hướng CMS", href: "/admin/products", permission: "offerings.view" },
+  { id: "solutions", label: "Giải pháp", slug: "/admin/solutions", type: "Điều hướng CMS", href: "/admin/products?type=solution", permission: "offerings.view" },
+  { id: "services", label: "Dịch vụ", slug: "/admin/services", type: "Điều hướng CMS", href: "/admin/products?type=service", permission: "offerings.view" },
+  { id: "equipment", label: "Thiết bị", slug: "/admin/equipment", type: "Điều hướng CMS", href: "/admin/equipment", permission: "equipment.view" },
+  { id: "equipment-groups", label: "Nhóm thiết bị", slug: "/admin/equipment?tab=groups", type: "Điều hướng CMS", href: "/admin/equipment?tab=groups", permission: "equipment.view" },
   { id: "menu", label: "Menu & Điều hướng", slug: "/admin/menu", type: "Điều hướng CMS", href: "/admin/menu", permission: "navigation.view" },
-  { id: "taxonomy", label: "Chuyên mục & Thẻ", slug: "/admin/phan-loai-bai-viet", type: "Điều hướng CMS", href: "/admin/phan-loai-bai-viet", permission: "taxonomy.view" },
+  { id: "taxonomy", label: "Chuyên mục & Thẻ", slug: "/admin/taxonomy", type: "Điều hướng CMS", href: "/admin/taxonomy", permission: "taxonomy.view" },
   { id: "seo", label: "Tên miền & SEO", slug: "/admin/seo", type: "Điều hướng CMS", href: "/admin/seo", permission: "settings.view" },
-  { id: "redirects", label: "Chuyển hướng URL", slug: "/admin/chuyen-huong", type: "Điều hướng CMS", href: "/admin/chuyen-huong", permission: "redirects.view" },
-  { id: "external-links", label: "Liên kết & Mạng xã hội", slug: "/admin/lien-ket-ngoai", type: "Điều hướng CMS", href: "/admin/lien-ket-ngoai", permission: "settings.view" },
-  { id: "company", label: "Thông tin doanh nghiệp", slug: "/admin/thong-tin-doanh-nghiep", type: "Điều hướng CMS", href: "/admin/thong-tin-doanh-nghiep", permission: "settings.view" },
-  { id: "partners", label: "Đối tác & Đánh giá", slug: "/admin/doi-tac", type: "Điều hướng CMS", href: "/admin/doi-tac", permission: "supporting.view" },
-  { id: "leads", label: "Khách hàng tiềm năng", slug: "/admin/khach-hang-tiem-nang", type: "Điều hướng CMS", href: "/admin/khach-hang-tiem-nang", permission: "leads.view" },
-  { id: "users", label: "Người dùng CMS", slug: "/admin/tai-khoan", type: "Điều hướng CMS", href: "/admin/tai-khoan", permission: "users.view" },
-  { id: "roles", label: "Vai trò & quyền", slug: "/admin/phan-quyen", type: "Điều hướng CMS", href: "/admin/phan-quyen", permission: "roles.view" },
-  { id: "audit", label: "Nhật ký hoạt động", slug: "/admin/nhat-ky", type: "Điều hướng CMS", href: "/admin/nhat-ky", permission: "audit.view" },
-  { id: "publishing", label: "Kiểm tra xuất bản", slug: "/admin/seo/kiem-tra-xuat-ban", type: "Điều hướng CMS", href: "/admin/seo/kiem-tra-xuat-ban", permission: "settings.view" },
-  { id: "appearance", label: "Giao diện CMS", slug: "/admin/giao-dien-cms", type: "Điều hướng CMS", href: "/admin/giao-dien-cms" },
+  { id: "redirects", label: "Chuyển hướng URL", slug: "/admin/redirects", type: "Điều hướng CMS", href: "/admin/redirects", permission: "redirects.view" },
+  { id: "external-links", label: "Liên kết & Mạng xã hội", slug: "/admin/external-links", type: "Điều hướng CMS", href: "/admin/external-links", permission: "settings.view" },
+  { id: "company", label: "Thông tin doanh nghiệp", slug: "/admin/company-profile", type: "Điều hướng CMS", href: "/admin/company-profile", permission: "settings.view" },
+  { id: "partners", label: "Đối tác & Đánh giá", slug: "/admin/partners", type: "Điều hướng CMS", href: "/admin/partners", permission: "supporting.view" },
+  { id: "leads", label: "Khách hàng tiềm năng", slug: "/admin/leads", type: "Điều hướng CMS", href: "/admin/leads", permission: "leads.view" },
+  { id: "users", label: "Người dùng CMS", slug: "/admin/users", type: "Điều hướng CMS", href: "/admin/users", permission: "users.view" },
+  { id: "roles", label: "Vai trò & quyền", slug: "/admin/roles", type: "Điều hướng CMS", href: "/admin/roles", permission: "roles.view" },
+  { id: "audit", label: "Nhật ký hoạt động", slug: "/admin/audit-log", type: "Điều hướng CMS", href: "/admin/audit-log", permission: "audit.view" },
+  { id: "publishing", label: "Kiểm tra xuất bản", slug: "/admin/seo/publish-check", type: "Điều hướng CMS", href: "/admin/seo/publish-check", permission: "settings.view" },
+  { id: "appearance", label: "Giao diện CMS", slug: "/admin/appearance", type: "Điều hướng CMS", href: "/admin/appearance" },
 ];
+
+// Đường dẫn CMS là tiếng Anh, nên tìm màn hình bằng tiếng Việt không dấu ("khach hang") phải khớp được với nhãn có dấu.
+function foldVietnamese(value: string) {
+  return value.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/gi, "d").replace(/-/g, " ").toLocaleLowerCase("vi");
+}
 
 function escapeLike(value: string) {
   return value.replace(/[\\%_]/g, "\\$&");
@@ -96,22 +102,22 @@ export async function searchAdminCms(rawKeyword: string, actor: CmsActor, limit 
 
   const items: GlobalSearchResult[] = [
     ...pageRows.map((item) => ({ ...item, type: "Trang website", href: `/admin/pages/${item.id}` })),
-    ...postRows.map((item) => ({ id: item.id, label: item.label, slug: item.slug, type: item.type === "guide" ? "Hướng dẫn cài đặt" : "Bài viết & Tin tức", href: item.type === "guide" ? `/admin/tai-nguyen/huong-dan/${item.id}` : `/admin/tin-tuc/${item.id}` })),
-    ...offeringRows.map((item) => ({ id: item.id, label: item.label, slug: item.slug, type: item.type === "software" ? "Sản phẩm" : item.type === "solution" ? "Giải pháp hạ tầng" : "Dịch vụ", href: item.type === "software" ? `/admin/san-pham/${item.id}` : item.type === "solution" ? `/admin/giai-phap/${item.id}` : `/admin/dich-vu/${item.id}` })),
-    ...equipmentRows.map((item) => ({ ...item, type: "Thiết bị", href: `/admin/thiet-bi/${item.id}` })),
-    ...categoryRows.map((item) => ({ ...item, type: "Chuyên mục", href: "/admin/phan-loai-bai-viet" })),
-    ...tagRows.map((item) => ({ ...item, type: "Thẻ", href: "/admin/phan-loai-bai-viet" })),
-    ...supportRows.map((item) => ({ id: item.id, label: item.label, slug: item.slug ?? "tài-nguyên", type: "Tệp cài đặt", href: `/admin/tai-nguyen/${item.id}` })),
+    ...postRows.map((item) => ({ id: item.id, label: item.label, slug: item.slug, type: item.type === "guide" ? "Hướng dẫn sử dụng" : "Bài viết & Tin tức", href: item.type === "guide" ? `/admin/guides/${item.id}` : `/admin/news/${item.id}` })),
+    ...offeringRows.map((item) => ({ id: item.id, label: item.label, slug: item.slug, type: item.type === "software" ? "Sản phẩm" : item.type === "solution" ? "Giải pháp" : "Dịch vụ", href: item.type === "software" ? `/admin/products/${item.id}` : item.type === "solution" ? `/admin/solutions/${item.id}` : `/admin/services/${item.id}` })),
+    ...equipmentRows.map((item) => ({ ...item, type: "Thiết bị", href: `/admin/equipment/${item.id}` })),
+    ...categoryRows.map((item) => ({ ...item, type: "Chuyên mục", href: "/admin/taxonomy" })),
+    ...tagRows.map((item) => ({ ...item, type: "Thẻ", href: "/admin/taxonomy" })),
+    ...supportRows.map((item) => ({ id: item.id, label: item.label, slug: item.slug ?? "tài-nguyên", type: "Tệp cài đặt", href: `/admin/resources/${item.id}` })),
     ...menuRows.map((item) => ({ ...item, type: "Menu & Điều hướng", href: "/admin/menu" })),
-    ...redirectRows.map((item) => ({ ...item, type: "Chuyển hướng URL", href: "/admin/chuyen-huong" })),
+    ...redirectRows.map((item) => ({ ...item, type: "Chuyển hướng URL", href: "/admin/redirects" })),
     ...mediaRows.map((item) => ({ ...item, type: "Thư viện media", href: "/admin/media" })),
-    ...partnerRows.map((item) => ({ id: item.id, label: item.label, slug: item.slug ?? "đối-tác", type: "Đối tác & Đánh giá", href: "/admin/doi-tac" })),
-    ...testimonialRows.map((item) => ({ id: item.id, label: item.label, slug: item.slug ?? "đánh-giá", type: "Đối tác & Đánh giá", href: "/admin/doi-tac" })),
+    ...partnerRows.map((item) => ({ id: item.id, label: item.label, slug: item.slug ?? "đối-tác", type: "Đối tác & Đánh giá", href: "/admin/partners" })),
+    ...testimonialRows.map((item) => ({ id: item.id, label: item.label, slug: item.slug ?? "đánh-giá", type: "Đối tác & Đánh giá", href: "/admin/partners" })),
   ];
 
   const matchingRoutes = cmsRoutes
     .filter((route) => !route.permission || can(route.permission))
-    .filter((item) => item.label.toLocaleLowerCase("vi").includes(keyword) || item.slug.toLocaleLowerCase("vi").includes(keyword))
+    .filter((item) => foldVietnamese(item.label).includes(foldVietnamese(keyword)) || item.slug.toLocaleLowerCase("vi").includes(keyword))
     .map(({ href, id, label, slug, type }) => ({ href, id, label, slug, type }));
 
   return [...items, ...matchingRoutes].sort((left, right) => rank(left, keyword) - rank(right, keyword) || left.label.localeCompare(right.label, "vi")).slice(0, Math.min(Math.max(limit, 1), 24));

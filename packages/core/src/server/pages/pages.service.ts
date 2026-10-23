@@ -5,7 +5,8 @@ import { deleteArchivedPage, findAdminPageById, findPageBySlug, listAdminPages, 
 export class FixedWebsitePageBindingError extends Error {}
 
 function serialize(row: NonNullable<Awaited<ReturnType<typeof findPageBySlug>>>) {
-  return { ...row, blocks: row.blocks.map(block => pageBlockInputSchema.parse(block)) };
+  // Cột appearance để trống (null) với khối chưa từng chỉnh vỏ chung: bỏ đi để dùng mặc định "Tự động".
+  return { ...row, blocks: row.blocks.map(({ appearance, ...block }) => pageBlockInputSchema.parse(appearance == null ? block : { ...block, appearance })) };
 }
 // previewId: đang xem trước bản nháp → lấy trang theo slug ở mọi trạng thái, chỉ khi đúng trang được cấp token.
 export async function getPublishedPage(slug: string, previewId?: string) {
@@ -20,7 +21,7 @@ export async function getPublishedPages() {
 export async function getAdminPages() {
   return adminPageSchema.array().parse((await listAdminPages()).map(page => serialize(page as NonNullable<Awaited<ReturnType<typeof findPageBySlug>>>)));
 }
-export async function getAdminPagesPage(query: AdminListQuery & { status?: "draft" | "review" | "scheduled" | "published" | "archived" }): Promise<AdminListPage<AdminPage>> {
+export async function getAdminPagesPage(query: AdminListQuery & { status?: "draft" | "review" | "scheduled" | "published" | "archived"; kind?: "custom" | "system" }): Promise<AdminListPage<AdminPage>> {
   const result = await listAdminPagesPage(query);
   return { ...result, items: adminPageSchema.array().parse(result.items.map(page => serialize(page as NonNullable<Awaited<ReturnType<typeof findPageBySlug>>>))) };
 }
@@ -59,6 +60,10 @@ export async function saveAdminPage(
   }
   if (fixedPage && (values.slug !== fixedPage.slug || values.template !== fixedPage.template)) {
     throw new FixedWebsitePageBindingError("Đường dẫn và template của trang hệ thống thuộc cấu trúc code, không thể thay đổi từ CMS.");
+  }
+  // Lưu trữ là bước trước khi xóa; trang hệ thống không xóa được nên cũng không lưu trữ (muốn ẩn tạm thì chuyển về bản nháp).
+  if (fixedPage && values.status === "archived" && existing?.status !== "archived") {
+    throw new FixedWebsitePageBindingError("Trang hệ thống không thể lưu trữ. Chuyển về Bản nháp nếu cần ẩn tạm khỏi website.");
   }
 
   const pageId = await writePage(id, values, editorId, options.expectedVersion ?? existing?.draftVersion);

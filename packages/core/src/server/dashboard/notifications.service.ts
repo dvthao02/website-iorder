@@ -7,9 +7,9 @@ import { hasCmsPermission, type CmsActor, type CmsPermissionCode } from "@iorder
 export type AdminNotification = { id: string; label: string; detail: string; href: string };
 
 const offeringTargets = {
-  software: { label: "Sản phẩm", href: "/admin/san-pham" },
-  solution: { label: "Giải pháp", href: "/admin/giai-phap" },
-  service: { label: "Dịch vụ", href: "/admin/dich-vu" },
+  software: { label: "Sản phẩm", href: "/admin/products?type=software" },
+  solution: { label: "Giải pháp", href: "/admin/products?type=solution" },
+  service: { label: "Dịch vụ", href: "/admin/products?type=service" },
 } as const;
 
 /**
@@ -32,14 +32,14 @@ export async function getAdminNotifications(actor: CmsActor): Promise<AdminNotif
 
   const review = (id: string, label: string, total: number, href: string): AdminNotification[] => total > 0 ? [{ id, label: `${label} chờ duyệt`, detail: `${total} mục đang chờ xuất bản.`, href }] : [];
   return [
-    ...(newLeads > 0 ? [{ id: "leads-new", label: "Khách hàng tiềm năng mới", detail: `${newLeads} liên hệ chưa xử lý.`, href: "/admin/khach-hang-tiem-nang?status=new" }] : []),
+    ...(newLeads > 0 ? [{ id: "leads-new", label: "Khách hàng tiềm năng mới", detail: `${newLeads} liên hệ chưa xử lý.`, href: "/admin/leads?status=new" }] : []),
     ...review("review-pages", "Trang website", pageReviews, "/admin/pages?status=review"),
     ...postReviews.flatMap((row) => row.isGuide
-      ? review("review-guides", "Hướng dẫn", row.total, "/admin/tai-nguyen?tab=guides&status=review")
-      : review("review-posts", "Bài viết", row.total, "/admin/tin-tuc?status=review")),
+      ? review("review-guides", "Hướng dẫn", row.total, "/admin/guides?status=review")
+      : review("review-posts", "Bài viết", row.total, "/admin/news?status=review")),
     ...offeringReviews.flatMap((row) => row.type in offeringTargets
-      ? review(`review-${row.type}`, offeringTargets[row.type as keyof typeof offeringTargets].label, row.total, `${offeringTargets[row.type as keyof typeof offeringTargets].href}?status=review`)
+      ? review(`review-${row.type}`, offeringTargets[row.type as keyof typeof offeringTargets].label, row.total, `${offeringTargets[row.type as keyof typeof offeringTargets].href}&status=review`)
       : []),
-    ...review("review-equipment", "Thiết bị", equipmentReviews, "/admin/thiet-bi?status=review"),
+    ...review("review-equipment", "Thiết bị", equipmentReviews, "/admin/equipment?status=review"),
   ];
 }

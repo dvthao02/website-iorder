@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { pricingDataSchema } from "../shared/pricing.contract";
 
 const shortTextSchema = z.string().trim().min(1).max(500);
 
@@ -17,6 +18,8 @@ export const offeringContentSchema = z
     faq: z.array(z.tuple([shortTextSchema, shortTextSchema])).max(50),
     items: z.array(z.union([shortTextSchema, z.object({ title: shortTextSchema, href: z.string().regex(/^(\/(?!\/)|https?:\/\/)/) }).strict()])).max(100),
     category: z.string().trim().min(1).max(180).nullable(),
+    // Bảng giá trên trang chi tiết (thường chỉ phần mềm có); dữ liệu cũ không có trường này → null.
+    pricing: pricingDataSchema.nullable().default(null),
   })
   .strict();
 

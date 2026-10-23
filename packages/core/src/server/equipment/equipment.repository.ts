@@ -9,6 +9,8 @@ import { assertEquipmentVersion } from "./equipment-version";
 import { contentStateAfterAction, contentStateChangeNotes, contentStateRequestSchema, type ContentStateAction } from "../shared/content-version";
 import { toAdminListPage, type AdminListQuery } from "@iorder/core/server/shared/admin-list.contract";
 import { listOrder, workflowStatusRank, vietnameseText } from "../shared/list-order";
+import { contentPathChange, equipmentPublicPath } from "../shared/content-paths";
+import { applyContentPathChange } from "../redirects/redirects.repository";
 
 export function listEquipmentGroups() {
   return getDb().select().from(equipmentGroups).where(isNull(equipmentGroups.deletedAt)).orderBy(asc(equipmentGroups.sortOrder), asc(equipmentGroups.id));
@@ -95,6 +97,8 @@ export function saveEquipment(id: string | null, values: EquipmentInput, userId:
     const data = { ...values, draftVersion, publishedAt: equipmentPublishedAt(values, before, new Date()) };
     const [row] = id ? await tx.update(salesEquipment).set({ ...data, updatedAt: new Date() }).where(eq(salesEquipment.id, id)).returning()
       : await tx.insert(salesEquipment).values(data).returning();
+    const pathChange = contentPathChange(before && { status: before.status, scheduledAt: before.scheduledAt, path: equipmentPublicPath(before.slug) }, { status: row.status, scheduledAt: row.scheduledAt, path: equipmentPublicPath(row.slug) });
+    await applyContentPathChange(tx, pathChange, userId);
     await tx.insert(salesEquipmentRevisions).values({ salesEquipmentId: row.id, editorId: userId, versionNumber: draftVersion, snapshot: data, changeNote });
     await tx.insert(auditLogs).values({ userId, action: id ? "equipment.update" : "equipment.create", entityType: "equipment", entityId: row.id, beforeData: before ?? null, afterData: data });
     return row.id;

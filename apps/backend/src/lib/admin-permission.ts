@@ -63,11 +63,18 @@ export function requiredAdminPermissions(pathname: string, method: string): CmsP
 
   if (resource === "revisions") {
     const targetModule = revisionTargetModules[segments[1] as keyof typeof revisionTargetModules];
-    return targetModule ? permissionsFor(targetModule, [action === "view" ? "view" : "update"]) : [];
+    const revisionAction = action === "view" ? "view" : "update";
+    if (!targetModule) return [];
+    // Trang danh sách (/tin-tuc, /thiet-bi…) cũng do module sở hữu sửa; route tự thu hẹp theo slug của trang.
+    if (targetModule === "pages") return [...permissionsFor("pages", [revisionAction]), ...listingPageOwnerModules.flatMap((module) => permissionsFor(module, [revisionAction]))];
+    return permissionsFor(targetModule, [revisionAction]);
   }
 
   // Dashboard, global search and notifications filter every section by permission themselves; any view right opens them.
   if ((resource === "dashboard" || resource === "tim-kiem" || resource === "notifications") && action === "view") return cmsPermissions.filter((permission) => permission.code.endsWith(".view")).map((permission) => permission.code);
+
+  // Chuyên mục/thẻ là danh mục chọn trong editor bài viết: người sửa bài cần đọc được, còn tạo/sửa/xóa vẫn cần taxonomy.*.
+  if (resource === "taxonomy" && action === "view") return [...permissionsFor("taxonomy", ["view"]), ...permissionsFor("posts", ["view"])];
 
   const resourceModule = resourceModules[resource];
   if (!resourceModule) return [];

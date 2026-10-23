@@ -10,6 +10,7 @@ import {
   type PublicOfferingType,
 } from "./offering-content.contract";
 import { mediaPath } from "../media/storage";
+import { contentPathChange, offeringPublicPath } from "../shared/content-paths";
 import { validateCoverMedia } from "../media/media.service";
 import { publicationDate } from "../shared/publication-date";
 import { assertContentVersion, contentStateAfterAction, contentStateChangeNotes, contentStateRequestSchema, ContentVersionConflictError, type ContentStateAction } from "../shared/content-version";
@@ -86,6 +87,7 @@ export async function createAdminOffering(input: unknown, editorId: string) {
   const id = await createOfferingWithRevision(
     { ...values, publishedAt },
     { editorId, versionNumber: 1, snapshot, changeNote: "Tạo Offering trong CMS" },
+    contentPathChange(undefined, { status: values.status, scheduledAt: values.scheduledAt, path: offeringPublicPath(values.slug, values.type) }),
   );
   const offering = await findAdminOfferingById(id);
 
@@ -109,10 +111,16 @@ export async function updateAdminOffering(id: string, input: unknown, editorId: 
   const publishedAt = publicationDate(values, existing, new Date());
   const versionNumber = existing.draftVersion + 1;
   const snapshot = { ...values, coverMediaId: values.coverMediaId === undefined ? existing.coverMediaId : values.coverMediaId, publishedAt: publishedAt?.toISOString() ?? null };
+  // Phiên bản đã khóa ở câu UPDATE nên `existing` đúng là bản trước khi lưu khi ghi thành công.
+  const pathChange = contentPathChange(
+    { status: existing.status, scheduledAt: existing.scheduledAt, path: offeringPublicPath(existing.slug, existing.type) },
+    { status: values.status, scheduledAt: values.scheduledAt, path: offeringPublicPath(values.slug, values.type) },
+  );
   const updatedId = await updateOfferingWithRevision(
     id,
     { ...values, publishedAt },
     { editorId, versionNumber, snapshot, changeNote },
+    pathChange,
   );
 
   if (!updatedId) {

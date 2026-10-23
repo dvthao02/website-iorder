@@ -19,6 +19,14 @@ export async function getRevisionHistory(target: RevisionTarget, id: string) {
   return (await listRevisions(target, id)).map(row => ({ id: row.id, version: row.versionNumber, createdAt: row.createdAt, note: row.changeNote, snapshot: row.snapshot }));
 }
 
+// Khôi phục giữ nguyên trạng thái hiện tại: nội dung đang/sắp hiện trên website mới cần quyền xuất bản.
+// Trả undefined với menu và tệp tải về (route giữ quy tắc riêng) hoặc khi nội dung không tồn tại.
+export async function getRevisionTargetState(target: RevisionTarget, id: string): Promise<{ status: string; slug: string } | undefined> {
+  if (target === "navigation" || target === "downloads") return undefined;
+  const current = target === "posts" ? await findAdminPostById(id) : target === "offerings" ? await findAdminOfferingById(id) : target === "equipment" ? await getEquipmentById(id) : await getAdminPageById(id);
+  return current ? { status: current.status, slug: current.slug } : undefined;
+}
+
 export async function restoreRevision(target: RevisionTarget, id: string, revisionId: string, userId: string, expectedVersion: number) {
   // Validate internal callers too, before any DB read or fallback baseline.
   restoreRevisionSchema.parse({ revisionId, expectedVersion });

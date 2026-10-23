@@ -1,24 +1,21 @@
 import { findAdminOfferingById } from "../offerings/offerings.repository";
-import { getFixedWebsitePage } from "../pages/pages.contract";
+import { offeringPublicPath, pagePublicPath, postPublicPath } from "../shared/content-paths";
 import { findAdminPageById } from "../pages/pages.repository";
 import { findAdminPostById } from "../posts/posts.repository";
 import { createPreviewToken, verifyPreviewToken, type PreviewKind } from "./preview-token";
-
-const catalogPrefixes = { software: "/phan-mem", solution: "/giai-phap", service: "/dich-vu" } as const;
 
 /** Đường dẫn công khai của nội dung (kể cả khi đang là bản nháp); không có → undefined. */
 export async function previewPath(kind: PreviewKind, id: string): Promise<string | undefined> {
   if (kind === "post") {
     const post = await findAdminPostById(id);
-    return post ? `${post.type === "guide" ? "/ho-tro/cai-dat" : "/tin-tuc"}/${post.slug}` : undefined;
+    return post ? postPublicPath(post.slug, post.type) : undefined;
   }
   if (kind === "page") {
     const page = await findAdminPageById(id);
-    return page ? getFixedWebsitePage(page.slug)?.publicPath ?? `/trang/${page.slug}` : undefined;
+    return page ? pagePublicPath(page.slug) : undefined;
   }
   const offering = await findAdminOfferingById(id);
-  const prefix = offering ? catalogPrefixes[offering.type as keyof typeof catalogPrefixes] : undefined;
-  return offering && prefix ? `${prefix}/${offering.slug}` : undefined;
+  return offering ? offeringPublicPath(offering.slug, offering.type) ?? undefined : undefined;
 }
 
 /** CMS xin xem trước: token ký kèm đường dẫn để mở trên website. */

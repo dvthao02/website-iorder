@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { adminPagesPageSchema, fixedWebsitePages, isListingPageSlug, listingHeaderFromBlocks, listingLayoutFromBlocks, pageBlockInputSchema, pageListQuerySchema, pagePermissionCodes, pageSaveRequestSchema } from "./pages.contract";
+import { adminPagesPageSchema, fixedWebsitePages, heroToneOf, isListingPageSlug, listingHeaderFromBlocks, listingLayoutFromBlocks, pageBlockInputSchema, pageListQuerySchema, pagePermissionCodes, pageSaveRequestSchema } from "./pages.contract";
 import { publicationDate } from "../shared/publication-date";
 import { assertPageVersion, PageVersionConflictError } from "./page-version";
 
@@ -37,7 +37,8 @@ test("Query Trang chuẩn hóa ở biên và giữ số mục hợp lệ ngoài 
   assert.equal(pageListQuerySchema.parse(source).pageSize, 7);
   assert.equal(pageListQuerySchema.parse(source).query, "Trang thử");
   assert.equal(source.query, "  Trang thử  ");
-  for (const bad of [{ page: 0 }, { pageSize: 101 }, { status: "sai" }, { unknown: true }]) assert.equal(pageListQuerySchema.safeParse(bad).success, false);
+  for (const bad of [{ page: 0 }, { pageSize: 101 }, { status: "sai" }, { kind: "listing" }, { unknown: true }]) assert.equal(pageListQuerySchema.safeParse(bad).success, false);
+  assert.equal(pageListQuerySchema.parse({ kind: "custom" }).kind, "custom");
 });
 
 test("Trang danh sách nhận quyền của module sở hữu, trang thường chỉ nhận quyền Trang website", () => {
@@ -57,18 +58,19 @@ test("Registry trang hệ thống: slug và đường dẫn không trùng, trang
 });
 
 test("Phần đầu trang danh sách lấy từ khối Mở đầu đầu tiên đang bật", () => {
-  const hero = (title: string, isEnabled: boolean) => ({ type: "hero" as const, isEnabled, data: { eyebrow: "Blog", title, description: null, primaryAction: null, secondaryAction: null } });
+  const hero = (title: string, isEnabled: boolean) => ({ type: "hero" as const, isEnabled, data: { eyebrow: "Blog", title, description: null, primaryAction: null, secondaryAction: null, layout: "split" as const, highlights: [], footnote: null, slides: [], extraMediaIds: [], tone: null, panels: [] } });
   assert.deepEqual(listingHeaderFromBlocks([hero("Ẩn", false), hero("Tin tức", true)]), { eyebrow: "Blog", title: "Tin tức", description: null });
   assert.equal(listingHeaderFromBlocks([]), undefined);
 });
 
 test("Trang danh sách: bỏ khối Mở đầu khỏi thân trang, giữ thứ tự, tự thêm danh sách mặc định khi thiếu", () => {
-  const hero = { type: "hero" as const, isEnabled: true, data: { eyebrow: null, title: "Tin tức", description: null, primaryAction: null, secondaryAction: null } };
+  const hero = { type: "hero" as const, isEnabled: true, data: { eyebrow: null, title: "Tin tức", description: null, primaryAction: null, secondaryAction: null, layout: "split" as const, highlights: [], footnote: null, slides: [], extraMediaIds: [], tone: null, panels: [] } };
   const faq = { type: "faq" as const, isEnabled: true, data: { eyebrow: null, title: "Hỏi đáp", items: [{ question: "Q", answer: "A" }] } };
   const posts = { type: "collection_list" as const, isEnabled: true, data: { source: "posts" as const, eyebrow: null, title: null, description: null, limit: null, anchor: null } };
   assert.deepEqual(listingLayoutFromBlocks("listing-news", [hero, posts, faq])?.blocks, [posts, faq]);
   assert.deepEqual(listingLayoutFromBlocks("listing-news", [hero, faq])?.blocks.map(block => block.type), ["faq", "collection_list"]);
-  assert.deepEqual(listingLayoutFromBlocks("listing-support", [hero])?.blocks.map(block => block.type === "collection_list" ? block.data.source : block.type), ["downloads", "guides"]);
+  assert.deepEqual(listingLayoutFromBlocks("listing-support", [hero])?.blocks.map(block => block.type === "collection_list" ? block.data.source : block.type), ["downloads"]);
+  assert.deepEqual(listingLayoutFromBlocks("listing-guides", [hero])?.blocks.map(block => block.type === "collection_list" ? block.data.source : block.type), ["guides"]);
   assert.equal(listingLayoutFromBlocks("listing-news", [faq]), undefined);
 });
 
@@ -78,4 +80,26 @@ test("Khối Danh sách nội dung kiểm tra nguồn, số lượng và mã neo
   assert.equal(pageBlockInputSchema.safeParse({ ...valid, data: { ...valid.data, source: "industry" } }).success, false);
   assert.equal(pageBlockInputSchema.safeParse({ ...valid, data: { ...valid.data, limit: 0 } }).success, false);
   assert.equal(pageBlockInputSchema.safeParse({ ...valid, data: { ...valid.data, anchor: "Hướng dẫn" } }).success, false);
+});
+
+test("Phần đầu trang cũ nhận nhiều ảnh và màu nền mặc định theo kiểu", () => {
+  const parsed = pageBlockInputSchema.parse({ type: "hero", isEnabled: true, data: { eyebrow: null, title: "Trang chủ", description: null, primaryAction: null, secondaryAction: null, layout: "background" } });
+  assert.ok(parsed.type === "hero");
+  assert.deepEqual(parsed.data.extraMediaIds, []);
+  assert.equal(parsed.data.tone, null);
+  assert.equal(heroToneOf(parsed.data), "tinted");
+  assert.equal(heroToneOf({ layout: "background", tone: "dark" }), "dark");
+  assert.equal(heroToneOf({ layout: "split", tone: null }), "tinted");
+  assert.equal(heroToneOf({ layout: "split", tone: "dark" }), "tinted");
+  assert.equal(heroToneOf({ layout: "background", tone: "light" }), "light");
+  const tooMany = Array.from({ length: 8 }, (_, index) => `00000000-0000-4000-8000-00000000000${index}`);
+  assert.equal(pageBlockInputSchema.safeParse({ type: "hero", isEnabled: true, data: { ...parsed.data, extraMediaIds: tooMany } }).success, false);
+});
+
+test("Khối danh sách theo nhóm: biểu tượng phải thuộc bộ có sẵn, mặc định hiện số mục", () => {
+  const group = { title: "Bán buôn, bán lẻ", icon: "store", items: [{ label: "Thời trang", icon: "shirt", href: null }], action: { label: "Tư vấn triển khai", href: "/lien-he" } };
+  const parsed = pageBlockInputSchema.parse({ type: "grouped_list", isEnabled: true, data: { eyebrow: "Theo ngành hàng", title: "Phù hợp nhiều mô hình kinh doanh", description: null, groupLabel: "Nhóm ngành", groups: [group] } });
+  assert.equal(parsed.type === "grouped_list" && parsed.data.showCount, true);
+  assert.equal(pageBlockInputSchema.safeParse({ type: "grouped_list", isEnabled: true, data: { eyebrow: null, title: "A", description: null, groupLabel: null, groups: [{ ...group, icon: "khong-co" }] } }).success, false);
+  assert.equal(pageBlockInputSchema.safeParse({ type: "grouped_list", isEnabled: true, data: { eyebrow: null, title: "A", description: null, groupLabel: null, groups: [] } }).success, false);
 });

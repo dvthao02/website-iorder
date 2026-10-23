@@ -5,7 +5,7 @@ import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
 import { z } from "zod";
 import * as schema from "../packages/core/src/db/schema";
-import { saveRedirect, deleteRedirect } from "../packages/core/src/server/redirects/redirects.repository";
+import { saveRedirect, deleteRedirect, redirectMovedContent } from "../packages/core/src/server/redirects/redirects.repository";
 import { hasDatabaseErrorCode } from "../packages/core/src/server/shared/database-error";
 
 config({ quiet: true });
@@ -48,6 +48,20 @@ async function main() {
     assert.ok(await saveRedirect(null, { ...winningValues, destinationPath: "/audit-end" }, actor, db[0]));
     assert.equal((await clients[0]`select count(*)::int as total from audit_logs`)[0].total, 5);
     console.log("Đạt: hai redirect đối nghịch chỉ một thành công; bật lại gây vòng bị từ chối; trùng nguồn nhận 23505; xóa/sửa ID đã xóa không ghi; nguồn đã xóa được dùng lại; audit đúng năm log.");
+
+    // Đổi slug nội dung đã xuất bản: URL cũ → URL mới, chuyển hướng cũ không thành chuỗi, URL mới không bị chiếm.
+    assert.ok(await saveRedirect(null, { sourcePath: "/audit-move-chain", destinationPath: "/audit-move-a", statusCode: 301, isEnabled: true }, actor, db[0]));
+    assert.ok(await saveRedirect(null, { sourcePath: "/audit-move-b", destinationPath: "/audit-end", statusCode: 301, isEnabled: true }, actor, db[0]));
+    const activeMoves = async () => Object.fromEntries((await clients[0]`select source_path, destination_path from redirects where deleted_at is null and source_path like '/audit-move-%'`).map(row => [row.source_path, row.destination_path]));
+    await db[0].transaction(tx => redirectMovedContent(tx, { from: "/audit-move-a", to: "/audit-move-b" }, actor));
+    assert.deepEqual(await activeMoves(), { "/audit-move-chain": "/audit-move-b", "/audit-move-a": "/audit-move-b" });
+    // Đổi ngược lại tên cũ: không tạo vòng lặp, dòng cũ được tái dùng.
+    await db[0].transaction(tx => redirectMovedContent(tx, { from: "/audit-move-b", to: "/audit-move-a" }, actor));
+    assert.deepEqual(await activeMoves(), { "/audit-move-chain": "/audit-move-a", "/audit-move-b": "/audit-move-a" });
+    // Lỗi sau khi ghi trong cùng transaction (ví dụ lưu nội dung thất bại) thì không còn chuyển hướng nào được thêm.
+    await assert.rejects(db[0].transaction(async tx => { await redirectMovedContent(tx, { from: "/audit-move-a", to: "/audit-move-c" }, actor); throw new Error("rollback"); }), /rollback/);
+    assert.deepEqual(await activeMoves(), { "/audit-move-chain": "/audit-move-a", "/audit-move-b": "/audit-move-a" });
+    console.log("Đạt: đổi slug tạo 301 từ URL cũ, gom chuỗi chuyển hướng, gỡ chuyển hướng chiếm URL mới, đổi ngược không tạo vòng, rollback cùng lần lưu.");
   } finally {
     await Promise.all(clients.map(client => client.end({ timeout: 10 })));
     try {

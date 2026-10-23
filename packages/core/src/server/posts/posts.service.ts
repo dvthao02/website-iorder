@@ -4,6 +4,7 @@ import { validateCoverMedia } from "../media/media.service";
 import { publicationDate } from "../shared/publication-date";
 import { assertContentVersion, contentStateAfterAction, contentStateChangeNotes, contentStateRequestSchema, ContentVersionConflictError, type ContentStateAction } from "../shared/content-version";
 import { mediaPath } from "../media/storage";
+import { contentPathChange, postPublicPath } from "../shared/content-paths";
 import { ensureTaxonomyIds } from "@iorder/core/server/taxonomy/taxonomy.service";
 import {
   createPostWithRevision,
@@ -90,6 +91,7 @@ export async function createAdminPost(input: unknown, editorId: string) {
   const id = await createPostWithRevision(
     { ...values, authorId: editorId, publishedAt },
     { editorId, versionNumber: 1, snapshot, changeNote: "Tạo bài viết trong CMS" },
+    contentPathChange(undefined, { status: values.status, scheduledAt: values.scheduledAt, path: postPublicPath(values.slug, values.type) }),
   );
   const post = await findAdminPostById(id);
 
@@ -114,10 +116,16 @@ export async function updateAdminPost(id: string, input: unknown, editorId: stri
   const publishedAt = publicationDate(values, existing, new Date());
   const versionNumber = existing.draftVersion + 1;
   const snapshot = { ...values, authorId: existing.authorId, coverMediaId: values.coverMediaId === undefined ? existing.coverMediaId : values.coverMediaId, publishedAt: publishedAt?.toISOString() ?? null };
+  // Phiên bản đã khóa ở câu UPDATE nên `existing` đúng là bản trước khi lưu khi ghi thành công.
+  const pathChange = contentPathChange(
+    { status: existing.status, scheduledAt: existing.scheduledAt, path: postPublicPath(existing.slug, existing.type) },
+    { status: values.status, scheduledAt: values.scheduledAt, path: postPublicPath(values.slug, values.type) },
+  );
   const updatedId = await updatePostWithRevision(
     id,
     { ...values, publishedAt },
     { editorId, versionNumber, snapshot, changeNote },
+    pathChange,
   );
 
   if (!updatedId) {

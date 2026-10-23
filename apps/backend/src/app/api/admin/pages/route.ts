@@ -6,7 +6,7 @@ import { FixedWebsitePageBindingError, getAdminPageBySlug, getAdminPagesPage, sa
 import { adminListQuerySchema, listSortParams } from "@iorder/core/server/shared/admin-list.contract";
 import { hasDatabaseErrorCode } from "@iorder/core/server/shared/database-error";
 import { PageVersionConflictError } from "@iorder/core/server/pages/page-version";
-import { getFixedWebsitePage, pagePermissionCodes, pageSaveRequestSchema } from "@iorder/core/server/pages/pages.contract";
+import { getFixedWebsitePage, pageKindFilterSchema, pagePermissionCodes, pageSaveRequestSchema } from "@iorder/core/server/pages/pages.contract";
 import { denyPublishUnless, denyUnless, requestedStatusOf } from "@/lib/admin-access";
 import { getAdminPageById } from "@iorder/core/server/pages/pages.service";
 import { withRequestContext } from "@/lib/request-context";
@@ -32,9 +32,10 @@ async function handleGET(request: Request) {
   if (deniedList) return deniedList;
   const parsed = adminListQuerySchema.safeParse({ page: query.get("page") ?? undefined, pageSize: query.get("pageSize") ?? undefined, query: query.get("query") ?? undefined, ...listSortParams(query) });
   const status = z.enum(["draft", "review", "scheduled", "published", "archived"]).optional().safeParse(query.get("status") || undefined);
-  if (!parsed.success || !status.success) return fail("INVALID_INPUT", "Bộ lọc danh sách trang không hợp lệ.", 400);
+  const kind = pageKindFilterSchema.optional().safeParse(query.get("kind") || undefined);
+  if (!parsed.success || !status.success || !kind.success) return fail("INVALID_INPUT", "Bộ lọc danh sách trang không hợp lệ.", 400);
   try {
-    return NextResponse.json({ result: await getAdminPagesPage({ ...parsed.data, status: status.data }) });
+    return NextResponse.json({ result: await getAdminPagesPage({ ...parsed.data, status: status.data, kind: kind.data }) });
   } catch {
     return fail("INTERNAL_ERROR", "Không thể tải danh sách trang lúc này. Vui lòng thử lại.", 500);
   }

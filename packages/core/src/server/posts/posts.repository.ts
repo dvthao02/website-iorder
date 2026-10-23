@@ -7,6 +7,7 @@ import { toAdminListPage, type AdminListQuery } from "@iorder/core/server/shared
 
 import type { AdminPostInput, PublicPostType } from "./posts.contract";
 import { listOrder, workflowStatusRank, vietnameseText } from "../shared/list-order";
+import { applyContentPathChange, type ContentPathChange } from "../redirects/redirects.repository";
 
 function publicPostCondition() {
   const now = new Date();
@@ -211,6 +212,7 @@ type PostRevisionWrite = {
 export async function createPostWithRevision(
   values: AdminPostInput & { authorId: string; publishedAt: Date | null },
   revision: PostRevisionWrite,
+  pathChange?: ContentPathChange | null,
 ) {
   return getDb().transaction(async (tx) => {
     const { categoryIds, tagIds, ...postValues } = values;
@@ -219,6 +221,7 @@ export async function createPostWithRevision(
     if (!created) {
       throw new Error("Không thể tạo bài viết.");
     }
+    await applyContentPathChange(tx, pathChange, revision.editorId);
     if (categoryIds.length) await tx.insert(postCategories).values(categoryIds.map(categoryId => ({ postId: created.id, categoryId })));
     if (tagIds.length) await tx.insert(postTags).values(tagIds.map(tagId => ({ postId: created.id, tagId })));
 
@@ -245,6 +248,7 @@ export async function updatePostWithRevision(
   id: string,
   values: AdminPostInput & { publishedAt: Date | null },
   revision: PostRevisionWrite,
+  pathChange?: ContentPathChange | null,
 ) {
   return getDb().transaction(async (tx) => {
     const { categoryIds, tagIds, ...postValues } = values;
@@ -257,6 +261,7 @@ export async function updatePostWithRevision(
     if (!updated) {
       return undefined;
     }
+    await applyContentPathChange(tx, pathChange, revision.editorId);
     await tx.delete(postCategories).where(eq(postCategories.postId, id));
     await tx.delete(postTags).where(eq(postTags.postId, id));
     if (categoryIds.length) await tx.insert(postCategories).values(categoryIds.map(categoryId => ({ postId: id, categoryId })));
