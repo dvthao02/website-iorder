@@ -39,6 +39,8 @@ Browser → Caddy → cms | publish-web ──rewrite/fetch──→ backend →
 
 ## 2. Mô hình dữ liệu
 
+Mô tả đầy đủ từng bảng, cột, enum, JSONB và ảnh chụp dữ liệu local: [DATABASE.md](DATABASE.md).
+
 Quy ước:
 
 - UUID do database sinh, mọi bảng có `created_at`/`updated_at`.
@@ -68,6 +70,7 @@ Quyết định thiết kế đáng nhớ:
 - `redirects` chỉ nhận đường dẫn nội bộ bắt đầu bằng `/`, mã 301/308, thực thi trong `apps/publish-web/src/proxy.ts`.
 - `site_settings` giữ cấu hình xuất bản và liên kết ngoài. Khi thêm key mới phải có default tương thích, và seed chỉ bổ sung key còn thiếu.
 - **Mọi URL public là một Trang.** Trang hệ thống (`fixedWebsitePages` trong `pages.contract.ts`) có route do code giữ; CMS sửa nội dung, SEO, trạng thái nhưng không tạo/xóa/đổi slug. Trang danh sách (`kind: "listing"`: `/tin-tuc`, `/thiet-bi`, `/ho-tro/cai-dat`, `/phan-mem`, `/giai-phap`, `/dich-vu`) lấy phần đầu từ khối "Mở đầu" đầu tiên và SEO của trang; các khối còn lại hiển thị theo thứ tự, danh sách là khối `collection_list` (nguồn: bài viết, hướng dẫn, tệp cài đặt, thiết bị, phần mềm, giải pháp, dịch vụ) đặt được ở mọi trang. Trang danh sách thiếu khối danh sách thì route tự thêm danh sách mặc định (`defaultListingCollections`). `featured_posts`/`download_list` là loại cũ: vẫn đọc và render qua `collection_list`, CMS không cho thêm mới. Người có quyền `update`/`publish` của module sở hữu (`ownerModule`) sửa được trang danh sách của module đó. Key cũ `listing_content`/`catalog_content` chỉ còn là dự phòng tới khi chạy `pnpm db:backfill-listing-pages`.
+- **Khối trang theo một hệ thống chung.** Mỗi khối có vỏ chung `appearance` (cột `page_blocks.appearance`: mã neo, nền `auto|white|tinted|dark`, khoảng cách `auto|sm|md|lg`). `resolveBlockFrames` (`pages/block-layout.ts`) quyết định nền/khoảng cách: "Tự động" xen kẽ trắng ↔ xanh nhạt với phần trước, nền tối chỉ cho khối dạng thẻ. Giao diện chỉ dùng token trong `apps/publish-web/src/app/globals.css` (thang chữ `text-display/h2/h3/lead/body/small/caption`, màu `ink/muted/faint/line/subtle/brand-*/accent-*`, bo góc `rounded-card/rounded-control`) và component nền `components/ui` (`FrameSection`, `SectionHeading`, `CardTitle`, `CardText`, `IconTile`, `gridColumns`). Chỉ phần đầu trang chiếm cả màn hình. Biểu tượng khối: mã trong `shared/block-icons.ts`.
 
 ### Quy tắc khi thêm nội dung public
 
@@ -76,7 +79,7 @@ Quyết định thiết kế đáng nhớ:
 | Trang, homepage, phần đầu trang danh sách | `pages`, `page_blocks` | `/`, `/trang/[slug]`, các trang tĩnh, trang danh sách |
 | Catalog | `offerings` | `/phan-mem`, `/giai-phap`, `/dich-vu` |
 | Thiết bị | `equipment_groups`, `sales_equipment` | `/thiet-bi` |
-| Bài viết, hướng dẫn | `posts`, taxonomy | `/tin-tuc`, `/ho-tro/cai-dat` |
+| Bài viết, hướng dẫn | `posts`, taxonomy | `/tin-tuc`, `/ho-tro/huong-dan` |
 | Header, CTA, footer | `menus`, `site_settings` | layout public |
 | Liên hệ, đối tác, đánh giá, tải về | domain tương ứng | page block, trang hỗ trợ |
 
@@ -122,8 +125,9 @@ Dịch vụ: `proxy` (Caddy), `publish-web`, `cms`, `backend`, `db` (PostgreSQL 
 2. `cp .env.production.example .env.production && chmod 600 .env.production`, rồi thay mọi giá trị `replace_with_...`.
 3. `docker compose --env-file .env.production -f compose.production.yaml up -d --build`
 4. Kiểm tra `logs seed-admin`. Job này tạo hoặc nâng quyền tài khoản `INITIAL_ADMIN_*`, không ghi đè mật khẩu đã có.
-5. Kiểm tra storage: `... run --rm migrate node scripts/audit-s3-storage.mjs`
-6. Thống kê: mở `ANALYTICS_SITE_ADDRESS`, đăng nhập `admin`/`umami` và **đổi mật khẩu ngay**, thêm website (domain = `SITE_ADDRESS`), tạo API key; điền `UMAMI_WEBSITE_ID`, `UMAMI_API_KEY` vào `.env.production` rồi chạy lại lệnh `up -d`. Chưa điền thì website không chèn script và CMS báo "chưa kết nối".
+5. Nội dung nền (trang chủ, trang hệ thống, menu, cấu hình, bài viết, catalog, thiết bị): DB mới chưa có. Nạp `scripts/data/base-content.sql` (sinh bởi `sh scripts/export-base-data.sh` từ DB local, không gồm log, lịch sử phiên bản, tài khoản; chạy sau `seed-admin`, khi bảng nội dung còn trống): `... exec -T db sh -c 'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < scripts/data/base-content.sql`. Media chỉ có metadata, tệp thật chép bằng `scripts/backup-media.mjs`. Hoặc chạy các seed `pnpm db:seed:cms`. Xóa nhật ký và lịch sử phiên bản của DB local: `CONFIRM=yes sh scripts/purge-history.sh` (không khôi phục được).
+6. Kiểm tra storage: `... run --rm migrate node scripts/audit-s3-storage.mjs`
+7. Thống kê: mở `ANALYTICS_SITE_ADDRESS`, đăng nhập `admin`/`umami` và **đổi mật khẩu ngay**, thêm website (domain = `SITE_ADDRESS`), tạo API key; điền `UMAMI_WEBSITE_ID`, `UMAMI_API_KEY` vào `.env.production` rồi chạy lại lệnh `up -d`. Chưa điền thì website không chèn script và CMS báo "chưa kết nối".
 
 Cập nhật: `git pull --ff-only`, rồi chạy lại lệnh `up -d --build`. Migration chạy trước khi thay container; nếu release không lên, xem `logs migrate`.
 

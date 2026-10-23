@@ -10,6 +10,5 @@ node_modules
 coverage
 docs
 CLAUDE.md
-PROJECT_CONTEXT.MD
 npm-debug.log*
 pnpm-debug.log*
