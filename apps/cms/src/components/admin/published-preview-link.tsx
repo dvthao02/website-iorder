@@ -16,7 +16,7 @@ type PublishedPreviewLinkProps = {
   id?: string | undefined;
 };
 
-const offeringCatalogPaths: Record<string, string> = {
+export const offeringCatalogPaths: Record<string, string> = {
   software: "/phan-mem",
   solution: "/giai-phap",
   service: "/dich-vu",
@@ -25,7 +25,7 @@ const offeringCatalogPaths: Record<string, string> = {
 function getPublicPath({ kind, slug, contentType }: Omit<PublishedPreviewLinkProps, "status" | "id">) {
   if (!slug) return null;
   if (kind === "page") return getFixedWebsitePage(slug)?.publicPath ?? `/trang/${slug}`;
-  if (kind === "post") return contentType === "guide" ? `/ho-tro/cai-dat/${slug}` : `/tin-tuc/${slug}`;
+  if (kind === "post") return contentType === "guide" ? `/ho-tro/huong-dan/${slug}` : `/tin-tuc/${slug}`;
   if (kind === "equipment") return `/thiet-bi/${slug}`;
   const catalogPath = contentType ? offeringCatalogPaths[contentType] : undefined;
   return catalogPath ? `${catalogPath}/${slug}` : null;

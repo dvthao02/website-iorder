@@ -3,7 +3,7 @@ import { requestAdminJson } from "@/lib/admin-api";
 
 import { Archive, ArchiveRestore, Download, FileDown, Pencil, Plus, RotateCcw, Save } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useCallback, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 
 import type { AdminSupportDownload, AdminSupportDownloadInput } from "@iorder/core/server/support/support-downloads.contract";
 import { parseSavedSupportDownload, supportDownloadCreateRequestSchema, supportDownloadMutationSchema } from "@iorder/core/server/support/support-downloads.contract";
@@ -89,12 +89,10 @@ export function SupportDownloadManagerList({
   items,
   initialSelectedId,
   startCreating = false,
-  tabs,
 }: {
   items: AdminSupportDownload[];
   initialSelectedId?: string;
   startCreating?: boolean;
-  tabs?: ReactNode;
 }) {
   const { can } = useAdminPermissions();
   const router = useRouter();
@@ -292,7 +290,6 @@ export function SupportDownloadManagerList({
 
   const sidebar = <>
       <AdminListHeader actions={<AdminButton hideWithoutPermission permission="support_downloads.create" leadingIcon={<Plus aria-hidden="true" size={16} />} onClick={create}>Thêm</AdminButton>} description={`${rows.length} tệp tải xuống`} headingLevel={1} title="Hỗ trợ cài đặt" />
-      {tabs}
       <AdminFilterBar onSubmit={(event) => event.preventDefault()} chips={chips} onClearAll={() => { setQuery(""); setFilter("all"); }} search={<AdminSearchField id="support-download-search" label="Tìm tài nguyên" onChange={(event) => setQuery(event.target.value)} placeholder="Tìm tên hoặc tệp" value={query} />}><select aria-label="Lọc trạng thái" onChange={(event) => setFilter(event.target.value as Filter)} value={filter}>{filterItems.map((item) => <option key={item.value} value={item.value}>{item.value === "all" ? "Tất cả trạng thái" : item.label}</option>)}</select></AdminFilterBar>
     <AdminDataTable columns={columns} emptyMessage={rows.length ? "Không có tài nguyên phù hợp với bộ lọc." : "Chưa có tài nguyên. Bấm “Thêm” để tải PDF hoặc ZIP; hệ thống tự tạo bản nháp để bạn hoàn thiện."} getRowId={(item) => item.id} onRowClick={select} rows={visibleRows} tableId="support-downloads" />
   </>;

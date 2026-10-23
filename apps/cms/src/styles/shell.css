@@ -286,6 +286,15 @@
     background: var(--cms-card);
     box-shadow: var(--cms-shadow-popover);
   }
+  /* Menu chọn loại khi tạo mới (ví dụ Sản phẩm / Giải pháp / Dịch vụ). */
+  .admin-create-menu > summary { display: inline-flex; }
+  .admin-create-menu > summary .admin-button { pointer-events: none; }
+  .admin-header-popover--menu { width: 260px; padding: 4px; }
+  .admin-header-popover--menu > a { display: grid; gap: 1px; border-radius: var(--cms-radius-component); padding: 8px 10px; }
+  .admin-header-popover--menu > a:hover, .admin-header-popover--menu > a:focus-visible { background: var(--cms-hover); }
+  .admin-header-popover--menu strong { font-size: var(--cms-text-sm); font-weight: 500; }
+  .admin-header-popover--menu > .admin-header-popover__item { display: grid; gap: 1px; padding: 8px 10px; }
+  .admin-header-popover--menu small { color: var(--cms-muted); font-size: var(--cms-text-xs); }
   .admin-header-popover--notifications > header { display: flex; align-items: center; justify-content: space-between; gap: 8px; border-bottom: 1px solid var(--cms-border); padding: 10px 12px; }
   .admin-header-popover--notifications > header strong { font-size: var(--cms-text-sm); font-weight: 600; }
   .admin-header-popover--notifications > header a { color: var(--cms-primary); font-size: var(--cms-text-xs); }

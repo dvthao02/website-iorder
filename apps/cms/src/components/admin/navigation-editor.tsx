@@ -1,8 +1,8 @@
 "use client";
 
 import { adminApiError, readAdminJson } from "@/lib/admin-api";
-import { ChevronDown, ChevronRight, ChevronUp, CornerDownRight, ExternalLink, Eye, EyeOff, IndentDecrease, IndentIncrease, Link2, ListPlus, Menu, Plus, RotateCcw, Save, Search, Trash2, GripVertical, X } from "lucide-react";
-import { useId, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { ChevronDown, ChevronRight, ChevronUp, CornerDownRight, ExternalLink, Eye, EyeOff, IndentDecrease, IndentIncrease, Link2, ListPlus, Menu, Pencil, Plus, RotateCcw, Save, Search, Trash2, GripVertical, X } from "lucide-react";
+import { useId, useMemo, useRef, useState, useSyncExternalStore, type KeyboardEvent } from "react";
 
 import {
   parseSavedNavigationDocument,
@@ -14,6 +14,7 @@ import {
 } from "@iorder/core/server/navigation/navigation.contract";
 
 import { RevisionHistory } from "./revision-history";
+import { contentEditHref } from "@/lib/navigation-content-href";
 import { AdminButton } from "./ui/admin-button";
 import { AdminEmptyState } from "./ui/admin-empty-state";
 import { AdminStatusBadge, useAdminToast } from "./ui/admin-feedback";
@@ -21,6 +22,7 @@ import { AdminFilterTabs } from "./ui/admin-filter-tabs";
 import { AdminCard } from "./ui/admin-card";
 import { AdminListHeader } from "./ui/admin-list-header";
 import { AdminEditorActions } from "./ui/admin-editor-actions";
+import { AdminSidePanel } from "./ui/admin-side-panel";
 import { useNavigationGuard } from "./ui/use-navigation-guard";
 import { useRevisionRestore } from "./ui/use-revision-restore";
 import { useDragReorder } from "./ui/use-drag-reorder";
@@ -172,12 +174,30 @@ function sameItems(first: NavigationItems, second: NavigationItems) {
   return JSON.stringify(first) === JSON.stringify(second);
 }
 
+// Ẩn/hiện khung "Xem trước" nhớ theo trình duyệt (như kiểu xem của Thư viện media); bộ nhớ bị chặn thì nhớ trong phiên.
+const previewKey = "iorder.cms.menu-preview";
+const previewListeners = new Set<() => void>();
+let memoryPreviewHidden = false;
+function readPreviewHidden() {
+  try { const saved = localStorage.getItem(previewKey); return saved === null ? memoryPreviewHidden : saved === "hidden"; } catch { return memoryPreviewHidden; }
+}
+function writePreviewHidden(hidden: boolean) {
+  memoryPreviewHidden = hidden;
+  try { localStorage.setItem(previewKey, hidden ? "hidden" : "shown"); } catch { /* chỉ nhớ trong phiên */ }
+  previewListeners.forEach((listener) => listener());
+}
+function usePreviewHidden() {
+  return useSyncExternalStore((listener) => { previewListeners.add(listener); return () => { previewListeners.delete(listener); }; }, readPreviewHidden, () => false);
+}
+
 export function NavigationEditor({ menus, targets }: { menus: Record<NavigationLocation, NavigationDocument>; targets: NavigationTarget[] }) {
+  const previewHidden = usePreviewHidden();
   const { show: showToast } = useAdminToast();
   const [activeLocation, setActiveLocation] = useState<NavigationLocation>("header");
   const [documents, setDocuments] = useState(menus);
   const [savedDocuments, setSavedDocuments] = useState(menus);
-  const [selectedKey, setSelectedKey] = useState<string | null>(menus.header.items[0]?.key ?? null);
+  // Mục đang mở trong khung sửa trượt bên phải; null = khung đóng, cây menu rộng toàn màn.
+  const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(() => new Set());
   const [quickAdd, setQuickAdd] = useState<{ open: boolean; query: string; picked: string[] }>({ open: false, query: "", picked: [] });
   const [isSaving, setBusy] = useState(false);
@@ -189,6 +209,7 @@ export function NavigationEditor({ menus, targets }: { menus: Record<NavigationL
   const items = currentDocument.items;
   const selectedIndex = items.findIndex((item) => item.key === selectedKey);
   const selected = selectedIndex >= 0 ? items[selectedIndex] : null;
+  const selectedEditHref = selected ? contentEditHref(selected, targets) : undefined;
   const dirty = !sameItems(items, savedDocuments[activeLocation].items);
   const hasUnsavedChanges = useMemo(
     () => locations.some((location) => !sameItems(documents[location].items, savedDocuments[location].items)),
@@ -216,7 +237,7 @@ export function NavigationEditor({ menus, targets }: { menus: Record<NavigationL
     if (saving.current || revisionRestore.pending.current) return;
     if (next === activeLocation) return;
     setActiveLocation(next);
-    setSelectedKey(documents[next].items[0]?.key ?? null);
+    setSelectedKey(null);
   }
 
   function addItem(parentKey: string | null = null) {
@@ -247,7 +268,7 @@ export function NavigationEditor({ menus, targets }: { menus: Record<NavigationL
     const keys = descendants(items, key);
     const next = items.filter((item) => !keys.has(item.key));
     updateItems(next);
-    if (selectedKey && keys.has(selectedKey)) setSelectedKey(target.parentKey ?? next[0]?.key ?? null);
+    if (selectedKey && keys.has(selectedKey)) setSelectedKey(null);
     showToast(keys.size > 1 ? `Đã loại “${target.label}” và ${keys.size - 1} mục con. Lưu menu để áp dụng hoặc bấm Bỏ thay đổi.` : `Đã loại “${target.label}”. Lưu menu để áp dụng hoặc bấm Bỏ thay đổi.`, "warning");
   }
 
@@ -268,7 +289,6 @@ export function NavigationEditor({ menus, targets }: { menus: Record<NavigationL
     if (!picked.length || saving.current || revisionRestore.pending.current) return;
     const entries: NavigationItems = picked.map((target) => ({ key: createKey(), parentKey: null, label: target.label, url: target.url, linkType: target.linkType, contentId: target.id, target: "_self", isEnabled: true }));
     updateItems([...items, ...entries]);
-    setSelectedKey(entries[entries.length - 1].key);
     setQuickAdd({ open: false, query: "", picked: [] });
     showToast(`Đã thêm ${entries.length} mục vào cuối menu. Kéo thả để sắp xếp rồi lưu menu.`, "success");
   }
@@ -291,7 +311,7 @@ export function NavigationEditor({ menus, targets }: { menus: Record<NavigationL
     if (saving.current || revisionRestore.pending.current) return;
     const saved = savedDocuments[activeLocation];
     setDocuments((current) => ({ ...current, [activeLocation]: saved }));
-    setSelectedKey(saved.items[0]?.key ?? null);
+    setSelectedKey(null);
     showToast("Đã bỏ các thay đổi chưa lưu.", "info");
   }
 
@@ -322,7 +342,8 @@ export function NavigationEditor({ menus, targets }: { menus: Record<NavigationL
       if (!nextDocument) throw new Error("Phản hồi lưu menu không hợp lệ hoặc không khớp. Vui lòng tải lại để kiểm tra trước khi thử lại.");
       setDocuments((current) => ({ ...current, [activeLocation]: nextDocument }));
       setSavedDocuments((current) => ({ ...current, [activeLocation]: nextDocument }));
-      setSelectedKey(nextDocument.items[selectedPosition]?.key ?? nextDocument.items[0]?.key ?? null);
+      // Máy chủ có thể cấp lại key: giữ khung mở đúng vị trí mục đang sửa (nếu đang mở).
+      setSelectedKey((current) => current === null ? null : nextDocument.items[selectedPosition]?.key ?? null);
       showToast("Đã cập nhật menu và lưu một phiên bản mới.", "success");
     } catch (error) {
       showToast(error instanceof Error ? error.message : "Không kết nối được máy chủ.", "error");
@@ -348,7 +369,7 @@ export function NavigationEditor({ menus, targets }: { menus: Record<NavigationL
   for (const key of collapsed) for (const descendant of descendants(items, key)) if (descendant !== key) hiddenKeys.add(descendant);
 
   // Xem trước gần giống trên website: mục cấp 1 (đang hiện) và mục con bên dưới; bấm để chọn sửa.
-  const preview = items.length ? <div aria-label="Xem trước trên website" className={`admin-nav-preview admin-nav-preview--${activeLocation}`} role="group">
+  const preview = items.length && !previewHidden ? <div aria-label="Xem trước trên website" className={`admin-nav-preview admin-nav-preview--${activeLocation}`} role="group">
     <span className="admin-nav-preview__label">Xem trước</span>
     <ul>{items.filter((item) => !item.parentKey && item.isEnabled).map((item) => {
       const children = childrenOf(item.key).filter((child) => child.isEnabled);
@@ -375,6 +396,7 @@ export function NavigationEditor({ menus, targets }: { menus: Record<NavigationL
   const tree = <div className="admin-nav-editor__tree">
     <div className="admin-nav-editor__tree-tools">
       <AdminButton disabled={busy} onClick={() => setQuickAdd((current) => ({ ...current, open: !current.open }))} size="sm" variant="secondary"><ListPlus aria-hidden="true" size={15} />Thêm nhanh trang có sẵn</AdminButton>
+      {items.length ? <AdminButton aria-pressed={!previewHidden} onClick={() => writePreviewHidden(!previewHidden)} size="sm" variant="ghost">{previewHidden ? <Eye aria-hidden="true" size={15} /> : <EyeOff aria-hidden="true" size={15} />}{previewHidden ? "Hiện xem trước" : "Ẩn xem trước"}</AdminButton> : null}
       {items.some((item) => childrenOf(item.key).length) ? <AdminButton onClick={() => setCollapsed(collapsed.size ? new Set() : new Set(items.filter((item) => childrenOf(item.key).length).map((item) => item.key)))} size="sm" variant="ghost">{collapsed.size ? "Mở rộng tất cả" : "Thu gọn tất cả"}</AdminButton> : null}
     </div>
     {quickAddPanel}
@@ -404,12 +426,13 @@ export function NavigationEditor({ menus, targets }: { menus: Record<NavigationL
     </div>
   </div>;
 
-  const form = <section aria-label="Sửa mục menu" className="admin-nav-editor__form">
+  const form = selected ? <section aria-label="Sửa mục menu" className="admin-nav-editor__form">
     <fieldset disabled={busy} className="grid min-w-0 gap-4">
-      {selected ? <>
+      <>
         <header className="admin-nav-editor__form-head"><h2>Sửa mục: {selected.label || "(chưa đặt tên)"}</h2>{selected.parentKey ? <p className="admin-help">Mục con của “{items.find((item) => item.key === selected.parentKey)?.label}”</p> : <p className="admin-help">Mục cấp 1</p>}</header>
         <label className="admin-field">Nhãn hiển thị<input className="admin-input" maxLength={180} onChange={(event) => updateSelected({ label: event.target.value })} required value={selected.label} /></label>
         <LinkPicker item={selected} key={selected.key} onCustom={(url) => updateSelected({ linkType: "custom", contentId: null, url })} onLink={(target) => selectPublishedTarget(`${target.linkType}:${target.id}`)} targets={targets} />
+        {selectedEditHref ? <AdminButton className="justify-self-start" href={selectedEditHref} leadingIcon={<Pencil aria-hidden="true" size={15} />} size="sm" variant="secondary">Sửa nội dung</AdminButton> : null}
         <div className="admin-form-grid">
           <label className="admin-field">Khi bấm<select className="admin-input" onChange={(event) => updateSelected({ target: event.target.value as "_self" | "_blank" })} value={selected.target}><option value="_self">Mở trong cùng tab</option><option value="_blank">Mở tab mới</option></select></label>
           <label className="admin-check self-end"><input checked={selected.isEnabled} onChange={(event) => updateSelected({ isEnabled: event.target.checked })} type="checkbox" />Hiển thị trên website</label>
@@ -424,18 +447,21 @@ export function NavigationEditor({ menus, targets }: { menus: Record<NavigationL
           <AdminButton onClick={() => addChild(selected.key)} size="sm" variant="secondary"><CornerDownRight aria-hidden="true" size={16} />Thêm mục con</AdminButton>
           <AdminButton className="ml-auto" onClick={() => removeItem(selected.key)} size="sm" variant="danger"><Trash2 aria-hidden="true" size={16} />Loại khỏi menu</AdminButton>
         </div>
-      </> : <AdminEmptyState action={<AdminButton onClick={() => addItem()}>Thêm mục menu</AdminButton>} description="Chọn một mục ở danh sách bên trái hoặc tạo mục mới." icon={<Menu aria-hidden="true" size={20} />} title="Chưa chọn mục" />}
+      </>
     </fieldset>
-    {currentDocument.id ? <details className="admin-nav-editor__history"><summary>Lịch sử phiên bản menu</summary><RevisionHistory disabled={dirty || busy} expectedVersion={currentDocument.version} id={currentDocument.id} target="navigation" onRestorePendingChange={revisionRestore.onPendingChange} onRestored={revisionRestore.onRestored} /></details> : null}
-  </section>;
+  </section> : null;
+  // Lịch sử là của cả menu (không phải của một mục) nên nằm dưới cây, không nằm trong khung sửa mục.
+  const history = currentDocument.id ? <details className="admin-nav-editor__history"><summary>Lịch sử phiên bản menu</summary><RevisionHistory disabled={dirty || busy} expectedVersion={currentDocument.version} id={currentDocument.id} target="navigation" onRestorePendingChange={revisionRestore.onPendingChange} onRestored={revisionRestore.onRestored} /></details> : null;
 
-  // Bố cục 2 cột ngay trên trang (không che danh sách): trái là cây menu, phải là ô sửa mục đang chọn.
+  // Cây menu rộng toàn màn; bấm vào một dòng thì khung sửa trượt ra từ bên phải (drawer).
+  // Đóng khung không mất thay đổi: mọi sửa đổi nằm trong bản nháp của menu cho tới khi bấm Lưu ở thanh đáy.
   // Thanh lưu ghim ở đáy: lưu cả menu đang mở, báo menu khác còn thay đổi chưa lưu.
   return <AdminCard className="admin-list-manager__card admin-nav-editor">
     <AdminListHeader actions={<AdminButton disabled={busy} leadingIcon={<Plus aria-hidden="true" size={16} />} onClick={() => addItem()}>Thêm mục</AdminButton>} description={`${items.length} mục trong ${locationLabel[activeLocation].toLocaleLowerCase("vi")}`} headingLevel={1} title="Menu & Điều hướng" />
     <AdminFilterTabs ariaLabel="Vị trí menu" disabled={busy} items={locations.map((location) => ({ label: `${locationLabel[location]} · ${!sameItems(documents[location].items, savedDocuments[location].items) ? "chưa lưu" : documents[location].items.length}`, value: location }))} onValueChange={changeLocation} value={activeLocation} />
     {preview}
-    <div className="admin-nav-editor__body">{tree}{form}</div>
+    <div className="admin-nav-editor__body">{tree}{history}</div>
+    <AdminSidePanel footer={<><p className="admin-help mr-auto">Thay đổi được giữ lại khi đóng; bấm Lưu menu để áp dụng.</p><AdminButton onClick={() => setSelectedKey(null)} variant="secondary">Xong</AdminButton></>} isOpen={Boolean(form)} label="Sửa mục menu" onClose={() => setSelectedKey(null)}>{form}</AdminSidePanel>
     <AdminEditorActions>
       <p className={dirty || otherDirty.length ? "admin-help admin-text-warning" : "admin-help"} role="status">{dirty ? `Có thay đổi chưa lưu trong ${locationLabel[activeLocation].toLocaleLowerCase("vi")}.` : `Đã lưu · Phiên bản ${currentDocument.version}`}{otherDirty.length ? ` ${otherDirty.map((location) => locationLabel[location]).join(", ")} cũng có thay đổi chưa lưu.` : ""}</p>
       {dirty ? <AdminButton disabled={busy} onClick={discardChanges} variant="secondary"><RotateCcw aria-hidden="true" size={16} />Bỏ thay đổi</AdminButton> : null}

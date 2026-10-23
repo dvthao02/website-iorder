@@ -7,7 +7,7 @@ import { useMemo, useRef, useState, type FormEvent } from "react";
 import { LoaderCircle, Pencil, Plus, Trash2 } from "lucide-react";
 
 import type { AdminListPage as AdminListResult } from "@iorder/core/server/shared/admin-list.contract";
-import type { EquipmentGroup, EquipmentItem } from "@/components/admin/equipment-manager";
+import type { EquipmentGroup, EquipmentItem } from "@/components/admin/equipment-editor";
 import { AdminButton } from "@/components/admin/ui/admin-button";
 import { AdminCard } from "@/components/admin/ui/admin-card";
 import { AdminContentActions } from "@/components/admin/ui/admin-content-actions";
@@ -51,16 +51,16 @@ export function EquipmentManagerList({ groups, initialGroupId, initialQuery, ini
   ];
   const filtered = chips.length > 0;
   const columns = useMemo<AdminDataTableColumn<EquipmentItem>[]>(() => [
-    { id: "name", label: "Thiết bị", defaultWidth: 280, minWidth: 200, sortKey: "name", cell: (item) => <Link href={`/admin/thiet-bi/${item.id}`}>{item.name}</Link> },
+    { id: "name", label: "Thiết bị", defaultWidth: 280, minWidth: 200, sortKey: "name", cell: (item) => <Link href={`/admin/equipment/${item.id}`}>{item.name}</Link> },
     { id: "group", label: "Nhóm", defaultWidth: 180, minWidth: 140, sortKey: "group", cell: (item) => <span className="admin-text-muted">{item.groupName}</span> },
     { id: "model", label: "Model", defaultWidth: 150, minWidth: 120, cell: (item) => <span className="admin-text-muted">{item.modelCode ?? "—"}</span> },
     { id: "price", label: "Giá", defaultWidth: 130, minWidth: 110, align: "right", sortKey: "priceVnd", cell: (item) => <span className="admin-text-muted">{item.priceVnd ? `${priceFormatter.format(item.priceVnd)} ₫` : "Liên hệ"}</span> },
     { id: "status", label: "Trạng thái", defaultWidth: 150, minWidth: 130, sortKey: "status", cell: (item) => <AdminStatusBadge tone={statusTones[item.status]}>{statusLabels[item.status]}</AdminStatusBadge> },
     { id: "updatedAt", label: "Cập nhật", defaultWidth: 150, minWidth: 130, sortKey: "updatedAt", sortFirst: "desc", cell: (item) => <span className="admin-text-muted">{dateFormatter.format(new Date(item.updatedAt))}</span> },
-    { id: "actions", label: "Thao tác", defaultWidth: 120, minWidth: 120, align: "right", cell: (item) => <AdminContentActions module="equipment" deleteMutation={item.status === "archived" ? { method: "DELETE", url: `/api/admin/equipment/${item.id}?expectedVersion=${item.version}` } : undefined} editHref={`/admin/thiet-bi/${item.id}`} isArchived={item.status === "archived"} label="thiết bị" mutation={{ method: "PATCH", url: `/api/admin/equipment/${item.id}`, body: { action: item.status === "archived" ? "restore" : "archive", expectedVersion: item.version } }} viewHref={item.status === "published" ? `/thiet-bi/${item.slug}` : undefined} /> },
+    { id: "actions", label: "Thao tác", defaultWidth: 120, minWidth: 120, align: "right", cell: (item) => <AdminContentActions module="equipment" deleteMutation={item.status === "archived" ? { method: "DELETE", url: `/api/admin/equipment/${item.id}?expectedVersion=${item.version}` } : undefined} editHref={`/admin/equipment/${item.id}`} isArchived={item.status === "archived"} label="thiết bị" mutation={{ method: "PATCH", url: `/api/admin/equipment/${item.id}`, body: { action: item.status === "archived" ? "restore" : "archive", expectedVersion: item.version } }} viewHref={item.status === "published" ? `/thiet-bi/${item.slug}` : undefined} /> },
   ], []);
   const groupColumns = useMemo<AdminDataTableColumn<EquipmentGroup>[]>(() => [
-    { id: "name", label: "Nhóm thiết bị", defaultWidth: 280, minWidth: 200, sortValue: (group) => group.name, cell: (group) => <Link href={`/admin/thiet-bi/nhom?edit=${group.id}`}>{group.name}</Link> },
+    { id: "name", label: "Nhóm thiết bị", defaultWidth: 280, minWidth: 200, sortValue: (group) => group.name, cell: (group) => <Link href={`/admin/equipment/groups?edit=${group.id}`}>{group.name}</Link> },
     { id: "slug", label: "Slug", defaultWidth: 220, minWidth: 160, cell: (group) => <span className="admin-text-muted">/{group.slug}</span> },
     { id: "visibility", label: "Hiển thị", defaultWidth: 150, minWidth: 130, sortValue: (group) => (group.isEnabled ? 0 : 1), cell: (group) => <AdminStatusBadge tone={group.isEnabled ? "success" : "neutral"}>{group.isEnabled ? "Đang hiển thị" : "Đã ẩn"}</AdminStatusBadge> },
     { id: "sort", label: "Thứ tự", defaultWidth: 120, minWidth: 100, sortValue: (group) => group.sortOrder, cell: (group) => <span className="admin-text-muted">{group.sortOrder}</span> },
@@ -68,11 +68,11 @@ export function EquipmentManagerList({ groups, initialGroupId, initialQuery, ini
   ], []);
 
   // Đổi tab bỏ toàn bộ bộ lọc/sắp xếp của tab kia.
-  const tabHref = (tab?: string) => `/admin/thiet-bi${tab ? `?tab=${tab}` : ""}`;
+  const tabHref = (tab?: string) => `/admin/equipment${tab ? `?tab=${tab}` : ""}`;
   function submitSearch(event: FormEvent<HTMLFormElement>) { event.preventDefault(); navigate({ page: undefined, query: query.trim() || undefined }); }
 
   return <AdminListPage variant="dense">
-    <AdminCard><AdminListHeader actions={<AdminButton hideWithoutPermission permission="equipment.create" href={activeTab === "items" ? "/admin/thiet-bi/moi" : "/admin/thiet-bi/nhom?create=1"} leadingIcon={<Plus aria-hidden="true" size={16} />}>{activeTab === "items" ? "Thêm thiết bị" : "Thêm nhóm thiết bị"}</AdminButton>} description={`${result.total} thiết bị${filtered ? " khớp bộ lọc" : ""} · ${groups.length} nhóm`} title="Thiết bị" />
+    <AdminCard><AdminListHeader actions={<AdminButton hideWithoutPermission permission="equipment.create" href={activeTab === "items" ? "/admin/equipment/new" : "/admin/equipment/groups?create=1"} leadingIcon={<Plus aria-hidden="true" size={16} />}>{activeTab === "items" ? "Thêm thiết bị" : "Thêm nhóm thiết bị"}</AdminButton>} description={`${result.total} thiết bị${filtered ? " khớp bộ lọc" : ""} · ${groups.length} nhóm`} title="Thiết bị" />
       <div aria-label="Loại nội dung thiết bị" className="admin-view-tabs" role="tablist"><CollectionTab active={activeTab === "items"} href={tabHref()} label={`Thiết bị (${result.total})`} /><CollectionTab active={activeTab === "groups"} href={tabHref("groups")} label={`Nhóm thiết bị (${groups.length})`} /></div>
       {activeTab === "items" ? <><AdminFilterBar onSubmit={submitSearch} chips={chips} onClearAll={() => { setQuery(""); navigate({ page: undefined, query: undefined, status: undefined, groupId: undefined }); }} search={<AdminSearchField id="equipment-search" label="Tìm kiếm thiết bị" onChange={(event) => setQuery(event.target.value)} placeholder="Tìm tên, slug hoặc model" value={query} />}><select aria-label="Lọc theo nhóm" onChange={(event) => setFilter("groupId", event.target.value === "all" ? undefined : event.target.value)} value={initialGroupId}><option value="all">Tất cả nhóm</option>{groups.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}</select><select aria-label="Lọc theo trạng thái" onChange={(event) => setFilter("status", event.target.value === "all" ? undefined : event.target.value)} value={initialStatus}><option value="all">Tất cả trạng thái</option>{Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></AdminFilterBar><ContentBulkBar items={result.items} module="equipment" noun="thiết bị" onClear={clear} request={(item, action) => ({ method: "PATCH", url: `/api/admin/equipment/${item.id}`, body: { action, expectedVersion: item.version } })} selectedIds={selectedIds} /><AdminDataTable columns={columns} emptyMessage={filtered ? "Không có thiết bị khớp bộ lọc." : "Chưa có thiết bị nào."} getRowId={(item) => item.id} onSelectionChange={setSelectedIds} onSortChange={setSort} rows={result.items} selectedIds={selectedIds} sort={sort} tableId="equipment" /><AdminPagination page={result.page} pageSize={result.pageSize} total={result.total} totalPages={result.totalPages} onChange={(page) => navigate({ page: page === 1 ? undefined : String(page) })} /></> : <AdminDataTable columns={groupColumns} emptyMessage="Chưa có nhóm thiết bị nào. Hãy tạo nhóm trước khi thêm thiết bị." getRowId={(group) => group.id} rows={groups} tableId="equipment-groups" />}
     </AdminCard>
@@ -111,7 +111,7 @@ function EquipmentGroupActions({ group }: { group: EquipmentGroup }) {
   }
 
   return <span className="admin-content-actions">
-    <Link aria-label={`Chỉnh sửa nhóm ${group.name}`} className="admin-content-actions__button admin-content-actions__edit" href={`/admin/thiet-bi/nhom?edit=${group.id}`} title={`Chỉnh sửa nhóm ${group.name}`}><Pencil aria-hidden="true" size={16} /></Link>
+    <Link aria-label={`Chỉnh sửa nhóm ${group.name}`} className="admin-content-actions__button admin-content-actions__edit" href={`/admin/equipment/groups?edit=${group.id}`} title={`Chỉnh sửa nhóm ${group.name}`}><Pencil aria-hidden="true" size={16} /></Link>
     {can("equipment.delete") ? <button aria-busy={busy} aria-label={`Xóa nhóm ${group.name}`} className="admin-content-actions__button admin-content-actions__delete" disabled={busy} onClick={() => void remove()} title={`Xóa nhóm ${group.name}`} type="button">{busy ? <LoaderCircle aria-hidden="true" className="admin-content-actions__spinner" size={16} /> : <Trash2 aria-hidden="true" size={16} />}</button> : null}
   </span>;
 }

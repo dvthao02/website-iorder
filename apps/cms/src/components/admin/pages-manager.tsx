@@ -50,7 +50,6 @@ export function PagesManager({ initialQuery, initialStatus, result }: PagesManag
   const filtered = chips.length > 0;
   const columns = useMemo<AdminDataTableColumn<AdminPage>[]>(() => [
     { id: "page", label: "Trang", defaultWidth: 300, minWidth: 210, sortKey: "title", cell: (page) => <Link className="block hover:text-[var(--cms-primary)]" href={`/admin/pages/${page.id}`}><strong className="block">{page.title}</strong><span className="admin-field__hint block">{getPublicPath(page)}</span></Link> },
-    { id: "type", label: "Loại", defaultWidth: 160, minWidth: 130, cell: (page) => <Badge tone={getFixedWebsitePage(page.slug) ? "blue" : "slate"}>{getFixedWebsitePage(page.slug)?.kind === "listing" ? "Trang danh sách" : getFixedWebsitePage(page.slug) ? "Trang cố định" : "Trang tự tạo"}</Badge> },
     { id: "status", label: "Trạng thái", defaultWidth: 150, minWidth: 130, sortKey: "status", cell: (page) => <StatusBadge status={page.status} /> },
     { id: "publishedAt", label: "Xuất bản", defaultWidth: 150, minWidth: 130, cell: (page) => <span className="admin-text-muted">{formatDate(page.publishedAt)}</span> },
     { id: "updatedAt", label: "Cập nhật", defaultWidth: 150, minWidth: 130, sortKey: "updatedAt", sortFirst: "desc", cell: (page) => <span className="admin-text-muted">{dateFormatter.format(new Date(page.updatedAt))}</span> },
@@ -64,7 +63,7 @@ export function PagesManager({ initialQuery, initialStatus, result }: PagesManag
 
   return <AdminListPage variant="dense">
     <AdminCard>
-      <AdminListHeader actions={<AdminButton hideWithoutPermission href="/admin/pages/new" leadingIcon={<Plus aria-hidden="true" size={16} />} permission="pages.create">Tạo trang</AdminButton>} description={`${result.total} trang${filtered ? " khớp bộ lọc" : ""}`} title="Trang website" />
+      <AdminListHeader actions={<AdminButton hideWithoutPermission href="/admin/pages/new" leadingIcon={<Plus aria-hidden="true" size={16} />} permission="pages.create">Tạo trang</AdminButton>} description={`${result.total} trang${filtered ? " khớp bộ lọc" : ""}`} title="Trang tự tạo" />
       <AdminFilterBar onSubmit={submitSearch} chips={chips} onClearAll={() => { setQuery(""); navigate({ page: undefined, query: undefined, status: undefined }); }} search={<AdminSearchField label="Tìm trang" onChange={(event) => setQuery(event.target.value)} placeholder="Tìm theo tên hoặc đường dẫn" value={query} />}>
 
         <select aria-label="Lọc theo trạng thái" onChange={(event) => setFilter("status", event.target.value === "all" ? undefined : event.target.value)} value={initialStatus}>
@@ -73,11 +72,10 @@ export function PagesManager({ initialQuery, initialStatus, result }: PagesManag
         </select>
       </AdminFilterBar>
       <ContentBulkBar items={result.items} module="pages" noun="trang" onClear={clear} request={(page, action) => pageStateRequest(page, action === "archive" ? "archived" : action === "publish" ? "published" : "draft")} selectedIds={selectedIds} />
-      <AdminDataTable columns={columns} emptyMessage={filtered ? "Không có trang khớp bộ lọc." : "Chưa có trang nào."} getRowId={(page) => page.id} onSelectionChange={setSelectedIds} onSortChange={setSort} rows={result.items} selectedIds={selectedIds} sort={sort} tableId="pages" />
+      <AdminDataTable columns={columns} emptyMessage={filtered ? "Không có trang khớp bộ lọc." : "Chưa có trang tự tạo. Dùng “Tạo trang” cho trang landing, khuyến mãi… (hiện ở /trang/<đường dẫn>), rồi thêm vào Menu."} getRowId={(page) => page.id} onSelectionChange={setSelectedIds} onSortChange={setSort} rows={result.items} selectedIds={selectedIds} sort={sort} tableId="pages" />
       <AdminPagination page={result.page} pageSize={result.pageSize} total={result.total} totalPages={result.totalPages} onChange={(page) => navigate({ page: page === 1 ? undefined : String(page) })} />
     </AdminCard>
   </AdminListPage>;
 }
 
-function Badge({ children, tone }: { children: string; tone: "blue" | "slate" }) { return <AdminStatusBadge tone={tone === "blue" ? "info" : "neutral"}>{children}</AdminStatusBadge>; }
 function StatusBadge({ status }: { status: PageStatus }) { const tones: Record<PageStatus, AdminFeedbackTone> = { draft: "neutral", review: "warning", scheduled: "info", published: "success", archived: "neutral" }; return <AdminStatusBadge tone={tones[status]}>{statusLabels[status]}</AdminStatusBadge>; }

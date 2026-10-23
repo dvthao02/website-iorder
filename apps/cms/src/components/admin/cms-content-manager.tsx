@@ -1,37 +1,36 @@
 "use client";
-import { PublishPermissionHint, PublishStatusOptions } from "./ui/publish-status-options";
 import { requestAdminJson } from "@/lib/admin-api";
-import { formatLocalDateTime } from "@/lib/local-date-time";
+import { formatDisplayDateTime, formatLocalDateTime } from "@/lib/local-date-time";
+import { toSlug } from "@/lib/slug";
 
+import { Plus } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
-import { useSearchParams } from "next/navigation";
 import { MediaPicker } from "./media-picker";
 import { RevisionHistory } from "./revision-history";
-import { AdminEditorTabs } from "./ui/admin-editor-tabs";
+import { PublishedPreviewLink, offeringCatalogPaths } from "./published-preview-link";
+import { AdminButton } from "./ui/admin-button";
 import { AdminEditorActions } from "./ui/admin-editor-actions";
+import { AdminStatusBadge } from "./ui/admin-feedback";
+import { AdminFaqEditor, AdminListEditor, AdminListRowControls, moveListItem, type FaqItem } from "./ui/admin-list-editor";
+import { ContentStatusChoice, PrepublishHints, contentStatusBadge, contentSubmitLabel } from "./ui/content-status-choice";
+import { SeoAssistant } from "./ui/seo-assistant";
 import { useUnsavedChanges } from "./ui/use-unsaved-changes";
-import { AdminNotice } from "./ui/admin-feedback";
 import { useNavigationGuard } from "./ui/use-navigation-guard";
 import { useRevisionRestore } from "./ui/use-revision-restore";
 
+import { seoChecks, truncateAtWord } from "@iorder/core/server/shared/seo";
 import type { AdminOffering, AdminOfferingInput, PublicOfferingType } from "@iorder/core/server/offerings/offering-content.contract";
 import { useAdminPermissions } from "./ui/admin-permissions";
+import { PricingEditor } from "./page-blocks-editor";
 
-type Notice = { kind: "error" | "success"; message: string } | undefined;
-type OfferingItem = AdminOfferingInput["content"]["items"][number];
-
-type CmsContentManagerProps = {
-  initialOfferings: AdminOffering[];
-  offeringType?: PublicOfferingType;
-  offeringTypeLabel?: string;
-  showOfferings?: boolean;
-};
+type LinkItem = { title: string; href: string };
 
 const inputClassName = "admin-input";
 const labelClassName = "admin-field";
+const summaryLimit = 200;
 
-function EditorSection({ children, description, title }: { children: ReactNode; description?: string; title: string }) {
-  return <section className="admin-content-section"><header><h3>{title}</h3>{description ? <p className="admin-help">{description}</p> : null}</header>{children}</section>;
+function EditorSection({ children, description, id, title }: { children: ReactNode; description?: string; id?: string; title: string }) {
+  return <section className="admin-content-section" id={id}><header><h3>{title}</h3>{description ? <p className="admin-help">{description}</p> : null}</header>{children}</section>;
 }
 
 function nullableText(value: string) {
@@ -39,114 +38,34 @@ function nullableText(value: string) {
   return trimmed || null;
 }
 
-function dateTimeInputValue(value: Date | null | undefined) {
-  return formatLocalDateTime(value);
-}
-
 function dateTimeOrNull(value: string) {
   return value ? new Date(value) : null;
 }
 
-function lines(value: string) {
-  return value.split("\n").map((item) => item.trim()).filter(Boolean);
+function filledLines(items: string[]) {
+  return items.map((item) => item.trim()).filter(Boolean);
 }
 
-function faqLines(value: string): [string, string][] {
-  return value
-    .split("\n")
-    .map((line) => line.split("|").map((part) => part.trim()))
-    .filter((parts): parts is [string, string] => parts.length === 2 && Boolean(parts[0]) && Boolean(parts[1]));
-}
-
-function moveOfferingItem(items: OfferingItem[], index: number, direction: -1 | 1) {
-  const target = index + direction;
-  if (target < 0 || target >= items.length) return items;
-  const result = [...items];
-  [result[index], result[target]] = [result[target], result[index]];
-  return result;
-}
-
-function OfferingItemsEditor({ items, onChange }: { items: OfferingItem[]; onChange: (items: OfferingItem[]) => void }) {
-  return <fieldset className="admin-subsection">
-    <legend>Mục liên quan</legend>
-    <p className="admin-help">Mỗi mục có thể chỉ là văn bản, hoặc có đường dẫn nội bộ như <code>/lien-he</code> hay URL ngoài.</p>
-    {items.map((item, index) => {
-      const linkedItem = typeof item === "string" ? undefined : item;
-      const title = typeof item === "string" ? item : item.title;
-      return <div className="admin-subsection" key={index}>
-        <div className="grid gap-3 sm:grid-cols-[180px_1fr]">
-          <label className={labelClassName}>Loại mục<select className={inputClassName} value={linkedItem ? "link" : "text"} onChange={event => onChange(items.map((entry, entryIndex) => entryIndex !== index ? entry : event.target.value === "link" ? { title, href: "/" } : title))}><option value="text">Văn bản</option><option value="link">Có đường dẫn</option></select></label>
-          <label className={labelClassName}>Nội dung<input className={inputClassName} required value={title} onChange={event => onChange(items.map((entry, entryIndex) => entryIndex !== index ? entry : typeof entry === "string" ? event.target.value : { ...entry, title: event.target.value }))} /></label>
-        </div>
-        {linkedItem ? <label className={labelClassName}>Đường dẫn<input className={inputClassName} required value={linkedItem.href} onChange={event => onChange(items.map((entry, entryIndex) => entryIndex === index && typeof entry !== "string" ? { ...entry, href: event.target.value } : entry))} placeholder="/lien-he hoặc https://..." /></label> : null}
-        <div className="flex gap-2"><button type="button" disabled={index === 0} onClick={() => onChange(moveOfferingItem(items, index, -1))}>Lên</button><button type="button" disabled={index === items.length - 1} onClick={() => onChange(moveOfferingItem(items, index, 1))}>Xuống</button><button type="button" className="admin-button admin-button--danger admin-button--sm" onClick={() => onChange(items.filter((_, itemIndex) => itemIndex !== index))}>Xóa</button></div>
-      </div>;
-    })}
-    <button type="button" className="justify-self-start" onClick={() => onChange([...items, "Mục mới"])}>Thêm mục</button>
-  </fieldset>;
+// Liên kết liên quan: chỉ có chữ thì website hiện chữ, có thêm đường dẫn thì hiện thành liên kết.
+function OfferingLinksEditor({ items, onChange }: { items: LinkItem[]; onChange: (items: LinkItem[]) => void }) {
+  function patch(index: number, value: Partial<LinkItem>) {
+    onChange(items.map((item, itemIndex) => itemIndex === index ? { ...item, ...value } : item));
+  }
+  return <div className="admin-list-editor">
+    {items.length ? <ol className="admin-list-editor__rows">{items.map((item, index) => <li className="admin-list-editor__row admin-list-editor__row--faq" key={index}>
+      <span aria-hidden="true" className="admin-list-editor__index">{index + 1}</span>
+      <span className="admin-list-editor__pair admin-form-grid">
+        <input aria-label={`Tên mục ${index + 1}`} className={inputClassName} maxLength={500} onChange={(event) => patch(index, { title: event.target.value })} placeholder="Tên hiển thị" value={item.title} />
+        <input aria-label={`Đường dẫn mục ${index + 1}`} className={inputClassName} onChange={(event) => patch(index, { href: event.target.value })} pattern="(/(?!/)|https?://).*" placeholder="/lien-he hoặc https://… (không bắt buộc)" title="Bắt đầu bằng / hoặc https://" value={item.href} />
+      </span>
+      <AdminListRowControls index={index} label={`mục ${index + 1}`} length={items.length} onMove={(direction) => onChange(moveListItem(items, index, direction))} onRemove={() => onChange(items.filter((_, itemIndex) => itemIndex !== index))} />
+    </li>)}</ol> : null}
+    <AdminButton className="justify-self-start" disabled={items.length >= 100} leadingIcon={<Plus aria-hidden="true" size={15} />} onClick={() => onChange([...items, { title: "", href: "" }])} size="sm" variant="secondary">Thêm mục</AdminButton>
+  </div>;
 }
 
 function requestJson(url: string, method: "PATCH" | "POST", body: unknown) {
   return requestAdminJson(url, method, body, "Không thể lưu thay đổi. Vui lòng thử lại.");
-}
-
-export function CmsContentManager({ initialOfferings, offeringType, offeringTypeLabel = "Nội dung catalog", showOfferings = true }: CmsContentManagerProps) {
-  const searchParams = useSearchParams();
-  const requestedOfferingId = searchParams.get("edit");
-  const [offerings, setOfferings] = useState(initialOfferings);
-  const [activeOfferingId, setActiveOfferingId] = useState<string | undefined>(() => initialOfferings.some(offering => offering.id === requestedOfferingId) ? requestedOfferingId ?? undefined : initialOfferings[0]?.id);
-  const [isCreatingOffering, setIsCreatingOffering] = useState(() => searchParams.get("create") === "1");
-  const [notice, setNotice] = useState<Notice>();
-
-  const activeOffering = offerings.find((offering) => offering.id === activeOfferingId);
-
-  function notify(nextNotice: Notice) {
-    setNotice(nextNotice);
-  }
-
-  return (
-    <div className="grid gap-12">
-      {notice ? <AdminNotice tone={notice.kind}>{notice.message}</AdminNotice> : null}
-
-      {showOfferings ? <section className="grid gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
-        <aside className="admin-card">
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <h2>{offeringTypeLabel}</h2>
-            <button className="admin-button admin-button--primary" onClick={() => { setIsCreatingOffering(true); setActiveOfferingId(undefined); }} type="button">
-              Thêm mới
-            </button>
-          </div>
-          <div className="grid gap-2">
-            {offerings.map((offering) => (
-              <button className={`rounded-[var(--cms-radius-card)] px-3 py-3 text-left text-sm transition ${offering.id === activeOfferingId && !isCreatingOffering ? "bg-[var(--cms-primary-soft)] text-[var(--cms-primary)]" : "hover:bg-[var(--cms-hover)]"}`} key={offering.id} onClick={() => { setActiveOfferingId(offering.id); setIsCreatingOffering(false); }} type="button">
-                <span className="block font-medium">{offering.title}</span>
-                <span className="admin-field__hint block">{offering.type} · {offering.status}</span>
-              </button>
-            ))}
-          </div>
-        </aside>
-
-        <div className="admin-card">
-          {isCreatingOffering || activeOffering ? (
-            <OfferingEditor
-              key={activeOffering?.id ?? "new"}
-              offering={activeOffering}
-              offeringType={offeringType}
-              offeringTypeLabel={offeringTypeLabel}
-              onSaved={(offering, created) => {
-                setOfferings((current) => created ? [...current, offering] : current.map((item) => item.id === offering.id ? offering : item));
-                setActiveOfferingId(offering.id);
-                setIsCreatingOffering(false);
-                notify({ kind: "success", message: created ? "Đã tạo nội dung catalog ở trạng thái đã chọn." : "Đã lưu nội dung catalog và tạo phiên bản mới." });
-              }}
-              onError={(message) => notify({ kind: "error", message })}
-            />
-          ) : <p className="admin-text-muted">Chọn một nội dung catalog để chỉnh sửa.</p>}
-        </div>
-      </section> : null}
-
-    </div>
-  );
 }
 
 export function OfferingEditor({ offering, offeringType, offeringTypeLabel, onSaved, onError, onDirtyChange }: {
@@ -158,6 +77,8 @@ export function OfferingEditor({ offering, offeringType, offeringTypeLabel, onSa
   onDirtyChange?: (isDirty: boolean) => void;
 }) {
   const { can } = useAdminPermissions();
+  const canPublish = can("offerings.publish");
+  const noun = offeringTypeLabel.toLocaleLowerCase("vi");
   const [form, setForm] = useState(() => offeringToForm(offering, offeringType));
   const [savedVersion, setSavedVersion] = useState(offering?.draftVersion);
   const saving = useRef(false);
@@ -171,13 +92,30 @@ export function OfferingEditor({ offering, offeringType, offeringTypeLabel, onSa
   const [isSaving, setIsSaving] = useState(false);
   const processing = isSaving || isUploading || restore.restoring;
   useNavigationGuard(processing && !restore.completing, () => onError("Đang xử lý nội dung. Vui lòng chờ trước khi rời màn hình."));
-  const [activeTab, setActiveTab] = useState("basic");
+  const [editingSlug, setEditingSlug] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  // Nội dung mới: slug tự theo tiêu đề cho tới khi người dùng tự sửa. Nội dung đã có giữ slug (đổi slug làm hỏng liên kết).
+  const [slugTouched, setSlugTouched] = useState(Boolean(offering));
+  const [extraOpen] = useState(() => Boolean(offering && (offering.content.bestFor || offering.content.keyValue || offering.content.category || offering.icon || offering.content.tags.length || offering.content.metrics.length)));
   const { isDirty, markSaved } = useUnsavedChanges(form);
   useEffect(() => onDirtyChange?.(isDirty), [isDirty, onDirtyChange]);
+  const formRef = useRef<HTMLFormElement>(null);
+  // Ctrl+S / ⌘+S lưu ngay, không phải cuộn xuống thanh lưu.
+  useEffect(() => {
+    function save(event: KeyboardEvent) {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") { event.preventDefault(); formRef.current?.requestSubmit(); }
+    }
+    window.addEventListener("keydown", save);
+    return () => window.removeEventListener("keydown", save);
+  }, []);
 
   function update<Field extends keyof typeof form>(field: Field, value: (typeof form)[Field]) {
     if (saving.current || restore.pending.current) return;
     setForm((current) => ({ ...current, [field]: value }));
+  }
+  function changeTitle(title: string) {
+    if (saving.current || restore.pending.current) return;
+    setForm((current) => ({ ...current, title, ...(slugTouched ? {} : { slug: toSlug(title, 80) }) }));
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -195,25 +133,101 @@ export function OfferingEditor({ offering, offeringType, offeringTypeLabel, onSa
       markSaved();
       onSaved(result.offering, !offering);
     } catch (error: unknown) {
-      onError(error instanceof Error ? error.message : "Không thể lưu nội dung catalog.");
+      onError(error instanceof Error ? error.message : `Không thể lưu ${noun}.`);
     } finally {
       saving.current = false;
       setIsSaving(false);
     }
   }
 
+  const publicPath = `${offeringCatalogPaths[form.type] ?? ""}/${form.slug || "duong-dan"}`;
+  // Trợ lý SEO dùng chung với bài viết: mô tả chi tiết đóng vai trò nội dung.
+  const seoContent = { blocks: [{ type: "paragraph", text: form.description }] };
+  const checks = seoChecks({ title: form.title, seoTitle: form.seoTitle, seoDescription: form.seoDescription, excerpt: form.summary, slug: form.slug, hasCover: Boolean(form.coverMediaId), content: seoContent });
+  const seoPassed = checks.filter((check) => check.ok).length;
+  const savedStatus = offering?.status;
+  const goingLive = form.status === "published" || form.status === "scheduled";
+  const missing = [
+    !form.coverMediaId ? { id: "offering-cover", label: "Ảnh bìa" } : null,
+    !form.summary.trim() ? { id: "offering-summary", label: "Tóm tắt" } : null,
+    !filledLines(form.features).length ? { id: "offering-features", label: "Tính năng chính" } : null,
+    !filledLines(form.benefits).length ? { id: "offering-benefits", label: "Lợi ích" } : null,
+  ].filter((item): item is { id: string; label: string } => item !== null);
+
+  // Bố cục 2 cột như editor bài viết: trái để viết, phải là thiết lập luôn nhìn thấy.
   return (
-    <form className="grid gap-4" onSubmit={submit}>
+    <form className="admin-post-editor" onSubmit={submit} ref={formRef}>
       <fieldset disabled={processing} className="contents">
-      <AdminEditorTabs activeId={activeTab} onChange={setActiveTab} tabs={[{ id: "basic", label: "Thông tin" }, { id: "content", label: "Nội dung" }, { id: "publishing", label: "Xuất bản & SEO" }, ...(offering ? [{ id: "history", label: "Lịch sử" }] : [])]} />
-      {activeTab === "basic" ? <div className="grid gap-4"><EditorSection title="Thông tin cơ bản"><div className="admin-form-grid">{offeringType ? <label className={labelClassName}>Nhóm nội dung<input className={inputClassName} readOnly value={offeringTypeLabel} /></label> : <label className={labelClassName}>Nhóm nội dung<select className={inputClassName} onChange={(event) => update("type", event.target.value as typeof form.type)} value={form.type}><option value="software">Phần mềm</option><option value="solution">Giải pháp</option><option value="service">Dịch vụ</option></select></label>}<label className={labelClassName}>Tiêu đề<input className={inputClassName} onChange={(event) => update("title", event.target.value)} required value={form.title} /></label><label className={labelClassName}>Slug<input className={inputClassName} onChange={(event) => update("slug", event.target.value)} pattern="[a-z0-9]+(-[a-z0-9]+)*" required value={form.slug} /></label></div></EditorSection><EditorSection description="Ảnh đại diện hiển thị trong các danh sách và trang chi tiết." title="Media"><MediaPicker value={form.coverMediaId} onChange={value => update("coverMediaId", value)} onUploadingChange={handleUploadingChange} /></EditorSection></div> : null}
-      {activeTab === "content" ? <div className="grid gap-4"><EditorSection title="Nội dung"><label className={labelClassName}>Tóm tắt<textarea className={inputClassName} onChange={(event) => update("summary", event.target.value)} rows={3} value={form.summary} /></label><label className={labelClassName}>Mô tả chi tiết<textarea className={inputClassName} onChange={(event) => update("description", event.target.value)} required rows={5} value={form.description} /></label></EditorSection><EditorSection description="Chỉ thêm các thông tin thực sự xuất hiện với loại nội dung này." title={`Thông tin ${offeringTypeLabel.toLocaleLowerCase("vi")}`}><OfferingItemsEditor items={form.items} onChange={items => update("items", items)} /><div className="admin-form-grid"><label className={labelClassName}>Tags, mỗi dòng một mục<textarea className={inputClassName} onChange={(event) => update("tags", event.target.value)} rows={4} value={form.tags} /></label><label className={labelClassName}>Chỉ số, mỗi dòng một mục<textarea className={inputClassName} onChange={(event) => update("metrics", event.target.value)} rows={4} value={form.metrics} /></label><label className={labelClassName}>Tính năng, mỗi dòng một mục<textarea className={inputClassName} onChange={(event) => update("features", event.target.value)} rows={5} value={form.features} /></label><label className={labelClassName}>Lợi ích, mỗi dòng một mục<textarea className={inputClassName} onChange={(event) => update("benefits", event.target.value)} rows={5} value={form.benefits} /></label></div><label className={labelClassName}>FAQ, mỗi dòng theo mẫu “Câu hỏi | Trả lời”<textarea className={inputClassName} onChange={(event) => update("faq", event.target.value)} rows={5} value={form.faq} /></label><div className="admin-form-grid"><label className={labelClassName}>Phù hợp với<input className={inputClassName} onChange={(event) => update("bestFor", event.target.value)} value={form.bestFor} /></label><label className={labelClassName}>Giá trị chính<input className={inputClassName} onChange={(event) => update("keyValue", event.target.value)} value={form.keyValue} /></label><label className={labelClassName}>Danh mục<input className={inputClassName} onChange={(event) => update("category", event.target.value)} value={form.category} /></label><label className={labelClassName}>Biểu tượng<input className={inputClassName} onChange={(event) => update("icon", event.target.value)} value={form.icon} /></label></div></EditorSection></div> : null}
-      {activeTab === "publishing" ? <div className="grid gap-4">
-        <EditorSection title="SEO"><div className="admin-form-grid"><label className={labelClassName}>Tiêu đề SEO<input className={inputClassName} onChange={(event) => update("seoTitle", event.target.value)} value={form.seoTitle} /></label><label className={labelClassName}>Mô tả SEO<input className={inputClassName} onChange={(event) => update("seoDescription", event.target.value)} value={form.seoDescription} /></label><label className={labelClassName}>URL chuẩn<input className={inputClassName} onChange={(event) => update("canonicalUrl", event.target.value)} type="url" value={form.canonicalUrl} /></label></div></EditorSection>
-        <EditorSection title="Xuất bản"><div className="admin-form-grid"><label className={labelClassName}>Trạng thái<select className={inputClassName} onChange={(event) => update("status", event.target.value as typeof form.status)} value={form.status}><PublishStatusOptions canPublish={can("offerings.publish")} current={form.status} /></select></label><PublishPermissionHint canPublish={can("offerings.publish")} />{form.status === "scheduled" ? <label className={labelClassName}>Thời điểm hẹn giờ<input className={inputClassName} onChange={(event) => update("scheduledAt", event.target.value)} required type="datetime-local" value={form.scheduledAt} /></label> : null}<label className={labelClassName}>Thứ tự<input className={inputClassName} min="0" onChange={(event) => update("sortOrder", Number(event.target.value))} type="number" value={form.sortOrder} /></label><label className="admin-check"><input checked={form.isFeatured} onChange={(event) => update("isFeatured", event.target.checked)} type="checkbox" />Nội dung nổi bật</label></div></EditorSection>
-      </div> : null}
-      {activeTab === "history" && offering ? <EditorSection title="Lịch sử"><RevisionHistory target="offerings" id={offering.id} expectedVersion={savedVersion} disabled={isDirty || processing} onRestorePendingChange={restore.onPendingChange} onRestored={restore.onRestored} /></EditorSection> : null}
-      <AdminEditorActions>{isDirty ? <p className="admin-help admin-text-warning" role="status">Có thay đổi chưa lưu.</p> : null}<button className="admin-button admin-button--primary" disabled={isSaving || !can(offering ? "offerings.update" : "offerings.create")} type="submit">{isSaving ? "Đang lưu..." : offering ? "Lưu thay đổi" : "Tạo nội dung catalog"}</button></AdminEditorActions>
+      <div className="admin-post-editor__main">
+        <section className="admin-content-section admin-post-editor__writing">
+          <label className="admin-post-editor__title-field"><span className="sr-only">Tên {noun}</span><input className="admin-post-editor__title" maxLength={220} onChange={(event) => changeTitle(event.target.value)} placeholder={`Nhập tên ${noun}…`} required value={form.title} /></label>
+          {editingSlug ? <div className="admin-post-editor__slug-edit">
+            <div className={labelClassName}><label className="admin-seo__label" htmlFor="offering-slug">Đường dẫn (slug)<span className="admin-help">{publicPath}</span></label><span className="admin-post-editor__slug"><input autoFocus className={inputClassName} id="offering-slug" maxLength={180} onChange={(event) => { setSlugTouched(true); update("slug", event.target.value); }} pattern="[a-z0-9]+(-[a-z0-9]+)*" required value={form.slug} /><AdminButton disabled={!form.title.trim() || toSlug(form.title, 80) === form.slug} onClick={() => { setSlugTouched(true); update("slug", toSlug(form.title, 80)); }} size="sm" variant="secondary">Tạo từ tên</AdminButton><AdminButton onClick={() => setEditingSlug(false)} size="sm" variant="ghost">Xong</AdminButton></span></div>
+            {savedStatus === "published" && form.status === "published" ? <small className="admin-help">{offeringTypeLabel} đang hiển thị: khi lưu với đường dẫn mới, đường dẫn cũ tự chuyển hướng (301) sang đường dẫn mới.</small> : savedStatus === "published" ? <small className="admin-help admin-text-warning">Sau lần lưu này nội dung chưa hiện ngay trên website nên đổi đường dẫn sẽ không tạo chuyển hướng từ đường dẫn cũ.</small> : <small className="admin-help">Chỉ dùng chữ thường không dấu, số và dấu gạch ngang.</small>}
+          </div> : <p className="admin-post-editor__slug-line"><span className="admin-help">Đường dẫn:</span> <span className="admin-post-editor__path">{publicPath}</span><button className="admin-post-editor__link" onClick={() => setEditingSlug(true)} type="button">Sửa</button>{!slugTouched ? <span className="admin-help"> · tự tạo theo tên</span> : null}</p>}
+          <div className={labelClassName}>
+            <span className="admin-seo__label"><label htmlFor="offering-summary">Tóm tắt</label><span className={form.summary.trim().length > summaryLimit ? "admin-seo__count admin-seo__count--over" : "admin-seo__count"}>{form.summary.trim().length}/{summaryLimit} ký tự</span>{form.description.trim() && !form.summary.trim() ? <button className="admin-post-editor__link" onClick={() => update("summary", truncateAtWord(form.description, summaryLimit))} type="button">Lấy từ mô tả</button> : null}</span>
+            <textarea className={inputClassName} id="offering-summary" onChange={(event) => update("summary", event.target.value)} placeholder="1–2 câu giới thiệu, hiện trên thẻ ở trang danh sách và khi chia sẻ Facebook/Zalo." rows={2} value={form.summary} />
+          </div>
+          <label className={labelClassName} htmlFor="offering-description">Mô tả chi tiết<textarea className={inputClassName} id="offering-description" maxLength={20_000} onChange={(event) => update("description", event.target.value)} placeholder={`Giới thiệu ${noun}: giải quyết vấn đề gì, dành cho ai, khác biệt ở đâu. Hiện ở mục "Tổng quan" trên website.`} required rows={7} value={form.description} /></label>
+        </section>
+        <EditorSection description={`Mỗi mục một dòng ngắn. Nhấn Enter để thêm mục tiếp theo.`} id="offering-features" title="Tính năng chính"><AdminListEditor addLabel="Thêm tính năng" itemLabel="Tính năng" items={form.features} maxItems={100} onChange={(items) => update("features", items)} placeholder="Ví dụ: Gọi món tại bàn bằng mã QR" /></EditorSection>
+        <EditorSection description="Khách hàng được gì khi dùng — nói theo kết quả, không lặp lại tính năng." id="offering-benefits" title="Lợi ích mang lại"><AdminListEditor addLabel="Thêm lợi ích" itemLabel="Lợi ích" items={form.benefits} maxItems={100} onChange={(items) => update("benefits", items)} placeholder="Ví dụ: Giảm thời gian chờ món vào giờ cao điểm" /></EditorSection>
+        <EditorSection description="Hiện trên trang chi tiết, sau phần lợi ích. Để trống nếu báo giá theo yêu cầu." id="offering-pricing" title="Bảng giá">
+          {form.pricing ? <>
+            <PricingEditor onChange={(pricing) => update("pricing", pricing)} value={form.pricing} />
+            <AdminButton className="justify-self-start" onClick={() => update("pricing", null)} size="sm" variant="ghost">Bỏ bảng giá</AdminButton>
+          </> : <AdminButton className="justify-self-start" onClick={() => update("pricing", { eyebrow: "Bảng giá", title: truncateAtWord(`Chọn gói ${form.title || noun}`, 220), description: null, note: null, plans: [{ name: "Cơ bản", price: "Liên hệ", period: null, description: null, features: [], action: { label: "Nhận tư vấn", href: "/lien-he" }, highlighted: false, badge: null }] })} size="sm" variant="secondary">Thêm bảng giá</AdminButton>}
+        </EditorSection>
+        <EditorSection description="Hiện dạng mở/đóng ở cuối trang." title="Câu hỏi thường gặp"><AdminFaqEditor items={form.faq} maxItems={50} onChange={(items) => update("faq", items)} /></EditorSection>
+        <EditorSection description="Ví dụ: tài liệu, bảng giá, trang liên hệ. Để trống đường dẫn nếu chỉ muốn hiện chữ." title="Nội dung liên quan"><OfferingLinksEditor items={form.items} onChange={(items) => update("items", items)} /></EditorSection>
+        <details className="admin-post-editor__panel">
+          <summary><span><strong>Google &amp; chia sẻ mạng xã hội</strong><small>Mặc định lấy từ tên và tóm tắt — chỉ mở khi muốn đặt riêng.</small></span><AdminStatusBadge tone={seoPassed === checks.length ? "success" : "warning"}>SEO {seoPassed}/{checks.length} đạt</AdminStatusBadge></summary>
+          <div className="admin-post-editor__panel-body">
+            <SeoAssistant content={seoContent} excerpt={form.summary} hasCover={Boolean(form.coverMediaId)} onChange={(field, value) => update(field, value)} path={publicPath} seoDescription={form.seoDescription} seoTitle={form.seoTitle} slug={form.slug} title={form.title} />
+            <label className={labelClassName}>URL chuẩn (canonical)<input className={inputClassName} onChange={(event) => update("canonicalUrl", event.target.value)} placeholder="https://… — chỉ điền khi trang này là bản sao của trang khác" type="url" value={form.canonicalUrl} /></label>
+          </div>
+        </details>
+        <details className="admin-post-editor__panel" open={extraOpen}>
+          <summary><span><strong>Thông tin bổ sung</strong><small>Phù hợp với, giá trị chính, chỉ số, thẻ — chưa hiện trên website hiện tại</small></span></summary>
+          <div className="admin-post-editor__panel-body">
+            <div className="admin-form-grid">
+              <label className={labelClassName}>Phù hợp với<input className={inputClassName} maxLength={500} onChange={(event) => update("bestFor", event.target.value)} placeholder="Ví dụ: Nhà hàng 10–50 bàn" value={form.bestFor} /></label>
+              <label className={labelClassName}>Giá trị chính<input className={inputClassName} maxLength={500} onChange={(event) => update("keyValue", event.target.value)} placeholder="Một câu nêu lợi ích lớn nhất" value={form.keyValue} /></label>
+              <label className={labelClassName}>Danh mục<input className={inputClassName} maxLength={180} onChange={(event) => update("category", event.target.value)} placeholder="Ví dụ: Quản lý bán hàng" value={form.category} /></label>
+              <label className={labelClassName}>Biểu tượng<input className={inputClassName} maxLength={120} onChange={(event) => update("icon", event.target.value)} placeholder="Tên biểu tượng" value={form.icon} /></label>
+            </div>
+            <div className={labelClassName}><span>Chỉ số nổi bật</span><AdminListEditor addLabel="Thêm chỉ số" itemLabel="Chỉ số" items={form.metrics} maxItems={50} onChange={(items) => update("metrics", items)} placeholder="Ví dụ: 500+ nhà hàng đang dùng" /></div>
+            <div className={labelClassName}><span>Thẻ</span><AdminListEditor addLabel="Thêm thẻ" itemLabel="Thẻ" items={form.tags} maxItems={50} onChange={(items) => update("tags", items)} placeholder="Ví dụ: F&B" /></div>
+          </div>
+        </details>
+        {offering ? <details className="admin-post-editor__panel" onToggle={(event) => setHistoryOpen(event.currentTarget.open)}>
+          <summary><span><strong>Lịch sử phiên bản</strong><small>Xem lại hoặc khôi phục bản đã lưu</small></span></summary>
+          {historyOpen ? <div className="admin-post-editor__panel-body"><RevisionHistory target="offerings" id={offering.id} expectedVersion={savedVersion} disabled={isDirty || processing} onRestorePendingChange={restore.onPendingChange} onRestored={restore.onRestored} /></div> : null}
+        </details> : null}
+      </div>
+
+      <aside aria-label={`Thiết lập ${noun}`} className="admin-post-editor__side">
+        <section className="admin-content-section">
+          <header className="admin-post-editor__card-head"><h3>Xuất bản</h3>{offering ? <PublishedPreviewLink contentType={offering.type} id={offering.id} kind="offering" slug={offering.slug} status={offering.status} /> : null}</header>
+          {offering && isDirty ? <p className="admin-help">Xem trước hiển thị bản đã lưu — lưu trước để thấy thay đổi mới.</p> : null}
+          {offering ? <p className="admin-post-editor__state"><AdminStatusBadge tone={contentStatusBadge[offering.status].tone}>{contentStatusBadge[offering.status].label}</AdminStatusBadge>{offering.publishedAt ? <small className="admin-help">Đăng lúc {formatDisplayDateTime(offering.publishedAt)}</small> : null}</p> : <p className="admin-help">{offeringTypeLabel} mới — chưa lưu.</p>}
+          <ContentStatusChoice canPublish={canPublish} noun={noun} onChange={(status) => update("status", status)} savedStatus={savedStatus} value={form.status} />
+          {form.status === "scheduled" ? <label className={labelClassName}>Thời điểm đăng<input className={inputClassName} onChange={(event) => update("scheduledAt", event.target.value)} required type="datetime-local" value={form.scheduledAt} /></label> : null}
+          {goingLive ? <PrepublishHints missing={missing} /> : null}
+        </section>
+        <section className="admin-content-section" id="offering-cover">
+          <MediaPicker preview hint="Hiện trên thẻ ở trang danh sách, đầu trang chi tiết và khi chia sẻ Facebook/Zalo. Nên dùng ảnh ngang 1200×630." label="Ảnh bìa" onChange={value => update("coverMediaId", value)} onUploadingChange={handleUploadingChange} value={form.coverMediaId} />
+        </section>
+        <section className="admin-content-section">
+          <header><h3>Hiển thị</h3></header>
+          {offeringType ? null : <label className={labelClassName}>Nhóm nội dung<select className={inputClassName} onChange={(event) => update("type", event.target.value as typeof form.type)} value={form.type}><option value="software">Phần mềm</option><option value="solution">Giải pháp</option><option value="service">Dịch vụ</option></select></label>}
+          <label className="admin-check"><input checked={form.isFeatured} onChange={(event) => update("isFeatured", event.target.checked)} type="checkbox" />Đánh dấu nổi bật</label>
+          <label className={labelClassName}>Thứ tự trong danh sách<input className={inputClassName} max={10_000} min={0} onChange={(event) => update("sortOrder", Number(event.target.value))} type="number" value={form.sortOrder} /><small className="admin-help">Số nhỏ hiện trước.</small></label>
+        </section>
+      </aside>
+
+      <AdminEditorActions><p className={isDirty ? "admin-help admin-text-warning" : "admin-help"} role="status">{isDirty ? "Có thay đổi chưa lưu." : offering ? `Đã lưu · ${contentStatusBadge[offering.status].label}` : `${offeringTypeLabel} mới chưa lưu.`}</p><AdminButton disabled={isSaving} permission={offering ? "offerings.update" : "offerings.create"} title="Phím tắt: Ctrl+S" type="submit">{isSaving ? "Đang lưu..." : contentSubmitLabel(form.status, savedStatus, noun)}</AdminButton></AdminEditorActions>
       </fieldset>
     </form>
   );
@@ -227,18 +241,19 @@ function offeringToForm(offering: AdminOffering | undefined, offeringType?: Publ
     slug: offering?.slug ?? "",
     summary: offering?.summary ?? "",
     description: offering?.content.description ?? "",
-    tags: offering?.content.tags.join("\n") ?? "",
+    tags: offering?.content.tags ?? [],
     bestFor: offering?.content.bestFor ?? "",
     keyValue: offering?.content.keyValue ?? "",
-    metrics: offering?.content.metrics.join("\n") ?? "",
-    features: offering?.content.features.join("\n") ?? "",
-    benefits: offering?.content.benefits.join("\n") ?? "",
-    faq: offering?.content.faq.map(([question, answer]) => `${question} | ${answer}`).join("\n") ?? "",
-    items: offering?.content.items ?? [],
+    metrics: offering?.content.metrics ?? [],
+    features: offering?.content.features ?? [],
+    benefits: offering?.content.benefits ?? [],
+    faq: offering?.content.faq.map(([question, answer]): FaqItem => ({ question, answer })) ?? [],
+    items: offering?.content.items.map((item): LinkItem => typeof item === "string" ? { title: item, href: "" } : { title: item.title, href: item.href }) ?? [],
     category: offering?.content.category ?? "",
+    pricing: offering?.content.pricing ?? null,
     icon: offering?.icon ?? "",
     status: offering?.status ?? "draft",
-    scheduledAt: dateTimeInputValue(offering?.scheduledAt),
+    scheduledAt: formatLocalDateTime(offering?.scheduledAt),
     sortOrder: offering?.sortOrder ?? 0,
     isFeatured: offering?.isFeatured ?? false,
     seoTitle: offering?.seoTitle ?? "",
@@ -256,15 +271,16 @@ function offeringFormToInput(form: ReturnType<typeof offeringToForm>): AdminOffe
     summary: nullableText(form.summary),
     content: {
       description: form.description.trim(),
-      tags: lines(form.tags),
+      tags: filledLines(form.tags),
       bestFor: nullableText(form.bestFor),
       keyValue: nullableText(form.keyValue),
-      metrics: lines(form.metrics),
-      features: lines(form.features),
-      benefits: lines(form.benefits),
-      faq: faqLines(form.faq),
-      items: form.items,
+      metrics: filledLines(form.metrics),
+      features: filledLines(form.features),
+      benefits: filledLines(form.benefits),
+      faq: form.faq.map(({ question, answer }): [string, string] => [question.trim(), answer.trim()]).filter(([question, answer]) => Boolean(question && answer)),
+      items: form.items.map(({ title, href }) => ({ title: title.trim(), href: href.trim() })).filter(({ title }) => Boolean(title)).map(({ title, href }) => href ? { title, href } : title),
       category: nullableText(form.category),
+      pricing: form.pricing,
     },
     icon: nullableText(form.icon),
     status: form.status,

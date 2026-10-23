@@ -10,10 +10,16 @@
     font-size: var(--cms-font-size);
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
+    /* Khi trình duyệt bật duyệt bằng con trỏ (F7), con nháy hiện trên cả chữ tĩnh; chỉ giữ nó trong vùng nhập. */
+    caret-color: transparent;
   }
+  :where(input, textarea, [contenteditable]:not([contenteditable="false"])) { caret-color: var(--cms-text); }
   a { color: inherit; text-decoration: none; }
   button { cursor: pointer; font: inherit; }
   button:disabled { cursor: not-allowed; }
+  /* Bấm nhanh hoặc bấm đúp vào nút, tab, mục menu không được bôi đen chữ. */
+  /* Không áp cho label: Safari không cho gõ vào ô nhập nằm trong vùng user-select: none. */
+  :where(button, summary, select, nav a, [role="button"], [role="tab"], [role="menuitem"], [role="menuitemradio"], [role="option"], .admin-button, .admin-view-tabs__tab, .admin-filter-chip) { -webkit-user-select: none; user-select: none; }
   :focus-visible { outline: 2px solid var(--cms-primary); outline-offset: 2px; }
 
   * { scrollbar-color: color-mix(in srgb, var(--cms-muted) 40%, transparent) transparent; scrollbar-width: thin; }

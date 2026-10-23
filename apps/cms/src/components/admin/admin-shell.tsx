@@ -10,7 +10,7 @@ import { AdminPermissionsProvider } from "@/components/admin/ui/admin-permission
 import {
   ArrowRightLeft,
   BarChart3,
-  Boxes,
+  BookOpen,
   Building2,
   ChevronDown,
   ChevronLeft,
@@ -27,8 +27,8 @@ import {
   KeyRound,
   Laptop,
   LayoutDashboard,
+  LayoutTemplate,
   Link as LinkIcon,
-  Lightbulb,
   Menu,
   Newspaper,
   Package,
@@ -36,10 +36,8 @@ import {
   Settings,
   ShieldCheck,
   Star,
-  Tags,
   Users,
   UsersRound,
-  Wrench,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -59,7 +57,9 @@ type Administrator = { fullName: string; username: string; role: string; roleNam
 type HeaderNotification = { id: string; label: string; detail: string; href: string };
 
 // `permission` may list several codes: the item shows when the user has any of them.
-type NavigationItem = { href: string; label: string; icon: LucideIcon; matchesChildRoutes?: boolean; permission?: CmsPermissionCode | CmsPermissionCode[] };
+// `subPages`: màn thuộc về mục này nhưng không có dòng riêng trên sidebar; vẫn làm sáng mục và thêm nhãn vào thanh vị trí.
+// `fallback`: người không có quyền của mục nhưng có quyền vào một màn con thì thấy mục trỏ thẳng tới màn con đó.
+type NavigationItem = { href: string; label: string; icon: LucideIcon; matchesChildRoutes?: boolean; permission?: CmsPermissionCode | CmsPermissionCode[]; subPages?: Array<{ href: string; label?: string }>; fallback?: { href: string; label: string; permission: CmsPermissionCode } };
 
 type NavigationGroup = { id: string; label: string; icon: LucideIcon; items: NavigationItem[] };
 
@@ -79,37 +79,29 @@ function ensureUniqueNavigationPaths(groups: NavigationGroup[]) {
 
 const navigationGroups = ensureUniqueNavigationPaths([
   // Thứ tự theo tần suất dùng: việc nội dung hằng ngày ở trên, quản trị hệ thống rồi cài đặt ở dưới cùng.
+  // Mọi loại nội dung chung một nhóm: cấu trúc website (đường dẫn, menu) do admin đặt trong CMS nên sidebar không tách theo nó.
   { id: "overview", label: "Tổng quan", icon: LayoutDashboard, items: [{ href: "/admin", label: "Tổng quan", icon: Home }, { href: "/admin/analytics", label: "Thống kê truy cập", icon: BarChart3, permission: "dashboard.view" }] },
   {
     id: "content",
     label: "Nội dung",
     icon: FileText,
     items: [
-      { href: "/admin/pages", label: "Trang website", icon: PanelsTopLeft, matchesChildRoutes: true, permission: "pages.view" },
-      { href: "/admin/tin-tuc", label: "Bài viết & Tin tức", icon: Newspaper, matchesChildRoutes: true, permission: "posts.view" },
-      { href: "/admin/phan-loai-bai-viet", label: "Chuyên mục & Thẻ", icon: Tags, permission: "taxonomy.view" },
-      { href: "/admin/tai-nguyen", label: "Hỗ trợ cài đặt", icon: Download, matchesChildRoutes: true, permission: ["support_downloads.view", "posts.view"] },
+      { href: "/admin/homepage", label: "Trang chủ", icon: LayoutTemplate, permission: "pages.view" },
+      { href: "/admin/news", label: "Bài viết & Tin tức", icon: Newspaper, matchesChildRoutes: true, permission: "posts.view", subPages: [{ href: "/admin/taxonomy", label: "Chuyên mục & Thẻ" }], fallback: { href: "/admin/taxonomy", label: "Chuyên mục & Thẻ", permission: "taxonomy.view" } },
+      { href: "/admin/products", label: "Sản phẩm & Dịch vụ", icon: Package, matchesChildRoutes: true, permission: "offerings.view", subPages: [{ href: "/admin/solutions" }, { href: "/admin/services" }] },
+      { href: "/admin/equipment", label: "Thiết bị", icon: Laptop, matchesChildRoutes: true, permission: "equipment.view" },
+      { href: "/admin/partners", label: "Đối tác & Đánh giá", icon: Star, permission: "supporting.view" },
+      { href: "/admin/resources", label: "Hỗ trợ cài đặt", icon: Download, matchesChildRoutes: true, permission: "support_downloads.view" },
+      { href: "/admin/guides", label: "Hướng dẫn sử dụng", icon: BookOpen, matchesChildRoutes: true, permission: "posts.view" },
       { href: "/admin/media", label: "Thư viện media", icon: Image, permission: "media.view" },
     ],
   },
   {
-    id: "catalog",
-    label: "Sản phẩm & Dịch vụ",
-    icon: Boxes,
-    items: [
-      { href: "/admin/san-pham", label: "Sản phẩm", icon: Package, matchesChildRoutes: true, permission: "offerings.view" },
-      { href: "/admin/giai-phap", label: "Giải pháp hạ tầng", icon: Lightbulb, matchesChildRoutes: true, permission: "offerings.view" },
-      { href: "/admin/dich-vu", label: "Dịch vụ", icon: Wrench, matchesChildRoutes: true, permission: "offerings.view" },
-      { href: "/admin/thiet-bi", label: "Thiết bị", icon: Laptop, matchesChildRoutes: true, permission: "equipment.view" },
-    ],
-  },
-  {
     id: "customers",
-    label: "Khách hàng & Đối tác",
+    label: "Khách hàng",
     icon: Handshake,
     items: [
-      { href: "/admin/khach-hang-tiem-nang", label: "Khách hàng tiềm năng", icon: UsersRound, permission: "leads.view" },
-      { href: "/admin/doi-tac", label: "Đối tác & Đánh giá", icon: Star, permission: "supporting.view" },
+      { href: "/admin/leads", label: "Khách hàng tiềm năng", icon: UsersRound, permission: "leads.view" },
     ],
   },
   {
@@ -118,8 +110,9 @@ const navigationGroups = ensureUniqueNavigationPaths([
     icon: FolderTree,
     items: [
       { href: "/admin/menu", label: "Menu & Điều hướng", icon: Menu, permission: "navigation.view" },
-      { href: "/admin/chuyen-huong", label: "Chuyển hướng URL", icon: ArrowRightLeft, permission: "redirects.view" },
-      { href: "/admin/seo/kiem-tra-xuat-ban", label: "Kiểm tra xuất bản", icon: ClipboardCheck, permission: "settings.view" },
+      { href: "/admin/pages", label: "Trang tự tạo", icon: PanelsTopLeft, matchesChildRoutes: true, permission: "pages.view" },
+      { href: "/admin/redirects", label: "Chuyển hướng URL", icon: ArrowRightLeft, permission: "redirects.view" },
+      { href: "/admin/seo/publish-check", label: "Kiểm tra xuất bản", icon: ClipboardCheck, permission: "settings.view" },
     ],
   },
   {
@@ -127,9 +120,9 @@ const navigationGroups = ensureUniqueNavigationPaths([
     label: "Quản trị hệ thống",
     icon: ShieldCheck,
     items: [
-      { href: "/admin/tai-khoan", label: "Người dùng CMS", icon: Users, permission: "users.view" },
-      { href: "/admin/phan-quyen", label: "Vai trò & quyền", icon: KeyRound, permission: "roles.view" },
-      { href: "/admin/nhat-ky", label: "Nhật ký hoạt động", icon: History, permission: "audit.view" },
+      { href: "/admin/users", label: "Người dùng CMS", icon: Users, permission: "users.view" },
+      { href: "/admin/roles", label: "Vai trò & quyền", icon: KeyRound, permission: "roles.view" },
+      { href: "/admin/audit-log", label: "Nhật ký hoạt động", icon: History, permission: "audit.view" },
     ],
   },
   {
@@ -137,15 +130,19 @@ const navigationGroups = ensureUniqueNavigationPaths([
     label: "Cài đặt website",
     icon: Settings,
     items: [
-      { href: "/admin/thong-tin-doanh-nghiep", label: "Thông tin doanh nghiệp", icon: Building2, permission: "settings.view" },
+      { href: "/admin/company-profile", label: "Thông tin doanh nghiệp", icon: Building2, permission: "settings.view" },
       { href: "/admin/seo", label: "Tên miền & SEO", icon: Globe, permission: "settings.view" },
-      { href: "/admin/lien-ket-ngoai", label: "Liên kết & Mạng xã hội", icon: LinkIcon, permission: "settings.view" },
+      { href: "/admin/external-links", label: "Liên kết & Mạng xã hội", icon: LinkIcon, permission: "settings.view" },
     ],
   },
 ]);
 
+function matchesPath(pathname: string, href: string, childRoutes: boolean) {
+  return pathname === href || (childRoutes && pathname.startsWith(`${href}/`));
+}
+
 function isActive(pathname: string, item: NavigationItem) {
-  return pathname === item.href || (item.matchesChildRoutes === true && pathname.startsWith(`${item.href}/`));
+  return matchesPath(pathname, item.href, item.matchesChildRoutes === true) || (item.subPages ?? []).some((page) => matchesPath(pathname, page.href, item.matchesChildRoutes === true));
 }
 
 function canAccessNavigation(administrator: Administrator, item: NavigationItem) {
@@ -153,16 +150,30 @@ function canAccessNavigation(administrator: Administrator, item: NavigationItem)
   return Array.isArray(item.permission) ? hasAnyCmsPermission(administrator, item.permission) : hasCmsPermission(administrator, item.permission);
 }
 
-// Màn chỉnh sửa (tạo mới hoặc theo id) có header riêng kèm nút lưu/đóng nên không dùng thanh vị trí chung.
-function isEditorRoute(pathname: string) {
-  return /\/(moi|new)$/.test(pathname) || /\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(pathname) || pathname.startsWith("/admin/thiet-bi/nhom");
+function visibleNavigationItems(administrator: Administrator, items: NavigationItem[]): NavigationItem[] {
+  return items.flatMap((item) => {
+    if (canAccessNavigation(administrator, item)) return [item];
+    const fallback = item.fallback;
+    return fallback && hasCmsPermission(administrator, fallback.permission) ? [{ href: fallback.href, label: fallback.label, icon: item.icon, permission: fallback.permission }] : [];
+  });
 }
 
-const extraPageLabels: Record<string, string[]> = { "/admin/giao-dien-cms": ["Tài khoản", "Giao diện CMS"], "/admin/tai-khoan-cua-toi": ["Tài khoản", "Tài khoản của tôi"], "/admin/khong-co-quyen": ["Không có quyền truy cập"] };
+// Màn chỉnh sửa (tạo mới hoặc theo id) có header riêng kèm nút lưu/đóng nên không dùng thanh vị trí chung.
+function isEditorRoute(pathname: string) {
+  return pathname === "/admin/homepage" || /\/(moi|new)$/.test(pathname) || /\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(pathname) || pathname.startsWith("/admin/equipment/groups");
+}
 
-function pageBarCrumbs(pathname: string, current: { group: NavigationGroup; item: NavigationItem } | undefined) {
-  if (current) return current.group.label === current.item.label ? [current.item.label] : [current.group.label, current.item.label];
-  return extraPageLabels[pathname] ?? ["iOrder CMS"];
+const extraPageLabels: Record<string, string[]> = { "/admin/appearance": ["Tài khoản", "Giao diện CMS"], "/admin/my-account": ["Tài khoản", "Tài khoản của tôi"], "/admin/forbidden": ["Không có quyền truy cập"] };
+
+// Mục có `href` là link quay về màn cha; nhóm sidebar không có trang riêng nên chỉ là nhãn.
+function pageBarCrumbs(pathname: string, current: { group: NavigationGroup; item: NavigationItem } | undefined): Array<{ label: string; href?: string }> {
+  if (current) {
+    const subPage = current.item.subPages?.find((page) => page.label && pathname === page.href);
+    const itemCrumb = { label: current.item.label, href: pathname === current.item.href ? undefined : current.item.href };
+    const trail = current.group.label === current.item.label ? [itemCrumb] : [{ label: current.group.label }, itemCrumb];
+    return subPage?.label ? [...trail, { label: subPage.label }] : trail;
+  }
+  return (extraPageLabels[pathname] ?? ["iOrder CMS"]).map((label) => ({ label }));
 }
 
 function initials(fullName: string) {
@@ -178,8 +189,7 @@ export function AdminShell({ administrator, children, notifications }: { adminis
   const [compactNavigationGroups, setCompactNavigationGroups] = useState<Set<string>>(() => new Set());
   const [sidebarTooltip, setSidebarTooltip] = useState<{ label: string; top: number } | null>(null);
   const currentNavigation = navigationGroups
-    .flatMap((group) => group.items
-      .filter((item) => canAccessNavigation(administrator, item))
+    .flatMap((group) => visibleNavigationItems(administrator, group.items)
       .map((item) => ({ group, item })))
     .find(({ item }) => isActive(pathname, item));
   const currentNavigationLabel = currentNavigation?.item.label ?? "Tổng quan";
@@ -242,7 +252,7 @@ export function AdminShell({ administrator, children, notifications }: { adminis
             </>}
           >
             <div className="admin-header-popover admin-header-popover--notifications">
-              <header><strong>Việc cần xử lý</strong><Link href="/admin/seo/kiem-tra-xuat-ban">Kiểm tra xuất bản</Link></header>
+              <header><strong>Việc cần xử lý</strong><Link href="/admin/seo/publish-check">Kiểm tra xuất bản</Link></header>
               {notifications.length > 0 ? <div>{notifications.map(item => <Link href={item.href} key={item.id}><strong>{item.label}</strong><small>{item.detail}</small></Link>)}</div> : <p>Không có liên hệ mới hay nội dung chờ duyệt.</p>}
             </div>
           </AdminPopover>
@@ -257,8 +267,8 @@ export function AdminShell({ administrator, children, notifications }: { adminis
           >
             <div className="admin-header-popover admin-header-popover--account">
               <strong className="admin-account-menu__title">Tài khoản của tôi</strong>
-              <Link href="/admin/tai-khoan-cua-toi">Đổi mật khẩu</Link>
-              <Link href="/admin/giao-dien-cms">Giao diện CMS</Link>
+              <Link href="/admin/my-account">Đổi mật khẩu</Link>
+              <Link href="/admin/appearance">Giao diện CMS</Link>
               <div><LogoutButton /></div>
             </div>
           </AdminPopover>
@@ -285,7 +295,7 @@ export function AdminShell({ administrator, children, notifications }: { adminis
           <div className="admin-sidebar__scroll">
           <nav className="admin-navigation" aria-label="Điều hướng quản trị">
             {navigationGroups.map(group => {
-              const items = group.items.filter(item => canAccessNavigation(administrator, item));
+              const items = visibleNavigationItems(administrator, group.items);
               if (!items.length) return null;
               const isGroupCollapsed = collapsedNavigationGroups.has(group.id);
               const isCompactGroupOpen = compactNavigationGroups.has(group.id);
@@ -333,7 +343,7 @@ export function AdminShell({ administrator, children, notifications }: { adminis
         <div className="admin-shell__content">
           {isEditorRoute(pathname) ? null : <div className="admin-page-bar">
             <div className="admin-page-bar__title">
-              <nav aria-label="Vị trí hiện tại" className="admin-page-bar__crumbs">{pageBarCrumbs(pathname, currentNavigation).map((label, index, all) => <span aria-current={index === all.length - 1 ? "page" : undefined} key={label}>{label}{index < all.length - 1 ? <ChevronRight aria-hidden="true" size={14} /> : null}</span>)}</nav>
+              <nav aria-label="Vị trí hiện tại" className="admin-page-bar__crumbs">{pageBarCrumbs(pathname, currentNavigation).map((crumb, index, all) => <span aria-current={index === all.length - 1 ? "page" : undefined} key={crumb.label}>{crumb.href && index < all.length - 1 ? <Link href={crumb.href}>{crumb.label}</Link> : crumb.label}{index < all.length - 1 ? <ChevronRight aria-hidden="true" size={14} /> : null}</span>)}</nav>
               <span className="admin-page-bar__meta" id={adminPageBarMetaId} />
             </div>
             <div className="admin-page-bar__actions" id={adminPageBarActionsId} />

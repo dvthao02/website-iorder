@@ -10,6 +10,6 @@ import { getRequestAdministrator } from "@/lib/backend";
 export async function requireAdminPermission(permission: CmsPermissionCode | readonly CmsPermissionCode[]) {
   const administrator = await getRequestAdministrator();
   if (!administrator) redirect("/admin/login");
-  if (!hasAnyCmsPermission(administrator, typeof permission === "string" ? [permission] : permission)) redirect("/admin/khong-co-quyen");
+  if (!hasAnyCmsPermission(administrator, typeof permission === "string" ? [permission] : permission)) redirect("/admin/forbidden");
   return administrator;
 }

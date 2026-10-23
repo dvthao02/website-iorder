@@ -96,10 +96,12 @@ const getBackendJson = cache(async (path: string): Promise<unknown | null | unde
   const backendPath = path.split("?")[0];
   let response: Response;
   try {
-    response = await fetch(`${backendUrl}${path}`, { headers: forwarded, cache: "no-store" });
+    // Backend treo (thường do mất kết nối database) thì báo lỗi sau 15 giây thay vì để trang CMS đứng tới 5 phút.
+    response = await fetch(`${backendUrl}${path}`, { headers: forwarded, cache: "no-store", signal: AbortSignal.timeout(15_000) });
   } catch (error) {
-    logger.error("Không kết nối được Backend.", { requestId: requestId ?? undefined, backendPath, error });
-    throw new Error("Không thể tải dữ liệu CMS từ Backend. Vui lòng thử lại.");
+    const timedOut = error instanceof DOMException && error.name === "TimeoutError";
+    logger.error(timedOut ? "Backend không phản hồi trong 15 giây." : "Không kết nối được Backend.", { requestId: requestId ?? undefined, backendPath, error });
+    throw new Error(timedOut ? "Backend không phản hồi (có thể database đang không kết nối được). Vui lòng thử lại sau ít phút." : "Không thể tải dữ liệu CMS từ Backend. Vui lòng thử lại.");
   }
   // 401: not signed in; 403: the role lacks this module. Pages fall back to empty
   // data instead of crashing; the API stays the authority.
@@ -172,7 +174,7 @@ export async function getAdminOfferingsPage(params: { page?: string | number; pa
 }
 export async function getAdminOfferingById(id: string) { return getDetail(`/api/admin/offerings/${encodeURIComponent(id)}`, "offering", adminOfferingSchema, id); }
 export async function getAdminPages(): Promise<AdminPages> { return (await getAdminPagesPage())?.items ?? []; }
-export async function getAdminPagesPage(params: { page?: string | number; pageSize?: string | number; query?: string; status?: string; sort?: string; dir?: string } = {}): Promise<AdminPagesPage> {
+export async function getAdminPagesPage(params: { page?: string | number; pageSize?: string | number; query?: string; status?: string; kind?: "custom" | "system"; sort?: string; dir?: string } = {}): Promise<AdminPagesPage> {
   const input = pageListQuerySchema.parse({ ...params, status: params.status || undefined });
   const query = new URLSearchParams();
   Object.entries(input).forEach(([key, value]) => { if (value !== undefined && value !== "") query.set(key, String(value)); });

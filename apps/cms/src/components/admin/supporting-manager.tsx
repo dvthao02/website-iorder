@@ -194,8 +194,8 @@ export function SupportingManager({
     const next = { ...initialQuery, ...patch };
     const params = new URLSearchParams({ kind: nextKind, page: String(next.page), pageSize: String(next.pageSize), query: next.query, visibility: next.visibility });
     if (nextKind === "partners") params.set("partnerKind", next.partnerKind);
-    if (nextKind !== kind) requestNavigationFocus(`/admin/doi-tac?${params}`);
-    startTransition(() => router.push(`/admin/doi-tac?${params}`, { scroll: false }));
+    if (nextKind !== kind) requestNavigationFocus(`/admin/partners?${params}`);
+    startTransition(() => router.push(`/admin/partners?${params}`, { scroll: false }));
   }
 
   function discardChanges() {

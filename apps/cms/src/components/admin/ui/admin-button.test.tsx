@@ -24,8 +24,8 @@ test("Nút submit giữ type và class theo biến thể", () => {
 test("Link giữ nhãn truy cập, sự kiện và tùy chọn điều hướng", () => {
   const onClick = () => undefined;
   const onNavigate = () => undefined;
-  const link = AdminButton({ children: "Mở", href: "/admin/thiet-bi", "aria-label": "Mở thiết bị", title: "Thiết bị", target: "_blank", rel: "noreferrer", onClick, onNavigate, prefetch: false, scroll: false, replace: true });
-  assert.equal(link.props.href, "/admin/thiet-bi");
+  const link = AdminButton({ children: "Mở", href: "/admin/equipment", "aria-label": "Mở thiết bị", title: "Thiết bị", target: "_blank", rel: "noreferrer", onClick, onNavigate, prefetch: false, scroll: false, replace: true });
+  assert.equal(link.props.href, "/admin/equipment");
   assert.equal(link.props["aria-label"], "Mở thiết bị");
   assert.equal(link.props.title, "Thiết bị");
   assert.equal(link.props.onClick, onClick);

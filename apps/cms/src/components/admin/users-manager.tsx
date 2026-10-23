@@ -70,7 +70,7 @@ export function UsersManager({ canAssignSuperAdmin, initialPage, initialQuery, r
     if (!allowSelectionChange()) return;
     const next = { ...initialQuery, ...patch };
     const params = new URLSearchParams(Object.entries(next).filter(([, value]) => value !== undefined && value !== "").map(([key, value]) => [key, String(value)]));
-    startTransition(() => router.push(`/admin/tai-khoan?${params}`, { scroll: false }));
+    startTransition(() => router.push(`/admin/users?${params}`, { scroll: false }));
   }
 
   function allowSelectionChange() {

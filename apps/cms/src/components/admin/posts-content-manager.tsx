@@ -22,57 +22,12 @@ import { toSlug } from "@/lib/slug";
 
 import { postContentToRichDocument, type AdminPost, type PostContentDocument } from "@iorder/core/server/posts/posts.contract";
 import { RichTextEditor } from "./rich-text/rich-text-editor";
+import { ContentStatusChoice, PrepublishHints, contentStatusBadge, contentSubmitLabel } from "./ui/content-status-choice";
 
 type Notice = { kind: "error" | "success"; message: string } | undefined;
-type PostStatus = AdminPost["status"];
 
-// Trạng thái đã lưu (nhãn trên thanh bên) và nút lưu nói rõ sẽ làm gì với bài.
-const statusBadge: Record<PostStatus, { label: string; tone: "neutral" | "info" | "success" | "warning" }> = {
-  draft: { label: "Bản nháp", tone: "neutral" },
-  review: { label: "Chờ duyệt", tone: "warning" },
-  scheduled: { label: "Đã hẹn giờ", tone: "info" },
-  published: { label: "Đang hiển thị trên website", tone: "success" },
-  archived: { label: "Đã lưu trữ", tone: "neutral" },
-};
-function submitLabel(status: PostStatus, savedStatus: PostStatus | undefined) {
-  if (status === "published") return savedStatus === "published" ? "Cập nhật bài đã đăng" : "Xuất bản";
-  if (status === "scheduled") return "Lên lịch đăng";
-  if (status === "review") return "Gửi duyệt";
-  if (status === "archived") return "Lưu trữ bài";
-  return "Lưu nháp";
-}
-
-// Lựa chọn trạng thái có mô tả ngắn để người viết hiểu ngay hệ quả. "Lưu trữ" chỉ hiện khi bài đang lưu trữ
-// (gỡ bài làm từ danh sách). Người thiếu quyền xuất bản không chọn được "Đăng ngay"/"Hẹn giờ".
-function StatusChoice({ value, savedStatus, canPublish, onChange }: { value: PostStatus; savedStatus: PostStatus | undefined; canPublish: boolean; onChange: (status: PostStatus) => void }) {
-  const choices: Array<{ status: PostStatus; label: string; hint: string }> = [
-    { status: "draft", label: "Bản nháp", hint: "Chỉ người quản trị thấy." },
-    { status: "review", label: "Chờ duyệt", hint: "Gửi người có quyền xuất bản xem lại." },
-    { status: "published", label: savedStatus === "published" ? "Đang hiển thị" : "Đăng ngay", hint: savedStatus === "published" ? "Giữ bài trên website, cập nhật nội dung mới." : "Hiện trên website ngay khi lưu." },
-    { status: "scheduled", label: "Hẹn giờ đăng", hint: "Tự hiện trên website vào thời điểm chọn." },
-    ...(value === "archived" || savedStatus === "archived" ? [{ status: "archived" as const, label: "Lưu trữ", hint: "Đã gỡ khỏi website." }] : []),
-  ];
-  const isLocked = (status: PostStatus) => !canPublish && (status === "published" || status === "scheduled") && status !== savedStatus;
-  const active = choices.find((choice) => choice.status === value);
-  return <fieldset className="admin-status-choice"><legend>Trạng thái</legend>
-    <div className="admin-status-choice__grid">{choices.map((choice) => <label className={value === choice.status ? "admin-status-choice__item admin-status-choice__item--active" : "admin-status-choice__item"} key={choice.status} title={isLocked(choice.status) ? "Cần quyền xuất bản" : choice.hint}>
-      <input checked={value === choice.status} disabled={isLocked(choice.status)} name="post-status" onChange={() => onChange(choice.status)} type="radio" value={choice.status} />
-      <span>{choice.label}</span>
-    </label>)}</div>
-    {active ? <p className="admin-help">{active.hint}</p> : null}
-    {!canPublish ? <p className="admin-help">Đăng ngay và hẹn giờ cần quyền xuất bản.</p> : null}
-  </fieldset>;
-}
-
-// Đưa người dùng tới đúng ô còn thiếu (cuộn tới giữa màn và đặt con trỏ vào).
-function focusField(id: string) {
-  const element = document.getElementById(id);
-  if (!element) return;
-  element.scrollIntoView({ behavior: "smooth", block: "center" });
-  // Ưu tiên vùng soạn thảo, rồi tới ô nhập/nút đầu tiên trong khu vực.
-  const focusable = element.matches("input, textarea, select, button") ? element : element.querySelector<HTMLElement>("[contenteditable=true]") ?? element.querySelector<HTMLElement>("input, textarea, button");
-  focusable?.focus({ preventScroll: true });
-}
+const postNoun = "bài";
+const statusBadge = contentStatusBadge;
 
 const inputClassName = "admin-input";
 const labelClassName = "admin-field";
@@ -237,7 +192,7 @@ export function PostEditor({ post, taxonomy, onSaved, onError, contentType, onDi
   const [historyOpen, setHistoryOpen] = useState(false);
   // Bài mới: slug tự theo tiêu đề cho tới khi người dùng tự sửa slug. Bài đã có giữ slug (đổi slug làm hỏng liên kết).
   const [slugTouched, setSlugTouched] = useState(Boolean(post));
-  const publicPath = `${form.type === "guide" ? "/ho-tro/cai-dat" : "/tin-tuc"}/${form.slug || "duong-dan"}`;
+  const publicPath = `${form.type === "guide" ? "/ho-tro/huong-dan" : "/tin-tuc"}/${form.slug || "duong-dan"}`;
   function changeTitle(title: string) {
     if (saving.current || restore.pending.current) return;
     setForm((current) => ({ ...current, title, ...(slugTouched ? {} : { slug: toSlug(title, 80) }) }));
@@ -308,7 +263,7 @@ export function PostEditor({ post, taxonomy, onSaved, onError, contentType, onDi
           <label className="admin-post-editor__title-field"><span className="sr-only">Tiêu đề</span><input className="admin-post-editor__title" onChange={(event) => changeTitle(event.target.value)} placeholder="Nhập tiêu đề bài viết…" required value={form.title} /></label>
           {editingSlug ? <div className="admin-post-editor__slug-edit">
             <div className={labelClassName}><label className="admin-seo__label" htmlFor="post-slug">Đường dẫn (slug)<span className="admin-help">{publicPath}</span></label><span className="admin-post-editor__slug"><input autoFocus className={inputClassName} id="post-slug" onChange={(event) => { setSlugTouched(true); update("slug", event.target.value); }} pattern="[a-z0-9]+(-[a-z0-9]+)*" required value={form.slug} /><AdminButton disabled={!form.title.trim() || toSlug(form.title, 80) === form.slug} onClick={() => { setSlugTouched(true); update("slug", toSlug(form.title, 80)); }} size="sm" variant="secondary">Tạo từ tiêu đề</AdminButton><AdminButton onClick={() => setEditingSlug(false)} size="sm" variant="ghost">Xong</AdminButton></span></div>
-            {savedStatus === "published" ? <small className="admin-help admin-text-warning">Bài đã xuất bản: đổi đường dẫn sẽ làm hỏng liên kết cũ, nên tạo chuyển hướng.</small> : <small className="admin-help">Chỉ dùng chữ thường không dấu, số và dấu gạch ngang.</small>}
+            {savedStatus === "published" && form.status === "published" ? <small className="admin-help">Bài đã xuất bản: khi lưu với đường dẫn mới, đường dẫn cũ tự chuyển hướng (301) sang đường dẫn mới.</small> : savedStatus === "published" ? <small className="admin-help admin-text-warning">Sau lần lưu này nội dung chưa hiện ngay trên website nên đổi đường dẫn sẽ không tạo chuyển hướng từ đường dẫn cũ.</small> : <small className="admin-help">Chỉ dùng chữ thường không dấu, số và dấu gạch ngang.</small>}
           </div> : <p className="admin-post-editor__slug-line"><span className="admin-help">Đường dẫn:</span> <span className="admin-post-editor__path">{publicPath}</span><button className="admin-post-editor__link" onClick={() => setEditingSlug(true)} type="button">Sửa</button>{!slugTouched ? <span className="admin-help"> · tự tạo theo tiêu đề</span> : null}</p>}
           <RichTextEditor disabled={processing} onChange={(richDoc) => update("content", { version: 2, doc: richDoc })} onImportTitle={(title) => { if (!form.title.trim()) changeTitle(title); }} placeholder="Viết nội dung bài… Dùng Tiêu đề H2/H3 để chia mục, website tự tạo mục lục." value={form.content.version === 2 ? form.content.doc : postContentToRichDocument(form.content)} />
         </section>
@@ -341,9 +296,9 @@ export function PostEditor({ post, taxonomy, onSaved, onError, contentType, onDi
           <header className="admin-post-editor__card-head"><h3>Xuất bản</h3>{post ? <PublishedPreviewLink contentType={post.type} id={post.id} kind="post" slug={post.slug} status={post.status} /> : null}</header>
           {post && isDirty ? <p className="admin-help">Xem trước hiển thị bản đã lưu — lưu trước để thấy thay đổi mới.</p> : null}
           {post ? <p className="admin-post-editor__state"><AdminStatusBadge tone={statusBadge[post.status].tone}>{statusBadge[post.status].label}</AdminStatusBadge>{post.publishedAt ? <small className="admin-help">Đăng lúc {formatDisplayDateTime(post.publishedAt)}</small> : null}</p> : <p className="admin-help">Bài mới — chưa lưu.</p>}
-          <StatusChoice canPublish={canPublish} onChange={(status) => update("status", status)} savedStatus={savedStatus} value={form.status} />
+          <ContentStatusChoice canPublish={canPublish} noun={postNoun} onChange={(status) => update("status", status)} savedStatus={savedStatus} value={form.status} />
           {form.status === "scheduled" ? <label className={labelClassName}>Thời điểm đăng<input className={inputClassName} onChange={(event) => update("scheduledAt", event.target.value)} required type="datetime-local" value={form.scheduledAt} /></label> : null}
-          {goingLive ? missing.length ? <div className="admin-post-editor__prepublish" role="note"><strong>Nên có trước khi đăng</strong><ul>{missing.map((item) => <li key={item.id}><button className="admin-post-editor__link" onClick={() => focusField(item.id)} type="button">{item.label}</button></li>)}</ul></div> : <p className="admin-post-editor__ready">Đã đủ thông tin để đăng.</p> : null}
+          {goingLive ? <PrepublishHints missing={missing} /> : null}
         </section>
         <section className="admin-content-section" id="post-cover">
           <MediaPicker preview hint="Hiện ở đầu bài, thẻ tin và khi chia sẻ Facebook/Zalo. Nên dùng ảnh ngang 1200×630." label="Ảnh bìa" onChange={value => update("coverMediaId", value)} onUploadingChange={handleUploadingChange} value={form.coverMediaId} />
@@ -356,7 +311,7 @@ export function PostEditor({ post, taxonomy, onSaved, onError, contentType, onDi
         </section>
       </aside>
 
-      <AdminEditorActions><p className={isDirty ? "admin-help admin-text-warning" : "admin-help"} role="status">{isDirty ? "Có thay đổi chưa lưu." : post ? `Đã lưu · ${statusBadge[post.status].label}` : "Bài mới chưa lưu."}</p><AdminButton disabled={isSaving} permission={post ? "posts.update" : "posts.create"} title="Phím tắt: Ctrl+S" type="submit">{isSaving ? "Đang lưu..." : submitLabel(form.status, savedStatus)}</AdminButton></AdminEditorActions>
+      <AdminEditorActions><p className={isDirty ? "admin-help admin-text-warning" : "admin-help"} role="status">{isDirty ? "Có thay đổi chưa lưu." : post ? `Đã lưu · ${statusBadge[post.status].label}` : "Bài mới chưa lưu."}</p><AdminButton disabled={isSaving} permission={post ? "posts.update" : "posts.create"} title="Phím tắt: Ctrl+S" type="submit">{isSaving ? "Đang lưu..." : contentSubmitLabel(form.status, savedStatus, postNoun)}</AdminButton></AdminEditorActions>
       </fieldset>
     </form>
   );

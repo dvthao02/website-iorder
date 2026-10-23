@@ -16,6 +16,8 @@ type SeoAssistantProps = {
   hasCover: boolean;
   content?: PostLikeContent | null;
   disabled?: boolean;
+  /** Chỉ hiện các mục kiểm tra này (ví dụ Trang không có tóm tắt/ảnh bìa). */
+  checkIds?: readonly string[];
   onChange: (field: "seoTitle" | "seoDescription", value: string) => void;
 };
 
@@ -27,13 +29,13 @@ function Counter({ value, limit }: { value: number; limit: number }) {
  * Trợ lý SEO: xem trước kết quả Google, đếm ký tự, gợi ý tự động và danh sách kiểm tra.
  * Ô để trống thì website tự dùng đúng giá trị gợi ý hiện trong ô (placeholder).
  */
-export function SeoAssistant({ title, seoTitle, seoDescription, excerpt, slug, path, hasCover, content, disabled, onChange }: SeoAssistantProps) {
+export function SeoAssistant({ title, seoTitle, seoDescription, excerpt, slug, path, hasCover, content, disabled, checkIds, onChange }: SeoAssistantProps) {
   const suggestedTitle = suggestSeoTitle(title);
   const suggestedDescription = suggestSeoDescription(excerpt, content) ?? "";
   const shownTitle = seoTitle.trim() || suggestedTitle || "Tiêu đề bài viết";
   const shownDescription = seoDescription.trim() || suggestedDescription || "Thêm tóm tắt hoặc mô tả SEO để Google hiển thị đoạn giới thiệu.";
   const url = publishedPublicUrl(path);
-  const checks = seoChecks({ title, seoTitle, seoDescription, excerpt, slug, hasCover, content });
+  const checks = seoChecks({ title, seoTitle, seoDescription, excerpt, slug, hasCover, content }).filter((check) => !checkIds || checkIds.includes(check.id));
   const passed = checks.filter((check) => check.ok).length;
 
   return <div className="admin-seo">

@@ -1,7 +1,4 @@
 @import "tailwindcss";
-
-/* Stylesheet CMS: token -> mặc định phần tử (layer base) -> khung -> component -> bố cục từng màn
-   (layer components). Utility Tailwind nằm ở layer sau cùng nên luôn thắng mà không cần !important. */
 @import "../styles/tokens.css";
 @import "../styles/base.css";
 @import "../styles/shell.css";

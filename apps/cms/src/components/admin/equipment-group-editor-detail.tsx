@@ -74,7 +74,7 @@ export function EquipmentGroupEditorDetail({ group }: { group?: EquipmentGroupRe
       setSavedForm(form);
       if (group) version.current += 1;
       showToast(group ? "Đã lưu nhóm thiết bị." : "Đã tạo nhóm thiết bị.", "success");
-      router.replace(`/admin/thiet-bi/nhom?edit=${savedId}`);
+      router.replace(`/admin/equipment/groups?edit=${savedId}`);
       router.refresh();
     } catch (reason) {
       const message = reason instanceof Error ? reason.message : "Không kết nối được máy chủ.";
@@ -86,7 +86,7 @@ export function EquipmentGroupEditorDetail({ group }: { group?: EquipmentGroupRe
     }
   }
 
-  return <AdminDetailPanel backHref="/admin/thiet-bi?tab=groups" description={group ? "Cập nhật thông tin dùng để phân loại các thiết bị cùng nhóm." : "Tạo nhóm trước, sau đó thêm các thiết bị thuộc nhóm này."} eyebrow="Thiết bị · Nhóm thiết bị" hasUnsavedChanges={dirty} notice={error ? <AdminNotice tone="error">{error}</AdminNotice> : undefined} title={title}>
+  return <AdminDetailPanel backHref="/admin/equipment?tab=groups" description={group ? "Cập nhật thông tin dùng để phân loại các thiết bị cùng nhóm." : "Tạo nhóm trước, sau đó thêm các thiết bị thuộc nhóm này."} eyebrow="Thiết bị · Nhóm thiết bị" hasUnsavedChanges={dirty} notice={error ? <AdminNotice tone="error">{error}</AdminNotice> : undefined} title={title}>
     <form className="grid gap-4" onSubmit={save}>
       <fieldset className="grid min-w-0 gap-4" disabled={processing}>
       <section className="admin-content-section">

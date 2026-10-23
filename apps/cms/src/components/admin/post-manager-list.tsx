@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState, type FormEvent, type ReactNode } from "react";
-import { Plus } from "lucide-react";
+import { Plus, Tags } from "lucide-react";
 
 import type { AdminPostListItem } from "@iorder/core/server/posts/posts.contract";
 import type { AdminListPage as AdminListResult } from "@iorder/core/server/shared/admin-list.contract";
@@ -24,7 +24,7 @@ const postTypeLabels: Record<AdminPostListItem["type"], string> = { announcement
 const statusTones: Record<AdminPostListItem["status"], AdminFeedbackTone> = { archived: "neutral", draft: "neutral", published: "success", review: "warning", scheduled: "info" };
 const dateFormatter = new Intl.DateTimeFormat("vi-VN", { dateStyle: "medium" });
 
-function getPublicPostPath(item: AdminPostListItem) { return item.type === "guide" ? `/ho-tro/cai-dat/${item.slug}` : `/tin-tuc/${item.slug}`; }
+function getPublicPostPath(item: AdminPostListItem) { return item.type === "guide" ? `/ho-tro/huong-dan/${item.slug}` : `/tin-tuc/${item.slug}`; }
 
 type TaxonomyOption = { id: string; name: string };
 
@@ -41,9 +41,11 @@ type PostManagerListProps = {
   typeOptions?: AdminPostListItem["type"][];
   categories?: TaxonomyOption[];
   tags?: TaxonomyOption[];
+  /** Nút tới màn Chuyên mục & Thẻ (màn này không có dòng riêng trên sidebar). */
+  showTaxonomyLink?: boolean;
 };
 
-export function PostManagerList({ baseHref = "/admin/tin-tuc", createHref = `${baseHref}/moi`, initialQuery, initialStatus, result, tabs, title = "Bài viết & Tin tức", singularLabel = "bài viết", typeOptions = [], categories = [], tags = [] }: PostManagerListProps) {
+export function PostManagerList({ baseHref = "/admin/news", createHref = `${baseHref}/moi`, initialQuery, initialStatus, result, tabs, title = "Bài viết & Tin tức", singularLabel = "bài viết", typeOptions = [], categories = [], tags = [], showTaxonomyLink = false }: PostManagerListProps) {
   const { navigate, searchParams, setFilter, setSort, sort } = useListNavigation();
   const [query, setQuery] = useState(initialQuery);
   const { selectedIds, setSelectedIds, clear } = useRowSelection(searchParams.toString());
@@ -74,7 +76,7 @@ export function PostManagerList({ baseHref = "/admin/tin-tuc", createHref = `${b
 
   return <AdminListPage variant="dense">
     <AdminCard>
-      <AdminListHeader actions={<AdminButton hideWithoutPermission permission="posts.create" href={createHref} leadingIcon={<Plus aria-hidden="true" size={16} />}>Viết {singularLabel} mới</AdminButton>} description={`${result.total} ${singularLabel}${filtered ? " khớp bộ lọc" : ""}`} title={title} />
+      <AdminListHeader actions={<>{showTaxonomyLink ? <AdminButton hideWithoutPermission permission="taxonomy.view" href="/admin/taxonomy" leadingIcon={<Tags aria-hidden="true" size={16} />} variant="secondary">Chuyên mục &amp; Thẻ</AdminButton> : null}<AdminButton hideWithoutPermission permission="posts.create" href={createHref} leadingIcon={<Plus aria-hidden="true" size={16} />}>Viết {singularLabel} mới</AdminButton></>} description={`${result.total} ${singularLabel}${filtered ? " khớp bộ lọc" : ""}`} title={title} />
       {tabs}
       <AdminFilterBar chips={chips} more={typeOptions.length > 1 || tags.length ? <>
         {typeOptions.length > 1 ? <select aria-label="Lọc loại bài" onChange={(event) => setFilter("type", event.target.value || undefined)} value={typeFilter}><option value="">Tất cả loại</option>{typeOptions.map((type) => <option key={type} value={type}>{postTypeLabels[type]}</option>)}</select> : null}

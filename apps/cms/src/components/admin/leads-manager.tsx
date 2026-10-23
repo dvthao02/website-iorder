@@ -67,7 +67,7 @@ export function LeadsManager({ initialPage, initialQuery }: { initialPage: ListR
     if (pending.current.size || loading) return;
     const next = { status, page: String(page), pageSize: String(initialQuery.pageSize), query, from: initialQuery.from, to: initialQuery.to, sort: initialQuery.sort, dir: initialQuery.dir, ...patch };
     const params = new URLSearchParams(Object.entries(next).filter(([key, value]) => value && !(key === "status" && value === "all") && !(key === "page" && value === "1")).map(([key, value]) => [key, String(value)]));
-    startTransition(() => router.push(`/admin/khach-hang-tiem-nang${params.size ? `?${params}` : ""}`, { scroll: false }));
+    startTransition(() => router.push(`/admin/leads${params.size ? `?${params}` : ""}`, { scroll: false }));
   }
 
 

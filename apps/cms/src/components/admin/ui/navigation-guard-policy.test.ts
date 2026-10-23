@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { shouldConfirmHistoryNavigation, shouldConfirmNavigation } from "./navigation-guard-policy";
 
-const intent = { href: "/admin/pages", currentHref: "http://localhost:3001/admin/thiet-bi/moi", target: "", download: false, modified: false, button: 0 };
+const intent = { href: "/admin/pages", currentHref: "http://localhost:3001/admin/equipment/new", target: "", download: false, modified: false, button: 0 };
 const historyIntent = { href: intent.href, currentHref: intent.currentHref, navigationType: "traverse", cancelable: true };
 
 test("History nội bộ có thể hủy cần guard; không chặn push/replace/reload", () => {
