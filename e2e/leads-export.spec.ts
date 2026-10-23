@@ -29,7 +29,7 @@ test("Xuất CSV và Excel khách hàng tiềm năng", async ({ request, baseURL
 
 test("Màn khách hàng tiềm năng: bảng, khoảng thời gian chọn nhanh, nút xuất theo bộ lọc", async ({ page }) => {
   await loginAsAdmin(page);
-  await page.goto("/admin/khach-hang-tiem-nang");
+  await page.goto("/admin/leads");
   const period = page.getByLabel("Khoảng thời gian gửi");
   await expect(period).toHaveValue("all");
   await expect(page.locator("input[type=date]")).toHaveCount(0);

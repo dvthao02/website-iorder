@@ -6,7 +6,7 @@ import { loginAsAdmin } from "./helpers";
 test("Soạn bài: tiêu đề và nội dung ở màn đầu, đường dẫn tự tạo, nút lưu đổi theo trạng thái", async ({ page }) => {
   await page.setViewportSize({ width: 1600, height: 900 });
   await loginAsAdmin(page);
-  await page.goto("/admin/tin-tuc/moi");
+  await page.goto("/admin/news/new");
 
   const title = page.getByLabel("Tiêu đề", { exact: true });
   const editor = page.locator(".admin-rte__content .tiptap");
@@ -64,7 +64,7 @@ test("Bài đã đăng: hiện trạng thái đang lưu và nút 'Cập nhật b
   await loginAsAdmin(page);
   const list = await (await page.request.get("/api/admin/posts?status=published&excludeType=guide&view=summary&pageSize=5")).json() as { result: { items: Array<{ id: string }> } };
   test.skip(!list.result.items.length, "Cần một bài đã xuất bản");
-  await page.goto(`/admin/tin-tuc/${list.result.items[0].id}`);
+  await page.goto(`/admin/news/${list.result.items[0].id}`);
   const side = page.getByRole("complementary", { name: "Thiết lập bài viết" });
   await expect(side.getByText("Đang hiển thị trên website")).toBeVisible();
   await expect(page.getByRole("button", { name: "Cập nhật bài đã đăng" })).toBeVisible();
@@ -80,7 +80,7 @@ test("Lưu nháp rồi mở lại: định dạng, bảng, danh sách, ảnh gi�
   const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
   let postId: string | undefined;
   try {
-    await page.goto("/admin/tin-tuc/moi");
+    await page.goto("/admin/news/new");
     await page.getByLabel("Tiêu đề", { exact: true }).fill(`Kiểm tra lưu mở lại ${stamp}`);
     const editor = page.locator(".admin-rte__content .tiptap");
     // Đủ loại định dạng từ các mẫu bài: tiêu đề, đậm, danh sách, trích dẫn, bảng.
@@ -146,7 +146,7 @@ test("Soạn bài trên máy tính bảng và điện thoại: không tràn ngan
   await loginAsAdmin(page);
   for (const viewport of [{ width: 1024, height: 768 }, { width: 390, height: 844 }]) {
     await page.setViewportSize(viewport);
-    await page.goto("/admin/tin-tuc/moi");
+    await page.goto("/admin/news/new");
     await page.locator(".admin-rte__content .tiptap").waitFor();
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
     expect(overflow, `tràn ngang ở ${viewport.width}px`).toBeLessThanOrEqual(0);
@@ -166,7 +166,7 @@ test("Ảnh bìa: kéo thả để tải lên, chọn lại bằng lưới ảnh
   const pngBase64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
   const name = `e2e-anh-bia-${stamp}.png`;
   try {
-    await page.goto("/admin/tin-tuc/moi");
+    await page.goto("/admin/news/new");
     const cover = page.locator("#post-cover");
     await expect(cover.getByRole("heading", { name: "Ảnh bìa" })).toBeVisible();
 

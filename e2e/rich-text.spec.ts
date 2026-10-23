@@ -25,7 +25,7 @@ test("Soạn bài kiểu Word: nhập file .docx, xuất bản, website có mụ
   await loginAsAdmin(page);
   const stamp = Date.now();
   const title = `Tiêu đề từ Word ${stamp}`;
-  await page.goto("/admin/tin-tuc/moi");
+  await page.goto("/admin/news/new");
   await expect(page.getByRole("toolbar", { name: "Định dạng nội dung" })).toBeVisible();
 
   created.mediaNames.push("anh-nhap-");
@@ -87,7 +87,7 @@ test("Rời trang khi chưa lưu: hỏi bằng hộp của CMS (không dùng h�
   let nativeDialog = false;
   page.on("dialog", async (dialog) => { nativeDialog = true; await dialog.dismiss(); });
   await loginAsAdmin(page);
-  await page.goto("/admin/tin-tuc/moi");
+  await page.goto("/admin/news/new");
   await page.getByLabel("Tiêu đề", { exact: true }).fill("Bản nháp chưa lưu");
 
   // Menu Mẫu bài: các mục không chồng lên nhau.
@@ -98,7 +98,7 @@ test("Rời trang khi chưa lưu: hỏi bằng hộp của CMS (không dùng h�
   expect(second!.y).toBeGreaterThanOrEqual(first!.y + first!.height - 1);
   await page.keyboard.press("Escape");
 
-  const sidebarLink = page.getByRole("link", { name: "Trang website" }).first();
+  const sidebarLink = page.getByRole("link", { name: "Trang tự tạo" }).first();
   await sidebarLink.click();
   const dialog = page.getByRole("alertdialog", { name: "Rời màn hình khi chưa lưu?" });
   await expect(dialog).toBeVisible();
@@ -116,7 +116,7 @@ test("Ảnh trong bài: đổi kích thước, căn trái cho chữ chạy quanh
   await loginAsAdmin(page);
   const stamp = Date.now();
   const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
-  await page.goto("/admin/tin-tuc/moi");
+  await page.goto("/admin/news/new");
   await page.getByLabel("Tiêu đề", { exact: true }).fill(`Ảnh nền ${stamp}`);
   const editor = page.locator(".admin-rte__content .tiptap");
   await editor.click();

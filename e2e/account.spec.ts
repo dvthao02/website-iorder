@@ -29,7 +29,7 @@ test("Tài khoản tự đổi mật khẩu: mật khẩu cũ hết hiệu lực
     await page.locator('button[type="submit"]').click();
     await expect(page).toHaveURL(/\/admin(\/)?$/);
 
-    await page.goto("/admin/tai-khoan-cua-toi");
+    await page.goto("/admin/my-account");
     await expect(page.getByText(username, { exact: true })).toBeVisible();
     await page.getByLabel("Mật khẩu hiện tại", { exact: true }).fill("sai-mat-khau-hien-tai");
     await page.getByLabel("Mật khẩu mới", { exact: true }).fill(newPassword);

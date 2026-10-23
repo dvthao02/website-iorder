@@ -30,7 +30,7 @@ test("Liên kết ngoài: lưu với phiên bản cũ bị từ chối 409", asy
 
 test("Màn Liên kết ngoài lưu được hai lần liên tiếp (CMS cập nhật phiên bản sau mỗi lần lưu)", async ({ page }) => {
   await loginAsAdmin(page);
-  await page.goto("/admin/lien-ket-ngoai");
+  await page.goto("/admin/external-links");
   const youtube = page.getByLabel("YouTube");
   const original = await youtube.inputValue();
   const save = page.getByRole("button", { name: /^Lưu/ });
@@ -53,7 +53,7 @@ test("Màn Liên kết ngoài lưu được hai lần liên tiếp (CMS cập nh
 
 test("Thẻ vừa tạo lưu tiếp ngay được (không thiếu hoặc lệch phiên bản), rồi xóa", async ({ page }) => {
   await loginAsAdmin(page);
-  await page.goto("/admin/phan-loai-bai-viet");
+  await page.goto("/admin/taxonomy");
   await page.getByRole("tab", { name: /^Thẻ/ }).click();
   await page.getByRole("button", { name: "Thêm thẻ" }).first().click();
   const suffix = Date.now().toString(36);
@@ -80,7 +80,7 @@ test("Lưu khi người khác vừa cập nhật: hiện thanh xung đột và t
   const headers = { origin: baseURL!, "content-type": "application/json" };
   expect((await request.post("/api/admin/session", { headers, data: adminCredentials() })).status()).toBe(200);
   await loginAsAdmin(page);
-  await page.goto("/admin/lien-ket-ngoai");
+  await page.goto("/admin/external-links");
   const youtube = page.getByLabel("YouTube");
   const original = await youtube.inputValue();
   const remote = `https://www.youtube.com/@iorder-phien-khac-${Date.now()}`;

@@ -6,7 +6,7 @@ import { loginAsAdmin } from "./helpers";
 // không cần sang màn "Chuyên mục & Thẻ". Dữ liệu kiểm thử được xóa sau khi chạy.
 test("Tạo chuyên mục và thẻ ngay trong editor bài viết", async ({ page }) => {
   await loginAsAdmin(page);
-  await page.goto("/admin/tin-tuc/moi");
+  await page.goto("/admin/news/new");
   const suffix = Date.now().toString(36);
   const categoryName = `Chuyên mục tại chỗ ${suffix}`;
   const tagName = `Thẻ tại chỗ ${suffix}`;
@@ -40,7 +40,7 @@ test("Tạo chuyên mục và thẻ ngay trong editor bài viết", async ({ pag
 // Thêm thiết bị khi chưa có nhóm phù hợp: tạo nhóm ngay trong form, nhóm mới được chọn sẵn.
 test("Tạo nhóm thiết bị ngay trong form thêm thiết bị", async ({ page }) => {
   await loginAsAdmin(page);
-  await page.goto("/admin/thiet-bi/moi");
+  await page.goto("/admin/equipment/new");
   const groupName = `Nhóm tại chỗ ${Date.now().toString(36)}`;
   try {
     await page.getByRole("button", { name: "Thêm nhóm thiết bị mới" }).click();

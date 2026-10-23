@@ -71,8 +71,10 @@ test("Trình sửa trang chỉ có một thanh cuộn; trường ảnh của ph�
   await page.goto(`/admin/pages/${home!.id}`);
   const hero = page.locator(".admin-block").filter({ has: page.locator(".admin-block__toggle > strong", { hasText: "Phần đầu trang" }) }).first();
   if (!(await hero.evaluate((element) => element.classList.contains("admin-block--open")))) await hero.locator(".admin-block__toggle").click();
+  // Trang chủ có thể đang dùng kiểu khác (ví dụ trượt ảnh): chọn kiểu chữ – ảnh trên form (không lưu) để có ô ảnh minh họa.
+  await hero.getByRole("group", { name: "Kiểu bố cục" }).getByText("Chữ trái, ảnh phải").click();
   const picker = hero.locator(".media-picker");
-  await expect(picker.getByRole("heading", { name: "Ảnh minh họa (tùy chọn)" })).toBeVisible();
+  await expect(picker.getByRole("heading", { name: "Ảnh bên phải (tùy chọn)" })).toBeVisible();
   // Bộ chọn ảnh nằm trực tiếp trong khối, không bọc thêm khung nhóm.
   expect(await picker.evaluate((element) => element.closest(".admin-block-group") === null)).toBe(true);
   await hero.screenshot({ path: "test-results/page-editor-hero.png" });
@@ -101,7 +103,7 @@ test("Trình sửa trang chỉ có một thanh cuộn; trường ảnh của ph�
 test("Cuộn bài dài: thanh công cụ soạn thảo dính sát dưới thanh tiêu đề, không để lộ khe", async ({ page }) => {
   await page.setViewportSize({ width: 1600, height: 900 });
   await loginAsAdmin(page);
-  await page.goto("/admin/tin-tuc/moi");
+  await page.goto("/admin/news/new");
   await page.locator(".admin-rte__content .tiptap").click();
   for (let index = 0; index < 40; index++) await page.keyboard.press("Enter");
   await page.locator(".admin-detail-panel__body").evaluate((element) => element.scrollTo(0, 900));

@@ -48,7 +48,7 @@ test("Tài khoản giới hạn chỉ thấy đúng thao tác được phép", a
   await expect(page.getByRole("link", { name: "Người dùng CMS" })).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Thư viện media" })).toHaveCount(0);
 
-  await page.goto("/admin/tin-tuc");
+  await page.goto("/admin/news");
   await expect(page.locator("table, [role='table'], .admin-data-table").first()).toBeVisible();
   await expect(page.getByRole("link", { name: /mới$/ })).toHaveCount(0);
   await expect(page.getByRole("button", { name: /^Lưu trữ / })).toHaveCount(0);
@@ -58,16 +58,16 @@ test("Tài khoản giới hạn chỉ thấy đúng thao tác được phép", a
   await expect(page.getByRole("button", { name: /^Lưu trữ / })).toHaveCount(0);
 
   // Mở thẳng URL module bị cấm: màn "Không có quyền" thay vì form trống.
-  for (const path of ["/admin/media", "/admin/khach-hang-tiem-nang", "/admin/thiet-bi"]) {
+  for (const path of ["/admin/media", "/admin/leads", "/admin/equipment"]) {
     await page.goto(path);
-    await expect(page).toHaveURL(/\/admin\/khong-co-quyen$/);
+    await expect(page).toHaveURL(/\/admin\/forbidden$/);
     await expect(page.getByRole("heading", { name: /chưa được cấp quyền/ })).toBeVisible();
   }
 
   // posts.update đủ để sửa trang danh sách /tin-tuc (quyền theo module sở hữu).
-  await page.goto("/admin/tin-tuc");
+  await page.goto("/admin/news");
   await page.getByRole("link", { name: "Sửa phần đầu trang & SEO" }).click();
-  await expect(page).toHaveURL(/\/admin\/pages\/[0-9a-f-]{36}$/);
+  await expect(page).toHaveURL(/\/admin\/trang\/[0-9a-f-]{36}$/);
   await expect(page.getByRole("button", { name: "Lưu thay đổi" })).toBeAttached();
   await expect(page.getByRole("button", { name: "Lưu thay đổi" })).not.toHaveAttribute("title", /không có quyền/);
 });

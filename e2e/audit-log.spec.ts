@@ -8,7 +8,7 @@ test("Nhật ký ghi đăng nhập/đăng xuất kèm IP, thiết bị và mã r
   await expect(page).toHaveURL(/\/admin\/login/);
   await loginAsAdmin(page);
 
-  await page.goto("/admin/nhat-ky?query=" + encodeURIComponent("Đăng xuất"));
+  await page.goto("/admin/audit-log?query=" + encodeURIComponent("Đăng xuất"));
   const table = page.locator("table");
   await expect(table.locator("thead th").filter({ hasText: /^IP/ })).toBeVisible();
   await expect(table.locator("thead th").filter({ hasText: /^Thiết bị/ })).toBeVisible();

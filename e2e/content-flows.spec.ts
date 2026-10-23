@@ -91,7 +91,7 @@ test("Xem trước bản nháp: chỉ người có liên kết từ CMS thấy, 
   expect((await visitor.request.get(`${webUrl}/api/preview?token=v1.abc.def`, { maxRedirects: 0 })).status()).toBe(404);
   await visitor.close();
 
-  await page.goto(`/admin/tin-tuc/${id}`);
+  await page.goto(`/admin/news/${id}`);
   const [preview] = await Promise.all([page.context().waitForEvent("page"), page.getByRole("button", { name: /Xem trước bản nháp/ }).click()]);
   await preview.waitForURL(new RegExp(`/tin-tuc/${slug}$`));
   await expect(preview.getByRole("heading", { level: 1 })).toHaveText(title);

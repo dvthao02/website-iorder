@@ -4,13 +4,13 @@ import { loginAsAdmin } from "./helpers";
 // Rà bố cục toàn bộ màn CMS trên desktop: một vùng cuộn duy nhất, nằm gọn dưới thanh đã ghim
 // (và trên thanh lưu ở màn soạn thảo), không khe trống, không tràn ngang.
 const listRoutes = [
-  "/admin", "/admin/analytics", "/admin/pages", "/admin/tin-tuc", "/admin/tai-nguyen", "/admin/media",
-  "/admin/san-pham", "/admin/giai-phap", "/admin/dich-vu", "/admin/thiet-bi", "/admin/thiet-bi/nhom",
-  "/admin/menu", "/admin/phan-loai-bai-viet", "/admin/seo", "/admin/seo/kiem-tra-xuat-ban", "/admin/chuyen-huong",
-  "/admin/lien-ket-ngoai", "/admin/thong-tin-doanh-nghiep", "/admin/doi-tac", "/admin/khach-hang-tiem-nang",
-  "/admin/tai-khoan", "/admin/phan-quyen", "/admin/nhat-ky", "/admin/cau-hinh", "/admin/giao-dien-cms",
+  "/admin", "/admin/analytics", "/admin/pages", "/admin/news", "/admin/resources", "/admin/guides", "/admin/media",
+  "/admin/products", "/admin/solutions", "/admin/services", "/admin/equipment", "/admin/equipment/groups",
+  "/admin/menu", "/admin/taxonomy", "/admin/seo", "/admin/seo/publish-check", "/admin/redirects",
+  "/admin/external-links", "/admin/company-profile", "/admin/partners", "/admin/leads",
+  "/admin/users", "/admin/roles", "/admin/audit-log", "/admin/seo", "/admin/appearance",
 ];
-const editorRoutes = ["/admin/tin-tuc/moi", "/admin/tai-nguyen/huong-dan/moi", "/admin/pages/new", "/admin/san-pham/moi", "/admin/dich-vu/moi", "/admin/thiet-bi/moi"];
+const editorRoutes = ["/admin/homepage", "/admin/news/new", "/admin/guides/new", "/admin/pages/new", "/admin/products/new", "/admin/services/new", "/admin/equipment/new"];
 
 type Layout = {
   documentOverflow: number; mainOverflow: number; horizontalOverflow: number;

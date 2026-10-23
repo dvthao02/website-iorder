@@ -11,7 +11,7 @@ test.describe("CMS", () => {
   });
 
   test("Ma trận quyền: tích quyền kéo theo Xem, nhóm hiện indeterminate, bỏ thay đổi không lưu", async ({ page }) => {
-    await page.goto("/admin/phan-quyen");
+    await page.goto("/admin/roles");
     await expect(page.getByRole("heading", { name: "Vai trò & quyền" })).toBeVisible();
     await page.getByRole("button", { name: "Tạo vai trò" }).click();
 
@@ -36,7 +36,7 @@ test.describe("CMS", () => {
   });
 
   test("Super Admin chỉ xem, không sửa được", async ({ page }) => {
-    await page.goto("/admin/phan-quyen");
+    await page.goto("/admin/roles");
     await page.getByRole("button", { name: /Super Admin/ }).first().click();
     await expect(page.getByText("Super Admin luôn có toàn quyền")).toBeVisible();
     await expect(page.getByRole("checkbox", { name: "Xóa — Vai trò" })).toBeChecked();
@@ -48,7 +48,7 @@ test.describe("CMS", () => {
     const source = `/e2e-${Date.now()}`;
     // Remove the redirect even when an assertion fails midway.
     try {
-    await page.goto("/admin/chuyen-huong");
+    await page.goto("/admin/redirects");
     await page.getByRole("button", { name: "Tạo chuyển hướng" }).click();
     await page.getByRole("textbox", { name: "Đường dẫn cũ" }).fill(source);
     await page.getByRole("textbox", { name: "Đường dẫn mới" }).fill("/");

@@ -35,7 +35,7 @@ test("Bảng danh sách: sắp xếp, ghim cột ở tiêu đề, chọn nhiều
       ids.push(((await response.json()) as { post: { id: string } }).post.id);
     }
 
-    await page.goto(`/admin/tin-tuc?query=${encodeURIComponent(marker)}&sort=title&dir=asc`);
+    await page.goto(`/admin/news?query=${encodeURIComponent(marker)}&sort=title&dir=asc`);
     const rows = page.locator("tbody tr");
     await expect(rows).toHaveCount(2);
     await expect(rows.first()).toContainText(`${marker} A`);
@@ -79,7 +79,7 @@ test("Bảng danh sách: sắp xếp, ghim cột ở tiêu đề, chọn nhiều
 
 test("Thanh lọc: bộ lọc phụ trong \"Bộ lọc khác\", nhãn bộ lọc gỡ từng cái và xóa tất cả", async ({ page }) => {
   await loginAsAdmin(page);
-  await page.goto("/admin/nhat-ky?verb=login&from=2026-01-01&to=2026-12-31");
+  await page.goto("/admin/audit-log?verb=login&from=2026-01-01&to=2026-12-31");
   const chips = page.getByRole("group", { name: "Bộ lọc đang áp dụng" });
   await expect(chips).toContainText("Thao tác: Đăng nhập");
   await expect(chips).toContainText("Thời gian: 01/01/2026 – 31/12/2026");
