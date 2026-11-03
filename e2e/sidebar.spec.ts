@@ -78,5 +78,5 @@ test("Trang chủ trên sidebar, Trang tự tạo, Sửa nội dung từ Menu", 
   test.skip(await row.count() === 0, "Menu chưa có mục Về chúng tôi");
   await row.first().click();
   const edit = page.getByRole("link", { name: "Sửa nội dung" });
-  await expect(edit).toHaveAttribute("href", /\/admin\/trang\/[0-9a-f-]{36}$/);
+  await expect(edit).toHaveAttribute("href", /\/admin\/pages\/[0-9a-f-]{36}$/);
 });

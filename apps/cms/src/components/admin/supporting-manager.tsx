@@ -408,7 +408,7 @@ function StatusBadge({ enabled }: { enabled: boolean }) {
 function MediaThumbnail({ alt, url }: { alt: string; url: string | undefined }) {
   return (
     <span className="admin-tile__media">
-      {url ? <Image alt={alt} className="object-cover" fill sizes="48px" src={url} unoptimized /> : alt.slice(0, 1).toUpperCase()}
+      {url ? <Image alt={alt} className="object-contain" fill sizes="48px" src={url} unoptimized /> : alt.slice(0, 1).toUpperCase()}
     </span>
   );
 }

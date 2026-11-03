@@ -5,6 +5,7 @@ import { formatDisplayDateTime, formatLocalDateTime } from "@/lib/local-date-tim
 
 import { type FormEvent, type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { FileText } from "lucide-react";
 import { MediaPicker } from "./media-picker";
 import { RevisionHistory } from "./revision-history";
 import { PublishedPreviewLink } from "./published-preview-link";
@@ -296,6 +297,8 @@ export function PostEditor({ post, taxonomy, onSaved, onError, contentType, onDi
           <header className="admin-post-editor__card-head"><h3>Xuất bản</h3>{post ? <PublishedPreviewLink contentType={post.type} id={post.id} kind="post" slug={post.slug} status={post.status} /> : null}</header>
           {post && isDirty ? <p className="admin-help">Xem trước hiển thị bản đã lưu — lưu trước để thấy thay đổi mới.</p> : null}
           {post ? <p className="admin-post-editor__state"><AdminStatusBadge tone={statusBadge[post.status].tone}>{statusBadge[post.status].label}</AdminStatusBadge>{post.publishedAt ? <small className="admin-help">Đăng lúc {formatDisplayDateTime(post.publishedAt)}</small> : null}</p> : <p className="admin-help">Bài mới — chưa lưu.</p>}
+          {/* Bản đã lưu (không gồm thay đổi đang gõ dở) dưới dạng Word để gửi duyệt/chỉnh ngoài CMS rồi nhập lại. */}
+          {post ? <a className="admin-link admin-post-editor__word" download href={`/api/admin/posts/${post.id}/word`}><FileText aria-hidden="true" size={14} />Tải bản Word (.docx){isDirty ? " — bản đã lưu" : ""}</a> : null}
           <ContentStatusChoice canPublish={canPublish} noun={postNoun} onChange={(status) => update("status", status)} savedStatus={savedStatus} value={form.status} />
           {form.status === "scheduled" ? <label className={labelClassName}>Thời điểm đăng<input className={inputClassName} onChange={(event) => update("scheduledAt", event.target.value)} required type="datetime-local" value={form.scheduledAt} /></label> : null}
           {goingLive ? <PrepublishHints missing={missing} /> : null}

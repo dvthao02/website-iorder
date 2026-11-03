@@ -29,12 +29,13 @@ import type { getAdminNavigation as getAdminNavigationFromCore } from "@iorder/c
 import type { getPublishedNavigationTargets as getPublishedNavigationTargetsFromCore } from "@iorder/core/server/navigation/navigation.service";
 import type { getAdminOfferings as getAdminOfferingsFromCore } from "@iorder/core/server/offerings/offerings.service";
 import type { getAdminOfferingSummariesPage as getAdminOfferingsPageFromCore } from "@iorder/core/server/offerings/offerings.service";
-import type { getAdminPages as getAdminPagesFromCore } from "@iorder/core/server/pages/pages.service";
 import type { getAdminPagesPage as getAdminPagesPageFromCore } from "@iorder/core/server/pages/pages.service";
 import type { getAdminPosts as getAdminPostsFromCore } from "@iorder/core/server/posts/posts.service";
 import type { getAdminPostSummariesPage as getAdminPostsPageFromCore } from "@iorder/core/server/posts/posts.service";
 import type { getAdminNotifications as getAdminNotificationsFromCore } from "@iorder/core/server/dashboard/notifications.service";
 import type { getPublishingReadiness as getPublishingReadinessFromCore } from "@iorder/core/server/publishing-readiness/publishing-readiness.service";
+import { seoAuditResultSchema } from "@iorder/core/server/seo-audit/seo-audit.contract";
+import type { SeoAuditResult } from "@iorder/core/server/seo-audit/seo-audit";
 import type { getRedirects as getRedirectsFromCore } from "@iorder/core/server/redirects/redirects.service";
 import type { getExternalLinks as getExternalLinksFromCore } from "@iorder/core/server/settings/external-links.service";
 import type { getSiteProfile as getSiteProfileFromCore } from "@iorder/core/server/settings/profile.service";
@@ -53,7 +54,6 @@ type PublishingReadiness = Awaited<ReturnType<typeof getPublishingReadinessFromC
 type AdminNotifications = Awaited<ReturnType<typeof getAdminNotificationsFromCore>>;
 type AdminOfferings = Awaited<ReturnType<typeof getAdminOfferingsFromCore>>;
 type AdminOfferingsPage = Awaited<ReturnType<typeof getAdminOfferingsPageFromCore>>;
-type AdminPages = Awaited<ReturnType<typeof getAdminPagesFromCore>>;
 type AdminPagesPage = Awaited<ReturnType<typeof getAdminPagesPageFromCore>>;
 type AdminPosts = Awaited<ReturnType<typeof getAdminPostsFromCore>>;
 type AdminPostsPage = Awaited<ReturnType<typeof getAdminPostsPageFromCore>>;
@@ -137,6 +137,14 @@ export async function getAdminNotifications(): Promise<AdminNotifications> {
   }
 }
 export async function getPublishingReadiness(): Promise<PublishingReadiness> { return (await getDashboard())?.readiness ?? []; }
+// null: người xem không có quyền (403) — màn chỉ ẩn phần kiểm tra SEO.
+export async function getSeoAudit(): Promise<SeoAuditResult | null> {
+  const payload = await getData<{ audit: unknown }>("/api/admin/seo-audit");
+  if (!payload) return null;
+  const parsed = seoAuditResultSchema.safeParse(payload.audit);
+  if (!parsed.success) throw new Error("Phản hồi kiểm tra SEO không hợp lệ. Vui lòng tải lại.");
+  return parsed.data;
+}
 export async function getRecentAuditLogs(): Promise<AuditLogs> { return (await getDashboard())?.auditLogs ?? []; }
 // Bỏ tham số rỗng/undefined để URL gọi Backend gọn và không gửi chuỗi "undefined".
 function listParams(query: Record<string, unknown>, extra: Record<string, string> = {}) {
@@ -173,7 +181,7 @@ export async function getAdminOfferingsPage(params: { page?: string | number; pa
   return parsed.data;
 }
 export async function getAdminOfferingById(id: string) { return getDetail(`/api/admin/offerings/${encodeURIComponent(id)}`, "offering", adminOfferingSchema, id); }
-export async function getAdminPages(): Promise<AdminPages> { return (await getAdminPagesPage())?.items ?? []; }
+export async function getAdminPages(): Promise<AdminPagesPage["items"]> { return (await getAdminPagesPage())?.items ?? []; }
 export async function getAdminPagesPage(params: { page?: string | number; pageSize?: string | number; query?: string; status?: string; kind?: "custom" | "system"; sort?: string; dir?: string } = {}): Promise<AdminPagesPage> {
   const input = pageListQuerySchema.parse({ ...params, status: params.status || undefined });
   const query = new URLSearchParams();

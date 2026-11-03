@@ -16,7 +16,11 @@
   .admin-page-bar__crumbs a:focus-visible { outline: 2px solid var(--cms-primary); outline-offset: 2px; }
   .admin-page-bar__crumbs > span > svg { opacity: 0.6; }
   .admin-page-bar__crumbs > [aria-current="page"] { color: var(--cms-text); font-weight: 500; }
-  .admin-page-bar__actions { display: flex; min-width: 0; align-items: center; gap: 16px; overflow-x: auto; scrollbar-width: none; }
+  /* overflow phải visible: menu thả xuống (Tạo mới, Nhập / Xuất) nằm trong vùng này và bị cắt nếu vùng cuộn.
+     Không đủ chỗ thì nút xuống dòng (trước đây bị giấu trong vùng cuộn, nút cuối khuất một nửa ở 680–820px);
+     chỉ hàng liên kết ngữ cảnh tự cuộn ngang khi dài (như trên điện thoại). */
+  .admin-page-bar__actions { display: flex; min-width: 0; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px 16px; overflow: visible; }
+  .admin-page-bar__actions > .admin-page-link { min-width: 0; overflow-x: auto; scrollbar-width: none; }
   .admin-page-bar__actions:empty { display: none; }
   .admin-page-link { display: flex; align-items: center; gap: 6px 12px; color: var(--cms-muted); font-size: var(--cms-text-sm); white-space: nowrap; }
   .admin-page-link > svg { flex: 0 0 auto; }
@@ -796,9 +800,42 @@
 
   /* Editor khối của Trang: mỗi khối một dòng gập/mở; khi gập chỉ thấy loại khối và tóm tắt. */
   .admin-blocks { display: grid; gap: 10px; }
-  .admin-blocks__list { display: grid; margin: 0; overflow: hidden; border: 1px solid var(--cms-border); border-radius: var(--cms-radius-card); padding: 0; list-style: none; }
+  .admin-post-editor__word { display: inline-flex; align-items: center; gap: 6px; font-size: var(--cms-text-sm); }
+
+  /* Nhập dữ liệu từ file: các bước, chọn file, xem trước từng dòng. */
+  .admin-import { display: grid; gap: 12px; padding: var(--cms-card-padding); }
+  .admin-import > header { display: grid; gap: 4px; padding-right: 32px; }
+  .admin-import > header p, .admin-import__steps { color: var(--cms-muted); font-size: var(--cms-text-sm); }
+  .admin-import__steps { display: grid; gap: 4px; margin: 0; padding-left: 18px; }
+  .admin-import__steps a { color: var(--cms-primary); text-decoration: underline; }
+  .admin-import__file { position: relative; display: flex; align-items: center; gap: 8px; border: 1px dashed var(--cms-border-strong); border-radius: var(--cms-radius-component); padding: 12px; cursor: pointer; }
+  .admin-import__file:hover { border-color: var(--cms-primary); }
+  .admin-import__file input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  .admin-import__preview { display: grid; gap: 8px; }
+  .admin-import__counts { display: flex; flex-wrap: wrap; gap: 6px; }
+  .admin-import__toggle { display: flex; align-items: center; gap: 6px; font-size: var(--cms-text-sm); }
+  .admin-import__rows { display: grid; margin: 0; overflow: hidden; border: 1px solid var(--cms-border); border-radius: var(--cms-radius-component); padding: 0; list-style: none; }
+  .admin-import__row { display: grid; gap: 4px; border-top: 1px solid var(--cms-border); padding: 8px 10px; }
+  .admin-import__row:first-child { border-top: 0; }
+  .admin-import__row--error { background: var(--cms-status-error-background); }
+  .admin-import__row > div { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+  .admin-import__row small { color: var(--cms-muted); font-size: var(--cms-text-xs); }
+  .admin-import__row > div .admin-status-badge { margin-left: auto; }
+  .admin-import__changes, .admin-import__errors { display: grid; gap: 2px; margin: 0; padding-left: 16px; font-size: var(--cms-text-sm); overflow-wrap: anywhere; }
+  .admin-import__changes span { color: var(--cms-muted); }
+  .admin-import__changes del { color: var(--cms-muted); }
+  .admin-import__changes ins { text-decoration: none; font-weight: 500; }
+  .admin-import__errors { color: var(--cms-status-error-text); }
+
+  /* Ô tiêu đề có ảnh thu nhỏ trong bảng nội dung. */
+  .admin-row-title { display: flex; min-width: 0; align-items: center; gap: 10px; }
+  .admin-row-title__thumb { position: relative; display: grid; flex: none; width: 40px; height: 30px; place-items: center; overflow: hidden; border: 1px solid var(--cms-border); border-radius: 6px; background: var(--cms-subtle); color: var(--cms-muted); }
+  .admin-row-title__text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* minmax(0, 1fr) + min-width: 0: form khối (bộ chọn bố cục, ô nhập) co theo khung, không bị cắt mép phải. */
+  .admin-blocks__list { display: grid; grid-template-columns: minmax(0, 1fr); margin: 0; overflow: hidden; border: 1px solid var(--cms-border); border-radius: var(--cms-radius-card); padding: 0; list-style: none; }
   .admin-blocks__list:empty { display: none; }
-  .admin-block { border-top: 1px solid var(--cms-border); background: var(--cms-card); }
+  .admin-block { min-width: 0; border-top: 1px solid var(--cms-border); background: var(--cms-card); }
   .admin-block:first-child { border-top: 0; }
   .admin-block__head { display: flex; min-height: 44px; align-items: center; gap: 8px; padding-right: 8px; }
   .admin-block__toggle { display: flex; min-width: 0; flex: 1 1 auto; align-items: center; gap: 8px; border: 0; background: transparent; padding: 8px 4px 8px 12px; color: var(--cms-text); text-align: left; }
@@ -924,7 +961,7 @@
   .media-picker .media-picker__thumb { display: grid; height: auto; min-height: 0; gap: 4px; border: 1px solid var(--cms-border); border-radius: var(--cms-radius-component); background: var(--cms-card); padding: 4px; color: var(--cms-text); text-align: left; cursor: pointer; }
   .media-picker .media-picker__thumb:hover:not(:disabled) { border-color: var(--cms-primary); }
   .media-picker .media-picker__thumb--selected { border-color: var(--cms-primary); box-shadow: 0 0 0 2px var(--cms-primary-soft); }
-  .media-picker__thumb img { width: 100%; aspect-ratio: 4 / 3; border-radius: calc(var(--cms-radius-component) - 2px); background: var(--cms-subtle); object-fit: cover; }
+  .media-picker__thumb img { width: 100%; aspect-ratio: 4 / 3; border-radius: calc(var(--cms-radius-component) - 2px); background: var(--cms-subtle); object-fit: contain; }
   .media-picker__thumb span { overflow: hidden; font-size: var(--cms-text-xs); text-overflow: ellipsis; white-space: nowrap; }
   .media-picker__preview figcaption { overflow: hidden; color: var(--cms-muted); font-size: var(--cms-text-xs); text-overflow: ellipsis; white-space: nowrap; }
   .media-picker__file-icon img { width: 100%; height: 100%; object-fit: cover; }

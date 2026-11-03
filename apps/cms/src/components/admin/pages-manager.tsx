@@ -5,7 +5,8 @@ import { useMemo, useState, type FormEvent } from "react";
 import { Plus } from "lucide-react";
 
 import type { AdminListPage as AdminListResult } from "@iorder/core/server/shared/admin-list.contract";
-import { getFixedWebsitePage, type AdminPage } from "@iorder/core/server/pages/pages.contract";
+import { getFixedWebsitePage, type AdminPageListItem as AdminPage } from "@iorder/core/server/pages/pages.contract";
+import type { ContentStateAction } from "@iorder/core/server/shared/content-version";
 import { AdminButton } from "@/components/admin/ui/admin-button";
 import { AdminCard } from "@/components/admin/ui/admin-card";
 import { AdminContentActions } from "@/components/admin/ui/admin-content-actions";
@@ -26,11 +27,9 @@ const dateFormatter = new Intl.DateTimeFormat("vi-VN", { dateStyle: "medium" });
 function getPublicPath(page: AdminPage) { return getFixedWebsitePage(page.slug)?.publicPath ?? `/trang/${page.slug}`; }
 function formatDate(value: Date | null) { return value ? dateFormatter.format(new Date(value)) : "Chưa xuất bản"; }
 
-// Lưu trữ/khôi phục trang đi qua API lưu trang, nên gửi lại toàn bộ giá trị với trạng thái mới.
-function pageStateRequest(page: AdminPage, status: PageStatus) {
-  const values = { ...page };
-  ["id", "draftVersion", "publishedAt", "updatedAt"].forEach((key) => Reflect.deleteProperty(values, key));
-  return { method: "POST" as const, url: "/api/admin/pages", body: { id: page.id, expectedVersion: page.draftVersion, values: { ...values, status } } };
+// Server tự đọc trang đầy đủ (kèm khối) rồi lưu với trạng thái mới; danh sách không cần giữ khối.
+function pageStateRequest(page: AdminPage, action: ContentStateAction) {
+  return { method: "PATCH" as const, url: `/api/admin/pages/${page.id}`, body: { action, expectedVersion: page.draftVersion } };
 }
 
 type PagesManagerProps = {
@@ -53,7 +52,7 @@ export function PagesManager({ initialQuery, initialStatus, result }: PagesManag
     { id: "status", label: "Trạng thái", defaultWidth: 150, minWidth: 130, sortKey: "status", cell: (page) => <StatusBadge status={page.status} /> },
     { id: "publishedAt", label: "Xuất bản", defaultWidth: 150, minWidth: 130, cell: (page) => <span className="admin-text-muted">{formatDate(page.publishedAt)}</span> },
     { id: "updatedAt", label: "Cập nhật", defaultWidth: 150, minWidth: 130, sortKey: "updatedAt", sortFirst: "desc", cell: (page) => <span className="admin-text-muted">{dateFormatter.format(new Date(page.updatedAt))}</span> },
-    { id: "actions", label: "Thao tác", defaultWidth: 120, minWidth: 120, align: "right", cell: (page) => <AdminContentActions module="pages" deleteMutation={page.status === "archived" ? { method: "DELETE", url: `/api/admin/pages/${page.id}`, body: { expectedVersion: page.draftVersion } } : undefined} editHref={`/admin/pages/${page.id}`} isArchived={page.status === "archived"} label="trang" mutation={pageStateRequest(page, page.status === "archived" ? "draft" : "archived")} viewHref={page.status === "published" ? getPublicPath(page) : undefined} /> },
+    { id: "actions", label: "Thao tác", defaultWidth: 120, minWidth: 120, align: "right", cell: (page) => <AdminContentActions module="pages" deleteMutation={page.status === "archived" ? { method: "DELETE", url: `/api/admin/pages/${page.id}`, body: { expectedVersion: page.draftVersion } } : undefined} editHref={`/admin/pages/${page.id}`} isArchived={page.status === "archived"} label="trang" mutation={pageStateRequest(page, page.status === "archived" ? "restore" : "archive")} viewHref={page.status === "published" ? getPublicPath(page) : undefined} /> },
   ], []);
 
   function submitSearch(event: FormEvent<HTMLFormElement>) {
@@ -71,7 +70,7 @@ export function PagesManager({ initialQuery, initialStatus, result }: PagesManag
           {Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
         </select>
       </AdminFilterBar>
-      <ContentBulkBar items={result.items} module="pages" noun="trang" onClear={clear} request={(page, action) => pageStateRequest(page, action === "archive" ? "archived" : action === "publish" ? "published" : "draft")} selectedIds={selectedIds} />
+      <ContentBulkBar items={result.items} module="pages" noun="trang" onClear={clear} request={pageStateRequest} selectedIds={selectedIds} />
       <AdminDataTable columns={columns} emptyMessage={filtered ? "Không có trang khớp bộ lọc." : "Chưa có trang tự tạo. Dùng “Tạo trang” cho trang landing, khuyến mãi… (hiện ở /trang/<đường dẫn>), rồi thêm vào Menu."} getRowId={(page) => page.id} onSelectionChange={setSelectedIds} onSortChange={setSort} rows={result.items} selectedIds={selectedIds} sort={sort} tableId="pages" />
       <AdminPagination page={result.page} pageSize={result.pageSize} total={result.total} totalPages={result.totalPages} onChange={(page) => navigate({ page: page === 1 ? undefined : String(page) })} />
     </AdminCard>

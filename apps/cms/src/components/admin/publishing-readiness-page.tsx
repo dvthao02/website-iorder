@@ -2,10 +2,11 @@ import Link from "next/link";
 
 import { AdminStatusBadge } from "@/components/admin/ui/admin-feedback";
 import { AdminPageBarMeta } from "@/components/admin/ui/admin-page-bar";
-import { getPublishingReadiness } from "@/lib/backend";
+import { SeoAuditPanel } from "@/components/admin/seo-audit-panel";
+import { getPublishingReadiness, getSeoAudit } from "@/lib/backend";
 
 export async function PublishingReadinessPage() {
-  const items = await getPublishingReadiness();
+  const [items, seoAudit] = await Promise.all([getPublishingReadiness(), getSeoAudit()]);
   const ready = items.filter((item) => item.status === "ready").length;
 
   return <main className="admin-settings-page">
@@ -17,5 +18,6 @@ export async function PublishingReadinessPage() {
       <span><strong>{item.label}</strong><small>{item.detail}</small></span>
       <AdminStatusBadge tone={item.status === "ready" ? "success" : "warning"}>{item.status === "ready" ? "Sẵn sàng" : "Cần xử lý"}</AdminStatusBadge>
     </Link>)}</div>
+    {seoAudit ? <SeoAuditPanel audit={seoAudit} /> : null}
   </main>;
 }

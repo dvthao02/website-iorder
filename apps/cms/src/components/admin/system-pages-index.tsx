@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-import { getFixedWebsitePage, isListingPageSlug, type AdminPage } from "@iorder/core/server/pages/pages.contract";
+import { getFixedWebsitePage, isListingPageSlug, type AdminPageListItem as AdminPage } from "@iorder/core/server/pages/pages.contract";
 import { listingPageModuleHref, listingPageModuleLabel } from "@/lib/listing-pages";
 
 const statusLabels: Record<AdminPage["status"], string> = { draft: "Bản nháp", review: "Chờ duyệt", scheduled: "Hẹn giờ", published: "Đang hiển thị", archived: "Lưu trữ" };

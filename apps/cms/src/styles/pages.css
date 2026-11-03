@@ -10,6 +10,8 @@
   .admin-dashboard__analytics-empty { display: grid; min-height: 120px; place-content: center; justify-items: center; gap: 4px; color: var(--cms-muted); font-size: var(--cms-text-sm); text-align: center; }
   .admin-dashboard__analytics-empty strong { color: var(--cms-text); font-weight: 500; }
   .admin-dashboard__analytics-empty svg { margin-bottom: 4px; }
+  /* Thống kê chưa kết nối trên Tổng quan: một hàng ngang gọn. */
+  .admin-dashboard__analytics-off .admin-dashboard__analytics-empty { display: flex; min-height: 0; flex-wrap: wrap; align-items: baseline; justify-content: flex-start; gap: 4px 10px; text-align: left; }
 
   .admin-metric-card__note { display: inline-flex; align-items: center; gap: 3px; color: var(--cms-muted); font-size: var(--cms-text-xs); }
 
@@ -66,6 +68,14 @@
   .admin-check-list small { display: block; }
   .admin-check-list strong { font-size: var(--cms-text-sm); font-weight: 500; }
   .admin-check-list small { color: var(--cms-muted); }
+
+  /* Kiểm tra SEO nội dung: mỗi dòng một URL kèm danh sách vấn đề. */
+  .admin-seo-audit__summary { display: flex; flex-wrap: wrap; gap: 6px; }
+  .admin-seo-audit > a { align-items: start; }
+  .admin-seo-audit > a > .admin-status { margin-top: 6px; }
+  .admin-seo-audit em { color: var(--cms-muted); font-size: var(--cms-text-xs); font-style: normal; font-weight: 400; overflow-wrap: anywhere; }
+  .admin-seo-audit ul { display: grid; gap: 2px; margin-top: 4px; color: var(--cms-muted); font-size: var(--cms-text-sm); }
+  .admin-seo-audit b { color: var(--cms-text); font-weight: 500; }
 
   /* Giao diện CMS: hai danh sách chọn (bảng màu, font) cạnh nhau. */
   .admin-appearance { display: grid; gap: var(--cms-block-gap); }

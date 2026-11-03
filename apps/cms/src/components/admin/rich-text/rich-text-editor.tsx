@@ -1,8 +1,6 @@
 "use client";
 
 import { EditorContent, useEditor, type Editor } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
-import { TableKit } from "@tiptap/extension-table";
 import { Placeholder } from "@tiptap/extensions";
 import {
   Bold, Columns3, FileUp, Heading2, Heading3, Heading4, ImagePlus, Italic, LayoutTemplate, Link2, List, ListOrdered,
@@ -12,23 +10,12 @@ import {
 import { useRef, useState, type ReactNode } from "react";
 
 import type { BannerHeight, BannerOverlay, ImageAlign, RichDocument } from "@iorder/core/server/shared/rich-text";
-import { adminApiError, readAdminJson } from "@/lib/admin-api";
 import { useAdminConfirm } from "../ui/admin-confirm-dialog";
 import { useAdminToast } from "../ui/admin-feedback";
-import { ImageBanner, SizedImage } from "./extensions";
 import { imageWraps } from "./image-view";
 import { importAccept, importFile } from "./import-content";
+import { richTextExtensions, uploadContentImage as uploadImage } from "./schema";
 import { contentTemplates } from "./templates";
-
-async function uploadImage(file: File) {
-  const body = new FormData();
-  body.set("file", file);
-  const response = await fetch("/api/admin/media", { method: "POST", body });
-  const payload = await readAdminJson(response);
-  const url = payload?.asset?.url;
-  if (!response.ok || typeof url !== "string") throw adminApiError(payload, "Không tải được ảnh lên.");
-  return url;
-}
 
 function ToolButton({ label, active, disabled, onClick, children }: { label: string; active?: boolean; disabled?: boolean; onClick: () => void; children: ReactNode }) {
   return <button aria-label={label} aria-pressed={active} className={active ? "admin-rte__tool admin-rte__tool--active" : "admin-rte__tool"} disabled={disabled} onClick={onClick} onMouseDown={(event) => event.preventDefault()} title={label} type="button">{children}</button>;
@@ -75,16 +62,7 @@ export function RichTextEditor({ value, onChange, onImportTitle, placeholder = "
     // Thanh công cụ đọc trạng thái trực tiếp từ editor nên cần dựng lại khi con trỏ/định dạng đổi.
     shouldRerenderOnTransaction: true,
     editable: !disabled,
-    extensions: [
-      StarterKit.configure({
-        heading: { levels: [2, 3, 4] },
-        link: { openOnClick: false, autolink: true, defaultProtocol: "https", HTMLAttributes: { rel: "noopener noreferrer", target: null } },
-      }),
-      SizedImage,
-      ImageBanner,
-      TableKit.configure({ table: { resizable: false } }),
-      Placeholder.configure({ placeholder }),
-    ],
+    extensions: [...richTextExtensions, Placeholder.configure({ placeholder })],
     content: value ?? { type: "doc", content: [{ type: "paragraph" }] },
     onUpdate: ({ editor: current }) => onChange(current.getJSON() as RichDocument),
   });

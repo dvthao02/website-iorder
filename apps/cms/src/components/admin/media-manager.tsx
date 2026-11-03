@@ -310,7 +310,8 @@ export function MediaManager({ initialPage, initialQuery }: { initialPage: { ass
 
 function Thumb({ asset, size }: { asset: MediaAsset; size: number }) {
   return <span className="admin-media-thumb" style={size <= 48 ? { width: size, height: size } : undefined}>
-    {isImage(asset) ? <Image alt="" className="object-cover" fill sizes={`${size}px`} src={asset.url} unoptimized /> : asset.mimeType === "application/zip" ? <FileArchive aria-hidden="true" size={size <= 48 ? 18 : 30} /> : <FileText aria-hidden="true" size={size <= 48 ? 18 : 30} />}
+    {/* contain: logo và ảnh tách nền hiện trọn vẹn, không bị xén như cover. */}
+    {isImage(asset) ? <Image alt="" className="object-contain p-1" fill sizes={`${size}px`} src={asset.url} unoptimized /> : asset.mimeType === "application/zip" ? <FileArchive aria-hidden="true" size={size <= 48 ? 18 : 30} /> : <FileText aria-hidden="true" size={size <= 48 ? 18 : 30} />}
   </span>;
 }
 

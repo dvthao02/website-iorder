@@ -11,6 +11,8 @@ import { AdminCard } from "@/components/admin/ui/admin-card";
 import { AdminContentActions } from "@/components/admin/ui/admin-content-actions";
 import { AdminDataTable, type AdminDataTableColumn } from "@/components/admin/ui/admin-data-table";
 import { AdminStatusBadge, type AdminFeedbackTone } from "@/components/admin/ui/admin-feedback";
+import { AdminRowTitle } from "@/components/admin/ui/admin-row-title";
+import { DataTransferActions } from "@/components/admin/data-transfer-actions";
 import { AdminFilterBar, type AdminFilterChip } from "@/components/admin/ui/admin-filter-bar";
 import { AdminFilterTabs } from "@/components/admin/ui/admin-filter-tabs";
 import { AdminListHeader } from "@/components/admin/ui/admin-list-header";
@@ -46,7 +48,7 @@ function CreateOfferingButton({ type }: { type: OfferingTypeFilter }) {
   if (!can("offerings.create")) return null;
   if (type !== "all") return <AdminButton href={`${typeInfo[type].editorHref}/moi`} leadingIcon={<Plus aria-hidden="true" size={16} />}>Tạo {typeInfo[type].label.toLocaleLowerCase("vi")}</AdminButton>;
   return <AdminPopover className="admin-create-menu" label="Chọn loại cần tạo" trigger={<span className="admin-button admin-button--primary"><Plus aria-hidden="true" size={16} />Tạo mới<ChevronDown aria-hidden="true" size={14} /></span>}>
-    <div className="admin-header-popover admin-header-popover--menu">{offeringTypes.map((entry) => <Link href={`${entry.editorHref}/moi`} key={entry.type}><strong>{entry.label}</strong><small>{entry.hint}</small></Link>)}</div>
+    <div className="admin-header-popover admin-header-popover--menu">{offeringTypes.map((entry) => <Link href={`${entry.editorHref}/new`} key={entry.type}><strong>{entry.label}</strong><small>{entry.hint}</small></Link>)}</div>
   </AdminPopover>;
 }
 
@@ -57,7 +59,7 @@ export function OfferingManagerList({ initialQuery, initialStatus, initialType, 
   const [isColumnSettingsOpen, setIsColumnSettingsOpen] = useState(false);
   const noun = initialType === "all" ? "mục" : typeInfo[initialType].label.toLocaleLowerCase("vi");
   const columns = useMemo<AdminDataTableColumn<AdminOfferingListItem>[]>(() => [
-    { id: "title", label: "Tên", defaultWidth: 300, minWidth: 200, sortKey: "title", cell: (item) => <Link href={`${typeInfo[item.type].editorHref}/${item.id}`}>{item.title}</Link> },
+    { id: "title", label: "Tên", defaultWidth: 300, minWidth: 200, sortKey: "title", cell: (item) => <AdminRowTitle href={`${typeInfo[item.type].editorHref}/${item.id}`} imageUrl={item.coverUrl} title={item.title} /> },
     ...(initialType === "all" ? [{ id: "type", label: "Loại", defaultWidth: 120, minWidth: 100, cell: (item: AdminOfferingListItem) => <span>{typeInfo[item.type].label}</span> }] : []),
     { id: "slug", label: "Slug", defaultWidth: 180, minWidth: 140, cell: (item) => <span className="admin-text-muted">{item.slug}</span> },
     { id: "status", label: "Trạng thái", defaultWidth: 150, minWidth: 130, sortKey: "status", cell: (item) => <AdminStatusBadge tone={statusTones[item.status]}>{statusLabels[item.status]}</AdminStatusBadge> },
@@ -78,7 +80,8 @@ export function OfferingManagerList({ initialQuery, initialStatus, initialType, 
 
   return <AdminListPage variant="dense">
     <AdminCard>
-      <AdminListHeader actions={<CreateOfferingButton type={initialType} />} description={`${result.total} ${noun}${filtered ? " khớp bộ lọc" : ""}`} title="Sản phẩm & Dịch vụ" />
+      {/* Xuất/nhập theo từng loại (slug chỉ duy nhất trong một loại); tab "Tất cả" chọn loại trước. */}
+      <AdminListHeader actions={<>{initialType === "all" ? null : <DataTransferActions dataset={`offerings-${initialType}`} key={initialType} label={typeInfo[initialType].label} module="offerings" />}<CreateOfferingButton type={initialType} /></>} description={`${result.total} ${noun}${filtered ? " khớp bộ lọc" : ""}`} title="Sản phẩm & Dịch vụ" />
       <AdminFilterTabs<OfferingTypeFilter> restoreNavigationFocus ariaLabel="Loại nội dung" items={[{ label: "Tất cả", value: "all" }, ...offeringTypes.map((entry) => ({ label: entry.label, value: entry.type }))]} onValueChange={(value) => { clear(); setFilter("type", value === "all" ? undefined : value); }} value={initialType} />
       <AdminFilterBar onSubmit={submitSearch} chips={chips} onClearAll={() => { setQuery(""); navigate({ page: undefined, query: undefined, status: undefined }); }} search={<AdminSearchField id="offering-search" label={`Tìm kiếm ${noun}`} onChange={(event) => setQuery(event.target.value)} placeholder="Tìm theo tên hoặc slug" value={query} />}><label className="sr-only" htmlFor="offering-status">Lọc theo trạng thái</label><select id="offering-status" onChange={(event) => setFilter("status", event.target.value === "all" ? undefined : event.target.value)} value={initialStatus}><option value="all">Tất cả trạng thái</option><option value="draft">Bản nháp</option><option value="review">Chờ duyệt</option><option value="scheduled">Hẹn giờ</option><option value="published">Đã xuất bản</option><option value="archived">Lưu trữ</option></select></AdminFilterBar>
       <ContentBulkBar items={result.items} module="offerings" noun={noun} onClear={clear} request={(item, action) => ({ method: "PATCH", url: `/api/admin/offerings/${item.id}?type=${item.type}`, body: { action, expectedVersion: item.draftVersion } })} selectedIds={selectedIds} />

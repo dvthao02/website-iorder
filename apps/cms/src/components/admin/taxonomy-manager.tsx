@@ -13,6 +13,7 @@ import { useAdminConfirm } from "./ui/admin-confirm-dialog";
 import { useAdminToast } from "./ui/admin-feedback";
 import { AdminFilterTabs } from "./ui/admin-filter-tabs";
 import { AdminListHeader } from "./ui/admin-list-header";
+import { DataTransferActions } from "./data-transfer-actions";
 import { AdminListPage } from "./ui/admin-list-page";
 import { useNavigationGuard } from "./ui/use-navigation-guard";
 
@@ -209,7 +210,7 @@ export function TaxonomyManager({ categories, tags }: { categories: Category[]; 
   return (
     <AdminListPage>
       <AdminCard>
-          <AdminListHeader actions={<AdminButton hideWithoutPermission permission="taxonomy.create" leadingIcon={<Plus aria-hidden="true" size={16} />} onClick={() => (kind === "categories" ? selectCategory() : selectTag())}>{kind === "categories" ? "Thêm chuyên mục" : "Thêm thẻ"}</AdminButton>} description={`${categories.length} chuyên mục · ${tags.length} thẻ`} title="Chuyên mục & Thẻ" />
+          <AdminListHeader actions={<><DataTransferActions dataset={kind} key={kind} label={kind === "categories" ? "Chuyên mục" : "Thẻ"} module="taxonomy" /><AdminButton hideWithoutPermission permission="taxonomy.create" leadingIcon={<Plus aria-hidden="true" size={16} />} onClick={() => (kind === "categories" ? selectCategory() : selectTag())}>{kind === "categories" ? "Thêm chuyên mục" : "Thêm thẻ"}</AdminButton></>} description={`${categories.length} chuyên mục · ${tags.length} thẻ`} title="Chuyên mục & Thẻ" />
           <AdminFilterTabs ariaLabel="Loại phân loại" disabled={busy} items={[{ label: `Chuyên mục (${categories.length})`, value: "categories" }, { label: `Thẻ (${tags.length})`, value: "tags" }]} onValueChange={changeKind} value={kind} />
 
         <div className="admin-select-list">

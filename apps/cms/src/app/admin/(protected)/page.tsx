@@ -84,13 +84,14 @@ export default async function AdministratorHomePage() {
     <div className="admin-dashboard__layout">
       <div className="admin-dashboard__primary">
         {/* Người không có quyền xem thống kê không thấy khối này (trước đây hiện nhầm "chưa kết nối"). */}
-        {canViewAnalytics ? <>
+        {/* Chưa kết nối/lỗi: một dòng báo gọn thay cho 4 ô "—" và khung biểu đồ rỗng chiếm nửa màn hình. */}
+        {canViewAnalytics ? analytics.connection === "connected" ? <>
           <AnalyticsMetricTiles overview={analytics} />
           <section aria-label="Dữ liệu truy cập" className="admin-dashboard__analytics-grid">
             <AdminCard><header><h2>Lượt xem trang</h2><Link href="/admin/analytics">Xem thống kê</Link></header><AnalyticsTrafficPanel overview={analytics} /></AdminCard>
-            {analytics.connection === "connected" ? <AdminCard><header><h2>Trang xem nhiều nhất</h2></header><TopPagesList pages={analytics.topPages.slice(0, 5)} /></AdminCard> : null}
+            <AdminCard><header><h2>Trang xem nhiều nhất</h2></header><TopPagesList pages={analytics.topPages.slice(0, 5)} /></AdminCard>
           </section>
-        </> : null}
+        </> : <AdminCard className="admin-dashboard__analytics-off"><AnalyticsTrafficPanel overview={analytics} /></AdminCard> : null}
         <AdminCard><header><h2>Nội dung</h2></header><div className="admin-dashboard__counts">{contentSummary.map((item) => <Link href={item.href} key={item.label}><span>{item.label}</span><strong>{item.value}</strong><small>{item.detail}</small></Link>)}</div></AdminCard>
         <AdminCard className="admin-dashboard__recent"><header><h2>Cập nhật gần đây</h2>{can("pages.create") ? <AdminButton href="/admin/pages/new" leadingIcon={<Plus aria-hidden="true" />} size="sm" variant="secondary">Tạo mới</AdminButton> : null}</header><DashboardRecentTable items={contentForRecent} /></AdminCard>
       </div>

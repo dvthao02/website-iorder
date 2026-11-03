@@ -66,8 +66,9 @@ test("Tài khoản giới hạn chỉ thấy đúng thao tác được phép", a
 
   // posts.update đủ để sửa trang danh sách /tin-tuc (quyền theo module sở hữu).
   await page.goto("/admin/news");
-  await page.getByRole("link", { name: "Sửa phần đầu trang & SEO" }).click();
-  await expect(page).toHaveURL(/\/admin\/trang\/[0-9a-f-]{36}$/);
+  await page.locator('summary[aria-label="Trang danh sách trên website"]').click();
+  await page.getByRole("link", { name: /^Sửa phần đầu trang & SEO/ }).click();
+  await expect(page).toHaveURL(/\/admin\/pages\/[0-9a-f-]{36}$/);
   await expect(page.getByRole("button", { name: "Lưu thay đổi" })).toBeAttached();
   await expect(page.getByRole("button", { name: "Lưu thay đổi" })).not.toHaveAttribute("title", /không có quyền/);
 });

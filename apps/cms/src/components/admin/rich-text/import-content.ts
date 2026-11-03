@@ -129,7 +129,8 @@ export async function importFile(file: File, uploadImage: UploadImage): Promise<
   if (file.size > 30 * 1024 * 1024) throw new Error("File quá lớn (tối đa 30 MB).");
   if (name.endsWith(".docx")) {
     const mammoth = await import("mammoth");
-    const result = await mammoth.convertToHtml({ arrayBuffer: await file.arrayBuffer() });
+    // Trích dẫn trong Word (style "Quote", gồm file CMS xuất ra) thành khối trích dẫn thay vì đoạn thường.
+    const result = await mammoth.convertToHtml({ arrayBuffer: await file.arrayBuffer() }, { styleMap: ["p[style-name='Quote'] => blockquote > p:fresh", "p[style-name='Intense Quote'] => blockquote > p:fresh"] });
     const normalized = await normalizeImportedHtml(result.value, uploadImage);
     const lost = result.messages.filter((message) => message.type === "warning").length;
     return { ...normalized, warnings: [...normalized.warnings, ...(lost ? [`Một số định dạng đặc biệt trong file Word (${lost}) không chuyển được và đã được bỏ qua.`] : [])] };

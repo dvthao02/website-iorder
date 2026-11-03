@@ -295,6 +295,14 @@
   .admin-header-popover--menu strong { font-size: var(--cms-text-sm); font-weight: 500; }
   .admin-header-popover--menu > .admin-header-popover__item { display: grid; gap: 1px; padding: 8px 10px; }
   .admin-header-popover--menu small { color: var(--cms-muted); font-size: var(--cms-text-xs); }
+  /* Menu Nhập / Xuất: mục là liên kết tải file hoặc nút mở khung nhập. */
+  .admin-transfer-menu { width: 300px; }
+  .admin-transfer-menu__item { display: grid; gap: 1px; width: 100%; border: 0; border-radius: var(--cms-radius-component); background: transparent; padding: 8px 10px; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+  .admin-transfer-menu__item:hover, .admin-transfer-menu__item:focus-visible { background: var(--cms-hover); }
+  .admin-transfer-menu strong { display: flex; align-items: center; gap: 6px; }
+  /* Điện thoại: nút trên thanh tiêu đề có thể nằm bất kỳ đâu sau khi xuống dòng, nên menu (Tạo mới, Nhập / Xuất)
+     trải theo bề ngang màn hình, ngay dưới nút (top: auto = vị trí tĩnh sau <summary>). */
+  @media (max-width: 680px) { .admin-page-bar__actions .admin-header-popover { position: fixed; top: auto; left: 12px; right: 12px; width: auto; margin-top: 6px; } }
   .admin-header-popover--notifications > header { display: flex; align-items: center; justify-content: space-between; gap: 8px; border-bottom: 1px solid var(--cms-border); padding: 10px 12px; }
   .admin-header-popover--notifications > header strong { font-size: var(--cms-text-sm); font-weight: 600; }
   .admin-header-popover--notifications > header a { color: var(--cms-primary); font-size: var(--cms-text-xs); }

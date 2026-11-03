@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { Plus, Tags } from "lucide-react";
 
@@ -11,6 +10,8 @@ import { AdminCard } from "@/components/admin/ui/admin-card";
 import { AdminContentActions } from "@/components/admin/ui/admin-content-actions";
 import { AdminDataTable, type AdminDataTableColumn } from "@/components/admin/ui/admin-data-table";
 import { AdminStatusBadge, type AdminFeedbackTone } from "@/components/admin/ui/admin-feedback";
+import { AdminRowTitle } from "@/components/admin/ui/admin-row-title";
+import { DataTransferActions } from "@/components/admin/data-transfer-actions";
 import { AdminFilterBar, type AdminFilterChip } from "@/components/admin/ui/admin-filter-bar";
 import { AdminListHeader } from "@/components/admin/ui/admin-list-header";
 import { AdminListPage } from "@/components/admin/ui/admin-list-page";
@@ -50,7 +51,7 @@ export function PostManagerList({ baseHref = "/admin/news", createHref = `${base
   const [query, setQuery] = useState(initialQuery);
   const { selectedIds, setSelectedIds, clear } = useRowSelection(searchParams.toString());
   const columns = useMemo<AdminDataTableColumn<AdminPostListItem>[]>(() => [
-    { id: "title", label: "Tiêu đề", defaultWidth: 300, minWidth: 210, sortKey: "title", cell: (item) => <Link href={`${baseHref}/${item.id}`}>{item.title}</Link> },
+    { id: "title", label: "Tiêu đề", defaultWidth: 300, minWidth: 210, sortKey: "title", cell: (item) => <AdminRowTitle href={`${baseHref}/${item.id}`} imageUrl={item.coverUrl} title={item.title} /> },
     { id: "type", label: "Loại", defaultWidth: 170, minWidth: 130, sortKey: "type", cell: (item) => <span className="admin-text-muted">{postTypeLabels[item.type]}</span> },
     { id: "status", label: "Trạng thái", defaultWidth: 150, minWidth: 130, sortKey: "status", cell: (item) => <AdminStatusBadge tone={statusTones[item.status]}>{statusLabels[item.status]}</AdminStatusBadge> },
     { id: "updatedAt", label: "Cập nhật", defaultWidth: 160, minWidth: 140, sortKey: "updatedAt", sortFirst: "desc", cell: (item) => <span className="admin-text-muted">{dateFormatter.format(new Date(item.updatedAt))}</span> },
@@ -74,9 +75,11 @@ export function PostManagerList({ baseHref = "/admin/news", createHref = `${base
   ];
   const filtered = chips.length > 0;
 
+  // Cùng component cho Bài viết và Hướng dẫn: bảng xuất/nhập theo màn đang mở.
+  const transferKind = baseHref.startsWith("/admin/guides") ? "guides" : "posts";
   return <AdminListPage variant="dense">
     <AdminCard>
-      <AdminListHeader actions={<>{showTaxonomyLink ? <AdminButton hideWithoutPermission permission="taxonomy.view" href="/admin/taxonomy" leadingIcon={<Tags aria-hidden="true" size={16} />} variant="secondary">Chuyên mục &amp; Thẻ</AdminButton> : null}<AdminButton hideWithoutPermission permission="posts.create" href={createHref} leadingIcon={<Plus aria-hidden="true" size={16} />}>Viết {singularLabel} mới</AdminButton></>} description={`${result.total} ${singularLabel}${filtered ? " khớp bộ lọc" : ""}`} title={title} />
+      <AdminListHeader actions={<><DataTransferActions dataset={transferKind} label={transferKind === "guides" ? "Hướng dẫn" : "Bài viết"} module="posts" word={transferKind} />{showTaxonomyLink ? <AdminButton hideWithoutPermission permission="taxonomy.view" href="/admin/taxonomy" leadingIcon={<Tags aria-hidden="true" size={16} />} variant="secondary">Chuyên mục &amp; Thẻ</AdminButton> : null}<AdminButton hideWithoutPermission permission="posts.create" href={createHref} leadingIcon={<Plus aria-hidden="true" size={16} />}>{singularLabel === "bài viết" ? "Viết bài" : `Viết ${singularLabel}`}</AdminButton></>} description={`${result.total} ${singularLabel}${filtered ? " khớp bộ lọc" : ""}`} title={title} />
       {tabs}
       <AdminFilterBar chips={chips} more={typeOptions.length > 1 || tags.length ? <>
         {typeOptions.length > 1 ? <select aria-label="Lọc loại bài" onChange={(event) => setFilter("type", event.target.value || undefined)} value={typeFilter}><option value="">Tất cả loại</option>{typeOptions.map((type) => <option key={type} value={type}>{postTypeLabels[type]}</option>)}</select> : null}

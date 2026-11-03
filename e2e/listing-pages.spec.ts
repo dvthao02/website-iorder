@@ -10,10 +10,12 @@ test.describe("Trang danh sách là Trang website", () => {
     await expect(navigation.getByRole("link", { name: /Tiêu đề trang/ })).toHaveCount(0);
 
     await page.goto("/admin/news");
-    const shortcut = page.getByRole("complementary", { name: "Trang danh sách trên website" });
+    // Lối tắt là nút menu "Trang /tin-tuc ▾" trên thanh tiêu đề.
+    const shortcut = page.locator('summary[aria-label="Trang danh sách trên website"]');
     await expect(shortcut).toContainText("/tin-tuc");
-    await shortcut.getByRole("link", { name: "Sửa phần đầu trang & SEO" }).click();
-    await expect(page).toHaveURL(/\/admin\/trang\/[0-9a-f-]{36}$/);
+    await shortcut.click();
+    await page.getByRole("link", { name: /^Sửa phần đầu trang & SEO/ }).click();
+    await expect(page).toHaveURL(/\/admin\/pages\/[0-9a-f-]{36}$/);
     await expect(page.getByText("Trang danh sách", { exact: true }).first()).toBeVisible();
   });
 
@@ -22,8 +24,9 @@ test.describe("Trang danh sách là Trang website", () => {
     // của Data Cache, lượt đầu sau hạn còn trả bản cũ (stale-while-revalidate) nên cho tới ~2 phút.
     test.setTimeout(180_000);
     await page.goto("/admin/news");
-    await page.getByRole("complementary", { name: "Trang danh sách trên website" }).getByRole("link", { name: "Sửa phần đầu trang & SEO" }).click();
-    await expect(page).toHaveURL(/\/admin\/trang\/[0-9a-f-]{36}$/);
+    await page.locator('summary[aria-label="Trang danh sách trên website"]').click();
+    await page.getByRole("link", { name: /^Sửa phần đầu trang & SEO/ }).click();
+    await expect(page).toHaveURL(/\/admin\/pages\/[0-9a-f-]{36}$/);
 
     const heroTitle = page.getByLabel("Tiêu đề", { exact: true }).first();
     const original = await heroTitle.inputValue();
