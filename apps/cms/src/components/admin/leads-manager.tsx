@@ -1,7 +1,7 @@
 "use client";
 
 import { adminApiError, readAdminJson } from "@/lib/admin-api";
-import { FileSpreadsheet, FileText, Mail, Phone } from "lucide-react";
+import { FileSpreadsheet, Mail, Phone } from "lucide-react";
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { LeadListQuery } from "@iorder/core/server/leads/leads.contract";
@@ -128,8 +128,8 @@ export function LeadsManager({ initialPage, initialQuery }: { initialPage: ListR
   return <AdminListPage variant="dense">
     <AdminCard>
       <AdminListHeader actions={counts.all ? <>
-        <a className="admin-button admin-button--secondary" download href={`/api/admin/leads/export?${exportParams("xlsx")}`} title="Tải Excel theo bộ lọc đang xem"><FileSpreadsheet aria-hidden="true" size={16} />Xuất Excel</a>
-        <a className="admin-button admin-button--ghost" download href={`/api/admin/leads/export?${exportParams("csv")}`} title="Tải CSV theo bộ lọc đang xem"><FileText aria-hidden="true" size={16} />CSV</a>
+        <a className="admin-button admin-button--export admin-file-tone--excel" download href={`/api/admin/leads/export?${exportParams("xlsx")}`} title="Tải Excel theo bộ lọc đang xem"><FileSpreadsheet aria-hidden="true" size={16} />Xuất Excel</a>
+        <a className="admin-button admin-button--ghost admin-file-tone--csv" download href={`/api/admin/leads/export?${exportParams("csv")}`} title="Tải CSV theo bộ lọc đang xem"><FileSpreadsheet aria-hidden="true" size={16} />CSV</a>
       </> : undefined} description={loading ? "Đang tải danh sách liên hệ…" : `${initialPage.total} liên hệ${filtered ? " khớp bộ lọc" : ""} · ${counts.new} mới cần xử lý`} title="Khách hàng tiềm năng" />
       <AdminFilterTabs ariaLabel="Lọc liên hệ" disabled={loading || busy.size > 0} items={filterItems} onValueChange={value => navigate(value)} value={filter} />
       <AdminFilterBar chips={chips} onClearAll={() => { setSearch(""); navigate(filter, 1, "", { from: undefined, to: undefined }); }} onSubmit={(event) => { event.preventDefault(); navigate(filter, 1, search.trim()); }} search={<AdminSearchField disabled={loading || busy.size > 0} label="Tìm liên hệ" onChange={event => setSearch(event.target.value)} placeholder="Tên, điện thoại, email hoặc nhu cầu" value={search} />}>

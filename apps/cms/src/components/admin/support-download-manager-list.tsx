@@ -12,6 +12,7 @@ import type { MediaAsset } from "@iorder/core/server/media/media.contract";
 import { MediaPicker } from "./media-picker";
 import { RevisionHistory } from "./revision-history";
 import { AdminButton } from "./ui/admin-button";
+import { AdminFileIcon, fileKindOf } from "./ui/admin-file-icon";
 import { AdminEmptyState } from "./ui/admin-empty-state";
 import { AdminNotice, AdminStatusBadge, useAdminToast, type AdminFeedbackTone } from "./ui/admin-feedback";
 import { AdminCard } from "./ui/admin-card";
@@ -279,7 +280,7 @@ export function SupportDownloadManagerList({
   // Bảng giống các danh sách khác: bấm dòng hoặc nút bút để mở panel sửa; tệp đang hiển thị tải được ngay.
   const columns: AdminDataTableColumn<AdminSupportDownload>[] = [
     { id: "title", label: "Tài nguyên", defaultWidth: 300, minWidth: 200, sortValue: (item) => item.title, cell: (item) => <span className="grid min-w-0"><strong className="truncate">{item.title}</strong><small className="admin-text-muted truncate">{item.meta ?? item.description ?? ""}</small></span> },
-    { id: "file", label: "Tệp", defaultWidth: 200, minWidth: 140, sortValue: (item) => item.originalName ?? "", cell: (item) => <span className="admin-text-muted">{item.originalName ?? "Chưa chọn tệp"}</span> },
+    { id: "file", label: "Tệp", defaultWidth: 200, minWidth: 140, sortValue: (item) => item.originalName ?? "", cell: (item) => item.originalName ? <span className="admin-file-name"><AdminFileIcon kind={fileKindOf(item.originalName)} size="sm" /><span className="truncate">{item.originalName}</span></span> : <span className="admin-text-muted">Chưa chọn tệp</span> },
     { id: "status", label: "Trạng thái", defaultWidth: 140, minWidth: 120, sortValue: (item) => item.status, cell: (item) => <AdminStatusBadge tone={statusTone[item.status]}>{statusLabel[item.status]}</AdminStatusBadge> },
     { id: "sortOrder", label: "Thứ tự", defaultWidth: 100, minWidth: 90, align: "right", sortValue: (item) => item.sortOrder, cell: (item) => <span className="admin-text-muted">{item.sortOrder}</span> },
     { id: "actions", label: "Thao tác", defaultWidth: 96, minWidth: 96, align: "right", cell: (item) => <span className="admin-content-actions">

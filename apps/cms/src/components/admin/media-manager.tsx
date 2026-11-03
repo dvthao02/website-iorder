@@ -2,7 +2,7 @@
 
 import { adminApiError, readAdminJson } from "@/lib/admin-api";
 import { publishedPublicUrl } from "@/lib/published-public-url";
-import { ChevronLeft, ChevronRight, Copy, ExternalLink, FileArchive, FileText, ImageIcon, LayoutGrid, List, Paperclip, Trash2, UploadCloud } from "lucide-react";
+import { ChevronLeft, ChevronRight, Copy, ExternalLink, ImageIcon, LayoutGrid, List, Paperclip, Trash2, UploadCloud } from "lucide-react";
 import Image from "next/image";
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type DragEvent, type FormEvent } from "react";
 
@@ -11,6 +11,7 @@ import { mediaAssetSchema, mediaListResponseSchema, mediaUsageSchema } from "@io
 
 import { AdminBulkBar } from "./ui/admin-bulk-bar";
 import { AdminButton } from "./ui/admin-button";
+import { AdminFileIcon, fileKindOf } from "./ui/admin-file-icon";
 import { useRowSelection } from "./ui/content-bulk-bar";
 import { AdminCard } from "./ui/admin-card";
 import { AdminDataTable, type AdminDataTableColumn } from "./ui/admin-data-table";
@@ -311,7 +312,7 @@ export function MediaManager({ initialPage, initialQuery }: { initialPage: { ass
 function Thumb({ asset, size }: { asset: MediaAsset; size: number }) {
   return <span className="admin-media-thumb" style={size <= 48 ? { width: size, height: size } : undefined}>
     {/* contain: logo và ảnh tách nền hiện trọn vẹn, không bị xén như cover. */}
-    {isImage(asset) ? <Image alt="" className="object-contain p-1" fill sizes={`${size}px`} src={asset.url} /> : asset.mimeType === "application/zip" ? <FileArchive aria-hidden="true" size={size <= 48 ? 18 : 30} /> : <FileText aria-hidden="true" size={size <= 48 ? 18 : 30} />}
+    {isImage(asset) ? <Image alt="" className="object-contain p-1" fill sizes={`${size}px`} src={asset.url} /> : <AdminFileIcon kind={fileKindOf(asset.mimeType)} size={size <= 48 ? "md" : "lg"} />}
   </span>;
 }
 
@@ -411,7 +412,7 @@ function MediaDetail({ asset, navigation, onDeleted, onSaved, onStateChange }: {
       <AdminButton disabled={navigation.index >= navigation.total - 1} onClick={() => navigation.onStep(1)} size="sm" title="Tệp sau (phím →)" variant="ghost">Sau<ChevronRight aria-hidden="true" size={16} /></AdminButton>
     </nav> : null}
     <div className="admin-media-detail__preview">
-      {isImage(asset) ? <Image alt={asset.altText || asset.originalName} className="object-contain" fill onLoad={(event) => setDimensions({ width: event.currentTarget.naturalWidth, height: event.currentTarget.naturalHeight })} sizes="440px" src={asset.url} unoptimized /> : <span className="admin-media-detail__file">{asset.mimeType === "application/zip" ? <FileArchive aria-hidden="true" size={40} /> : <FileText aria-hidden="true" size={40} />}</span>}
+      {isImage(asset) ? <Image alt={asset.altText || asset.originalName} className="object-contain" fill onLoad={(event) => setDimensions({ width: event.currentTarget.naturalWidth, height: event.currentTarget.naturalHeight })} sizes="440px" src={asset.url} unoptimized /> : <AdminFileIcon kind={fileKindOf(asset.mimeType)} size="lg" />}
     </div>
     <header className="admin-media-detail__head">
       <h2 title={asset.originalName}>{asset.originalName}</h2>

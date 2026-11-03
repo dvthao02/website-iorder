@@ -1,12 +1,13 @@
 "use client";
 
 import { adminApiError, readAdminJson } from "@/lib/admin-api";
-import { FileArchive, FileText, FolderOpen, LoaderCircle, Upload, ZoomIn } from "lucide-react";
+import { FolderOpen, LoaderCircle, Upload, ZoomIn } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useRef, useState, type DragEvent, type PointerEvent } from "react";
 
 import type { MediaAsset, MediaUsage } from "@iorder/core/server/media/media.contract";
 import { mediaAssetSchema, mediaListResponseSchema, mediaUsageSchema } from "@iorder/core/server/media/media.contract";
+import { AdminFileIcon, fileKindOf } from "./ui/admin-file-icon";
 import { AdminImageLightbox } from "./ui/admin-image-lightbox";
 import { mergeMediaAssets } from "./ui/merge-media-assets";
 import { isSelectableMediaType } from "./ui/media-selection-policy";
@@ -209,7 +210,7 @@ export function MediaPicker({ disabled = false, value, onChange, files = false, 
       {isUploading ? <LoaderCircle aria-hidden="true" className="animate-spin" size={20} /> : <Upload aria-hidden="true" size={20} />}
       <span><strong>{isUploading ? "Đang tải tệp lên…" : dragging ? "Thả tệp để tải lên" : files ? "Kéo tệp vào đây hoặc bấm để chọn" : "Kéo ảnh vào đây hoặc bấm để chọn"}</strong><small>{files ? "Tệp mới sẽ được gắn và lưu ngay vào tài nguyên này." : hint ? formats : "Tải trực tiếp từ máy tính của bạn."}</small></span>
     </button>}
-    {selected && !showPreview ? <div className="media-picker__file"><span className="media-picker__file-icon">{thumbnail ?? (selected.mimeType === "application/zip" ? <FileArchive aria-hidden="true" size={20} /> : <FileText aria-hidden="true" size={20} />)}</span><span><strong>{selected.originalName}</strong><small>{selected.mimeType === "application/pdf" ? "Tài liệu PDF" : selected.mimeType === "application/zip" ? "Tệp ZIP" : selected.mimeType.startsWith("image/") ? "Ảnh đã chọn" : "Tệp đã chọn"}</small></span><a href={selected.url} rel="noreferrer" target="_blank">Mở tệp</a></div> : null}
+    {selected && !showPreview ? <div className="media-picker__file"><span className="media-picker__file-icon">{thumbnail ?? <AdminFileIcon kind={fileKindOf(selected.mimeType)} />}</span><span><strong>{selected.originalName}</strong><small>{selected.mimeType === "application/pdf" ? "Tài liệu PDF" : selected.mimeType === "application/zip" ? "Tệp ZIP" : selected.mimeType.startsWith("image/") ? "Ảnh đã chọn" : "Tệp đã chọn"}</small></span><a href={selected.url} rel="noreferrer" target="_blank">Mở tệp</a></div> : null}
     <div className="media-picker__library">{showPreview ? <button disabled={disabled || isUploading} onClick={() => inputRef.current?.click()} type="button"><Upload aria-hidden="true" size={16} />{isUploading ? "Đang tải…" : "Tải ảnh khác"}</button> : null}<button aria-expanded={isLibraryOpen} disabled={disabled || isUploading} onClick={() => { setLoaded(false); setLibraryError(""); setIsLibraryOpen((current) => !current); }} type="button"><FolderOpen aria-hidden="true" size={16} />{isLibraryOpen ? "Đóng thư viện" : "Chọn từ thư viện"}</button>{value ? <button disabled={disabled || isUploading} onClick={() => onChange(null)} type="button">{showPreview ? "Bỏ ảnh" : "Bỏ chọn"}</button> : null}</div>
     {isLibraryOpen ? <div className="grid gap-3">
       <label>{files ? "Tìm tệp" : "Tìm ảnh"}<input className="admin-input" disabled={disabled || isUploading} maxLength={160} onChange={event => setSearchDraft(event.target.value)} onKeyDown={event => { if (event.key === "Enter") event.preventDefault(); }} placeholder="Tên tệp, mô tả hoặc chú thích…" value={searchDraft} /></label>

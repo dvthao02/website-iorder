@@ -72,6 +72,13 @@
   .admin-button--ghost { background: transparent; color: var(--cms-text); }
   .admin-button--ghost:hover { background: var(--cms-hover); }
   .admin-button--sm { height: var(--cms-control-height-sm); gap: 4px; padding: 0 8px; font-size: var(--cms-text-xs); }
+  /* Nút tải/nhập một định dạng tệp: nền nhạt theo màu loại tệp (kèm admin-file-tone--<loại>). */
+  .admin-button--export { border-color: color-mix(in srgb, var(--admin-file) 32%, var(--cms-border)); background: var(--admin-file-soft); color: var(--admin-file); }
+  .admin-button--export:hover { border-color: color-mix(in srgb, var(--admin-file) 55%, var(--cms-border)); background: color-mix(in srgb, var(--admin-file-soft), var(--admin-file) 10%); }
+  /* Nút thường có tông loại tệp: chỉ tô biểu tượng. */
+  .admin-button--secondary[class*="admin-file-tone--"] svg,
+  .admin-button--ghost[class*="admin-file-tone--"] svg,
+  .admin-link[class*="admin-file-tone--"] svg { color: var(--admin-file); }
   .admin-button:disabled,
   .admin-button--disabled { cursor: not-allowed; opacity: 0.5; pointer-events: none; }
   .admin-icon-button:disabled { cursor: wait; opacity: 0.6; }
@@ -289,7 +296,6 @@
   .admin-media-row__alt { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .admin-media-detail { display: grid; gap: 14px; padding: 20px; }
   .admin-media-detail__preview { position: relative; display: grid; height: 260px; place-items: center; overflow: hidden; margin-right: 32px; border: 1px solid var(--cms-border); border-radius: var(--cms-radius-card); background: var(--cms-subtle) repeating-conic-gradient(var(--cms-hover) 0 25%, transparent 0 50%) 0 0 / 16px 16px; }
-  .admin-media-detail__file { color: var(--cms-muted); }
   .admin-media-detail__head { display: grid; gap: 2px; }
   .admin-media-detail__head h2 { overflow: hidden; font-size: 16px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
   .admin-media-detail__links { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 4px; font-size: var(--cms-text-sm); }
@@ -422,7 +428,11 @@
   .admin-content-actions__button svg { width: 15px; height: 15px; }
   .admin-content-actions__button:hover:not(:disabled),
   .admin-content-actions__button:focus-visible { background: var(--cms-hover); color: var(--cms-text); }
-  .admin-content-actions__delete:hover:not(:disabled) { background: var(--cms-status-error-background); color: var(--cms-status-error-text); }
+  /* Màu khi rê chuột theo loại thao tác (dùng chung mọi bảng): sửa = màu chính, lưu trữ = cảnh báo, khôi phục = thành công, xóa = lỗi; xem/tải giữ trung tính. */
+  .admin-content-actions__edit:hover:not(:disabled), .admin-content-actions__edit:focus-visible { background: var(--cms-primary-soft); color: var(--cms-primary); }
+  .admin-content-actions__archive:hover:not(:disabled), .admin-content-actions__archive:focus-visible { background: var(--cms-status-warning-background); color: var(--cms-status-warning-text); }
+  .admin-content-actions__restore:hover:not(:disabled), .admin-content-actions__restore:focus-visible { background: var(--cms-status-success-background); color: var(--cms-status-success-text); }
+  .admin-content-actions__delete:hover:not(:disabled), .admin-content-actions__delete:focus-visible { background: var(--cms-status-error-background); color: var(--cms-status-error-text); }
   .admin-content-actions__button:disabled { cursor: wait; opacity: 0.55; }
   .admin-content-actions__spinner { animation: admin-spin 0.8s linear infinite; }
 
@@ -1015,4 +1025,24 @@
   /* Một dòng trong nhóm: biểu tượng · chữ · đường dẫn · nút sắp xếp. */
   .admin-grouped-row { display: grid; grid-template-columns: auto minmax(0, 1.2fr) minmax(0, 1fr) auto; align-items: center; gap: 8px; }
   @media (max-width: 720px) { .admin-grouped-row { grid-template-columns: auto minmax(0, 1fr) auto; } .admin-grouped-row > .admin-grouped-row__href { grid-column: 2 / 3; } }
+
+  /* ---------- Biểu tượng loại tệp (admin-file-icon.tsx) ---------- */
+  .admin-file-tone--excel { --admin-file: var(--cms-file-excel); --admin-file-soft: var(--cms-file-excel-soft); }
+  .admin-file-tone--csv { --admin-file: var(--cms-file-csv); --admin-file-soft: var(--cms-file-csv-soft); }
+  .admin-file-tone--word { --admin-file: var(--cms-file-word); --admin-file-soft: var(--cms-file-word-soft); }
+  .admin-file-tone--pdf { --admin-file: var(--cms-file-pdf); --admin-file-soft: var(--cms-file-pdf-soft); }
+  .admin-file-tone--zip { --admin-file: var(--cms-file-zip); --admin-file-soft: var(--cms-file-zip-soft); }
+  .admin-file-tone--image { --admin-file: var(--cms-file-image); --admin-file-soft: var(--cms-file-image-soft); }
+  .admin-file-tone--text { --admin-file: var(--cms-file-text); --admin-file-soft: var(--cms-file-text-soft); }
+  .admin-file-name { display: inline-flex; min-width: 0; max-width: 100%; align-items: center; gap: 8px; }
+  .admin-file-icon { position: relative; display: inline-grid; flex: none; place-items: center; border-radius: var(--cms-radius-component); background: var(--admin-file-soft); color: var(--admin-file); }
+  .admin-file-icon--sm { width: 24px; height: 24px; }
+  .admin-file-icon--sm > svg { width: 14px; height: 14px; }
+  .admin-file-icon--md { width: 32px; height: 32px; }
+  .admin-file-icon--md > svg { width: 18px; height: 18px; }
+  .admin-file-icon--lg { width: 56px; height: 56px; border-radius: var(--cms-radius-card); }
+  .admin-file-icon--lg > svg { width: 28px; height: 28px; }
+  /* Mũi tên góc: xuống = xuất/tải về, lên = nhập/tải lên. */
+  .admin-file-icon__action { position: absolute; right: -4px; bottom: -4px; display: grid; width: 14px; height: 14px; place-items: center; border: 2px solid var(--cms-card); border-radius: 999px; background: var(--admin-file); color: var(--cms-card); }
+  .admin-file-icon__action svg { width: 8px; height: 8px; stroke-width: 3.5; }
 }

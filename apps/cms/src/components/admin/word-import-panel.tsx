@@ -3,13 +3,13 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
-import { FileText } from "lucide-react";
 
 import { adminPostInputSchema, type AdminPostInput } from "@iorder/core/server/posts/posts.contract";
 import type { RichDocument } from "@iorder/core/server/shared/rich-text";
 import { adminApiError, readAdminJson } from "@/lib/admin-api";
 import { toSlug } from "@/lib/slug";
 import { AdminButton } from "@/components/admin/ui/admin-button";
+import { AdminFileIcon } from "@/components/admin/ui/admin-file-icon";
 import { AdminNotice, AdminStatusBadge, useAdminToast } from "@/components/admin/ui/admin-feedback";
 import { AdminSidePanel } from "@/components/admin/ui/admin-side-panel";
 import { importFile } from "@/components/admin/rich-text/import-content";
@@ -142,7 +142,7 @@ export function WordImportPanel({ kind, onClose }: { kind: "posts" | "guides"; o
         <li>{noun[0].toLocaleUpperCase("vi")}{noun.slice(1)} mới được tạo ở trạng thái <strong>Bản nháp</strong>, chưa hiện trên website. Tiêu đề trùng {noun} đã có thì <strong>chỉ thay nội dung</strong> bài đó (giữ tiêu đề, SEO, ảnh bìa; khôi phục được bằng lịch sử phiên bản).</li>
       </ol>
       {!guides ? <label className="admin-field">Loại cho bài mới<select disabled={Boolean(busy)} onChange={(event) => setType(event.target.value as NewsType)} value={type}>{Object.entries(newsTypes).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label> : null}
-      <label className="admin-import__file"><FileText aria-hidden="true" size={18} /><span>{rows ? `${rows.length} file đã chọn — chọn lại` : "Chọn file Word (.docx)"}</span><input accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" disabled={Boolean(busy)} multiple onChange={(event) => void choose(event)} type="file" /></label>
+      <label className="admin-import__file"><AdminFileIcon action="import" kind="word" /><span>{rows ? `${rows.length} file đã chọn — chọn lại` : "Chọn file Word (.docx)"}</span><input accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" disabled={Boolean(busy)} multiple onChange={(event) => void choose(event)} type="file" /></label>
       {busy ? <AdminNotice tone="info">{busy}</AdminNotice> : null}
       {error ? <AdminNotice tone="error">{error}</AdminNotice> : null}
       {rows ? <ul className="admin-import__rows">{rows.map((row) => <li className={`admin-import__row admin-import__row--${row.error ? "error" : row.existing ? "update" : "create"}`} key={row.file.name + row.file.lastModified}>

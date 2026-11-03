@@ -3,13 +3,14 @@
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent, type MouseEvent } from "react";
-import { ArrowDownUp, ChevronDown, Download, FileSpreadsheet, FileText, Upload } from "lucide-react";
+import { ChevronDown, FileSpreadsheet } from "lucide-react";
 
 import type { CmsModuleKey } from "@iorder/core/server/auth/permissions";
 import { importPlanSchema, importResultSchema, type TransferDatasetId } from "@iorder/core/server/data-transfer/data-transfer.contract";
 import type { ImportPlan, ImportRow } from "@iorder/core/server/data-transfer/transfer";
 import { adminApiError, readAdminJson } from "@/lib/admin-api";
 import { AdminButton } from "@/components/admin/ui/admin-button";
+import { AdminFileIcon, fileKindOf } from "@/components/admin/ui/admin-file-icon";
 import { AdminNotice, AdminStatusBadge, useAdminToast, type AdminFeedbackTone } from "@/components/admin/ui/admin-feedback";
 import { AdminPopover } from "@/components/admin/ui/admin-popover";
 import { AdminSidePanel } from "@/components/admin/ui/admin-side-panel";
@@ -42,13 +43,15 @@ export function DataTransferActions({ dataset, label, module, word }: { dataset:
   // Đóng menu <details> khi chọn một mục.
   const choose = (event: MouseEvent<HTMLElement>, next?: "sheet" | "word") => { event.currentTarget.closest("details")?.removeAttribute("open"); if (next) setPanel(next); };
   return <>
-    <AdminPopover className="admin-create-menu" label={`Nhập hoặc xuất ${noun}`} trigger={<span className="admin-button admin-button--secondary"><ArrowDownUp aria-hidden="true" size={16} />Nhập / Xuất<ChevronDown aria-hidden="true" size={14} /></span>}>
+    <AdminPopover className="admin-create-menu" label={`Nhập hoặc xuất ${noun}`} trigger={<span className="admin-button admin-button--export admin-file-tone--excel"><FileSpreadsheet aria-hidden="true" size={16} />Nhập / Xuất<ChevronDown aria-hidden="true" size={14} /></span>}>
       <div className="admin-header-popover admin-header-popover--menu admin-transfer-menu">
-        <a download href={exportHref("xlsx")} onClick={(event) => choose(event)}><strong><Download aria-hidden="true" size={14} />Xuất Excel (.xlsx)</strong><small>Toàn bộ {noun}; cũng là file mẫu để nhập lại</small></a>
-        <a download href={exportHref("csv")} onClick={(event) => choose(event)}><strong><Download aria-hidden="true" size={14} />Xuất CSV</strong><small>Mở được bằng mọi phần mềm bảng tính</small></a>
-        {word ? <a download href={exportHref("word")} onClick={(event) => choose(event)}><strong><FileText aria-hidden="true" size={14} />Xuất Word (.zip)</strong><small>Mỗi bài một file .docx, giữ định dạng và ảnh</small></a> : null}
-        {canImport ? <button className="admin-transfer-menu__item" onClick={(event) => choose(event, "sheet")} type="button"><strong><Upload aria-hidden="true" size={14} />Nhập từ Excel/CSV…</strong><small>Xem trước thay đổi rồi mới áp dụng</small></button> : null}
-        {word && can("posts.create") ? <button className="admin-transfer-menu__item" onClick={(event) => choose(event, "word")} type="button"><strong><Upload aria-hidden="true" size={14} />Nhập từ Word…</strong><small>Nhiều file .docx thành bài nháp</small></button> : null}
+        <span className="admin-transfer-menu__group">Xuất file</span>
+        <a className="admin-transfer-menu__item" download href={exportHref("xlsx")} onClick={(event) => choose(event)}><AdminFileIcon action="export" kind="excel" size="sm" /><span><strong>Excel (.xlsx)</strong><small>Toàn bộ {noun}; cũng là file mẫu để nhập lại</small></span></a>
+        <a className="admin-transfer-menu__item" download href={exportHref("csv")} onClick={(event) => choose(event)}><AdminFileIcon action="export" kind="csv" size="sm" /><span><strong>CSV</strong><small>Mở được bằng mọi phần mềm bảng tính</small></span></a>
+        {word ? <a className="admin-transfer-menu__item" download href={exportHref("word")} onClick={(event) => choose(event)}><AdminFileIcon action="export" kind="word" size="sm" /><span><strong>Word (.zip)</strong><small>Mỗi bài một file .docx, giữ định dạng và ảnh</small></span></a> : null}
+        {canImport || (word && can("posts.create")) ? <span className="admin-transfer-menu__group">Nhập file</span> : null}
+        {canImport ? <button className="admin-transfer-menu__item" onClick={(event) => choose(event, "sheet")} type="button"><AdminFileIcon action="import" kind="excel" size="sm" /><span><strong>Từ Excel/CSV…</strong><small>Xem trước thay đổi rồi mới áp dụng</small></span></button> : null}
+        {word && can("posts.create") ? <button className="admin-transfer-menu__item" onClick={(event) => choose(event, "word")} type="button"><AdminFileIcon action="import" kind="word" size="sm" /><span><strong>Từ Word…</strong><small>Nhiều file .docx thành bài nháp</small></span></button> : null}
       </div>
     </AdminPopover>
     {panel === "sheet" ? <ImportPanel dataset={dataset} exportHref={exportHref} label={label} onClose={() => setPanel(null)} /> : null}
@@ -131,7 +134,7 @@ function ImportPanel({ dataset, exportHref, label, onClose }: { dataset: Transfe
         <li>Sửa trong Excel, giữ dòng tiêu đề. Chỉ các cột còn trong file được cập nhật — ví dụ chỉ giữ cột {match.example} để sửa hàng loạt. Ô trống ở cột số, Có/Không, trạng thái là giữ nguyên; <strong>ô trống ở cột chữ hoặc danh sách là xóa nội dung đó</strong> — không muốn đổi thì xóa hẳn cột khỏi file.</li>
         <li>Chọn file (.xlsx hoặc .csv, tối đa 2 MB), xem trước rồi áp dụng. Mỗi mục thay đổi đều có phiên bản để khôi phục.</li>
       </ol>
-      <label className="admin-import__file"><FileSpreadsheet aria-hidden="true" size={18} /><span>{file ? file.name : "Chọn file .xlsx hoặc .csv"}</span><input accept=".xlsx,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" disabled={busy} onChange={choose} type="file" /></label>
+      <label className="admin-import__file"><AdminFileIcon action="import" kind={file ? fileKindOf(file.name) : "excel"} /><span>{file ? file.name : "Chọn file .xlsx hoặc .csv"}</span><input accept=".xlsx,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" disabled={busy} onChange={choose} type="file" /></label>
       {error ? <AdminNotice tone="error">{error}</AdminNotice> : null}
       {plan ? <section aria-label="Kết quả xem trước" className="admin-import__preview">
         <div className="admin-import__counts">
