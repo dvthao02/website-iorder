@@ -4,7 +4,7 @@ Ngày: 21/10/2026. Phạm vi: `apps/cms`, `apps/backend/src/app/api/admin`, `app
 
 Phương pháp: đọc code trên working tree hiện tại (gồm cả các thay đổi chưa commit), đối chiếu với `docs/PROJECT.md` và `docs/ROADMAP.md`. Mỗi vấn đề dưới đây có file/dòng làm bằng chứng. Chưa chạy lại cổng chất lượng, E2E hay thử trên trình duyệt cho đợt audit này. Những gì chưa kiểm chứng được ghi ở mục 7.
 
-**Tiến độ 22/10:** đã làm P1-3, P1-4, P1-5, P2-2, P2-4, P2-5, P2-7 (một phần: link nội bộ đã trỏ thẳng, route cũ vẫn giữ). Chi tiết ở `docs/ROADMAP.md`. Chưa làm: các mục bảo mật (P0-1, P1-1, P1-2) theo yêu cầu, P1-6, P1-7, P2 còn lại.
+**Tiến độ 22/10:** đã làm P1-3, P1-4, P1-5, P2-2, P2-4, P2-5, P2-7 (một phần: link nội bộ đã trỏ thẳng, route cũ vẫn giữ). Chi tiết ở `docs/ROADMAP.md`. Chưa làm: các mục bảo mật (P0-1, P1-1, P1-2) theo yêu cầu, P1-6, P1-7, P2 còn lại. **28/10:** đã vá P0-1 và P1-1 (xem ROADMAP). **03/11:** xong P2-3 (PATCH đổi trạng thái trang, danh sách không kèm khối) và P2-12 (`liveContentCondition`).
 
 Tóm tắt: nền tảng vững, gồm RBAC 2 lớp, optimistic concurrency, revision, audit log, xóa mềm, Zod ở mọi ranh giới. Không cần viết lại. Có **1 lỗ hổng leo thang quyền (P0)**. Phần còn lại là validation đường dẫn chưa đồng nhất, vài luồng SEO còn thiếu, và cấu trúc menu/trang khiến người vận hành khó tìm đúng chỗ sửa.
 

@@ -114,6 +114,7 @@ pnpm dev:cms                  # 3001
 pnpm dev                      # 3000
 ```
 
+- Windows: `pnpm dev:all` (`scripts/dev.ps1`) làm các bước trên trừ migrate/seed: bật Docker Desktop nếu đang tắt, chạy `db` + `storage` và chờ healthy, mở 3 app trong 3 tab Windows Terminal (không có thì 3 cửa sổ PowerShell), bỏ qua app đã chạy sẵn. Tùy chọn `-Analytics` (thêm Umami), `-NoDocker`. `pnpm dev:stop` dừng 3 app và container (giữ volume). Script dừng ngay nếu thiếu `.env`, để Compose không tạo lại container `db` với biến rỗng.
 - Cấu hình nằm ở `.env` gốc repo (mẫu: `.env.example`). Nếu `tsx` báo `spawn UNKNOWN` trên Windows, chạy `node --import tsx scripts/<file>.ts`.
 - `pnpm db:import:v1-content` nhập lại nội dung V1. Mọi script seed/import đều idempotent và không ghi đè nội dung đã sửa trong CMS.
 
