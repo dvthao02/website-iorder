@@ -19,7 +19,7 @@ Yêu cầu hiện tại của người dùng → source/runtime thực tế → 
 
 - Văn bản hiển thị cho người dùng viết bằng tiếng Việt; thông báo lỗi API theo dạng `{ error: { code, message } }`.
 - URL public và slug nội dung là tiếng Việt không dấu (`/tin-tuc`, `/ho-tro/huong-dan`); thư mục route, tên file, mã nguồn, tên lệnh `pnpm` và URL `/admin` là tiếng Anh. Thư mục `app/(web)/news` được ánh xạ sang `/tin-tuc` bằng `rewrites()` từ `apps/publish-web/src/lib/legacy-paths.ts` (bảng `routeFolders`); thêm route public mới thì thêm một dòng ở đó, URL tiếng Anh gõ nhầm tự chuyển 301 về URL chuẩn. Văn bản hiển thị, thông báo lỗi và log là tiếng Việt (sau này tách sang i18n). Slug nội bộ của trang hệ thống (`home`, `about`, `terms`…) là khóa dữ liệu, không hiện trong URL.
-- CMS: dùng component trong `apps/cms/src/components/admin/ui/` (`AdminButton`, `AdminPagination`, `AdminDataTable`, `AdminSidePanel`…) và `apps/cms/src/lib/admin-api.ts` thay vì tự viết lại. Người vận hành không bao giờ phải nhập JSON.
+- CMS: dùng component trong `apps/cms/src/components/admin/ui/` (`AdminButton`, `AdminPagination`, `AdminDataTable`, `AdminSidePanel`…) và `apps/cms/src/lib/admin-api.ts` thay vì tự viết lại. Người vận hành không bao giờ phải nhập JSON. Màu, biểu tượng loại tệp và nút xuất/nhập theo quy chuẩn ở [docs/PROJECT.md](docs/PROJECT.md) mục 6 (`AdminFileIcon`, token `--cms-*`).
 - Mutation nội dung gửi `expectedVersion` và xử lý được HTTP 409.
 - Viết theo phong cách code xung quanh. Một số file dùng CRLF, nên khi sửa bằng regex/sed phải kiểm tra lại.
 - Mọi file ghi bằng UTF-8 (không BOM). Sau khi sửa, kiểm tra tiếng Việt không bị vỡ thành dạng `Ã´`, `áº¡`. PowerShell 5.1 `Set-Content` mặc định không dùng UTF-8.

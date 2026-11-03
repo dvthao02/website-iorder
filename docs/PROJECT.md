@@ -198,3 +198,16 @@ Chưa có: cảnh báo tự động khi healthcheck lỗi hoặc lỗi tăng đ�
 | `pnpm audit:*-db`, `scripts/audit-*.mjs` | Fixture tích hợp DB/HTTP; chỉ chạy trên DB localhost hoặc Compose tạm, tự dọn schema |
 
 CI: `.github/workflows/quality.yml` chạy các cổng trên cho push `main` và pull request.
+
+## 6. Quy chuẩn giao diện CMS
+
+Màu đặt bằng token `--cms-*` trong `apps/cms/src/styles/tokens.css` (có bản tối); không viết mã màu trực tiếp trong component.
+
+| Nhóm | Quy chuẩn | Dùng ở đâu |
+|---|---|---|
+| Trạng thái | 5 tông `neutral`, `info`, `success`, `warning`, `error` (`--cms-status-*`) qua `AdminStatusBadge`/`AdminNotice` | Theo `content-status-choice.tsx`: nháp và lưu trữ = neutral, chờ duyệt = warning, hẹn giờ = info, đang hiển thị = success; lỗi = error |
+| Loại tệp | Mỗi loại một màu cố định qua mọi theme sáng (`--cms-file-*`): Excel xanh lá, CSV xanh ngọc, Word xanh dương, PDF đỏ, ZIP vàng nâu, ảnh tím, khác xám. Hiển thị bằng `AdminFileIcon` + `fileKindOf(mime hoặc tên tệp)` trong `ui/admin-file-icon.tsx` | Menu Nhập / Xuất, khung nhập, Thư viện media, ô chọn tệp, Hỗ trợ cài đặt |
+| Xuất / nhập | Xuất (tải về) = mũi tên xuống, nhập (tải lên) = mũi tên lên ở góc ô biểu tượng (`action="export"`/`"import"`). Nút tải một định dạng: `admin-button--export admin-file-tone--<loại>` (nền nhạt màu loại tệp); nút phụ cùng định dạng: `admin-button--ghost admin-file-tone--<loại>` (chỉ tô biểu tượng) | Nút "Nhập / Xuất", "Xuất Excel" ở Khách hàng tiềm năng, link "Tải bản Word" |
+| Thao tác trên dòng | `admin-content-actions__*`: sửa = màu chính, lưu trữ = cảnh báo, khôi phục = thành công, xóa = lỗi; xem/tải giữ trung tính | Cột "Thao tác" của mọi bảng |
+| Nút chính | Mỗi màn một nút `primary` (tạo mới/lưu); còn lại `secondary`/`ghost`; thao tác phá hủy dùng `danger` kèm hộp xác nhận | Thanh tiêu đề, thanh lưu |
+
