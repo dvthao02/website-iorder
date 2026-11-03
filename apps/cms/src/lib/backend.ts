@@ -27,10 +27,8 @@ import { leadListPageSchema, leadListQuerySchema, type LeadListQuery } from "@io
 import type { getAdminMedia as getAdminMediaFromCore } from "@iorder/core/server/media/media.service";
 import type { getAdminNavigation as getAdminNavigationFromCore } from "@iorder/core/server/navigation/navigation.service";
 import type { getPublishedNavigationTargets as getPublishedNavigationTargetsFromCore } from "@iorder/core/server/navigation/navigation.service";
-import type { getAdminOfferings as getAdminOfferingsFromCore } from "@iorder/core/server/offerings/offerings.service";
 import type { getAdminOfferingSummariesPage as getAdminOfferingsPageFromCore } from "@iorder/core/server/offerings/offerings.service";
 import type { getAdminPagesPage as getAdminPagesPageFromCore } from "@iorder/core/server/pages/pages.service";
-import type { getAdminPosts as getAdminPostsFromCore } from "@iorder/core/server/posts/posts.service";
 import type { getAdminPostSummariesPage as getAdminPostsPageFromCore } from "@iorder/core/server/posts/posts.service";
 import type { getAdminNotifications as getAdminNotificationsFromCore } from "@iorder/core/server/dashboard/notifications.service";
 import type { getPublishingReadiness as getPublishingReadinessFromCore } from "@iorder/core/server/publishing-readiness/publishing-readiness.service";
@@ -52,10 +50,8 @@ type AnalyticsOverview = Awaited<ReturnType<typeof getAnalyticsOverviewFromCore>
 type DashboardContentSummary = Awaited<ReturnType<typeof getDashboardContentSummaryFromCore>>;
 type PublishingReadiness = Awaited<ReturnType<typeof getPublishingReadinessFromCore>>;
 type AdminNotifications = Awaited<ReturnType<typeof getAdminNotificationsFromCore>>;
-type AdminOfferings = Awaited<ReturnType<typeof getAdminOfferingsFromCore>>;
 type AdminOfferingsPage = Awaited<ReturnType<typeof getAdminOfferingsPageFromCore>>;
 type AdminPagesPage = Awaited<ReturnType<typeof getAdminPagesPageFromCore>>;
-type AdminPosts = Awaited<ReturnType<typeof getAdminPostsFromCore>>;
 type AdminPostsPage = Awaited<ReturnType<typeof getAdminPostsPageFromCore>>;
 type Equipment = Awaited<ReturnType<typeof getEquipmentFromCore>>;
 type EquipmentPage = Awaited<ReturnType<typeof getEquipmentPageFromCore>>;
@@ -164,12 +160,6 @@ export async function getAuditLogsPage(input: AuditListQuery): Promise<Awaited<R
 }
 export async function getDashboardContentSummary(): Promise<DashboardContentSummary> { return (await getDashboard())?.content ?? { pages: emptyContentStat, posts: emptyContentStat, offerings: { products: emptyContentStat, solutions: emptyContentStat, services: emptyContentStat }, equipment: emptyContentStat, downloads: { enabled: 0, total: 0 }, leads: { new: 0, total: 0 }, recent: [] }; }
 
-export async function getAdminOfferings(): Promise<AdminOfferings> {
-  const payload = await getData<{ result: unknown }>("/api/admin/offerings?pageSize=100");
-  const parsed = createAdminListPageSchema(adminOfferingSchema).safeParse(payload?.result);
-  if (!parsed.success) throw new Error("Phản hồi danh sách nội dung không hợp lệ. Vui lòng tải lại.");
-  return parsed.data.items;
-}
 export async function getAdminOfferingsPage(params: { page?: string | number; pageSize?: string | number; query?: string; status?: string; type?: string; sort?: string; dir?: string } = {}): Promise<AdminOfferingsPage> {
   const input = pageListQuerySchema.extend({ type: publicOfferingTypeSchema.optional() }).parse({ ...params, status: params.status || undefined, type: params.type || undefined });
   const query = new URLSearchParams();
@@ -200,12 +190,6 @@ export async function getAdminSystemPageBySlug(slug: string) {
   return parsed.data;
 }
 export async function getAdminPageById(id: string) { return getDetail(`/api/admin/pages/${encodeURIComponent(id)}`, "page", adminPageSchema, id); }
-export async function getAdminPosts(): Promise<AdminPosts> {
-  const payload = await getData<{ result: unknown }>("/api/admin/posts?pageSize=100");
-  const parsed = createAdminListPageSchema(adminPostSchema).safeParse(payload?.result);
-  if (!parsed.success) throw new Error("Phản hồi danh sách bài viết không hợp lệ. Vui lòng tải lại.");
-  return parsed.data.items;
-}
 export async function getAdminPostsPage(params: { excludeType?: string; page?: string | number; pageSize?: string | number; query?: string; status?: string; type?: string; sort?: string; dir?: string; categoryId?: string; tagId?: string } = {}): Promise<AdminPostsPage> {
   const input = pageListQuerySchema.extend({ type: publicPostTypeSchema.optional(), excludeType: publicPostTypeSchema.optional(), categoryId: z.string().uuid().optional().catch(undefined), tagId: z.string().uuid().optional().catch(undefined) }).parse({ ...params, status: params.status || undefined, type: params.type || undefined, excludeType: params.excludeType || undefined });
   const query = new URLSearchParams();
