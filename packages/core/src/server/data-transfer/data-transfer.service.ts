@@ -4,6 +4,8 @@ import type { TransferDatasetId } from "./data-transfer.contract";
 import { equipmentGroupTransfer, equipmentTransfer } from "./equipment.transfer";
 import { offeringTransfer } from "./offerings.transfer";
 import { categoryTransfer, postTransfer, tagTransfer } from "./posts.transfer";
+import { redirectTransfer } from "./redirects.transfer";
+import { partnerTransfer, testimonialTransfer } from "./supporting.transfer";
 import { buildCsv, readTable } from "./tabular";
 import { applyImport, exportRows, planImport, type TransferDataset, type TransferItem } from "./transfer";
 
@@ -19,6 +21,9 @@ function withDataset<R>(id: TransferDatasetId, run: <TItem extends TransferItem,
     case "guides": return run(postTransfer("guides"));
     case "categories": return run(categoryTransfer());
     case "tags": return run(tagTransfer());
+    case "partners": return run(partnerTransfer());
+    case "testimonials": return run(testimonialTransfer());
+    case "redirects": return run(redirectTransfer());
   }
 }
 

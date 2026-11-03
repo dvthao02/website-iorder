@@ -48,7 +48,7 @@ test("Dòng mới thiếu cột bắt buộc, slug sai định dạng, trùng sl
   assert.equal(plan.total, 3); // dòng trống bị bỏ qua
   assert.match(plan.rows[0].errors.join(" "), /Bản ghi mới cần cột "Giá \(VNĐ\)"/);
   assert.match(plan.rows[1].errors.join(" "), /chữ thường không dấu/);
-  assert.match(plan.rows[2].errors.join(" "), /Trùng đường dẫn với dòng 2/);
+  assert.match(plan.rows[2].errors.join(" "), /Trùng "Đường dẫn \(slug\)" với dòng 2/);
 });
 
 test("Không có slug thì tự tạo từ tên; ô trống ở cột số/Có-Không giữ nguyên giá trị", async () => {
@@ -94,4 +94,21 @@ test("Bộ đọc ô: số kiểu Việt Nam, Có/Không, trạng thái tiếng 
   assert.deepEqual(statusCell("Đã xuất bản"), { ok: true, value: "published" });
   assert.deepEqual(statusCell("Đang hiển thị"), { ok: true, value: "published" });
   assert.equal(statusCell("bán").ok, false);
+});
+
+test("Bảng không có slug khớp theo tên (không phân biệt hoa thường/khoảng trắng); trùng tên trong file bị báo", async () => {
+  const writes: unknown[] = [];
+  const base = fakeDataset(items, writes);
+  const byName: TransferDataset<Item, null> = {
+    ...base,
+    matchKey: (key) => key.replace(/\s+/g, " ").trim().toLocaleLowerCase("vi"),
+    fields: [field({ key: "name", header: "Tên", requiredOnCreate: true, get: (item) => item.name, format: (value) => value, parse: text(50, { required: true }) }), ...base.fields.slice(2)],
+    load: async () => ({ items: structuredClone(items).map((item) => ({ ...item, slug: item.name })), context: null }),
+    build: (changes, existing, context) => base.build({ ...changes, slug: existing?.slug ?? changes.name }, existing, context),
+  };
+  const { plan } = await planImport(byName, [["Tên", "Giá (VNĐ)"], ["  MÁY   IN ", "1700000"], ["Máy quét", "5"], ["máy quét", "6"]], publisher);
+  assert.equal(plan.rows[0].action, "update");
+  assert.equal(plan.rows[0].version, 3);
+  assert.equal(plan.rows[1].action, "create");
+  assert.match(plan.rows[2].errors.join(" "), /Trùng "Tên" với dòng 3/);
 });

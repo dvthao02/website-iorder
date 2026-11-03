@@ -45,6 +45,8 @@ const routeTable: Array<[string, string, CmsPermissionCode[] | null]> = [
   ["/api/admin/data-transfer/offerings-solution", "POST", ["offerings.create", "offerings.update"]],
   ["/api/admin/data-transfer/guides", "GET", ["posts.view"]],
   ["/api/admin/data-transfer/categories", "POST", ["taxonomy.create", "taxonomy.update"]],
+  ["/api/admin/data-transfer/testimonials", "POST", ["supporting.create", "supporting.update"]],
+  ["/api/admin/data-transfer/redirects", "GET", ["redirects.view"]],
   ["/api/admin/posts/0b5c/word", "GET", ["posts.view"]],
   ["/api/admin/data-transfer/khong-co", "GET", []],
   ["/api/admin/data-transfer/equipment", "DELETE", []],

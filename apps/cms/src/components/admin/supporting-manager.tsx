@@ -24,6 +24,7 @@ import { AdminFilterTabs } from "./ui/admin-filter-tabs";
 import { AdminListHeader } from "./ui/admin-list-header";
 import { AdminListPage } from "./ui/admin-list-page";
 import { AdminSearchField } from "./ui/admin-search-field";
+import { DataTransferActions } from "./data-transfer-actions";
 import { AdminSidePanel } from "./ui/admin-side-panel";
 import { pageSizeOptions } from "./ui/page-size-options";
 import { requestNavigationFocus } from "./ui/navigation-focus";
@@ -310,7 +311,7 @@ export function SupportingManager({
   return (
     <AdminListPage>
       <AdminCard>
-        <AdminListHeader actions={<AdminButton hideWithoutPermission permission="supporting.create" leadingIcon={<Plus aria-hidden="true" size={16} />} onClick={createCurrentKind}>{kind === "testimonials" ? "Thêm đánh giá" : partnerKindFilter === "customer" ? "Thêm khách hàng" : "Thêm đối tác"}</AdminButton>} description={loading ? "Đang tải danh sách…" : `${pagination.total} ${kind === "testimonials" ? "đánh giá" : "mục"}`} title="Đối tác & Đánh giá" />
+        <AdminListHeader actions={<><DataTransferActions dataset={kind} key={kind} label={kind === "testimonials" ? "Đánh giá" : "Đối tác & khách hàng"} module="supporting" /><AdminButton hideWithoutPermission permission="supporting.create" leadingIcon={<Plus aria-hidden="true" size={16} />} onClick={createCurrentKind}>{kind === "testimonials" ? "Thêm đánh giá" : partnerKindFilter === "customer" ? "Thêm khách hàng" : "Thêm đối tác"}</AdminButton></>} description={loading ? "Đang tải danh sách…" : `${pagination.total} ${kind === "testimonials" ? "đánh giá" : "mục"}`} title="Đối tác & Đánh giá" />
         <AdminFilterTabs<SupportingKind> restoreNavigationFocus ariaLabel="Loại nội dung" disabled={processing || loading} items={[{ label: "Đối tác & khách hàng", value: "partners" }, { label: "Đánh giá", value: "testimonials" }]} value={kind} onValueChange={changeKind} />
         <AdminFilterBar onSubmit={(event) => { event.preventDefault(); navigate({ page: 1, query: search.trim() }); }} chips={chips} onClearAll={() => { setSearch(""); navigate({ page: 1, query: "", partnerKind: "all", visibility: "all" }); }} search={<AdminSearchField disabled={processing || loading} label="Tìm kiếm" onChange={event => setSearch(event.target.value)} placeholder="Tên, doanh nghiệp hoặc nội dung" value={search} />}>
 

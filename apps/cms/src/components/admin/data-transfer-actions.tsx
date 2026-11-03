@@ -30,7 +30,7 @@ const shown = (value: string) => !value ? "(trống)" : /^\d{4,}$/.test(value) ?
 /**
  * Một nút "Nhập / Xuất" mỗi màn danh sách (như "Import/Export" của Shopify): xuất Excel/CSV (cũng là file mẫu),
  * nhập lại có xem trước từng dòng thêm/cập nhật/lỗi. Bài viết/Hướng dẫn có thêm xuất/nhập Word.
- * Khớp theo đường dẫn (slug); không xóa mục nào vắng mặt trong file.
+ * Khớp theo đường dẫn (slug), hoặc tên/đường dẫn cũ với bảng không có slug; không xóa mục nào vắng mặt trong file.
  */
 export function DataTransferActions({ dataset, label, module, word }: { dataset: TransferDatasetId; label: string; module: CmsModuleKey; word?: "posts" | "guides" }) {
   const { can, canAny } = useAdminPermissions();
@@ -55,6 +55,13 @@ export function DataTransferActions({ dataset, label, module, word }: { dataset:
     {panel === "word" && word ? <WordImportPanel kind={word} onClose={() => setPanel(null)} /> : null}
   </>;
 }
+
+// Cột dùng để khớp dòng với mục đang có. Bảng không có slug khớp theo tên hoặc đường dẫn cũ.
+const matchColumns: Partial<Record<TransferDatasetId, { column: string; example: string; note?: string }>> = {
+  partners: { column: "Tên", example: "tên và thứ tự", note: "Đổi tên trong file sẽ thành mục mới; muốn đổi tên hãy sửa trong màn này." },
+  testimonials: { column: "Người đánh giá", example: "người đánh giá và thứ tự", note: "Đổi tên người đánh giá trong file sẽ thành mục mới; muốn đổi tên hãy sửa trong màn này." },
+  redirects: { column: "Đường dẫn cũ", example: "đường dẫn cũ và cột Đang bật", note: "Vòng lặp chuyển hướng được báo ngay khi xem trước." },
+};
 
 function ImportPanel({ dataset, exportHref, label, onClose }: { dataset: TransferDatasetId; exportHref: (format: "xlsx" | "csv" | "word") => string; label: string; onClose: () => void }) {
   const router = useRouter();
@@ -111,16 +118,17 @@ function ImportPanel({ dataset, exportHref, label, onClose }: { dataset: Transfe
   }
 
   const rows = plan ? plan.rows.filter((row) => showUnchanged || row.action !== "unchanged") : [];
+  const match = matchColumns[dataset] ?? { column: "Đường dẫn (slug)", example: "slug và giá" };
   return <AdminSidePanel isOpen label={`Nhập ${label.toLocaleLowerCase("vi")} từ file`} onClose={busy ? () => undefined : onClose} footer={<>
     <AdminButton disabled={busy} onClick={onClose} variant="secondary">Đóng</AdminButton>
     {plan ? <AdminButton disabled={busy || blocked} onClick={() => void send("apply")}>{busy ? "Đang áp dụng…" : `Áp dụng ${changes} thay đổi`}</AdminButton>
       : <AdminButton disabled={busy || !file} onClick={() => void send("preview")}>{busy ? "Đang đọc file…" : "Xem trước"}</AdminButton>}
   </>}>
     <div className="admin-import">
-      <header><h2>Nhập {label.toLocaleLowerCase("vi")} từ file</h2><p>Mỗi dòng một mục, khớp theo cột <strong>Đường dẫn (slug)</strong>: trùng thì cập nhật, mới thì thêm. Không mục nào bị xóa.</p></header>
+      <header><h2>Nhập {label.toLocaleLowerCase("vi")} từ file</h2><p>Mỗi dòng một mục, khớp theo cột <strong>{match.column}</strong>: trùng thì cập nhật, mới thì thêm. Không mục nào bị xóa.{match.note ? ` ${match.note}` : ""}</p></header>
       <ol className="admin-import__steps">
         <li>Tải <a download href={exportHref("xlsx")}>file Excel hiện tại</a> (hoặc <a download href={exportHref("csv")}>CSV</a>) làm mẫu.</li>
-        <li>Sửa trong Excel, giữ dòng tiêu đề. Chỉ các cột còn trong file được cập nhật — ví dụ chỉ giữ cột slug và giá để đổi giá hàng loạt. Ô trống ở cột số, Có/Không, trạng thái là giữ nguyên; <strong>ô trống ở cột chữ hoặc danh sách là xóa nội dung đó</strong> — không muốn đổi thì xóa hẳn cột khỏi file.</li>
+        <li>Sửa trong Excel, giữ dòng tiêu đề. Chỉ các cột còn trong file được cập nhật — ví dụ chỉ giữ cột {match.example} để sửa hàng loạt. Ô trống ở cột số, Có/Không, trạng thái là giữ nguyên; <strong>ô trống ở cột chữ hoặc danh sách là xóa nội dung đó</strong> — không muốn đổi thì xóa hẳn cột khỏi file.</li>
         <li>Chọn file (.xlsx hoặc .csv, tối đa 2 MB), xem trước rồi áp dụng. Mỗi mục thay đổi đều có phiên bản để khôi phục.</li>
       </ol>
       <label className="admin-import__file"><FileSpreadsheet aria-hidden="true" size={18} /><span>{file ? file.name : "Chọn file .xlsx hoặc .csv"}</span><input accept=".xlsx,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" disabled={busy} onChange={choose} type="file" /></label>

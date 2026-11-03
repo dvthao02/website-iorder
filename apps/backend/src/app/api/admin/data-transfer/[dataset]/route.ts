@@ -22,6 +22,8 @@ const publicPaths: Record<TransferDatasetId, string[]> = {
   equipment: ["/thiet-bi"], "equipment-groups": ["/thiet-bi"],
   "offerings-software": ["/phan-mem"], "offerings-solution": ["/giai-phap"], "offerings-service": ["/dich-vu"],
   posts: ["/tin-tuc"], guides: ["/ho-tro/huong-dan"], categories: ["/tin-tuc"], tags: ["/tin-tuc"],
+  // Đối tác/đánh giá hiện ở nhiều trang; chuyển hướng được website lưu cache theo từng đường dẫn: làm mới toàn bộ.
+  partners: ["/"], testimonials: ["/"], redirects: ["/"],
 };
 
 function fail(code: string, message: string, status: number) {

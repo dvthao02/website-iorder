@@ -14,6 +14,9 @@ function testimonialRow({ testimonial, storageKey, altText }: Awaited<ReturnType
 }
 export async function getPartners(enabledOnly = false) { return (await listPartners(enabledOnly)).map(partnerRow); }
 export async function getTestimonials(enabledOnly = false) { return (await listTestimonials(enabledOnly)).map(testimonialRow); }
+// Toàn bộ danh sách kèm phiên bản cho xuất/nhập file (dữ liệu public không có `version`).
+export async function getAdminPartners() { return (await listPartners()).map(row => ({ ...partnerRow(row), version: row.partner.version })); }
+export async function getAdminTestimonials() { return (await listTestimonials()).map(row => ({ ...testimonialRow(row), version: row.testimonial.version })); }
 export async function getPartnersPage(input: unknown) {
   const result = await listPartnersPage(partnerListQuerySchema.parse(input));
   return partnerListPageSchema.parse({ ...result, items: result.items.map(row => ({ ...partnerRow(row), version: row.partner.version })) });

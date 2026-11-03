@@ -38,8 +38,13 @@ export type TransferDataset<TItem extends TransferItem, TContext> = {
   /** Tên file xuất, không dấu (thêm ngày + đuôi khi tải). */
   fileName: string;
   module: CmsModuleKey;
-  /** Field đầu tiên phải là slug (khóa khớp dòng); field "name" (nếu có) dùng để tự tạo slug cho dòng mới. */
+  /**
+   * Field đầu tiên là khóa khớp dòng với `item.slug` (thường là slug; bảng không có slug dùng tên hoặc đường dẫn nguồn).
+   * Field "name" (nếu có và không phải khóa) dùng để tự tạo slug cho dòng mới.
+   */
   fields: TransferField<TItem, unknown>[];
+  /** Chuẩn hóa khóa trước khi so (ví dụ không phân biệt hoa thường/khoảng trắng khi khớp theo tên). Mặc định so nguyên văn. */
+  matchKey?: (key: string) => string;
   load: () => Promise<{ items: TItem[]; context: TContext }>;
   /**
    * Dựng giá trị đầy đủ cho service từ bản ghi đang có (hoặc mặc định khi tạo mới) + các cột có trong file.
@@ -116,7 +121,8 @@ export async function planImport<TItem extends TransferItem, TContext>(dataset: 
   if (!columns.has(slugField.key) && !columns.has("name")) fileErrors.push(`Thiếu cột "${slugField.header}" để biết dòng nào là bản ghi nào.`);
   if (columns.size <= 1) fileErrors.push("File không có cột dữ liệu nào khớp. Hãy dùng file xuất từ CMS làm mẫu.");
   const { items, context } = await dataset.load();
-  const bySlug = new Map(items.map((item) => [item.slug, item]));
+  const keyOf = dataset.matchKey ?? ((key: string) => key);
+  const bySlug = new Map(items.map((item) => [keyOf(item.slug), item]));
   const seen = new Map<string, number>();
   const can = (permission: string) => hasCmsPermission(actor, permission as CmsPermissionCode);
   const rows: PlannedRow<TItem>[] = [];
@@ -138,11 +144,11 @@ export async function planImport<TItem extends TransferItem, TContext>(dataset: 
     const name = typeof values.name === "string" ? values.name : "";
     let slug = typeof values[slugField.key] === "string" ? values[slugField.key] as string : "";
     if (!slug && name) slug = toSlug(name);
-    const existing = slug ? bySlug.get(slug) : undefined;
+    const existing = slug ? bySlug.get(keyOf(slug)) : undefined;
     const label = name || (existing && nameField ? display(nameField.format(nameField.get(existing))) : "") || slug || `Dòng ${rowNumber}`;
     if (!slug) errors.push(`Thiếu "${slugField.header}" (hoặc tên để tự tạo).`);
-    else if (seen.has(slug)) errors.push(`Trùng đường dẫn với dòng ${seen.get(slug)}; mỗi bản ghi chỉ một dòng.`);
-    else seen.set(slug, rowNumber);
+    else if (seen.has(keyOf(slug))) errors.push(`Trùng "${slugField.header}" với dòng ${seen.get(keyOf(slug))}; mỗi bản ghi chỉ một dòng.`);
+    else seen.set(keyOf(slug), rowNumber);
     values[slugField.key] = slug;
 
     if (!existing) {

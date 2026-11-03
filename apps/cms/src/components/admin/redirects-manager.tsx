@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { redirectInputSchema } from "@iorder/core/server/redirects/redirects.contract";
 
+import { DataTransferActions } from "./data-transfer-actions";
 import { AdminButton } from "./ui/admin-button";
 import { AdminCard } from "./ui/admin-card";
 import { useAdminConfirm } from "./ui/admin-confirm-dialog";
@@ -33,6 +34,12 @@ export function RedirectsManager({ initialRedirects }: { initialRedirects: Redir
   const { confirm } = useAdminConfirm();
   const { show: showToast } = useAdminToast();
   const [rows, setRows] = useState(initialRedirects);
+  // Nhập file xong gọi router.refresh(): nhận danh sách mới từ máy chủ thay cho bản đang giữ.
+  const [loadedRedirects, setLoadedRedirects] = useState(initialRedirects);
+  if (loadedRedirects !== initialRedirects) {
+    setLoadedRedirects(initialRedirects);
+    setRows(initialRedirects);
+  }
   const [activeId, setActiveId] = useState<string | null>(null);
   const [form, setForm] = useState<RedirectInput | null>(null);
   const [initialValues, setInitialValues] = useState<RedirectInput | null>(null);
@@ -171,7 +178,7 @@ export function RedirectsManager({ initialRedirects }: { initialRedirects: Redir
 
   return <AdminListPage className="admin-list-manager" variant="dense">
     <AdminCard className="admin-list-manager__card">
-      <AdminListHeader actions={<><AdminButton hideWithoutPermission permission="redirects.create" leadingIcon={<Plus aria-hidden="true" size={16} />} onClick={() => select()}>Tạo chuyển hướng</AdminButton></>} description={`${rows.length} đường dẫn · ${enabledCount} đang bật`} headingLevel={1} title="Chuyển hướng URL" />
+      <AdminListHeader actions={<><DataTransferActions dataset="redirects" label="Chuyển hướng URL" module="redirects" /><AdminButton hideWithoutPermission permission="redirects.create" leadingIcon={<Plus aria-hidden="true" size={16} />} onClick={() => select()}>Tạo chuyển hướng</AdminButton></>} description={`${rows.length} đường dẫn · ${enabledCount} đang bật`} headingLevel={1} title="Chuyển hướng URL" />
       <AdminFilterBar onSubmit={(event) => event.preventDefault()} chips={chips} onClearAll={() => { setQuery(""); setStatusFilter("all"); setCodeFilter("all"); }} search={<AdminSearchField id="redirect-search" label="Tìm chuyển hướng" onChange={(event) => setQuery(event.target.value)} placeholder="Tìm đường dẫn cũ hoặc đích đến" value={query} />}><select aria-label="Lọc trạng thái" id="redirect-status" onChange={(event) => setStatusFilter(event.target.value as RedirectStatusFilter)} value={statusFilter}><option value="all">Tất cả trạng thái</option><option value="enabled">Đang bật</option><option value="disabled">Đang tắt</option></select>{statusCodes.length > 1 ? <select aria-label="Lọc mã chuyển hướng" onChange={(event) => setCodeFilter(event.target.value)} value={codeFilter}><option value="all">Mọi mã</option>{statusCodes.map((code) => <option key={code} value={String(code)}>{code}</option>)}</select> : null}</AdminFilterBar>
       <AdminDataTable columns={columns} emptyMessage={rows.length ? "Không có chuyển hướng phù hợp với bộ lọc." : "Chưa có chuyển hướng URL."} getRowId={(item) => item.id} onRowClick={select} onSettingsOpenChange={setIsColumnSettingsOpen} rows={visibleRows} settingsOpen={isColumnSettingsOpen} tableId="cms-redirects" />
     </AdminCard>

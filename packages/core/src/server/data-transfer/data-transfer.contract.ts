@@ -14,6 +14,9 @@ export const transferDatasetModules = {
   guides: "posts",
   categories: "taxonomy",
   tags: "taxonomy",
+  partners: "supporting",
+  testimonials: "supporting",
+  redirects: "redirects",
 } as const satisfies Record<string, CmsModuleKey>;
 
 /** Bảng có thêm định dạng "word": gói .zip mỗi bài một file .docx. */
@@ -23,8 +26,8 @@ export type TransferDatasetId = keyof typeof transferDatasetModules;
 export const transferDatasetSchema = z.enum(Object.keys(transferDatasetModules) as [TransferDatasetId, ...TransferDatasetId[]]);
 export const transferFormatSchema = z.enum(["xlsx", "csv", "word"]);
 
-/** Phiên bản từng dòng lúc xem trước (slug → version; null = dòng tạo mới), gửi lại khi áp dụng. */
-export const importExpectedSchema = z.record(z.string().max(180), z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER).nullable());
+/** Phiên bản từng dòng lúc xem trước (khóa dòng → version; null = dòng tạo mới), gửi lại khi áp dụng. Khóa dài nhất là đường dẫn cũ của chuyển hướng (500). */
+export const importExpectedSchema = z.record(z.string().max(500), z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER).nullable());
 
 export const importPlanSchema = z.object({
   dataset: z.string(),
