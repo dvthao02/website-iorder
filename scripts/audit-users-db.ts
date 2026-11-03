@@ -36,6 +36,8 @@ async function main() {
     const db = clients.map((client) => drizzle({ client, schema }));
     let actor: string = randomUUID();
     const base = { email: null, fullName: "Tài khoản thử", status: "active" as const, role: "admin" as const, passwordHash: "fixture-khong-phai-mat-khau-that" };
+    // Sửa tài khoản không kèm mật khẩu: có passwordHash là đặt lại mật khẩu, sẽ thu hồi session.
+    const edit = { ...base, passwordHash: undefined };
     // Bootstrap chỉ trong schema thử, để các mutation dùng actor admin có thật.
     await clients[0]`insert into users (id, username, full_name, status, password_hash) values (${actor}, 'audit-bootstrap', 'Quản trị thử', 'active', ${base.passwordHash})`;
     await clients[0]`insert into user_roles (user_id, role_id) select ${actor}, id from roles where code='admin'`;
@@ -61,8 +63,8 @@ async function main() {
     assert.equal((await findActiveAdministratorSession("fixture-role-a", new Date(), db[0]))?.role, "admin");
     assert.equal((await findActiveAdministratorSession("fixture-role-b", new Date(), db[0]))?.role, "admin");
     const outcomes = await Promise.allSettled([
-      writeCmsUser(first, { ...base, username: "audit-a", role: "editor" }, actor, db[0]),
-      writeCmsUser(second, { ...base, username: "audit-b", role: "editor" }, actor, db[1]),
+      writeCmsUser(first, { ...edit, username: "audit-a", role: "editor" }, actor, db[0]),
+      writeCmsUser(second, { ...edit, username: "audit-b", role: "editor" }, actor, db[1]),
     ]);
     assert.equal(outcomes.filter((result) => result.status === "fulfilled").length, 1);
     const rejected = outcomes.find((result) => result.status === "rejected");
@@ -88,7 +90,7 @@ async function main() {
     assert.equal((await findActiveAdministratorSession("fixture-admin-session", new Date(), db[0]))?.userId, adminId);
     assert.equal(await findActiveAdministratorSession("fixture-admin-session", new Date(Date.now() + 2 * 86400000), db[0]), undefined);
     assert.equal(await findActiveAdministratorSession("fixture-khong-ton-tai", new Date(), db[0]), undefined);
-    await writeCmsUser(editorId, { ...base, username: editorName, role: "editor", status: "disabled" }, actor, db[0]);
+    await writeCmsUser(editorId, { ...edit, username: editorName, role: "editor", status: "disabled" }, actor, db[0]);
     const [revoked] = await clients[0]`select count(*)::int as total, count(*) filter (where revoked_at is not null)::int as revoked from sessions where user_id=${editorId}`;
     assert.equal(revoked.total, 3);
     assert.equal(revoked.revoked, 3);
@@ -99,7 +101,7 @@ async function main() {
     assert.equal(await findActiveAdministratorSession("fixture-disabled-user", new Date(), db[0]), undefined);
     await clients[0]`insert into sessions (user_id, token_hash, expires_at, revoked_at) values (${adminId}, 'fixture-revoked-admin', now() + interval '1 day', now())`;
     assert.equal(await findActiveAdministratorSession("fixture-revoked-admin", new Date(), db[0]), undefined);
-    await assert.rejects(writeCmsUser(adminId, { ...base, username: adminName, status: "disabled" }, actor, db[1]), (error: unknown) => error instanceof z.ZodError || error instanceof CmsAccessError);
+    await assert.rejects(writeCmsUser(adminId, { ...edit, username: adminName, status: "disabled" }, actor, db[1]), (error: unknown) => error instanceof z.ZodError || error instanceof CmsAccessError);
     const [retained] = await clients[0]`select u.status, s.revoked_at from users u join sessions s on s.user_id=u.id where u.id=${adminId} and s.token_hash='fixture-admin-session'`;
     assert.equal(retained.status, "active");
     assert.equal(retained.revoked_at, null);
@@ -194,6 +196,45 @@ async function main() {
     assert.equal((await listCmsUsersPage({ ...listQuery, query: "__" }, db[0])).total, 0);
     assert.equal((await listCmsUsersPage({ ...listQuery, page: 4 }, db[0])).items.length, 0);
     console.log("Đạt: phân trang Users5/5/2, role tổng hợp không trùng, filter/count/literal wildcard và whitelist.");
+
+    // P0-1: người có users.update không được sửa tài khoản mang quyền mình không có, kể cả khi gửi lại đúng role cũ.
+    // P1-1: đặt lại mật khẩu thu hồi mọi session của tài khoản đó.
+    await clients[0]`insert into permissions (code, name) values ('users.update', 'Sửa tài khoản'), ('roles.update', 'Sửa vai trò')`;
+    await clients[0]`insert into roles (code, name) values ('user_manager', 'Quản lý tài khoản thử'), ('power_user', 'Quyền cao thử')`;
+    await clients[0]`insert into role_permissions (role_id, permission_id) select r.id, p.id from roles r, permissions p
+      where (r.code = 'user_manager' and p.code = 'users.update') or r.code = 'power_user'`;
+    const [manager, power, peer] = [randomUUID(), randomUUID(), randomUUID()];
+    for (const [id, username, role] of [[manager, "grant-manager", "user_manager"], [power, "grant-power", "power_user"], [peer, "grant-peer", "user_manager"]] as const) {
+      await clients[0]`insert into users (id, username, full_name, status, password_hash) values (${id}, ${username}, 'Kiểm thử cấp quyền', 'active', 'hash-ban-dau')`;
+      await clients[0]`insert into user_roles (user_id, role_id) select ${id}, id from roles where code=${role}`;
+      await clients[0]`insert into sessions (user_id, token_hash, expires_at) values (${id}, ${`fixture-grant-${username}`}, now() + interval '1 day')`;
+    }
+    const grantBase = { email: null, fullName: "Kiểm thử cấp quyền", status: "active" as const };
+    const logsBeforeGrant = (await clients[0]`select count(*)::int as total from audit_logs`)[0].total;
+    for (const change of [
+      { role: "power_user", passwordHash: "hash-ke-chiem-quyen" },
+      { role: "power_user", status: "disabled" as const },
+      { role: "power_user", email: "ke-chiem-quyen@example.test" },
+      { role: "user_manager" },
+    ]) {
+      await assert.rejects(writeCmsUser(power, { ...grantBase, username: "grant-power", ...change }, manager, db[0]),
+        (error: unknown) => error instanceof CmsAccessError && error.status === 403);
+    }
+    const [powerAfter] = await clients[0]`select u.password_hash, u.status, u.email, r.code as role, s.revoked_at from users u
+      join user_roles ur on ur.user_id=u.id join roles r on r.id=ur.role_id join sessions s on s.user_id=u.id where u.id=${power}`;
+    assert.deepEqual({ ...powerAfter }, { password_hash: "hash-ban-dau", status: "active", email: null, role: "power_user", revoked_at: null });
+    assert.equal((await clients[0]`select count(*)::int as total from audit_logs`)[0].total, logsBeforeGrant);
+    console.log("Đạt: người có users.update không đổi mật khẩu/khóa/đổi email/hạ role của tài khoản có quyền cao hơn; không ghi gì, session còn nguyên.");
+
+    await writeCmsUser(peer, { ...grantBase, username: "grant-peer", fullName: "Đổi tên không đổi mật khẩu", role: "user_manager" }, manager, db[0]);
+    assert.equal((await clients[0]`select revoked_at from sessions where user_id=${peer}`)[0].revoked_at, null);
+    await writeCmsUser(peer, { ...grantBase, username: "grant-peer", role: "user_manager", passwordHash: "hash-moi" }, manager, db[0]);
+    const [peerAfter] = await clients[0]`select u.password_hash, s.revoked_at from users u join sessions s on s.user_id=u.id where u.id=${peer}`;
+    assert.equal(peerAfter.password_hash, "hash-moi");
+    assert.notEqual(peerAfter.revoked_at, null);
+    assert.equal(await findActiveAdministratorSession("fixture-grant-grant-peer", new Date(), db[0]), undefined);
+    assert.equal((await findActiveAdministratorSession("fixture-grant-grant-manager", new Date(), db[0]))?.userId, manager);
+    console.log("Đạt: sửa tài khoản cùng mức quyền vẫn được; đổi tên giữ session, đặt lại mật khẩu thu hồi session của tài khoản đó, không đụng session người thao tác.");
   } finally {
     await Promise.all(clients.map((client) => client.end({ timeout: 10 })));
     try {

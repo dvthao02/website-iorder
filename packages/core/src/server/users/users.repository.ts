@@ -62,6 +62,12 @@ export async function writeCmsUser(id: string | null, values: { username: string
     if (id === actorId && (roleChanged || values.status !== "active")) throw accessErrors.self();
     if (!access.isSuperAdmin && (wasSuperAdmin || targetRole.id === access.superRoleId)) throw accessErrors.superAdminOnly();
     if (roleChanged) assertCanGrant(access, await rolePermissionCodes(tx, targetRole.id));
+    // Đổi mật khẩu/email/trạng thái hay hạ role đều là nắm quyền của tài khoản đó, nên quyền hiện có của nó phải nằm trong quyền của người sửa.
+    if (!access.isSuperAdmin) {
+      for (const roleId of beforeRoleIds) {
+        if ((await rolePermissionCodes(tx, roleId)).some(code => !access.permissions.has(code))) throw accessErrors.outranked();
+      }
+    }
     if (before?.status === "active" && wasSuperAdmin && (targetRole.id !== access.superRoleId || values.status !== "active")) {
       const [count] = await tx.select({ total: sql<number>`count(*)::int` }).from(users)
         .innerJoin(userRoles, eq(userRoles.userId, users.id))
@@ -74,7 +80,8 @@ export async function writeCmsUser(id: string | null, values: { username: string
       : await tx.insert(users).values({ ...userValues, passwordHash: passwordHash! }).returning();
     await tx.delete(userRoles).where(eq(userRoles.userId, saved.id));
     await tx.insert(userRoles).values({ userId: saved.id, roleId: targetRole.id });
-    if (id && values.status === "disabled") await tx.update(sessions).set({ revokedAt: new Date() }).where(and(eq(sessions.userId, id), sql`${sessions.revokedAt} is null`));
+    // Đặt lại mật khẩu thường là phản ứng khi lộ mật khẩu: đăng xuất mọi phiên của tài khoản đó.
+    if (id && (values.status === "disabled" || passwordHash)) await tx.update(sessions).set({ revokedAt: new Date() }).where(and(eq(sessions.userId, id), sql`${sessions.revokedAt} is null`));
     await tx.insert(auditLogs).values({ userId: actorId, action: id ? "user.update" : "user.create", entityType: "user", entityId: saved.id,
       beforeData: userAuditSnapshot(before), afterData: { ...userAuditSnapshot(saved), role, passwordChanged: Boolean(passwordHash) } });
     return saved.id;
