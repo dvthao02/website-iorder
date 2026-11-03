@@ -279,7 +279,7 @@ export function MediaManager({ initialPage, initialQuery }: { initialPage: { ass
         </div>
       </AdminFilterBar>
       <AdminBulkBar count={selectedIds.length} onClear={clearSelection}>
-        <AdminBulkMenu busy={busy || loading} actions={[{ key: "delete", label: "Xóa tệp đã chọn", icon: <Trash2 aria-hidden="true" />, count: selectedIds.length, disabledReason: can("media.delete") ? undefined : "Cần quyền xóa media.", hint: "Tệp đang được dùng sẽ được giữ lại", tone: "danger", onSelect: () => void removeSelected() }]} />
+        <AdminBulkMenu busy={busy || loading} actions={[{ key: "delete", label: "Xóa tệp đã chọn", icon: <Trash2 aria-hidden="true" />, count: selectedIds.length, disabledReason: can("media.delete") ? undefined : "Cần quyền xóa media.", tone: "danger", onSelect: () => void removeSelected() }]} />
       </AdminBulkBar>
       {listError ? <div className="admin-list-toolbar"><AdminNotice tone="error">{listError}</AdminNotice><AdminButton disabled={loading} onClick={() => void loadPage(page)} size="sm" variant="secondary">Thử lại</AdminButton></div> : null}
       <fieldset className="min-w-0" disabled={loading || busy}>

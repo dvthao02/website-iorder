@@ -88,7 +88,7 @@ export function RedirectsManager({ initialRedirects }: { initialRedirects: Redir
   const bulkActions: AdminBulkMenuAction[] = [
     { key: "enable", label: "Bật", icon: <ToggleRight aria-hidden="true" />, count: disabledChosen.length, disabledReason: updateDenied, onSelect: setEnabled(disabledChosen, true) },
     { key: "disable", label: "Tắt", icon: <ToggleLeft aria-hidden="true" />, count: enabledChosen.length, disabledReason: updateDenied, onSelect: setEnabled(enabledChosen, false) },
-    { key: "export", label: "Xuất Excel các mục đã chọn", icon: <AdminFileIcon action="export" kind="excel" size="sm" />, count: chosen.length, href: `/api/admin/data-transfer/redirects?format=xlsx&ids=${chosen.map((item) => item.id).join(",")}` },
+    { key: "export", label: "Xuất Excel", icon: <AdminFileIcon action="export" kind="excel" size="sm" />, count: chosen.length, href: `/api/admin/data-transfer/redirects?format=xlsx&ids=${chosen.map((item) => item.id).join(",")}` },
     { key: "delete", label: "Xóa", icon: <Trash2 aria-hidden="true" />, count: chosen.length, tone: "danger", disabledReason: can("redirects.delete") ? undefined : "Cần quyền xóa chuyển hướng.", onSelect: () => void runBulk({ items: chosen, verb: "Xóa", noun: "chuyển hướng", confirmMessage: "Đường dẫn cũ của các mục này sẽ không còn tự chuyển hướng. Thao tác không thể hoàn tác.", tone: "danger", onDone: selection.clear, request: (item) => ({ method: "DELETE", url: `/api/admin/redirects?id=${item.id}&expectedVersion=${item.version}` }) }) },
   ];
 

@@ -69,7 +69,8 @@ export function AdminFilterBar({ actions, bulkActions, search, children, more, m
         {open ? <div id={panelId}><FilterPanel label={buttonLabel} onClose={() => setOpen(false)}>{panelContent}</FilterPanel></div> : null}
       </div> : null}
     </div>
-    {bulkActions ? <div className="admin-filter-bar__bulk-actions">{bulkActions}</div> : null}
+    {/* Chỗ của thanh chọn nhiều: AdminBulkBar vẽ vào đây (portal) để "Đã chọn · Thao tác · Bỏ chọn" nằm cùng dòng ô tìm kiếm. */}
+    <div className="admin-filter-bar__bulk-actions">{bulkActions}</div>
     {actions ? <div className="admin-filter-bar__actions">{actions}</div> : null}
     {chips.length ? <div aria-label="Bộ lọc đang áp dụng" className="admin-filter-chips" role="group">
       {chips.map((chip) => <span className="admin-filter-chip" key={chip.key}>{chip.label}<button aria-label={`Bỏ lọc ${chip.label}`} className="admin-filter-chip__remove" onClick={chip.onRemove} type="button"><X aria-hidden="true" size={13} /></button></span>)}

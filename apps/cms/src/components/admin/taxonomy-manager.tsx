@@ -103,7 +103,7 @@ export function TaxonomyManager({ categories, tags }: { categories: Category[]; 
   const chosen = (kind === "categories" ? categories : tags).filter((item) => selection.selectedIds.includes(item.id));
   const bulkNoun = kind === "categories" ? "chuyên mục" : "thẻ";
   const bulkActions: AdminBulkMenuAction[] = [
-    { key: "export", label: "Xuất Excel các mục đã chọn", icon: <AdminFileIcon action="export" kind="excel" size="sm" />, count: chosen.length, href: `/api/admin/data-transfer/${kind}?format=xlsx&ids=${chosen.map((item) => item.id).join(",")}` },
+    { key: "export", label: "Xuất Excel", icon: <AdminFileIcon action="export" kind="excel" size="sm" />, count: chosen.length, href: `/api/admin/data-transfer/${kind}?format=xlsx&ids=${chosen.map((item) => item.id).join(",")}` },
     { key: "delete", label: "Xóa", icon: <Trash2 aria-hidden="true" />, count: chosen.length, tone: "danger", disabledReason: can("taxonomy.delete") ? undefined : "Cần quyền xóa phân loại.", onSelect: () => void runBulk({ items: chosen, verb: "Xóa", noun: bulkNoun, confirmMessage: "Các mục đã chọn sẽ bị xóa khỏi CMS. Thao tác không thể hoàn tác.", tone: "danger", onDone: selection.clear, request: (item) => ({ method: "DELETE", url: `/api/admin/taxonomy?kind=${kind}&id=${item.id}` }) }) },
   ];
   const categoryColumns: AdminDataTableColumn<Category>[] = [

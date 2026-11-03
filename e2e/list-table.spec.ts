@@ -67,7 +67,8 @@ test("Bảng danh sách: sắp xếp, ghim cột ở tiêu đề, chọn nhiều
     await bulk(/^Lưu trữ \(2\)/);
     await page.getByRole("alertdialog").getByRole("button", { name: "Lưu trữ" }).click();
     await expect(rows.filter({ hasText: "Lưu trữ" })).toHaveCount(2);
-    await expect(bulkBar).toHaveCount(0);
+    // Nút "Thao tác" luôn hiện trên thanh lọc; xong thao tác thì bỏ chọn.
+    await expect(bulkBar).not.toContainText("Đã chọn");
 
     // Khôi phục hàng loạt.
     await page.getByLabel("Chọn tất cả dòng trên trang").check();

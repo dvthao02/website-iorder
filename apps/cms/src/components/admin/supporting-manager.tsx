@@ -171,7 +171,7 @@ export function SupportingManager({
   const bulkActions: AdminBulkMenuAction[] = [
     { key: "show", label: "Hiện trên website", icon: <Eye aria-hidden="true" />, count: hiddenChosen.length, disabledReason: visibilityDenied, onSelect: setVisibility(hiddenChosen, true) },
     { key: "hide", label: "Ẩn khỏi website", icon: <EyeOff aria-hidden="true" />, count: shownChosen.length, disabledReason: visibilityDenied, onSelect: setVisibility(shownChosen, false) },
-    { key: "export", label: "Xuất Excel các mục đã chọn", icon: <AdminFileIcon action="export" kind="excel" size="sm" />, count: chosen.length, href: `/api/admin/data-transfer/${kind}?format=xlsx&ids=${chosen.map((item) => item.id).join(",")}` },
+    { key: "export", label: "Xuất Excel", icon: <AdminFileIcon action="export" kind="excel" size="sm" />, count: chosen.length, href: `/api/admin/data-transfer/${kind}?format=xlsx&ids=${chosen.map((item) => item.id).join(",")}` },
     { key: "delete", label: "Xóa", icon: <Trash2 aria-hidden="true" />, count: hiddenChosen.length, tone: "danger", disabledReason: !can("supporting.delete") ? "Cần quyền xóa." : hiddenChosen.length ? undefined : "Chỉ xóa được mục đang ẩn.", onSelect: () => void runBulk({ items: hiddenChosen, verb: "Xóa", noun: bulkNoun, confirmMessage: "Các mục đang ẩn sẽ bị xóa khỏi CMS. Thao tác không thể hoàn tác.", tone: "danger", onDone: selection.clear, request: (item) => ({ method: "DELETE", url: `/api/admin/supporting?kind=${kind}&id=${item.id}` }) }) },
   ];
 
