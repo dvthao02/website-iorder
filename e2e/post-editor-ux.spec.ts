@@ -181,11 +181,17 @@ test("Ảnh bìa: kéo thả để tải lên, chọn lại bằng lưới ảnh
     await dropzone.dispatchEvent("dragover", { dataTransfer });
     await expect(dropzone).toContainText("Thả tệp để tải lên");
     await dropzone.dispatchEvent("drop", { dataTransfer });
-    const preview = cover.locator(".media-picker__preview img");
+    const preview = cover.locator(".media-picker__peek img");
     await expect(preview).toBeVisible();
-    // Khung xem trước theo tỉ lệ ảnh chia sẻ 1200×630.
+    // Ảnh thu nhỏ theo tỉ lệ ảnh chia sẻ 1200×630; bấm vào mới mở ảnh lớn giữa màn hình, Esc để đóng.
     const box = (await preview.boundingBox())!;
     expect(Math.abs(box.width / box.height - 1200 / 630)).toBeLessThan(0.05);
+    expect(box.width).toBeLessThan(160);
+    await cover.getByRole("button", { name: /^Xem lớn ảnh/ }).click();
+    const viewer = page.getByRole("dialog", { name });
+    await expect(viewer.locator("img")).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(viewer).toHaveCount(0);
 
     // Bỏ ảnh rồi chọn lại từ lưới ảnh thư viện (nhìn ảnh mà chọn, không phải danh sách tên).
     await cover.getByRole("button", { name: "Bỏ ảnh" }).click();

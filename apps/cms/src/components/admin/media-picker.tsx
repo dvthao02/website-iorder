@@ -1,11 +1,13 @@
 "use client";
 
 import { adminApiError, readAdminJson } from "@/lib/admin-api";
-import { FileArchive, FileText, FolderOpen, LoaderCircle, Upload } from "lucide-react";
-import { useEffect, useRef, useState, type DragEvent } from "react";
+import { FileArchive, FileText, FolderOpen, LoaderCircle, Upload, ZoomIn } from "lucide-react";
+import Image from "next/image";
+import { useEffect, useRef, useState, type DragEvent, type PointerEvent } from "react";
 
 import type { MediaAsset, MediaUsage } from "@iorder/core/server/media/media.contract";
 import { mediaAssetSchema, mediaListResponseSchema, mediaUsageSchema } from "@iorder/core/server/media/media.contract";
+import { AdminImageLightbox } from "./ui/admin-image-lightbox";
 import { mergeMediaAssets } from "./ui/merge-media-assets";
 import { isSelectableMediaType } from "./ui/media-selection-policy";
 
@@ -15,7 +17,7 @@ type MediaPickerProps = {
   /** Tiêu đề và gợi ý riêng cho từng chỗ dùng (mặc định: "Ảnh bìa"/"Tệp tải xuống"). */
   label?: string;
   hint?: string;
-  /** Ảnh đã chọn hiện lớn theo khung chia sẻ 1200×630 (ảnh bìa bài viết…), nút "Tải ảnh khác"/"Bỏ ảnh" thay cho khung tải lên. */
+  /** Ảnh đã chọn hiện thu nhỏ theo tỉ lệ chia sẻ 1200×630 (ảnh bìa bài viết…), rê chuột hoặc bấm để xem lớn; nút "Tải ảnh khác"/"Bỏ ảnh" thay cho khung tải lên. */
   preview?: boolean;
   onChange: (id: string | null) => void;
   onUploaded?: (asset: MediaAsset) => Promise<void> | void;
@@ -46,6 +48,9 @@ export function MediaPicker({ disabled = false, value, onChange, files = false, 
   const [libraryPage, setLibraryPage] = useState(1);
   const [libraryQuery, setLibraryQuery] = useState("");
   const [searchDraft, setSearchDraft] = useState("");
+  const [viewer, setViewer] = useState<"peek" | "open" | null>(null);
+  const peekTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (peekTimer.current) clearTimeout(peekTimer.current); }, []);
   useEffect(() => {
     const timer = setTimeout(() => { if (searchDraft !== libraryQuery) { setLoaded(false); setLibraryError(""); setLibraryQuery(searchDraft); setLibraryPage(1); } }, 300);
     return () => clearTimeout(timer);
@@ -172,18 +177,34 @@ export function MediaPicker({ disabled = false, value, onChange, files = false, 
   };
   const formats = files ? "PDF hoặc ZIP, tối đa 20 MB" : "PNG, JPEG hoặc WebP · tối đa 20 MB";
   const selected = assets.find((asset) => asset.id === value);
-  // Ảnh đã chọn hiện bản xem trước nhỏ thay cho biểu tượng tệp.
-  // eslint-disable-next-line @next/next/no-img-element -- ảnh xem trước nhỏ trong CMS
-  const thumbnail = selected?.mimeType.startsWith("image/") ? <img alt="" src={selected.url} /> : null;
+  // Ảnh đã chọn hiện bản xem trước nhỏ thay cho biểu tượng tệp; qua bộ thu nhỏ của Next để không tải ảnh gốc vài MB.
+  const thumbnail = selected?.mimeType.startsWith("image/") ? <Image alt="" height={55} src={selected.url} width={104} /> : null;
   const label = customLabel ?? (files ? "Tệp tải xuống" : "Ảnh bìa");
   const showPreview = preview && Boolean(thumbnail);
-  // eslint-disable-next-line @next/next/no-img-element -- ảnh xem trước lớn trong CMS
-  const largeImage = showPreview && selected ? <img alt={selected.altText ?? ""} src={selected.url} /> : null;
+  // Ảnh đã chọn chỉ hiện thu nhỏ để form không bị kéo dài; rê chuột (sau một nhịp ngắn) hoặc bấm mới xem lớn giữa màn hình.
+  const startPeek = (event: PointerEvent<HTMLElement>) => {
+    if (event.pointerType !== "mouse") return;
+    if (peekTimer.current) clearTimeout(peekTimer.current);
+    peekTimer.current = setTimeout(() => setViewer((current) => current ?? "peek"), 250);
+  };
+  const stopPeek = () => {
+    if (peekTimer.current) clearTimeout(peekTimer.current);
+    setViewer((current) => current === "peek" ? null : current);
+  };
+  const openViewer = () => {
+    if (peekTimer.current) clearTimeout(peekTimer.current);
+    setViewer("open");
+  };
 
   return <section className="media-picker">
     <div className="media-picker__heading"><div><h3>{label}</h3><p>{hint ?? formats}</p></div>{selected ? <span className="media-picker__selected">Đã chọn</span> : null}</div>
     <input accept={files ? ".pdf,.zip,application/pdf,application/zip" : "image/png,image/jpeg,image/webp"} className="sr-only" disabled={disabled || isUploading} onChange={(event) => void upload(event.target.files?.[0])} ref={inputRef} type="file" />
-    {showPreview && selected ? <figure className={dragging ? "media-picker__preview media-picker__preview--drop" : "media-picker__preview"} {...dropTarget}>{largeImage}<figcaption>{selected.originalName}</figcaption></figure> : null}
+    {showPreview && selected ? <div className={dragging ? "media-picker__file media-picker__file--drop" : "media-picker__file"} {...dropTarget}>
+      <button aria-label={`Xem lớn ảnh ${selected.originalName}`} className="media-picker__peek" onClick={openViewer} onPointerEnter={startPeek} onPointerLeave={stopPeek} type="button">{thumbnail}<ZoomIn aria-hidden="true" size={14} /></button>
+      <span><strong>{selected.originalName}</strong><small>Rê chuột hoặc bấm vào ảnh để xem lớn</small></span>
+      <button className="media-picker__view" onClick={openViewer} type="button">Xem ảnh</button>
+    </div> : null}
+    {showPreview && selected ? <AdminImageLightbox alt={selected.altText ?? ""} caption={selected.originalName} mode={viewer} onClose={() => setViewer(null)} src={selected.url} /> : null}
     {showPreview ? null : <button className={dragging ? "media-picker__upload media-picker__upload--drop" : "media-picker__upload"} disabled={disabled || isUploading} onClick={() => inputRef.current?.click()} type="button" {...dropTarget}>
       {isUploading ? <LoaderCircle aria-hidden="true" className="animate-spin" size={20} /> : <Upload aria-hidden="true" size={20} />}
       <span><strong>{isUploading ? "Đang tải tệp lên…" : dragging ? "Thả tệp để tải lên" : files ? "Kéo tệp vào đây hoặc bấm để chọn" : "Kéo ảnh vào đây hoặc bấm để chọn"}</strong><small>{files ? "Tệp mới sẽ được gắn và lưu ngay vào tài nguyên này." : hint ? formats : "Tải trực tiếp từ máy tính của bạn."}</small></span>
@@ -198,8 +219,7 @@ export function MediaPicker({ disabled = false, value, onChange, files = false, 
         {libraryAssets.map(asset => <option key={asset.id} value={asset.id}>{asset.originalName}</option>)}
       </select></label> : <div aria-label="Ảnh trong thư viện" className="media-picker__grid" role="listbox">
         {libraryAssets.map(asset => <button aria-label={asset.originalName} aria-selected={asset.id === value} className={asset.id === value ? "media-picker__thumb media-picker__thumb--selected" : "media-picker__thumb"} disabled={disabled || isUploading || !loaded || searchDraft !== libraryQuery} key={asset.id} onClick={() => { if (!disabled && !uploading.current && loaded && searchDraft === libraryQuery) { onChange(asset.id); setIsLibraryOpen(false); } }} role="option" title={asset.originalName} type="button">
-          {/* eslint-disable-next-line @next/next/no-img-element -- ảnh thu nhỏ trong CMS */}
-          <img alt="" loading="lazy" src={asset.url} />
+          <Image alt="" height={96} src={asset.url} width={128} />
           <span>{asset.originalName}</span>
         </button>)}
         {loaded && !libraryAssets.length ? <p className="admin-help">Không có ảnh phù hợp.</p> : null}

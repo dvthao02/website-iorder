@@ -952,18 +952,30 @@
   .media-picker__file { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; border: 1px solid var(--cms-border); border-radius: var(--cms-radius-card); padding: 8px 10px; }
   .media-picker__file-icon { display: grid; width: 32px; height: 32px; place-items: center; overflow: hidden; border-radius: var(--cms-radius-component); background: var(--cms-hover); color: var(--cms-muted); }
   .media-picker__file-icon:has(img) { width: 64px; height: 40px; }
-  .media-picker__preview { display: grid; gap: 4px; margin: 0; }
-  /* Khung đúng tỉ lệ ảnh chia sẻ Facebook/Zalo (1200×630) để thấy trước phần bị cắt. */
-  .media-picker__preview img { width: 100%; aspect-ratio: 1200 / 630; border: 1px solid var(--cms-border); border-radius: var(--cms-radius-component); background: var(--cms-subtle); object-fit: cover; }
-  .media-picker__preview--drop img { outline: 2px dashed var(--cms-primary); outline-offset: 2px; }
+  /* Ảnh thu nhỏ đúng tỉ lệ ảnh chia sẻ Facebook/Zalo (1200×630) để thấy trước phần bị cắt; rê chuột hoặc bấm để xem lớn. */
+  .media-picker .media-picker__peek { position: relative; display: block; width: 104px; height: auto; min-height: 0; aspect-ratio: 1200 / 630; overflow: hidden; border: 1px solid var(--cms-border); border-radius: var(--cms-radius-component); background: var(--cms-subtle); padding: 0; cursor: zoom-in; }
+  .media-picker__peek img { width: 100%; height: 100%; object-fit: cover; }
+  .media-picker__peek svg { position: absolute; right: 3px; bottom: 3px; width: 18px; height: 18px; border-radius: 999px; background: rgb(16 24 40 / 55%); padding: 2px; color: #fff; opacity: 0; transition: opacity 0.15s; }
+  .media-picker__peek:hover svg,
+  .media-picker__peek:focus-visible svg { opacity: 1; }
+  .media-picker__file--drop { border-style: dashed; border-color: var(--cms-primary); background: var(--cms-primary-soft); }
+  .admin-image-lightbox { position: fixed; inset: 0; z-index: 130; display: grid; place-items: center; background: rgb(16 24 40 / 60%); padding: 24px; }
+  /* Rê chuột: chỉ xem, không chặn chuột để rời ảnh là tắt ngay. */
+  .admin-image-lightbox--peek { pointer-events: none; background: rgb(16 24 40 / 28%); }
+  .admin-image-lightbox__dialog { display: grid; max-width: min(1100px, 100%); gap: 8px; border-radius: var(--cms-radius-modal); background: var(--cms-card); padding: 10px; box-shadow: var(--cms-shadow-popover); }
+  .admin-image-lightbox__dialog img { max-width: 100%; max-height: calc(100vh - 120px); margin: 0 auto; border-radius: var(--cms-radius-component); background: var(--cms-subtle); object-fit: contain; }
+  .admin-image-lightbox__bar { display: flex; min-width: 0; align-items: center; justify-content: space-between; gap: 12px; color: var(--cms-muted); font-size: var(--cms-text-sm); }
+  .admin-image-lightbox__bar span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .admin-image-lightbox .admin-image-lightbox__close { display: grid; width: 32px; height: 32px; min-height: 0; flex: none; place-items: center; border-radius: var(--cms-radius-component); padding: 0; color: var(--cms-muted); }
+  .admin-image-lightbox .admin-image-lightbox__close:hover { background: var(--cms-hover); color: var(--cms-text); }
   .media-picker__upload--drop { border-color: var(--cms-primary); background: var(--cms-primary-soft); color: var(--cms-primary); }
-  .media-picker__grid { display: grid; max-height: 280px; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; overflow-y: auto; }
+  /* max-content: khung cao cố định + cuộn thì hàng auto bị ép, mất dòng tên tệp dưới ảnh. */
+  .media-picker__grid { display: grid; max-height: 280px; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); grid-auto-rows: max-content; gap: 8px; overflow-y: auto; }
   .media-picker .media-picker__thumb { display: grid; height: auto; min-height: 0; gap: 4px; border: 1px solid var(--cms-border); border-radius: var(--cms-radius-component); background: var(--cms-card); padding: 4px; color: var(--cms-text); text-align: left; cursor: pointer; }
   .media-picker .media-picker__thumb:hover:not(:disabled) { border-color: var(--cms-primary); }
   .media-picker .media-picker__thumb--selected { border-color: var(--cms-primary); box-shadow: 0 0 0 2px var(--cms-primary-soft); }
-  .media-picker__thumb img { width: 100%; aspect-ratio: 4 / 3; border-radius: calc(var(--cms-radius-component) - 2px); background: var(--cms-subtle); object-fit: contain; }
+  .media-picker__thumb img { width: 100%; height: auto; aspect-ratio: 4 / 3; border-radius: calc(var(--cms-radius-component) - 2px); background: var(--cms-subtle); object-fit: contain; }
   .media-picker__thumb span { overflow: hidden; font-size: var(--cms-text-xs); text-overflow: ellipsis; white-space: nowrap; }
-  .media-picker__preview figcaption { overflow: hidden; color: var(--cms-muted); font-size: var(--cms-text-xs); text-overflow: ellipsis; white-space: nowrap; }
   .media-picker__file-icon img { width: 100%; height: 100%; object-fit: cover; }
   .media-picker__file > span:nth-child(2) { display: grid; min-width: 0; gap: 1px; }
   .media-picker__file strong,
@@ -971,8 +983,10 @@
   .media-picker__file strong { font-size: var(--cms-text-sm); font-weight: 500; }
   .media-picker__file small { color: var(--cms-muted); }
   .media-picker__file a,
+  .media-picker .media-picker__view,
   .media-picker__library button { color: var(--cms-primary); font-size: var(--cms-text-sm); }
   .media-picker__library { display: flex; flex-wrap: wrap; gap: 14px; }
+  .media-picker .media-picker__view,
   .media-picker__library button { display: inline-flex; align-items: center; gap: 5px; border: 0; background: transparent; padding: 0; }
   .media-picker__library button:hover { text-decoration: underline; }
   .media-picker__library button:disabled { opacity: 0.55; }
