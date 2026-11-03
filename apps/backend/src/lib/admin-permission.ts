@@ -1,4 +1,5 @@
 import { listingPageOwnerModules } from "@iorder/core/server/pages/pages.contract";
+import { transferDatasetModules } from "@iorder/core/server/data-transfer/data-transfer.contract";
 import { cmsModules, cmsPermissions, hasAnyCmsPermission, isSuperAdmin, type CmsAction, type CmsActor, type CmsModuleKey, type CmsPermissionCode } from "@iorder/core/server/auth/permissions";
 
 export const adminMutationMethods = new Set(["POST", "PUT", "PATCH", "DELETE"]);
@@ -25,6 +26,8 @@ const resourceModules: Record<string, CmsModuleKey> = {
   profile: "settings",
   "publishing-config": "settings",
   "external-links": "settings",
+  // Cùng quyền với màn "Kiểm tra xuất bản" chứa nó; service tự lọc nội dung theo quyền xem từng module.
+  "seo-audit": "settings",
 };
 
 export const revisionTargetModules = {
@@ -73,6 +76,13 @@ export function requiredAdminPermissions(pathname: string, method: string): CmsP
   // Dashboard, global search and notifications filter every section by permission themselves; any view right opens them.
   if ((resource === "dashboard" || resource === "tim-kiem" || resource === "notifications") && action === "view") return cmsPermissions.filter((permission) => permission.code.endsWith(".view")).map((permission) => permission.code);
 
+  // Xuất/nhập file theo bảng: quyền của module sở hữu bảng (xuất = view; nhập = create hoặc update, route kiểm từng dòng).
+  if (resource === "data-transfer") {
+    const transferModule = transferDatasetModules[segments[1] as keyof typeof transferDatasetModules];
+    if (!transferModule) return [];
+    return action === "view" ? permissionsFor(transferModule, ["view"]) : action === "create" ? permissionsFor(transferModule, ["create", "update"]) : [];
+  }
+
   // Chuyên mục/thẻ là danh mục chọn trong editor bài viết: người sửa bài cần đọc được, còn tạo/sửa/xóa vẫn cần taxonomy.*.
   if (resource === "taxonomy" && action === "view") return [...permissionsFor("taxonomy", ["view"]), ...permissionsFor("posts", ["view"])];
 
@@ -81,7 +91,8 @@ export function requiredAdminPermissions(pathname: string, method: string): CmsP
   const required = permissionsFor(resourceModule, action === "create" && upsertResources.has(resource) ? ["create", "update"] : [action]);
   // Listing pages (/tin-tuc, /thiet-bi…) are also editable by their owning module;
   // the pages route handler narrows this to the exact page.
-  if (resource === "pages" && (action === "view" || action === "create")) {
+  // PATCH (đổi trạng thái) cũng vậy: route kiểm đúng quyền sửa + xuất bản theo slug của trang.
+  if (resource === "pages" && (action === "view" || action === "create" || action === "update")) {
     return [...required, ...listingPageOwnerModules.flatMap((module) => permissionsFor(module, [action === "view" ? "view" : "update"]))];
   }
   return required;

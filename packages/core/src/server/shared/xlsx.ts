@@ -62,14 +62,15 @@ function workbookFiles(sheetName: string, columns: XlsxColumn[], rows: XlsxCell[
   ];
 }
 
-// Zip chuẩn (deflate) với local header, central directory và end record; đủ cho Excel/LibreOffice/Google Sheets.
-function zip(files: [string, string][]) {
+// Zip chuẩn (deflate) với local header, central directory và end record; đủ cho Excel/Word/LibreOffice/Google Sheets
+// và file .zip thông thường. Dùng chung cho .xlsx, .docx và gói nhiều file Word.
+export function zipFiles(files: [string, string | Buffer][]) {
   const locals: Buffer[] = [];
   const centrals: Buffer[] = [];
   let offset = 0;
   for (const [name, content] of files) {
     const nameBytes = Buffer.from(name, "utf8");
-    const data = Buffer.from(content, "utf8");
+    const data = typeof content === "string" ? Buffer.from(content, "utf8") : content;
     const compressed = deflateRawSync(data);
     const checksum = crc32(data);
     const local = Buffer.alloc(30);
@@ -92,5 +93,5 @@ function zip(files: [string, string][]) {
 }
 
 export function buildXlsx(sheetName: string, columns: XlsxColumn[], rows: XlsxCell[][]) {
-  return zip(workbookFiles(sheetName, columns, rows));
+  return zipFiles(workbookFiles(sheetName, columns, rows));
 }
