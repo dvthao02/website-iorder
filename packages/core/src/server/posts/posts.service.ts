@@ -68,7 +68,7 @@ export async function getAdminPostsPage(query: AdminListQuery & { excludeType?: 
 }
 export async function getAdminPostSummariesPage(query: Parameters<typeof listAdminPostSummariesPage>[0]) {
   const result = await listAdminPostSummariesPage(query);
-  return { ...result, items: adminPostListItemSchema.array().parse(result.items) };
+  return { ...result, items: adminPostListItemSchema.array().parse(result.items.map(({ coverKey, ...row }) => ({ ...row, coverUrl: coverKey ? mediaPath(coverKey) : null }))) };
 }
 
 export async function getAdminPostById(id: string) {

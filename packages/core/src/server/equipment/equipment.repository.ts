@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, ilike, isNull, lte, or, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, ilike, isNull, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@iorder/core/db/client";
 import { auditLogs, equipmentGroups, salesEquipment, salesEquipmentRevisions, mediaAssets } from "@iorder/core/db/schema";
@@ -11,20 +11,13 @@ import { toAdminListPage, type AdminListQuery } from "@iorder/core/server/shared
 import { listOrder, workflowStatusRank, vietnameseText } from "../shared/list-order";
 import { contentPathChange, equipmentPublicPath } from "../shared/content-paths";
 import { applyContentPathChange } from "../redirects/redirects.repository";
+import { liveContentCondition } from "../shared/live-content";
 
 export function listEquipmentGroups() {
   return getDb().select().from(equipmentGroups).where(isNull(equipmentGroups.deletedAt)).orderBy(asc(equipmentGroups.sortOrder), asc(equipmentGroups.id));
 }
 export function listEquipment(publicOnly = false) {
-  const publicCondition = publicOnly
-    ? and(
-      eq(equipmentGroups.isEnabled, true),
-      or(
-        and(eq(salesEquipment.status, "published"), or(isNull(salesEquipment.publishedAt), lte(salesEquipment.publishedAt, new Date()))),
-        and(eq(salesEquipment.status, "scheduled"), lte(salesEquipment.scheduledAt, new Date())),
-      ),
-    )
-    : undefined;
+  const publicCondition = publicOnly ? and(eq(equipmentGroups.isEnabled, true), liveContentCondition(salesEquipment)) : undefined;
 
   return getDb().select({ item: salesEquipment, group: equipmentGroups, coverKey: mediaAssets.storageKey, coverAlt: mediaAssets.altText })
     .from(salesEquipment).innerJoin(equipmentGroups, eq(salesEquipment.groupId, equipmentGroups.id))

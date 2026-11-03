@@ -138,7 +138,7 @@ export async function updateAdminOffering(id: string, input: unknown, editorId: 
 
 export async function getAdminOfferingSummariesPage(query: Parameters<typeof listAdminOfferingSummariesPage>[0]) {
   const result = await listAdminOfferingSummariesPage(query);
-  return { ...result, items: adminOfferingListItemSchema.array().parse(result.items) };
+  return { ...result, items: adminOfferingListItemSchema.array().parse(result.items.map(({ coverKey, ...row }) => ({ ...row, coverUrl: coverKey ? mediaPath(coverKey) : null }))) };
 }
 
 export async function deleteArchivedAdminOffering(id: string, editorId: string, expectedVersion: number) {

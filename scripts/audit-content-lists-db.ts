@@ -59,7 +59,8 @@ async function main() {
   try {
     await client`create schema ${client(scope)}`;
     created = true;
-    for (const table of ["posts", "offerings", "categories", "tags", "post_categories", "post_tags"]) {
+    // media_assets: danh sách tóm tắt join ảnh bìa để hiện ảnh thu nhỏ.
+    for (const table of ["posts", "offerings", "categories", "tags", "post_categories", "post_tags", "media_assets"]) {
       await client`create table ${client(scope)}.${client(table)} (like public.${client(table)} including all)`;
     }
     await client`select set_config('search_path', ${scope}, false)`;
@@ -153,7 +154,8 @@ async function main() {
     }
     console.log("Đạt: Posts/Offerings phân trang 5/3, filter/count, literal wildcard; Posts taxonomy và ID tie-break đúng.");
     const summary = await listAdminPostSummariesPage({ ...query, pageSize: 25 }, db);
-    adminPostListItemSchema.array().parse(summary.items);
+    // Service đổi coverKey (storage_key) thành coverUrl; ở đây chỉ kiểm hình dạng nên giữ nguyên chuỗi.
+    adminPostListItemSchema.array().parse(summary.items.map(({ coverKey, ...item }) => ({ ...item, coverUrl: coverKey })));
     assert.equal(summary.total, 7);
     assert.ok(summary.items.every(item => !Object.hasOwn(item, "content") && !Object.hasOwn(item, "categoryIds")));
     const full = await listAdminPostsPage({ ...query, pageSize: 25 }, db);
@@ -162,7 +164,7 @@ async function main() {
     assert.ok(summaryBytes < Buffer.byteLength(JSON.stringify(full), "utf8") / 100);
     console.log(`Posts summary thực: ${summaryBytes} byte, đúng ID/thứ tự/count; không content/taxonomy.`);
     const offeringSummary = await listAdminOfferingSummariesPage({ ...query, pageSize: 25 }, db);
-    adminOfferingListItemSchema.array().parse(offeringSummary.items);
+    adminOfferingListItemSchema.array().parse(offeringSummary.items.map(({ coverKey, ...item }) => ({ ...item, coverUrl: coverKey })));
     const fullOfferings = await listAdminOfferingsPage({ ...query, pageSize: 25 }, db);
     assert.equal(offeringSummary.total, 7);
     assert.deepEqual(offeringSummary.items.map(item => item.id), fullOfferings.items.map(item => item.id));
@@ -194,7 +196,9 @@ async function main() {
   } catch (error) {
     console.error(`Audit danh sách DB thất bại ở bước ${stage}; không in SQL hoặc dữ liệu nhạy cảm.`);
     if (error instanceof assert.AssertionError) console.error(`Kiểm định thất bại: ${error.operator}; actual=${typeof error.actual === "number" ? error.actual : "không phải số"}; expected=${typeof error.expected === "number" ? error.expected : "không phải số"}.`);
-    if (error instanceof postgres.PostgresError) console.error(`Mã PostgreSQL: ${error.code}; cột: ${error.column_name ?? "không có"}.`);
+    // Drizzle bọc lỗi driver trong `cause`.
+    const pgError = error instanceof postgres.PostgresError ? error : error instanceof Error && error.cause instanceof postgres.PostgresError ? error.cause : undefined;
+    if (pgError) console.error(`Mã PostgreSQL: ${pgError.code}; cột: ${pgError.column_name ?? "không có"}.`);
     process.exitCode = 1;
   } finally {
     await writer.end({ timeout: 10 });

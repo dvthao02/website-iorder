@@ -1,8 +1,9 @@
-import { and, asc, eq, inArray, isNull, lte, or } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull } from "drizzle-orm";
 
 import { getDb } from "@iorder/core/db/client";
 import { auditLogs, equipmentGroups, menuItems, menuRevisions, menus, offerings, pages, posts, salesEquipment } from "@iorder/core/db/schema";
 import { equipmentPublicPath, offeringPublicPath, pagePublicPath, postPublicPath } from "@iorder/core/server/shared/content-paths";
+import { liveContentCondition } from "@iorder/core/server/shared/live-content";
 
 import type { NavigationDocument, NavigationItems, NavigationLinkType, NavigationLocation, NavigationTarget } from "./navigation.contract";
 
@@ -35,10 +36,10 @@ type TargetIds = Partial<Record<Exclude<NavigationLinkType, "custom">, string[]>
 
 async function readPublishedNavigationTargets(ids?: TargetIds): Promise<NavigationTarget[]> {
   const now = new Date();
-  const pagePublished = or(and(eq(pages.status, "published"), or(isNull(pages.publishedAt), lte(pages.publishedAt, now))), and(eq(pages.status, "scheduled"), lte(pages.scheduledAt, now)));
-  const postPublished = or(and(eq(posts.status, "published"), or(isNull(posts.publishedAt), lte(posts.publishedAt, now))), and(eq(posts.status, "scheduled"), lte(posts.scheduledAt, now)));
-  const offeringPublished = or(and(eq(offerings.status, "published"), or(isNull(offerings.publishedAt), lte(offerings.publishedAt, now))), and(eq(offerings.status, "scheduled"), lte(offerings.scheduledAt, now)));
-  const equipmentPublished = or(and(eq(salesEquipment.status, "published"), or(isNull(salesEquipment.publishedAt), lte(salesEquipment.publishedAt, now))), and(eq(salesEquipment.status, "scheduled"), lte(salesEquipment.scheduledAt, now)));
+  const pagePublished = liveContentCondition(pages, now);
+  const postPublished = liveContentCondition(posts, now);
+  const offeringPublished = liveContentCondition(offerings, now);
+  const equipmentPublished = liveContentCondition(salesEquipment, now);
   const pageIds = ids?.page;
   const postIds = ids?.post;
   const offeringIds = ids?.offering;

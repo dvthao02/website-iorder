@@ -1,5 +1,6 @@
-import { adminPageSchema, getFixedWebsitePage, pageBlockInputSchema, pageInputSchema, publicPageSchema, type AdminPage } from "./pages.contract";
+import { adminPageListItemSchema, adminPageSchema, getFixedWebsitePage, pageBlockInputSchema, pageInputSchema, publicPageSchema, type AdminPageListItem } from "./pages.contract";
 import type { AdminListPage, AdminListQuery } from "@iorder/core/server/shared/admin-list.contract";
+import { contentStateAfterAction, contentStateChangeNotes, type ContentStateAction } from "../shared/content-version";
 import { deleteArchivedPage, findAdminPageById, findPageBySlug, listAdminPages, listAdminPagesPage, listPublishedPageSummaries, listPublishedPages, writePage } from "./pages.repository";
 
 export class FixedWebsitePageBindingError extends Error {}
@@ -21,9 +22,9 @@ export async function getPublishedPages() {
 export async function getAdminPages() {
   return adminPageSchema.array().parse((await listAdminPages()).map(page => serialize(page as NonNullable<Awaited<ReturnType<typeof findPageBySlug>>>)));
 }
-export async function getAdminPagesPage(query: AdminListQuery & { status?: "draft" | "review" | "scheduled" | "published" | "archived"; kind?: "custom" | "system" }): Promise<AdminListPage<AdminPage>> {
+export async function getAdminPagesPage(query: AdminListQuery & { status?: "draft" | "review" | "scheduled" | "published" | "archived"; kind?: "custom" | "system" }): Promise<AdminListPage<AdminPageListItem>> {
   const result = await listAdminPagesPage(query);
-  return { ...result, items: adminPageSchema.array().parse(result.items.map(page => serialize(page as NonNullable<Awaited<ReturnType<typeof findPageBySlug>>>))) };
+  return { ...result, items: adminPageListItemSchema.array().parse(result.items) };
 }
 export async function getAdminPageById(id: string) {
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)) return undefined;
@@ -44,7 +45,7 @@ export async function saveAdminPage(
   id: string | null,
   input: unknown,
   editorId: string,
-  options: { allowFixedPageCreation?: boolean; expectedVersion?: number } = {},
+  options: { allowFixedPageCreation?: boolean; expectedVersion?: number; changeNote?: string } = {},
 ) {
   const values = pageInputSchema.parse(input);
   const existing = id ? await findAdminPageById(id) : undefined;
@@ -66,10 +67,20 @@ export async function saveAdminPage(
     throw new FixedWebsitePageBindingError("Trang hệ thống không thể lưu trữ. Chuyển về Bản nháp nếu cần ẩn tạm khỏi website.");
   }
 
-  const pageId = await writePage(id, values, editorId, options.expectedVersion ?? existing?.draftVersion);
+  const pageId = await writePage(id, values, editorId, options.expectedVersion ?? existing?.draftVersion, undefined, options.changeNote);
   if (!pageId) return undefined;
   const page = await findPageBySlug(values.slug, false);
   return page ? adminPageSchema.parse(serialize(page)) : undefined;
+}
+
+// Lưu trữ / khôi phục / xuất bản từ danh sách: đọc trang đầy đủ (kèm khối) ở server rồi đi qua đúng luồng lưu,
+// nên giữ mọi ràng buộc (phiên bản, trang hệ thống, chuyển hướng khi đổi URL, revision, audit) mà không cần client gửi khối.
+export async function changeAdminPageState(id: string, action: ContentStateAction, editorId: string, expectedVersion: number) {
+  const existing = await getAdminPageById(id);
+  if (!existing) return undefined;
+  const status = contentStateAfterAction(existing, action, expectedVersion);
+  const { title, slug, template, seoTitle, seoDescription, canonicalUrl, scheduledAt, blocks } = existing;
+  return saveAdminPage(id, { title, slug, template, status, seoTitle, seoDescription, canonicalUrl, scheduledAt: status === "published" ? null : scheduledAt, blocks }, editorId, { expectedVersion, changeNote: contentStateChangeNotes[action] });
 }
 
 export async function deleteArchivedAdminPage(id: string, editorId: string, expectedVersion?: number) {

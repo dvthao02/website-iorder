@@ -46,8 +46,9 @@ async function handleGET(request: Request) {
   if (!await getRequestAdministrator()) return NextResponse.json({ error: { code: "UNAUTHORIZED", message: "Vui lòng đăng nhập lại." } }, { status: 401 });
   try {
     const params = new URL(request.url).searchParams;
-    const page = await getAdminMediaPage(Object.fromEntries(params));
-    return NextResponse.json({ ...page, assets: page.items });
+    // Contract (mediaListResponseSchema) dùng khóa `assets`; không gửi kèm `items` để danh sách không bị gửi hai lần.
+    const { items, ...page } = await getAdminMediaPage(Object.fromEntries(params));
+    return NextResponse.json({ ...page, assets: items });
   } catch (error) {
     if (error instanceof z.ZodError) return NextResponse.json({ error: { code: "INVALID_INPUT", message: "Kiểm tra trang, số lượng tệp, từ khóa và loại tệp cần tìm." } }, { status: 400 });
     return NextResponse.json({ error: { code: "INTERNAL_ERROR", message: "Không thể tải thư viện tệp." } }, { status: 500 });

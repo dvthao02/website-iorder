@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, ilike, inArray, isNull, lte, ne, or } from "drizzle-orm";
+import { and, asc, count, desc, eq, ilike, inArray, isNull, ne, or } from "drizzle-orm";
 
 import { getDb } from "@iorder/core/db/client";
 import { assertContentVersion, contentDeleteRequestSchema } from "../shared/content-version";
@@ -8,17 +8,10 @@ import { toAdminListPage, type AdminListQuery } from "@iorder/core/server/shared
 import type { AdminPostInput, PublicPostType } from "./posts.contract";
 import { listOrder, workflowStatusRank, vietnameseText } from "../shared/list-order";
 import { applyContentPathChange, type ContentPathChange } from "../redirects/redirects.repository";
+import { liveContentCondition } from "../shared/live-content";
 
 function publicPostCondition() {
-  const now = new Date();
-
-  return and(
-    isNull(posts.deletedAt),
-    or(
-      and(eq(posts.status, "published"), or(isNull(posts.publishedAt), lte(posts.publishedAt, now))),
-      and(eq(posts.status, "scheduled"), lte(posts.scheduledAt, now)),
-    ),
-  );
+  return and(isNull(posts.deletedAt), liveContentCondition(posts));
 }
 
 async function postTaxonomy(postId: string) {
@@ -195,8 +188,10 @@ export async function findAdminPostById(id: string) {
 export async function listAdminPostSummariesPage(query: PostListQuery, database = getDb()) {
   const condition = postListCondition(query);
   return database.transaction(async tx => {
-    const rows = await tx.select({ id: posts.id, type: posts.type, title: posts.title, slug: posts.slug, status: posts.status, draftVersion: posts.draftVersion, updatedAt: posts.updatedAt })
-      .from(posts).where(condition).orderBy(...postListOrder(query)).limit(query.pageSize).offset((query.page - 1) * query.pageSize);
+    // Ảnh bìa cho ô thu nhỏ trong bảng; bỏ qua media đã xóa mềm để không hiện ảnh vỡ.
+    const rows = await tx.select({ id: posts.id, type: posts.type, title: posts.title, slug: posts.slug, status: posts.status, draftVersion: posts.draftVersion, updatedAt: posts.updatedAt, coverKey: mediaAssets.storageKey })
+      .from(posts).leftJoin(mediaAssets, and(eq(mediaAssets.id, posts.coverMediaId), isNull(mediaAssets.deletedAt)))
+      .where(condition).orderBy(...postListOrder(query)).limit(query.pageSize).offset((query.page - 1) * query.pageSize);
     const [totals] = await tx.select({ total: count() }).from(posts).where(condition);
     return toAdminListPage(rows, query, totals?.total ?? 0);
   }, { isolationLevel: "repeatable read", accessMode: "read only" });

@@ -98,10 +98,10 @@ async function main() {
     assert.equal(first.total, 8); assert.equal(first.totalPages, 2);
     assert.equal(first.items.length, 5); assert.equal(second.items.length, 3);
     assert.deepEqual([...first.items, ...second.items].map(page => page.id), expectedRows.map(page => page.id));
-    for (const page of [...first.items, ...second.items]) {
-      assert.equal(page.blocks.length, 1);
-      assert.deepEqual(page.blocks[0].data, { heading: null, body: "Bản đầu" });
-    }
+    // Danh sách không tải khối (P2-3); khối vẫn nằm nguyên trong DB.
+    for (const page of [...first.items, ...second.items]) assert.equal("blocks" in page, false);
+    const [listedBlocks] = await client`select count(*)::int as total from page_blocks where page_id in ${client([...first.items, ...second.items].map(page => page.id))}`;
+    assert.equal(listedBlocks.total, 8);
     const archived = await listAdminPagesPage({ ...input, status: "archived" }, db);
     assert.equal(archived.total, 3); assert.ok(archived.items.every(page => page.status === "archived"));
     assert.equal((await listAdminPagesPage({ ...input, query: "%_" }, db)).total, 7);

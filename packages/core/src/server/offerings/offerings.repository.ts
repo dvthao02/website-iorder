@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, ilike, isNull, lte, or } from "drizzle-orm";
+import { and, asc, count, desc, eq, ilike, isNull, or } from "drizzle-orm";
 
 import { getDb } from "@iorder/core/db/client";
 import { assertContentVersion, contentDeleteRequestSchema } from "../shared/content-version";
@@ -8,18 +8,10 @@ import type { AdminOfferingInput, PublicOfferingType } from "./offering-content.
 import { toAdminListPage, type AdminListQuery } from "@iorder/core/server/shared/admin-list.contract";
 import { listOrder, workflowStatusRank, vietnameseText } from "../shared/list-order";
 import { applyContentPathChange, type ContentPathChange } from "../redirects/redirects.repository";
+import { liveContentCondition } from "../shared/live-content";
 
 function publishedOfferingCondition(type: PublicOfferingType) {
-  const now = new Date();
-
-  return and(
-    eq(offerings.type, type),
-    isNull(offerings.deletedAt),
-    or(
-      and(eq(offerings.status, "published"), or(isNull(offerings.publishedAt), lte(offerings.publishedAt, now))),
-      and(eq(offerings.status, "scheduled"), lte(offerings.scheduledAt, now)),
-    ),
-  );
+  return and(eq(offerings.type, type), isNull(offerings.deletedAt), liveContentCondition(offerings));
 }
 
 export async function listPublishedOfferings(type: PublicOfferingType) {
@@ -171,8 +163,10 @@ export async function findAdminOfferingById(id: string) {
 export async function listAdminOfferingSummariesPage(query: OfferingListQuery, database = getDb()) {
   const condition = offeringListCondition(query);
   return database.transaction(async tx => {
-    const rows = await tx.select({ id: offerings.id, type: offerings.type, title: offerings.title, slug: offerings.slug, status: offerings.status, draftVersion: offerings.draftVersion, updatedAt: offerings.updatedAt })
-      .from(offerings).where(condition).orderBy(...offeringListOrder(query)).limit(query.pageSize).offset((query.page - 1) * query.pageSize);
+    // Ảnh bìa cho ô thu nhỏ trong bảng; bỏ qua media đã xóa mềm để không hiện ảnh vỡ.
+    const rows = await tx.select({ id: offerings.id, type: offerings.type, title: offerings.title, slug: offerings.slug, status: offerings.status, draftVersion: offerings.draftVersion, updatedAt: offerings.updatedAt, coverKey: mediaAssets.storageKey })
+      .from(offerings).leftJoin(mediaAssets, and(eq(mediaAssets.id, offerings.coverMediaId), isNull(mediaAssets.deletedAt)))
+      .where(condition).orderBy(...offeringListOrder(query)).limit(query.pageSize).offset((query.page - 1) * query.pageSize);
     const [totals] = await tx.select({ total: count() }).from(offerings).where(condition);
     return toAdminListPage(rows, query, totals?.total ?? 0);
   }, { isolationLevel: "repeatable read", accessMode: "read only" });

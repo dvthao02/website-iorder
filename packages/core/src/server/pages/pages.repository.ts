@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, ilike, inArray, isNull, lte, notInArray, or } from "drizzle-orm";
+import { and, asc, count, desc, eq, ilike, inArray, isNull, notInArray, or } from "drizzle-orm";
 import { getDb } from "@iorder/core/db/client";
 import { auditLogs, pageBlocks, pageRevisions, pages } from "@iorder/core/db/schema";
 import { toAdminListPage, type AdminListQuery } from "@iorder/core/server/shared/admin-list.contract";
@@ -8,6 +8,7 @@ import { assertPageVersion } from "./page-version";
 import { listOrder, workflowStatusRank, vietnameseText } from "../shared/list-order";
 import { contentPathChange, pagePublicPath } from "../shared/content-paths";
 import { applyContentPathChange } from "../redirects/redirects.repository";
+import { liveContentCondition } from "../shared/live-content";
 
 const selectPage = { id: pages.id, title: pages.title, slug: pages.slug, template: pages.template, status: pages.status, draftVersion: pages.draftVersion, seoTitle: pages.seoTitle, seoDescription: pages.seoDescription, canonicalUrl: pages.canonicalUrl, scheduledAt: pages.scheduledAt, publishedAt: pages.publishedAt, updatedAt: pages.updatedAt };
 
@@ -38,8 +39,7 @@ function pageListCondition(query: PageListQuery) {
 }
 
 export async function findPageBySlug(slug: string, publishedOnly: boolean) {
-  const now = new Date();
-  const [page] = await getDb().select(selectPage).from(pages).where(and(eq(pages.slug, slug), isNull(pages.deletedAt), publishedOnly ? or(and(eq(pages.status, "published"), or(isNull(pages.publishedAt), lte(pages.publishedAt, now))), and(eq(pages.status, "scheduled"), lte(pages.scheduledAt, now))) : undefined)).limit(1);
+  const [page] = await getDb().select(selectPage).from(pages).where(and(eq(pages.slug, slug), isNull(pages.deletedAt), publishedOnly ? liveContentCondition(pages) : undefined)).limit(1);
   if (!page) return undefined;
   const blocks = await getDb().select({ type: pageBlocks.type, data: pageBlocks.data, isEnabled: pageBlocks.isEnabled, appearance: pageBlocks.appearance }).from(pageBlocks).where(eq(pageBlocks.pageId, page.id)).orderBy(asc(pageBlocks.sortOrder));
   return { ...page, blocks };
@@ -55,10 +55,8 @@ export async function listAdminPagesPage(query: PageListQuery, database = getDb(
   return database.transaction(async tx => {
     const rows = await tx.select(selectPage).from(pages).where(condition).orderBy(...listOrder({ title: vietnameseText(pages.title), status: workflowStatusRank(pages.status), updatedAt: pages.updatedAt }, query, [desc(pages.updatedAt), asc(pages.id)])).limit(query.pageSize).offset((query.page - 1) * query.pageSize);
     const [totals] = await tx.select({ total: count() }).from(pages).where(condition);
-    const blocks = rows.length ? await tx.select({ pageId: pageBlocks.pageId, type: pageBlocks.type, data: pageBlocks.data, isEnabled: pageBlocks.isEnabled, appearance: pageBlocks.appearance }).from(pageBlocks).where(inArray(pageBlocks.pageId, rows.map(page => page.id))).orderBy(asc(pageBlocks.sortOrder), asc(pageBlocks.id)) : [];
-    const blocksByPage = new Map(rows.map(page => [page.id, [] as Array<{ type: typeof pageBlocks.$inferSelect.type; data: typeof pageBlocks.$inferSelect.data; isEnabled: boolean; appearance: unknown }>]));
-    blocks.forEach(({ pageId, ...block }) => blocksByPage.get(pageId)?.push(block));
-    return toAdminListPage(rows.map(page => ({ ...page, blocks: blocksByPage.get(page.id) ?? [] })), query, totals?.total ?? 0);
+    // Danh sách không tải khối: màn danh sách chỉ cần thông tin dòng (P2-3 trong docs/CMS_V2_AUDIT.md).
+    return toAdminListPage(rows, query, totals?.total ?? 0);
   }, { isolationLevel: "repeatable read", accessMode: "read only" });
 }
 
@@ -68,17 +66,15 @@ export async function findAdminPageById(id: string) {
 }
 
 export function listPublishedPageSummaries() {
-  const now = new Date();
-  return getDb().select({ slug: pages.slug, updatedAt: pages.updatedAt }).from(pages).where(and(isNull(pages.deletedAt), or(and(eq(pages.status, "published"), or(isNull(pages.publishedAt), lte(pages.publishedAt, now))), and(eq(pages.status, "scheduled"), lte(pages.scheduledAt, now)))));
+  return getDb().select({ slug: pages.slug, updatedAt: pages.updatedAt }).from(pages).where(and(isNull(pages.deletedAt), liveContentCondition(pages)));
 }
 
 export async function listPublishedPages() {
-  const now = new Date();
-  const result = await getDb().select(selectPage).from(pages).where(and(isNull(pages.deletedAt), or(and(eq(pages.status, "published"), or(isNull(pages.publishedAt), lte(pages.publishedAt, now))), and(eq(pages.status, "scheduled"), lte(pages.scheduledAt, now))))).orderBy(desc(pages.updatedAt));
+  const result = await getDb().select(selectPage).from(pages).where(and(isNull(pages.deletedAt), liveContentCondition(pages))).orderBy(desc(pages.updatedAt));
   return withBlocksBatch(result);
 }
 
-export async function writePage(id: string | null, input: PageInput, editorId: string, expectedVersion?: number, database = getDb()) {
+export async function writePage(id: string | null, input: PageInput, editorId: string, expectedVersion?: number, database = getDb(), changeNote?: string) {
   return database.transaction(async tx => {
     const [existing] = id ? await tx.select(selectPage).from(pages).where(and(eq(pages.id, id), isNull(pages.deletedAt))).for("update") : [];
     if (id && !existing) return undefined;
@@ -92,7 +88,7 @@ export async function writePage(id: string | null, input: PageInput, editorId: s
     await tx.delete(pageBlocks).where(eq(pageBlocks.pageId, page.id));
     if (input.blocks.length) await tx.insert(pageBlocks).values(input.blocks.map((block, index) => ({ pageId: page.id, type: block.type, data: block.data, sortOrder: index, isEnabled: block.isEnabled, appearance: block.appearance ?? null })));
     const snapshot = { ...input, publishedAt: publishedAt?.toISOString() ?? null };
-    await tx.insert(pageRevisions).values({ pageId: page.id, editorId, versionNumber: version, snapshot, changeNote: id ? "Cập nhật trang trong CMS" : "Tạo trang trong CMS", isPublished: input.status === "published" });
+    await tx.insert(pageRevisions).values({ pageId: page.id, editorId, versionNumber: version, snapshot, changeNote: changeNote ?? (id ? "Cập nhật trang trong CMS" : "Tạo trang trong CMS"), isPublished: input.status === "published" });
     await tx.insert(auditLogs).values({ userId: editorId, action: id ? "page.update" : "page.create", entityType: "page", entityId: page.id, afterData: snapshot });
     return page.id;
   });

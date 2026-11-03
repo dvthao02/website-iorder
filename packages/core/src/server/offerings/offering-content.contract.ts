@@ -94,6 +94,8 @@ export const adminOfferingListItemSchema = z.object({
   id: z.string().uuid(), type: publicOfferingTypeSchema, title: z.string().min(1).max(220), slug: offeringSlugSchema,
   status: z.enum(["draft", "review", "scheduled", "published", "archived"]),
   draftVersion: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER), updatedAt: z.date(),
+  // Ảnh bìa để hiện ô thu nhỏ trong bảng (như Shopify/Payload); null khi chưa có ảnh.
+  coverUrl: z.string().nullable(),
 }).strict();
 export type AdminOfferingListItem = z.infer<typeof adminOfferingListItemSchema>;
 export type AdminOfferingInput = z.infer<typeof adminOfferingInputSchema>;

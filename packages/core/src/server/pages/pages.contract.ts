@@ -202,9 +202,18 @@ export const pageInputSchema = z.object({
   if (value.status === "scheduled" && !value.scheduledAt) ctx.addIssue({ code: "custom", path: ["scheduledAt"], message: "Trang hẹn giờ cần thời điểm xuất bản." });
 });
 
-export const adminPageSchema = pageInputSchema.safeExtend({ id: z.string().uuid(), draftVersion: z.number().int().nonnegative(), publishedAt: z.date().nullable(), updatedAt: z.date() });
+const adminPageMetaShape = { id: z.string().uuid(), draftVersion: z.number().int().nonnegative(), publishedAt: z.date().nullable(), updatedAt: z.date() };
+export const adminPageSchema = pageInputSchema.safeExtend(adminPageMetaShape);
+// Dòng danh sách trang: không kèm khối (có thể hàng chục KB mỗi trang). Đổi trạng thái từ danh sách dùng
+// PATCH /api/admin/pages/[id] { action }, server tự đọc trang đầy đủ nên không cần gửi khối lên.
+const pageShape = pageInputSchema.shape;
+export const adminPageListItemSchema = z.object({
+  title: pageShape.title, slug: pageShape.slug, template: pageShape.template, status: pageShape.status, seoTitle: pageShape.seoTitle,
+  seoDescription: pageShape.seoDescription, canonicalUrl: pageShape.canonicalUrl, scheduledAt: pageShape.scheduledAt, ...adminPageMetaShape,
+});
+export type AdminPageListItem = z.infer<typeof adminPageListItemSchema>;
 export const adminPagesPageSchema = z.object({
-  items: z.array(adminPageSchema), page: z.number().int().positive(), pageSize: z.number().int().min(5).max(100),
+  items: z.array(adminPageListItemSchema), page: z.number().int().positive(), pageSize: z.number().int().min(5).max(100),
   total: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER), totalPages: z.number().int().positive(),
 }).superRefine((value, context) => {
   const expected = Math.max(0, Math.min(value.pageSize, value.total - (value.page - 1) * value.pageSize));
