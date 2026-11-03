@@ -74,3 +74,11 @@ test("xuất bản hàng loạt: bản nháp/chờ duyệt lên đã xuất bả
   assert.throws(() => contentStateAfterAction({ status: "published", draftVersion: 1 }, "publish", 1), ContentStateTransitionError);
   assert.throws(() => contentStateAfterAction({ status: "draft", draftVersion: 2 }, "publish", 1), ContentVersionConflictError);
 });
+
+test("chuyển về nháp hàng loạt: mục đang hiển thị/hẹn giờ/chờ duyệt về bản nháp; bản nháp và mục lưu trữ bị từ chối rõ lý do", async () => {
+  const { contentStateAfterAction, contentStateRequestSchema, ContentStateTransitionError } = await import("./content-version");
+  assert.equal(contentStateRequestSchema.safeParse({ action: "unpublish", expectedVersion: 1 }).success, true);
+  for (const status of ["published", "scheduled", "review"] as const) assert.equal(contentStateAfterAction({ status, draftVersion: 2 }, "unpublish", 2), "draft");
+  assert.throws(() => contentStateAfterAction({ status: "draft", draftVersion: 1 }, "unpublish", 1), (error: unknown) => error instanceof ContentStateTransitionError && /bản nháp/.test((error as Error).message));
+  assert.throws(() => contentStateAfterAction({ status: "archived", draftVersion: 1 }, "unpublish", 1), (error: unknown) => error instanceof ContentStateTransitionError && /khôi phục/.test((error as Error).message));
+});

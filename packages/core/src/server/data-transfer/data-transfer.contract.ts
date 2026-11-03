@@ -25,6 +25,8 @@ export const wordExportDatasets = ["posts", "guides"] as const satisfies readonl
 export type TransferDatasetId = keyof typeof transferDatasetModules;
 export const transferDatasetSchema = z.enum(Object.keys(transferDatasetModules) as [TransferDatasetId, ...TransferDatasetId[]]);
 export const transferFormatSchema = z.enum(["xlsx", "csv", "word"]);
+/** Xuất riêng các mục đã chọn trong bảng (?ids=a,b,c); bỏ trống là xuất cả bảng. */
+export const exportIdsSchema = z.array(z.string().uuid()).min(1).max(200);
 
 /** Phiên bản từng dòng lúc xem trước (khóa dòng → version; null = dòng tạo mới), gửi lại khi áp dụng. Khóa dài nhất là đường dẫn cũ của chuyển hướng (500). */
 export const importExpectedSchema = z.record(z.string().max(500), z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER).nullable());

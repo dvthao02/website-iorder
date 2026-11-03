@@ -6,7 +6,7 @@ import { denyUnless } from "@/lib/admin-access";
 import { withRequestContext } from "@/lib/request-context";
 import { getRequestAdministrator } from "@iorder/core/server/auth/request-administrator";
 import type { CmsPermissionCode } from "@iorder/core/server/auth/permissions";
-import { importExpectedSchema, transferDatasetModules, transferDatasetSchema, transferFormatSchema, type TransferDatasetId } from "@iorder/core/server/data-transfer/data-transfer.contract";
+import { exportIdsSchema, importExpectedSchema, transferDatasetModules, transferDatasetSchema, transferFormatSchema, type TransferDatasetId } from "@iorder/core/server/data-transfer/data-transfer.contract";
 import { applyImportFile, exportDataset, previewImport } from "@iorder/core/server/data-transfer/data-transfer.service";
 import { TabularFileError } from "@iorder/core/server/data-transfer/tabular";
 import { exportPostsWord } from "@iorder/core/server/data-transfer/word.service";
@@ -30,14 +30,18 @@ function fail(code: string, message: string, status: number) {
   return NextResponse.json({ error: { code, message } }, { status });
 }
 
-// Xuất cả bảng ra .xlsx hoặc .csv (file này cũng là mẫu để sửa rồi nhập lại).
+// Xuất cả bảng (hoặc các mục đã chọn: ?ids=) ra .xlsx hoặc .csv (file này cũng là mẫu để sửa rồi nhập lại).
 async function handleGET(request: Request, { params }: RouteProps) {
   const administrator = await getRequestAdministrator();
   if (!administrator) return fail("UNAUTHORIZED", "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.", 401);
   const dataset = transferDatasetSchema.safeParse((await params).dataset);
-  const format = transferFormatSchema.safeParse(new URL(request.url).searchParams.get("format") ?? "xlsx");
+  const searchParams = new URL(request.url).searchParams;
+  const format = transferFormatSchema.safeParse(searchParams.get("format") ?? "xlsx");
+  const idsParam = searchParams.get("ids");
+  const ids = idsParam === null ? undefined : exportIdsSchema.safeParse(idsParam.split(",").filter(Boolean));
   if (!dataset.success) return fail("NOT_FOUND", "Không có bảng dữ liệu này.", 404);
   if (!format.success) return fail("INVALID_INPUT", "Định dạng xuất chỉ nhận xlsx, csv hoặc word.", 400);
+  if (ids && !ids.success) return fail("INVALID_INPUT", "Danh sách mục cần xuất không hợp lệ (tối đa 200 mục).", 400);
   const denied = denyUnless(administrator, `${transferDatasetModules[dataset.data]}.view` as CmsPermissionCode);
   if (denied) return denied;
   try {
@@ -48,7 +52,7 @@ async function handleGET(request: Request, { params }: RouteProps) {
       const file = await exportPostsWord(kind);
       return new NextResponse(new Uint8Array(file.body), { headers: { "content-type": "application/zip", "content-disposition": `attachment; filename="${file.fileName}"`, "cache-control": "no-store" } });
     }
-    const file = await exportDataset(dataset.data, format.data);
+    const file = await exportDataset(dataset.data, format.data, ids?.data);
     return new NextResponse(typeof file.body === "string" ? file.body : new Uint8Array(file.body), { headers: {
       "content-type": file.contentType,
       "content-disposition": `attachment; filename="${file.fileName}"`,

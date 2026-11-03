@@ -27,9 +27,10 @@ function withDataset<R>(id: TransferDatasetId, run: <TItem extends TransferItem,
   }
 }
 
-export async function exportDataset(id: TransferDatasetId, format: "xlsx" | "csv") {
+export async function exportDataset(id: TransferDatasetId, format: "xlsx" | "csv", ids?: readonly string[]) {
   return withDataset(id, async (dataset) => {
-    const { items } = await dataset.load();
+    const loaded = (await dataset.load()).items;
+    const items = ids ? loaded.filter((item) => ids.includes(item.id)) : loaded;
     const table = exportRows(dataset.fields, items);
     const day = new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Ho_Chi_Minh" });
     const fileName = `${dataset.fileName}-${day}.${format}`;

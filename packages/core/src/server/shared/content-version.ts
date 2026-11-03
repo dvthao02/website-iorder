@@ -6,7 +6,8 @@ export const contentUpdateRequestSchema = z.object({ expectedVersion: expectedVe
 export const versionedWriteRequestSchema = z.object({ values: z.unknown(), expectedVersion: expectedVersionSchema }).strict();
 export const contentDeleteRequestSchema = contentUpdateRequestSchema.strict();
 // publish: xuất bản ngay bản đang lưu (dùng cho xuất bản hàng loạt); mục đã lưu trữ phải khôi phục trước.
-export const contentStateRequestSchema = z.object({ action: z.enum(["archive", "restore", "publish"]), expectedVersion: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER) }).strict();
+// unpublish: gỡ khỏi website, đưa mục đang hiển thị/hẹn giờ/chờ duyệt về bản nháp (giữ nguyên nội dung).
+export const contentStateRequestSchema = z.object({ action: z.enum(["archive", "restore", "publish", "unpublish"]), expectedVersion: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER) }).strict();
 
 export class ContentVersionConflictError extends Error {
   constructor() {
@@ -27,7 +28,7 @@ export function assertContentVersion(actual: number, expected: number) {
 }
 
 export type ContentStateAction = z.infer<typeof contentStateRequestSchema>["action"];
-export const contentStateChangeNotes: Record<ContentStateAction, string> = { archive: "Lưu trữ", restore: "Khôi phục về bản nháp", publish: "Xuất bản" };
+export const contentStateChangeNotes: Record<ContentStateAction, string> = { archive: "Lưu trữ", restore: "Khôi phục về bản nháp", publish: "Xuất bản", unpublish: "Chuyển về bản nháp" };
 
 export function contentStateAfterAction(current: { status: "draft" | "review" | "scheduled" | "published" | "archived"; draftVersion: number }, action: ContentStateAction, expectedVersion: number): "draft" | "archived" | "published" {
   contentStateRequestSchema.parse({ action, expectedVersion });
@@ -36,6 +37,11 @@ export function contentStateAfterAction(current: { status: "draft" | "review" | 
     if (current.status === "archived") throw new ContentStateTransitionError("Nội dung đang lưu trữ; hãy khôi phục trước khi xuất bản.");
     if (current.status === "published") throw new ContentStateTransitionError("Nội dung đã được xuất bản.");
     return "published";
+  }
+  if (action === "unpublish") {
+    if (current.status === "archived") throw new ContentStateTransitionError("Nội dung đang lưu trữ; hãy khôi phục thay vì chuyển về nháp.");
+    if (current.status === "draft") throw new ContentStateTransitionError("Nội dung đã là bản nháp.");
+    return "draft";
   }
   if ((action === "restore") !== (current.status === "archived")) throw new ContentVersionConflictError();
   return action === "archive" ? "archived" : "draft";
