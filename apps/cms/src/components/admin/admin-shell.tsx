@@ -3,7 +3,7 @@
 import NextImage from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { AdminToastProvider } from "@/components/admin/ui/admin-feedback";
 import { AdminConfirmProvider } from "@/components/admin/ui/admin-confirm-dialog";
 import { AdminPermissionsProvider } from "@/components/admin/ui/admin-permissions";
@@ -46,6 +46,7 @@ import { LogoutButton } from "@/app/admin/(protected)/logout-button";
 import { AdminIconButton } from "@/components/admin/ui/admin-icon-button";
 import { AdminLoadingBar } from "@/components/admin/ui/admin-loading-bar";
 import { AdminPopover } from "@/components/admin/ui/admin-popover";
+import { usePopoverDismiss } from "@/components/admin/ui/use-popover-dismiss";
 import { adminPageBarActionsId, adminPageBarMetaId } from "@/components/admin/ui/admin-page-bar";
 import { AdminVersionConflictBanner } from "@/components/admin/ui/admin-version-conflict";
 import { CmsThemeProvider } from "@/components/admin/admin-theme-settings";
@@ -182,12 +183,28 @@ function initials(fullName: string) {
 
 export function AdminShell({ administrator, children, notifications }: { administrator: Administrator; children: ReactNode; notifications: HeaderNotification[] }) {
   const pathname = usePathname();
+  usePopoverDismiss();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [mobileNavigationPath, setMobileNavigationPath] = useState<string | null>(null);
   const isMobileNavigationOpen = mobileNavigationPath === pathname;
   const [collapsedNavigationGroups, setCollapsedNavigationGroups] = useState<Set<string>>(() => new Set());
   const [compactNavigationGroups, setCompactNavigationGroups] = useState<Set<string>>(() => new Set());
   const [sidebarTooltip, setSidebarTooltip] = useState<{ label: string; top: number } | null>(null);
+  // Menu nhóm của thanh bên thu gọn: bấm ra ngoài thanh bên hoặc Esc thì đóng.
+  const hasCompactGroupOpen = compactNavigationGroups.size > 0;
+  useEffect(() => {
+    if (!hasCompactGroupOpen) return;
+    const close = (event: PointerEvent | KeyboardEvent) => {
+      if (event instanceof KeyboardEvent ? event.key !== "Escape" : event.target instanceof Node && document.querySelector(".admin-sidebar")?.contains(event.target)) return;
+      setCompactNavigationGroups(new Set());
+    };
+    document.addEventListener("pointerdown", close);
+    document.addEventListener("keydown", close);
+    return () => {
+      document.removeEventListener("pointerdown", close);
+      document.removeEventListener("keydown", close);
+    };
+  }, [hasCompactGroupOpen]);
   const currentNavigation = navigationGroups
     .flatMap((group) => visibleNavigationItems(administrator, group.items)
       .map((item) => ({ group, item })))
@@ -219,12 +236,8 @@ export function AdminShell({ administrator, children, notifications }: { adminis
       return;
     }
 
-    setCompactNavigationGroups(current => {
-      const next = new Set(current);
-      if (next.has(groupId)) next.delete(groupId);
-      else next.add(groupId);
-      return next;
-    });
+    // Thanh bên thu gọn: mỗi lần chỉ mở một nhóm (menu nổi), như các menu thả xuống khác.
+    setCompactNavigationGroups(current => current.has(groupId) ? new Set() : new Set([groupId]));
   }
 
   function showSidebarTooltip(label: string, target: HTMLElement) {
@@ -322,7 +335,7 @@ export function AdminShell({ administrator, children, notifications }: { adminis
                   <span>{group.label}</span>
                   <ChevronDown aria-hidden="true" size={14} />
                 </button>
-                <div className="admin-navigation__items" hidden={isSidebarCollapsed ? !isCompactGroupOpen : isGroupCollapsed} id={`admin-navigation-group-${group.id}`}>
+                <div className="admin-navigation__items" hidden={isSidebarCollapsed ? !isCompactGroupOpen : isGroupCollapsed} id={`admin-navigation-group-${group.id}`} onClick={isSidebarCollapsed ? (event) => { if (event.target instanceof Element && event.target.closest("a")) setCompactNavigationGroups(new Set()); } : undefined}>
                   {items.map(item => {
                   const active = isActive(pathname, item);
                   const ItemIcon = item.icon;
