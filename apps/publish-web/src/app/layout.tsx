@@ -10,7 +10,9 @@ import { getSiteProfile } from "@/lib/backend";
 import { getPublishingConfig } from "@/lib/backend";
 
 // Font tròn, dễ đọc như các website phần mềm bán hàng phổ biến (KiotViet); có đủ dấu tiếng Việt.
-const sans = Google_Sans_Flex({ subsets: ["latin", "vietnamese"], variable: "--font-brand", display: "swap" });
+// Next chưa có số đo của Google Sans Flex để tự tạo font dự phòng (báo "Failed to find font override values"),
+// nên tắt hẳn bước đó và nêu rõ font hệ thống dùng trong lúc chờ tải.
+const sans = Google_Sans_Flex({ subsets: ["latin", "vietnamese"], variable: "--font-brand", display: "swap", adjustFontFallback: false, fallback: ["ui-sans-serif", "system-ui", "-apple-system", "Segoe UI", "sans-serif"] });
 
 // Content and metadata are database-driven. Rendering at request time keeps a
 // container build independent from production data and lets CMS edits publish
