@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent, type MouseEvent } from "react";
 import { ArrowDownUp, ChevronDown, Download, FileSpreadsheet, FileText, Upload } from "lucide-react";
@@ -13,7 +14,9 @@ import { AdminNotice, AdminStatusBadge, useAdminToast, type AdminFeedbackTone } 
 import { AdminPopover } from "@/components/admin/ui/admin-popover";
 import { AdminSidePanel } from "@/components/admin/ui/admin-side-panel";
 import { useAdminPermissions } from "@/components/admin/ui/admin-permissions";
-import { WordImportPanel } from "@/components/admin/word-import-panel";
+
+// Khung nhập Word kéo theo bộ soạn thảo Tiptap (~500 KB): chỉ tải khi người dùng mở, không nạp cùng màn danh sách.
+const WordImportPanel = dynamic(() => import("@/components/admin/word-import-panel").then((loaded) => loaded.WordImportPanel), { ssr: false });
 
 const actionLabels: Record<ImportRow["action"], { label: string; tone: AdminFeedbackTone }> = {
   create: { label: "Thêm mới", tone: "success" },

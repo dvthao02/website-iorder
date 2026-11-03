@@ -7,7 +7,7 @@ import { ImageIcon } from "lucide-react";
 export function AdminRowTitle({ href, imageUrl, title }: { href: string; imageUrl: string | null; title: string }) {
   return <Link className="admin-row-title" href={href}>
     <span className="admin-row-title__thumb">
-      {imageUrl ? <Image alt="" className="object-contain" fill sizes="40px" src={imageUrl} unoptimized /> : <ImageIcon aria-label="Chưa có ảnh bìa" size={14} />}
+      {imageUrl ? <Image alt="" className="object-contain" fill sizes="40px" src={imageUrl} /> : <ImageIcon aria-label="Chưa có ảnh bìa" size={14} />}
     </span>
     <span className="admin-row-title__text">{title}</span>
   </Link>;
