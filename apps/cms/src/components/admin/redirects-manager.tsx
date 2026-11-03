@@ -1,12 +1,14 @@
 "use client";
 
 import { adminApiError, readAdminJson } from "@/lib/admin-api";
-import { ArrowRight, Edit3, Link2, Plus, RotateCcw, Save } from "lucide-react";
+import { ArrowRight, Edit3, Link2, Plus, RotateCcw, Save, ToggleLeft, ToggleRight, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { redirectInputSchema } from "@iorder/core/server/redirects/redirects.contract";
 
 import { DataTransferActions } from "./data-transfer-actions";
+import { AdminBulkBar } from "./ui/admin-bulk-bar";
+import { AdminBulkMenu, type AdminBulkMenuAction } from "./ui/admin-bulk-menu";
 import { AdminButton } from "./ui/admin-button";
 import { AdminCard } from "./ui/admin-card";
 import { useAdminConfirm } from "./ui/admin-confirm-dialog";
@@ -16,7 +18,11 @@ import { AdminFilterBar, type AdminFilterChip } from "./ui/admin-filter-bar";
 import { AdminListHeader } from "./ui/admin-list-header";
 import { AdminListPage } from "./ui/admin-list-page";
 import { AdminSearchField } from "./ui/admin-search-field";
+import { AdminFileIcon } from "./ui/admin-file-icon";
+import { useAdminPermissions } from "./ui/admin-permissions";
 import { AdminSidePanel } from "./ui/admin-side-panel";
+import { useRowSelection } from "./ui/content-bulk-bar";
+import { useBulkAction } from "./ui/use-bulk-action";
 import { useNavigationGuard } from "./ui/use-navigation-guard";
 
 type RedirectInput = { sourcePath: string; destinationPath: string; statusCode: 301 | 308; isEnabled: boolean };
@@ -66,6 +72,25 @@ export function RedirectsManager({ initialRedirects }: { initialRedirects: Redir
       return matchesQuery && (codeFilter === "all" || String(item.statusCode) === codeFilter) && (statusFilter === "all" || (statusFilter === "enabled" && item.isEnabled) || (statusFilter === "disabled" && !item.isEnabled));
     });
   }, [codeFilter, query, rows, statusFilter]);
+  // Chọn nhiều dòng: bỏ chọn khi đổi từ khóa/bộ lọc; thao tác chỉ áp dụng cho dòng còn hiện trong bảng.
+  const { can } = useAdminPermissions();
+  const selection = useRowSelection(`${query.trim()}|${statusFilter}|${codeFilter}`);
+  const { busy: bulkBusy, run: runBulk } = useBulkAction();
+  const chosen = visibleRows.filter((item) => selection.selectedIds.includes(item.id));
+  const enabledChosen = chosen.filter((item) => item.isEnabled);
+  const disabledChosen = chosen.filter((item) => !item.isEnabled);
+  const updateDenied = can("redirects.update") ? undefined : "Cần quyền sửa chuyển hướng.";
+  const setEnabled = (items: Redirect[], isEnabled: boolean) => () => void runBulk({
+    items, verb: isEnabled ? "Bật" : "Tắt", noun: "chuyển hướng", onDone: selection.clear,
+    confirmMessage: isEnabled ? undefined : "Đường dẫn cũ sẽ không còn tự chuyển sang trang mới (có thể trả 404).",
+    request: (item) => ({ method: "POST", url: "/api/admin/redirects", body: { id: item.id, values: { sourcePath: item.sourcePath, destinationPath: item.destinationPath, statusCode: item.statusCode, isEnabled }, expectedVersion: item.version } }),
+  });
+  const bulkActions: AdminBulkMenuAction[] = [
+    { key: "enable", label: "Bật", icon: <ToggleRight aria-hidden="true" />, count: disabledChosen.length, disabledReason: updateDenied, onSelect: setEnabled(disabledChosen, true) },
+    { key: "disable", label: "Tắt", icon: <ToggleLeft aria-hidden="true" />, count: enabledChosen.length, disabledReason: updateDenied, onSelect: setEnabled(enabledChosen, false) },
+    { key: "export", label: "Xuất Excel các mục đã chọn", icon: <AdminFileIcon action="export" kind="excel" size="sm" />, count: chosen.length, href: `/api/admin/data-transfer/redirects?format=xlsx&ids=${chosen.map((item) => item.id).join(",")}` },
+    { key: "delete", label: "Xóa", icon: <Trash2 aria-hidden="true" />, count: chosen.length, tone: "danger", disabledReason: can("redirects.delete") ? undefined : "Cần quyền xóa chuyển hướng.", onSelect: () => void runBulk({ items: chosen, verb: "Xóa", noun: "chuyển hướng", confirmMessage: "Đường dẫn cũ của các mục này sẽ không còn tự chuyển hướng. Thao tác không thể hoàn tác.", tone: "danger", onDone: selection.clear, request: (item) => ({ method: "DELETE", url: `/api/admin/redirects?id=${item.id}&expectedVersion=${item.version}` }) }) },
+  ];
 
   function allowSelectionChange() {
     if (mutationPending.current) {
@@ -180,7 +205,8 @@ export function RedirectsManager({ initialRedirects }: { initialRedirects: Redir
     <AdminCard className="admin-list-manager__card">
       <AdminListHeader actions={<><DataTransferActions dataset="redirects" label="Chuyển hướng URL" module="redirects" /><AdminButton hideWithoutPermission permission="redirects.create" leadingIcon={<Plus aria-hidden="true" size={16} />} onClick={() => select()}>Tạo chuyển hướng</AdminButton></>} description={`${rows.length} đường dẫn · ${enabledCount} đang bật`} headingLevel={1} title="Chuyển hướng URL" />
       <AdminFilterBar onSubmit={(event) => event.preventDefault()} chips={chips} onClearAll={() => { setQuery(""); setStatusFilter("all"); setCodeFilter("all"); }} search={<AdminSearchField id="redirect-search" label="Tìm chuyển hướng" onChange={(event) => setQuery(event.target.value)} placeholder="Tìm đường dẫn cũ hoặc đích đến" value={query} />}><select aria-label="Lọc trạng thái" id="redirect-status" onChange={(event) => setStatusFilter(event.target.value as RedirectStatusFilter)} value={statusFilter}><option value="all">Tất cả trạng thái</option><option value="enabled">Đang bật</option><option value="disabled">Đang tắt</option></select>{statusCodes.length > 1 ? <select aria-label="Lọc mã chuyển hướng" onChange={(event) => setCodeFilter(event.target.value)} value={codeFilter}><option value="all">Mọi mã</option>{statusCodes.map((code) => <option key={code} value={String(code)}>{code}</option>)}</select> : null}</AdminFilterBar>
-      <AdminDataTable columns={columns} emptyMessage={rows.length ? "Không có chuyển hướng phù hợp với bộ lọc." : "Chưa có chuyển hướng URL."} getRowId={(item) => item.id} onRowClick={select} onSettingsOpenChange={setIsColumnSettingsOpen} rows={visibleRows} settingsOpen={isColumnSettingsOpen} tableId="cms-redirects" />
+      <AdminBulkBar count={chosen.length} onClear={selection.clear}><AdminBulkMenu actions={bulkActions} busy={bulkBusy} /></AdminBulkBar>
+      <AdminDataTable columns={columns} emptyMessage={rows.length ? "Không có chuyển hướng phù hợp với bộ lọc." : "Chưa có chuyển hướng URL."} getRowId={(item) => item.id} onRowClick={select} onSelectionChange={selection.setSelectedIds} onSettingsOpenChange={setIsColumnSettingsOpen} selectedIds={selection.selectedIds} rows={visibleRows} settingsOpen={isColumnSettingsOpen} tableId="cms-redirects" />
     </AdminCard>
     <AdminSidePanel footer={footer} isOpen={form !== null} onClose={closeEditor}>
       <header className="admin-list-manager__panel-header"><span className="admin-list-manager__panel-icon"><Link2 aria-hidden="true" size={18} /></span><div><p>{active ? "Chỉnh sửa chuyển hướng" : "Tạo chuyển hướng"}</p><h2>{active?.sourcePath || "Chuyển hướng mới"}</h2><small className={dirty ? "admin-list-manager__dirty" : undefined}>{dirty ? "Có thay đổi chưa lưu." : active ? `${active.destinationPath} · ${active.statusCode}` : "Khai báo URL cũ và đích đến mới."}</small></div></header>

@@ -1,13 +1,21 @@
 "use client";
 
 import { adminApiError, readAdminJson } from "@/lib/admin-api";
-import { FolderTree, Plus, Tags } from "lucide-react";
+import { FolderTree, Plus, Tags, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useRef, useState, type FormEvent, type ReactNode } from "react";
 
+import { AdminBulkBar } from "./ui/admin-bulk-bar";
+import { AdminBulkMenu, type AdminBulkMenuAction } from "./ui/admin-bulk-menu";
 import { AdminButton } from "./ui/admin-button";
 import { AdminCard } from "./ui/admin-card";
+import { AdminDataTable, type AdminDataTableColumn } from "./ui/admin-data-table";
 import { AdminEmptyState } from "./ui/admin-empty-state";
+import { AdminFileIcon } from "./ui/admin-file-icon";
+import { useAdminPermissions } from "./ui/admin-permissions";
+import { AdminRowEditIcon } from "./ui/admin-row-title";
+import { useRowSelection } from "./ui/content-bulk-bar";
+import { useBulkAction } from "./ui/use-bulk-action";
 import { AdminSidePanel } from "./ui/admin-side-panel";
 import { useAdminConfirm } from "./ui/admin-confirm-dialog";
 import { useAdminToast } from "./ui/admin-feedback";
@@ -88,6 +96,27 @@ export function TaxonomyManager({ categories, tags }: { categories: Category[]; 
   const dirty = !equalValues(form, initialValues);
   useNavigationGuard(dirty || busy, busy ? () => showToast("Đang xử lý phân loại. Vui lòng chờ trước khi rời trang.", "info") : undefined);
   const invalidParentIds = activeId && kind === "categories" ? descendantIds(categories, activeId) : new Set<string>();
+  // Chọn nhiều dòng (bỏ chọn khi đổi tab): xuất Excel các mục đã chọn, xóa hàng loạt.
+  const { can } = useAdminPermissions();
+  const selection = useRowSelection(kind);
+  const { busy: bulkBusy, run: runBulk } = useBulkAction();
+  const chosen = (kind === "categories" ? categories : tags).filter((item) => selection.selectedIds.includes(item.id));
+  const bulkNoun = kind === "categories" ? "chuyên mục" : "thẻ";
+  const bulkActions: AdminBulkMenuAction[] = [
+    { key: "export", label: "Xuất Excel các mục đã chọn", icon: <AdminFileIcon action="export" kind="excel" size="sm" />, count: chosen.length, href: `/api/admin/data-transfer/${kind}?format=xlsx&ids=${chosen.map((item) => item.id).join(",")}` },
+    { key: "delete", label: "Xóa", icon: <Trash2 aria-hidden="true" />, count: chosen.length, tone: "danger", disabledReason: can("taxonomy.delete") ? undefined : "Cần quyền xóa phân loại.", onSelect: () => void runBulk({ items: chosen, verb: "Xóa", noun: bulkNoun, confirmMessage: "Các mục đã chọn sẽ bị xóa khỏi CMS. Thao tác không thể hoàn tác.", tone: "danger", onDone: selection.clear, request: (item) => ({ method: "DELETE", url: `/api/admin/taxonomy?kind=${kind}&id=${item.id}` }) }) },
+  ];
+  const categoryColumns: AdminDataTableColumn<Category>[] = [
+    { id: "name", label: "Tên", defaultWidth: 320, minWidth: 180, cell: (item) => <span className="block truncate" style={{ paddingLeft: `${Math.min(categoryDepth(categories, item), 3) * 16}px` }}>{item.name}</span> },
+    { id: "slug", label: "Đường dẫn", defaultWidth: 260, minWidth: 140, sortValue: (item) => item.slug, cell: (item) => <span className="admin-text-muted block truncate">/{item.slug}</span> },
+    { id: "sortOrder", label: "Thứ tự", defaultWidth: 100, minWidth: 100, align: "right", sortValue: (item) => item.sortOrder, cell: (item) => <span className="admin-text-muted">{item.sortOrder}</span> },
+    { id: "actions", label: "Thao tác", defaultWidth: 120, minWidth: 120, align: "right", cell: () => <AdminRowEditIcon /> },
+  ];
+  const tagColumns: AdminDataTableColumn<Tag>[] = [
+    { id: "name", label: "Tên", defaultWidth: 320, minWidth: 180, sortValue: (item) => item.name, cell: (item) => <span className="block truncate">{item.name}</span> },
+    { id: "slug", label: "Đường dẫn", defaultWidth: 260, minWidth: 140, sortValue: (item) => item.slug, cell: (item) => <span className="admin-text-muted block truncate">/{item.slug}</span> },
+    { id: "actions", label: "Thao tác", defaultWidth: 120, minWidth: 120, align: "right", cell: () => <AdminRowEditIcon /> },
+  ];
 
   function allowSelectionChange() {
     if (mutationPending.current) {
@@ -213,24 +242,11 @@ export function TaxonomyManager({ categories, tags }: { categories: Category[]; 
           <AdminListHeader actions={<><DataTransferActions dataset={kind} key={kind} label={kind === "categories" ? "Chuyên mục" : "Thẻ"} module="taxonomy" /><AdminButton hideWithoutPermission permission="taxonomy.create" leadingIcon={<Plus aria-hidden="true" size={16} />} onClick={() => (kind === "categories" ? selectCategory() : selectTag())}>{kind === "categories" ? "Thêm chuyên mục" : "Thêm thẻ"}</AdminButton></>} description={`${categories.length} chuyên mục · ${tags.length} thẻ`} title="Chuyên mục & Thẻ" />
           <AdminFilterTabs ariaLabel="Loại phân loại" disabled={busy} items={[{ label: `Chuyên mục (${categories.length})`, value: "categories" }, { label: `Thẻ (${tags.length})`, value: "tags" }]} onValueChange={changeKind} value={kind} />
 
-        <div className="admin-select-list">
-          {kind === "categories" ? categories.map((item) => (
-            <button
-              className={item.id === activeId ? "admin-select-list__item admin-select-list__item--active" : "admin-select-list__item"}
-              key={item.id}
-              onClick={() => selectCategory(item)}
-              style={{ paddingLeft: `calc(var(--cms-card-padding) + ${Math.min(categoryDepth(categories, item), 3) * 16}px)` }}
-              type="button"
-            >
-              <strong>{item.name}</strong>
-              <small>/{item.slug} · Thứ tự {item.sortOrder}</small>
-            </button>
-          )) : tags.map((item) => (
-            <button className={item.id === activeId ? "admin-select-list__item admin-select-list__item--active" : "admin-select-list__item"} key={item.id} onClick={() => selectTag(item)} type="button">
-              <strong>{item.name}</strong>
-              <small>/{item.slug}</small>
-            </button>
-          ))}
+        <AdminBulkBar count={chosen.length} onClear={selection.clear}><AdminBulkMenu actions={bulkActions} busy={bulkBusy} /></AdminBulkBar>
+        <div>
+          {kind === "categories"
+            ? categories.length ? <AdminDataTable columns={categoryColumns} emptyMessage="Chưa có chuyên mục." getRowId={(item) => item.id} onRowClick={selectCategory} onSelectionChange={selection.setSelectedIds} rows={categories} selectedIds={selection.selectedIds} tableId="cms-categories" /> : null
+            : tags.length ? <AdminDataTable columns={tagColumns} emptyMessage="Chưa có thẻ." getRowId={(item) => item.id} onRowClick={selectTag} onSelectionChange={selection.setSelectedIds} rows={tags} selectedIds={selection.selectedIds} tableId="cms-tags" /> : null}
           {(kind === "categories" ? categories.length : tags.length) === 0 ? (
             <AdminEmptyState
               action={<AdminButton onClick={() => (kind === "categories" ? selectCategory() : selectTag())}>{kind === "categories" ? "Tạo chuyên mục đầu tiên" : "Tạo thẻ đầu tiên"}</AdminButton>}

@@ -59,19 +59,24 @@ test("Bảng danh sách: sắp xếp, ghim cột ở tiêu đề, chọn nhiều
     await page.getByLabel("Chọn tất cả dòng trên trang").check();
     const bulkBar = page.getByRole("region", { name: "Thao tác với các dòng đã chọn" });
     await expect(bulkBar).toContainText("Đã chọn 2");
-    await bulkBar.getByRole("button", { name: "Lưu trữ (2)" }).click();
+    // Thao tác hàng loạt nằm trong menu "Thao tác"; mục không áp dụng được thì mờ.
+    const bulk = async (name: RegExp) => {
+      await bulkBar.getByLabel("Chọn thao tác cho các dòng đã chọn").click();
+      await bulkBar.getByRole("menuitem", { name }).click();
+    };
+    await bulk(/^Lưu trữ \(2\)/);
     await page.getByRole("alertdialog").getByRole("button", { name: "Lưu trữ" }).click();
     await expect(rows.filter({ hasText: "Lưu trữ" })).toHaveCount(2);
     await expect(bulkBar).toHaveCount(0);
 
     // Khôi phục hàng loạt.
     await page.getByLabel("Chọn tất cả dòng trên trang").check();
-    await bulkBar.getByRole("button", { name: "Khôi phục (2)" }).click();
+    await bulk(/^Khôi phục \(2\)/);
     await expect(rows.filter({ hasText: "Bản nháp" })).toHaveCount(2);
 
     // Xuất bản hàng loạt (có hộp xác nhận) → cả hai lên "Đã xuất bản".
     await page.getByLabel("Chọn tất cả dòng trên trang").check();
-    await bulkBar.getByRole("button", { name: "Xuất bản (2)" }).click();
+    await bulk(/^Xuất bản \(2\)/);
     await page.getByRole("alertdialog").getByRole("button", { name: "Xuất bản" }).click();
     await expect(rows.filter({ hasText: "Đã xuất bản" })).toHaveCount(2);
   }

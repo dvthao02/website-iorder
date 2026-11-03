@@ -10,6 +10,8 @@ import type { MediaAsset, MediaListQuery, MediaUsage } from "@iorder/core/server
 import { mediaAssetSchema, mediaListResponseSchema, mediaUsageSchema } from "@iorder/core/server/media/media.contract";
 
 import { AdminBulkBar } from "./ui/admin-bulk-bar";
+import { AdminBulkMenu } from "./ui/admin-bulk-menu";
+import { useAdminPermissions } from "./ui/admin-permissions";
 import { AdminButton } from "./ui/admin-button";
 import { AdminFileIcon, fileKindOf } from "./ui/admin-file-icon";
 import { useRowSelection } from "./ui/content-bulk-bar";
@@ -55,6 +57,7 @@ function useMediaView() {
 export function MediaManager({ initialPage, initialQuery }: { initialPage: { assets: MediaAsset[]; page: number; pageSize: number; total: number; totalPages: number }; initialQuery: MediaListQuery }) {
   const { show: showToast } = useAdminToast();
   const { confirm } = useAdminConfirm();
+  const { can } = useAdminPermissions();
   const view = useMediaView();
   const [assets, setAssets] = useState(initialPage.assets);
   const [page, setPage] = useState(initialPage.page);
@@ -276,7 +279,7 @@ export function MediaManager({ initialPage, initialQuery }: { initialPage: { ass
         </div>
       </AdminFilterBar>
       <AdminBulkBar count={selectedIds.length} onClear={clearSelection}>
-        <AdminButton disabled={busy || loading} hideWithoutPermission onClick={() => void removeSelected()} permission="media.delete" size="sm" variant="danger"><Trash2 aria-hidden="true" size={14} />Xóa tệp đã chọn</AdminButton>
+        <AdminBulkMenu busy={busy || loading} actions={[{ key: "delete", label: "Xóa tệp đã chọn", icon: <Trash2 aria-hidden="true" />, count: selectedIds.length, disabledReason: can("media.delete") ? undefined : "Cần quyền xóa media.", hint: "Tệp đang được dùng sẽ được giữ lại", tone: "danger", onSelect: () => void removeSelected() }]} />
       </AdminBulkBar>
       {listError ? <div className="admin-list-toolbar"><AdminNotice tone="error">{listError}</AdminNotice><AdminButton disabled={loading} onClick={() => void loadPage(page)} size="sm" variant="secondary">Thử lại</AdminButton></div> : null}
       <fieldset className="min-w-0" disabled={loading || busy}>

@@ -13,6 +13,7 @@ import { MediaPicker } from "./media-picker";
 import { RevisionHistory } from "./revision-history";
 import { AdminButton } from "./ui/admin-button";
 import { AdminFileIcon, fileKindOf } from "./ui/admin-file-icon";
+import { ContentBulkBar, useRowSelection } from "./ui/content-bulk-bar";
 import { AdminEmptyState } from "./ui/admin-empty-state";
 import { AdminNotice, AdminStatusBadge, useAdminToast, type AdminFeedbackTone } from "./ui/admin-feedback";
 import { AdminCard } from "./ui/admin-card";
@@ -100,6 +101,12 @@ export function SupportDownloadManagerList({
   const { show: showToast } = useAdminToast();
   const initialActive = items.find((item) => item.id === initialSelectedId);
   const [rows, setRows] = useState(items);
+  // Thao tác hàng loạt xong gọi router.refresh(): nhận danh sách mới từ máy chủ thay cho bản đang giữ.
+  const [loadedItems, setLoadedItems] = useState(items);
+  if (loadedItems !== items) {
+    setLoadedItems(items);
+    setRows(items);
+  }
   const [activeId, setActiveId] = useState<string | null>(initialActive?.id ?? null);
   const [form, setForm] = useState<AdminSupportDownloadInput | null>(() => startCreating ? { ...blank } : initialActive ? valuesOf(initialActive) : null);
   const [initialValues, setInitialValues] = useState<AdminSupportDownloadInput | null>(() => startCreating ? { ...blank } : initialActive ? valuesOf(initialActive) : null);
@@ -134,6 +141,7 @@ export function SupportDownloadManagerList({
     const keyword = query.trim().toLocaleLowerCase("vi");
     return rows.filter((item) => (!keyword || `${item.title} ${item.originalName ?? ""}`.toLocaleLowerCase("vi").includes(keyword)) && (filter === "all" || item.status === filter));
   }, [filter, query, rows]);
+  const selection = useRowSelection(`${query.trim()}|${filter}`);
 
   useNavigationGuard(!revisionRestore.completing && (dirty || busy), () => {
     showToast(busy ? "Đang xử lý tài nguyên. Vui lòng chờ trước khi rời trang." : "Bạn có thay đổi chưa lưu. Hãy lưu hoặc bỏ thay đổi trước khi rời trang.", "warning");
@@ -292,7 +300,18 @@ export function SupportDownloadManagerList({
   const sidebar = <>
       <AdminListHeader actions={<AdminButton hideWithoutPermission permission="support_downloads.create" leadingIcon={<Plus aria-hidden="true" size={16} />} onClick={create}>Thêm</AdminButton>} description={`${rows.length} tệp tải xuống`} headingLevel={1} title="Hỗ trợ cài đặt" />
       <AdminFilterBar onSubmit={(event) => event.preventDefault()} chips={chips} onClearAll={() => { setQuery(""); setFilter("all"); }} search={<AdminSearchField id="support-download-search" label="Tìm tài nguyên" onChange={(event) => setQuery(event.target.value)} placeholder="Tìm tên hoặc tệp" value={query} />}><select aria-label="Lọc trạng thái" onChange={(event) => setFilter(event.target.value as Filter)} value={filter}>{filterItems.map((item) => <option key={item.value} value={item.value}>{item.value === "all" ? "Tất cả trạng thái" : item.label}</option>)}</select></AdminFilterBar>
-    <AdminDataTable columns={columns} emptyMessage={rows.length ? "Không có tài nguyên phù hợp với bộ lọc." : "Chưa có tài nguyên. Bấm “Thêm” để tải PDF hoặc ZIP; hệ thống tự tạo bản nháp để bạn hoàn thiện."} getRowId={(item) => item.id} onRowClick={select} rows={visibleRows} tableId="support-downloads" />
+    <ContentBulkBar
+      deleteRequest={(item) => ({ method: "DELETE", url: `/api/admin/support-downloads/${item.id}?version=${item.draftVersion}` })}
+      items={visibleRows}
+      module="support_downloads"
+      noun="tài nguyên"
+      onClear={selection.clear}
+      request={(item, action) => ({ method: "PATCH", url: `/api/admin/support-downloads/${item.id}`, body: action === "publish" || action === "unpublish"
+        ? { action: "save", values: { ...valuesOf(item), isEnabled: action === "publish" }, expectedVersion: item.draftVersion }
+        : { action, expectedVersion: item.draftVersion } })}
+      selectedIds={selection.selectedIds}
+    />
+    <AdminDataTable columns={columns} emptyMessage={rows.length ? "Không có tài nguyên phù hợp với bộ lọc." : "Chưa có tài nguyên. Bấm “Thêm” để tải PDF hoặc ZIP; hệ thống tự tạo bản nháp để bạn hoàn thiện."} getRowId={(item) => item.id} onRowClick={select} onSelectionChange={selection.setSelectedIds} rows={visibleRows} selectedIds={selection.selectedIds} tableId="support-downloads" />
   </>;
 
   const editor = <>

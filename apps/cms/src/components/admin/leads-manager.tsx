@@ -1,15 +1,15 @@
 "use client";
 
 import { adminApiError, readAdminJson } from "@/lib/admin-api";
-import { FileSpreadsheet, Mail, Phone } from "lucide-react";
-import { useRef, useState, useTransition } from "react";
+import { CheckCircle2, FileSpreadsheet, Inbox, Mail, Phone, PhoneCall } from "lucide-react";
+import { useRef, useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import type { LeadListQuery } from "@iorder/core/server/leads/leads.contract";
 import type { AdminListPage as ListResult } from "@iorder/core/server/shared/admin-list.contract";
 import { leadStatusUpdateResponseSchema } from "@iorder/core/server/leads/leads.contract";
 
 import { AdminBulkBar } from "./ui/admin-bulk-bar";
-import { AdminButton } from "./ui/admin-button";
+import { AdminBulkMenu } from "./ui/admin-bulk-menu";
 import { AdminCard } from "./ui/admin-card";
 import { AdminDataTable, type AdminDataTableColumn, type AdminTableSort } from "./ui/admin-data-table";
 import { AdminStatusBadge, useAdminToast } from "./ui/admin-feedback";
@@ -44,6 +44,7 @@ type Lead = {
 const statusLabel: Record<LeadStatus, string> = { new: "Mới", contacted: "Đã liên hệ", closed: "Đã xử lý" };
 const statusTone = { new: "warning", contacted: "info", closed: "success" } as const;
 const statuses: LeadStatus[] = ["new", "contacted", "closed"];
+const statusIcons: Record<LeadStatus, ReactNode> = { new: <Inbox aria-hidden="true" />, contacted: <PhoneCall aria-hidden="true" />, closed: <CheckCircle2 aria-hidden="true" /> };
 const dateTimeFormatter = new Intl.DateTimeFormat("vi-VN", { dateStyle: "short", timeStyle: "short", timeZone: "Asia/Ho_Chi_Minh" });
 export function LeadsManager({ initialPage, initialQuery }: { initialPage: ListResult<Lead> & { counts: Record<"all" | LeadStatus, number> }; initialQuery: LeadListQuery }) {
   const { can } = useAdminPermissions();
@@ -136,11 +137,7 @@ export function LeadsManager({ initialPage, initialQuery }: { initialPage: ListR
         <AdminPeriodFilter disabled={loading} from={initialQuery.from} label="Khoảng thời gian gửi" onChange={({ from, to }) => navigate(filter, 1, initialQuery.query, { from, to })} to={initialQuery.to} />
       </AdminFilterBar>
       <AdminBulkBar count={selectedLeads.length} onClear={clear}>
-        {canUpdate ? <>
-          <span className="admin-text-muted">Chuyển sang:</span>
-          {statuses.map((status) => <AdminButton disabled={bulkBusy} key={status} onClick={() => bulkStatus(status)} size="sm" variant="secondary">{statusLabel[status]}</AdminButton>)}
-          {bulkBusy ? <span className="admin-text-muted">Đang xử lý…</span> : null}
-        </> : <span className="admin-text-muted">Cần quyền cập nhật liên hệ để đổi trạng thái hàng loạt.</span>}
+        <AdminBulkMenu busy={bulkBusy} actions={statuses.map((status) => ({ key: status, label: `Chuyển sang “${statusLabel[status]}”`, icon: statusIcons[status], count: selectedLeads.filter((lead) => lead.status !== status).length, disabledReason: canUpdate ? undefined : "Cần quyền cập nhật liên hệ.", onSelect: () => bulkStatus(status) }))} />
       </AdminBulkBar>
       <AdminDataTable columns={columns} emptyMessage={filter === "all" && !filtered ? "Chưa có liên hệ nào. Liên hệ gửi từ biểu mẫu website sẽ xuất hiện tại đây." : "Không có liên hệ khớp bộ lọc. Thử đổi trạng thái, từ khóa hoặc khoảng thời gian."} getRowId={(lead) => lead.id} onRowClick={(lead) => setOpenId(lead.id)} onSelectionChange={setSelectedIds} onSortChange={(next) => navigate(filter, 1, initialQuery.query, { sort: next?.key, dir: next?.dir })} rows={leads} selectedIds={selectedIds} sort={sort} tableId="leads" />
       <AdminPagination disabled={loading || busy.size > 0} label="Phân trang liên hệ" onChange={(page) => navigate(filter, page)} page={initialPage.page} pageSize={initialPage.pageSize} total={initialPage.total} totalPages={initialPage.totalPages} />

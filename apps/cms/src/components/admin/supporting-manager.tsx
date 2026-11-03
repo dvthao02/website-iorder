@@ -3,7 +3,7 @@
 import { adminApiError, readAdminJson } from "@/lib/admin-api";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Plus } from "lucide-react";
+import { Eye, EyeOff, Plus, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, useTransition, type Dispatch, type SetStateAction, type FormEvent, type ReactNode } from "react";
 
 import type {
@@ -14,11 +14,19 @@ import type {
 import { partnerInputSchema, testimonialInputSchema, supportingSaveResponseSchema } from "@iorder/core/server/supporting/supporting.contract";
 
 import { MediaPicker } from "./media-picker";
+import { AdminBulkBar } from "./ui/admin-bulk-bar";
+import { AdminBulkMenu, type AdminBulkMenuAction } from "./ui/admin-bulk-menu";
 import { AdminButton } from "./ui/admin-button";
 import { AdminCard } from "./ui/admin-card";
+import { AdminDataTable, type AdminDataTableColumn } from "./ui/admin-data-table";
 import { useAdminConfirm } from "./ui/admin-confirm-dialog";
 import { AdminStatusBadge, useAdminToast } from "./ui/admin-feedback";
 import { AdminEmptyState } from "./ui/admin-empty-state";
+import { AdminFileIcon } from "./ui/admin-file-icon";
+import { AdminRowEditIcon } from "./ui/admin-row-title";
+import { useAdminPermissions } from "./ui/admin-permissions";
+import { useRowSelection } from "./ui/content-bulk-bar";
+import { useBulkAction } from "./ui/use-bulk-action";
 import { AdminFilterBar, type AdminFilterChip } from "./ui/admin-filter-bar";
 import { AdminFilterTabs } from "./ui/admin-filter-tabs";
 import { AdminListHeader } from "./ui/admin-list-header";
@@ -145,6 +153,27 @@ export function SupportingManager({
   const visiblePartners = partners;
   const visibleTestimonials = testimonials;
   const editorOpen = form !== null;
+  // Chọn nhiều dòng: tự bỏ chọn khi đổi loại, bộ lọc, từ khóa hoặc trang.
+  const { can } = useAdminPermissions();
+  const selection = useRowSelection(`${kind}|${initialQuery.query}|${filter}|${partnerKindFilter}|${pagination.page}|${pagination.pageSize}`);
+  const { busy: bulkBusy, run: runBulk } = useBulkAction();
+  const bulkItems: (Partner | Testimonial)[] = kind === "partners" ? visiblePartners : visibleTestimonials;
+  const chosen = bulkItems.filter((item) => selection.selectedIds.includes(item.id));
+  const hiddenChosen = chosen.filter((item) => !item.isEnabled);
+  const shownChosen = chosen.filter((item) => item.isEnabled);
+  const bulkNoun = kind === "partners" ? "mục" : "đánh giá";
+  const visibilityDenied = can("supporting.update") && can("supporting.publish") ? undefined : "Cần quyền sửa và xuất bản.";
+  const setVisibility = (items: (Partner | Testimonial)[], isEnabled: boolean) => () => void runBulk({
+    items, verb: isEnabled ? "Hiện" : "Ẩn", noun: bulkNoun, onDone: selection.clear,
+    confirmMessage: isEnabled ? undefined : "Các mục sẽ không còn hiện trên website; bật lại được bất cứ lúc nào.",
+    request: (item) => ({ method: "POST", url: "/api/admin/supporting", body: { kind, id: item.id, values: { ...supportingValues(kind, item), isEnabled }, expectedVersion: item.version } }),
+  });
+  const bulkActions: AdminBulkMenuAction[] = [
+    { key: "show", label: "Hiện trên website", icon: <Eye aria-hidden="true" />, count: hiddenChosen.length, disabledReason: visibilityDenied, onSelect: setVisibility(hiddenChosen, true) },
+    { key: "hide", label: "Ẩn khỏi website", icon: <EyeOff aria-hidden="true" />, count: shownChosen.length, disabledReason: visibilityDenied, onSelect: setVisibility(shownChosen, false) },
+    { key: "export", label: "Xuất Excel các mục đã chọn", icon: <AdminFileIcon action="export" kind="excel" size="sm" />, count: chosen.length, href: `/api/admin/data-transfer/${kind}?format=xlsx&ids=${chosen.map((item) => item.id).join(",")}` },
+    { key: "delete", label: "Xóa", icon: <Trash2 aria-hidden="true" />, count: hiddenChosen.length, tone: "danger", disabledReason: !can("supporting.delete") ? "Cần quyền xóa." : hiddenChosen.length ? undefined : "Chỉ xóa được mục đang ẩn.", onSelect: () => void runBulk({ items: hiddenChosen, verb: "Xóa", noun: bulkNoun, confirmMessage: "Các mục đang ẩn sẽ bị xóa khỏi CMS. Thao tác không thể hoàn tác.", tone: "danger", onDone: selection.clear, request: (item) => ({ method: "DELETE", url: `/api/admin/supporting?kind=${kind}&id=${item.id}` }) }) },
+  ];
 
   useEffect(() => {
     if (!editorOpen) return;
@@ -322,11 +351,13 @@ export function SupportingManager({
             {(["all", "enabled", "disabled"] as const).map((value) => <option key={value} value={value}>{value === "all" ? "Tất cả trạng thái" : visibilityLabel[value]}</option>)}
           </select>
         </AdminFilterBar>
-        <div aria-live="polite" className="admin-tile-grid">
-          {kind === "partners"
-            ? visiblePartners.map((item) => <PartnerListItem active={activeId === item.id} item={item} key={item.id} onClick={() => selectPartner(item)} />)
-            : visibleTestimonials.map((item) => <TestimonialListItem active={activeId === item.id} item={item} key={item.id} onClick={() => selectTestimonial(item)} />)}
-          {(kind === "partners" ? visiblePartners.length : visibleTestimonials.length) === 0 ? <div className="col-span-full"><AdminEmptyState description="Đổi bộ lọc hoặc tạo nội dung mới bằng nút phía trên." title={`Chưa có ${kind === "testimonials" ? "đánh giá" : partnerKindFilter === "customer" ? "khách hàng" : partnerKindFilter === "partner" ? "đối tác" : "nội dung"} phù hợp`} /></div> : null}
+        <AdminBulkBar count={chosen.length} onClear={selection.clear}><AdminBulkMenu actions={bulkActions} busy={bulkBusy} /></AdminBulkBar>
+        <div aria-live="polite">
+          {(kind === "partners" ? visiblePartners.length : visibleTestimonials.length) === 0
+            ? <AdminEmptyState description="Đổi bộ lọc hoặc tạo nội dung mới bằng nút phía trên." title={`Chưa có ${kind === "testimonials" ? "đánh giá" : partnerKindFilter === "customer" ? "khách hàng" : partnerKindFilter === "partner" ? "đối tác" : "nội dung"} phù hợp`} />
+            : kind === "partners"
+              ? <AdminDataTable columns={partnerColumns} emptyMessage="Chưa có đối tác." getRowId={(item) => item.id} onRowClick={selectPartner} onSelectionChange={selection.setSelectedIds} rows={visiblePartners} selectedIds={selection.selectedIds} tableId="cms-partners" />
+              : <AdminDataTable columns={testimonialColumns} emptyMessage="Chưa có đánh giá." getRowId={(item) => item.id} onRowClick={selectTestimonial} onSelectionChange={selection.setSelectedIds} rows={visibleTestimonials} selectedIds={selection.selectedIds} tableId="cms-testimonials" />}
         </div>
         <nav aria-label="Phân trang" className="admin-pagination">
           <label className="admin-check">Mỗi trang
@@ -382,36 +413,43 @@ const partnerKindFilterLabel = {
   customer: "Khách hàng",
 } satisfies Record<PartnerKindFilter, string>;
 
-function PartnerListItem({ active, item, onClick }: { active: boolean; item: Partner; onClick: () => void }) {
-  return (
-    <button aria-pressed={active} className="admin-tile" onClick={onClick} type="button">
-      <MediaThumbnail alt={item.logo?.altText || item.name} url={item.logo?.url} />
-      <span><strong>{item.name}</strong><small>{item.kind === "partner" ? "Đối tác" : "Khách hàng"} · Thứ tự {item.sortOrder}</small></span>
-      <StatusBadge enabled={item.isEnabled} />
-    </button>
-  );
+// Bảng như các màn danh sách khác (bấm dòng để sửa trong khung trượt); cột chỉnh được ở "Cài đặt bảng".
+const partnerColumns: AdminDataTableColumn<Partner>[] = [
+  { id: "name", label: "Tên", defaultWidth: 280, minWidth: 180, sortValue: (item) => item.name, cell: (item) => <NameCell imageUrl={item.logo?.url} name={item.name} /> },
+  { id: "kind", label: "Loại", defaultWidth: 130, minWidth: 110, sortValue: (item) => item.kind, cell: (item) => <span className="admin-text-muted">{partnerKindFilterLabel[item.kind]}</span> },
+  { id: "website", label: "Website", defaultWidth: 240, minWidth: 140, sortValue: (item) => item.websiteUrl ?? "", cell: (item) => item.websiteUrl ? <span className="admin-text-muted block truncate" title={item.websiteUrl}>{item.websiteUrl.replace(/^https?:\/\/(www\.)?/, "")}</span> : <span className="admin-text-muted">—</span> },
+  { id: "sortOrder", label: "Thứ tự", defaultWidth: 100, minWidth: 100, align: "right", sortValue: (item) => item.sortOrder, cell: (item) => <span className="admin-text-muted">{item.sortOrder}</span> },
+  { id: "status", label: "Trạng thái", defaultWidth: 130, minWidth: 110, sortValue: (item) => (item.isEnabled ? 0 : 1), cell: (item) => <StatusBadge enabled={item.isEnabled} /> },
+  { id: "actions", label: "Thao tác", defaultWidth: 120, minWidth: 120, align: "right", cell: () => <AdminRowEditIcon /> },
+];
+
+const testimonialColumns: AdminDataTableColumn<Testimonial>[] = [
+  { id: "author", label: "Người đánh giá", defaultWidth: 210, minWidth: 160, sortValue: (item) => item.authorName, cell: (item) => <NameCell imageUrl={item.avatar?.url} name={item.authorName} /> },
+  { id: "company", label: "Công ty · chức vụ", defaultWidth: 200, minWidth: 140, sortValue: (item) => item.company ?? item.authorRole ?? "", cell: (item) => <span className="admin-text-muted block truncate">{[item.company, item.authorRole].filter(Boolean).join(" · ") || "—"}</span> },
+  { id: "quote", label: "Nội dung", defaultWidth: 240, minWidth: 160, cell: (item) => <span className="admin-text-muted block truncate" title={item.quote}>{item.quote}</span> },
+  { id: "rating", label: "Số sao", defaultWidth: 100, minWidth: 100, align: "right", sortValue: (item) => item.rating ?? 0, cell: (item) => <span className="admin-text-muted">{item.rating ? `${item.rating}/5` : "—"}</span> },
+  { id: "sortOrder", label: "Thứ tự", defaultWidth: 100, minWidth: 100, align: "right", sortValue: (item) => item.sortOrder, cell: (item) => <span className="admin-text-muted">{item.sortOrder}</span> },
+  { id: "status", label: "Trạng thái", defaultWidth: 130, minWidth: 110, sortValue: (item) => (item.isEnabled ? 0 : 1), cell: (item) => <StatusBadge enabled={item.isEnabled} /> },
+  { id: "actions", label: "Thao tác", defaultWidth: 120, minWidth: 120, align: "right", cell: () => <AdminRowEditIcon /> },
+];
+
+// Giá trị gửi lại khi bật/tắt hàng loạt: giữ nguyên mọi trường, chỉ đổi "Hiển thị trên website".
+function supportingValues(kind: SupportingKind, item: Partner | Testimonial): PartnerInput | TestimonialInput {
+  if (kind === "partners") { const { logoMediaId, kind: partnerKind, name, description, websiteUrl, sortOrder, isEnabled } = item as Partner; return { logoMediaId, kind: partnerKind, name, description, websiteUrl, sortOrder, isEnabled }; }
+  const { avatarMediaId, authorName, authorRole, company, quote, rating, sortOrder, isEnabled } = item as Testimonial;
+  return { avatarMediaId, authorName, authorRole, company, quote, rating, sortOrder, isEnabled };
 }
 
-function TestimonialListItem({ active, item, onClick }: { active: boolean; item: Testimonial; onClick: () => void }) {
-  return (
-    <button aria-pressed={active} className="admin-tile" onClick={onClick} type="button">
-      <MediaThumbnail alt={item.avatar?.altText || item.authorName} url={item.avatar?.url} />
-      <span><strong>{item.authorName}</strong><small>{item.company || item.authorRole || "Chưa có doanh nghiệp/chức danh"}</small></span>
-      <StatusBadge enabled={item.isEnabled} />
-    </button>
-  );
-}
 
 function StatusBadge({ enabled }: { enabled: boolean }) {
   return <AdminStatusBadge tone={enabled ? "success" : "neutral"}>{enabled ? "Hiển thị" : "Đang ẩn"}</AdminStatusBadge>;
 }
 
-function MediaThumbnail({ alt, url }: { alt: string; url: string | undefined }) {
-  return (
-    <span className="admin-tile__media">
-      {url ? <Image alt={alt} className="object-contain" fill sizes="48px" src={url} /> : alt.slice(0, 1).toUpperCase()}
-    </span>
-  );
+function NameCell({ imageUrl, name }: { imageUrl: string | undefined; name: string }) {
+  return <span className="admin-row-title">
+    <span className="admin-row-title__thumb">{imageUrl ? <Image alt="" className="object-contain" fill sizes="40px" src={imageUrl} /> : <span aria-hidden="true">{name.slice(0, 1).toUpperCase()}</span>}</span>
+    <span className="admin-row-title__text">{name}</span>
+  </span>;
 }
 
 function PartnerForm({ form, onChange, onUploadingChange }: { form: PartnerInput; onChange: Dispatch<SetStateAction<PartnerInput | null>>; onUploadingChange: (pending: boolean) => void }) {

@@ -70,7 +70,7 @@ export function PagesManager({ initialQuery, initialStatus, result }: PagesManag
           {Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
         </select>
       </AdminFilterBar>
-      <ContentBulkBar items={result.items} module="pages" noun="trang" onClear={clear} request={pageStateRequest} selectedIds={selectedIds} />
+      <ContentBulkBar deleteRequest={(page) => ({ method: "DELETE", url: `/api/admin/pages/${page.id}`, body: { expectedVersion: page.draftVersion } })} items={result.items} module="pages" noun="trang" onClear={clear} request={pageStateRequest} selectedIds={selectedIds} />
       <AdminDataTable columns={columns} emptyMessage={filtered ? "Không có trang khớp bộ lọc." : "Chưa có trang tự tạo. Dùng “Tạo trang” cho trang landing, khuyến mãi… (hiện ở /trang/<đường dẫn>), rồi thêm vào Menu."} getRowId={(page) => page.id} onSelectionChange={setSelectedIds} onSortChange={setSort} rows={result.items} selectedIds={selectedIds} sort={sort} tableId="pages" />
       <AdminPagination page={result.page} pageSize={result.pageSize} total={result.total} totalPages={result.totalPages} onChange={(page) => navigate({ page: page === 1 ? undefined : String(page) })} />
     </AdminCard>
