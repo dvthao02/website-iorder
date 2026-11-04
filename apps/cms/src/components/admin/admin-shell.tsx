@@ -162,15 +162,14 @@ function isEditorRoute(pathname: string) {
   return pathname === "/admin/homepage" || /\/(moi|new)$/.test(pathname) || /\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(pathname) || pathname.startsWith("/admin/equipment/groups");
 }
 
-const extraPageLabels: Record<string, string[]> = { "/admin/appearance": ["Tài khoản", "Giao diện CMS"], "/admin/my-account": ["Tài khoản", "Tài khoản của tôi"], "/admin/forbidden": ["Không có quyền truy cập"] };
+const extraPageLabels: Record<string, string[]> = { "/admin/appearance": ["Giao diện CMS"], "/admin/my-account": ["Tài khoản của tôi"], "/admin/forbidden": ["Không có quyền truy cập"] };
 
-// Mục có `href` là link quay về màn cha; nhóm sidebar không có trang riêng nên chỉ là nhãn.
+// Chỉ tên trang (kèm trang cha khi đang ở trang con, có link quay về); tên nhóm thanh bên không lặp lại ở đây.
 function pageBarCrumbs(pathname: string, current: { group: NavigationGroup; item: NavigationItem } | undefined): Array<{ label: string; href?: string }> {
   if (current) {
     const subPage = current.item.subPages?.find((page) => page.label && pathname === page.href);
     const itemCrumb = { label: current.item.label, href: pathname === current.item.href ? undefined : current.item.href };
-    const trail = current.group.label === current.item.label ? [itemCrumb] : [{ label: current.group.label }, itemCrumb];
-    return subPage?.label ? [...trail, { label: subPage.label }] : trail;
+    return subPage?.label ? [itemCrumb, { label: subPage.label }] : [itemCrumb];
   }
   return (extraPageLabels[pathname] ?? ["iOrder CMS"]).map((label) => ({ label }));
 }

@@ -15,7 +15,8 @@
   .admin-page-bar__crumbs a:hover { color: var(--cms-text); text-decoration: underline; }
   .admin-page-bar__crumbs a:focus-visible { outline: 2px solid var(--cms-primary); outline-offset: 2px; }
   .admin-page-bar__crumbs > span > svg { opacity: 0.6; }
-  .admin-page-bar__crumbs > [aria-current="page"] { color: var(--cms-text); font-weight: 500; }
+  /* Tên trang hiện tại là tiêu đề của màn (thanh bên đã cho biết nhóm). */
+  .admin-page-bar__crumbs > [aria-current="page"] { color: var(--cms-text); font-size: 15px; font-weight: 600; }
   /* overflow phải visible: menu thả xuống (Tạo mới, Nhập / Xuất) nằm trong vùng này và bị cắt nếu vùng cuộn.
      Không đủ chỗ thì nút xuống dòng (trước đây bị giấu trong vùng cuộn, nút cuối khuất một nửa ở 680–820px);
      chỉ hàng liên kết ngữ cảnh tự cuộn ngang khi dài (như trên điện thoại). */
