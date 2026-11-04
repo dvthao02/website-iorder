@@ -7,6 +7,7 @@ import { useMemo, useRef, useState } from "react";
 import type { BackupHistoryEntry } from "@iorder/core/server/backup/backup-status";
 import { requestAdminJson } from "@/lib/admin-api";
 import { vpsRestoreSteps, vpsScheduleSteps, type BackupStep } from "@/lib/backup-commands";
+import { matchesRestoreConfirmation, restoreConfirmWord } from "@/lib/restore-confirm";
 import { AdminButton } from "./ui/admin-button";
 import { AdminCard } from "./ui/admin-card";
 import { AdminDataTable, type AdminDataTableColumn } from "./ui/admin-data-table";
@@ -39,18 +40,18 @@ function Steps({ steps }: { steps: BackupStep[] }) {
   </ol>;
 }
 
-/** Hộp xác nhận gõ lại đúng thời điểm của bản sao lưu — vừa chống bấm nhầm, vừa buộc đọc lại đang chọn đúng bản nào. */
-function RestoreConfirmDialog({ busy, confirmText, onClose, onConfirm }: { busy: boolean; confirmText: string; onClose: () => void; onConfirm: () => void }) {
+/** Hộp xác nhận: phải gõ từ "phục hồi" (dễ gõ, không phân biệt hoa thường/dấu) để chống bấm nhầm; ngày giờ bản được chọn in đậm trong lời cảnh báo. */
+function RestoreConfirmDialog({ busy, backupTime, onClose, onConfirm }: { busy: boolean; backupTime: string; onClose: () => void; onConfirm: () => void }) {
   const [typed, setTyped] = useState("");
   const dialogRef = useRef<HTMLElement>(null);
   useAdminFocusTrap({ containerRef: dialogRef, initialFocusSelector: "[data-restore-confirm-input]", isOpen: true, onClose });
-  const matches = typed.trim() === confirmText;
+  const matches = matchesRestoreConfirmation(typed);
   return <div className="admin-confirm-dialog-backdrop" onMouseDown={() => !busy && onClose()} role="presentation">
     <section aria-labelledby="restore-confirm-title" aria-modal="true" className="admin-confirm-dialog" onMouseDown={(event) => event.stopPropagation()} ref={dialogRef} role="alertdialog" tabIndex={-1}>
       <h2 id="restore-confirm-title">Phục hồi dữ liệu?</h2>
-      <p>Toàn bộ dữ liệu hiện tại (bài viết, trang, tài khoản, cấu hình…) sẽ bị thay bằng dữ liệu của bản sao lưu lúc <strong>{confirmText}</strong>. Website và CMS có thể báo lỗi vài giây trong lúc phục hồi.</p>
-      <p>Gõ lại đúng <strong>{confirmText}</strong> để xác nhận:</p>
-      <AdminInput autoComplete="off" data-restore-confirm-input disabled={busy} onChange={(event) => setTyped(event.target.value)} value={typed} />
+      <p>Toàn bộ dữ liệu hiện tại (bài viết, trang, tài khoản, cấu hình…) sẽ bị thay bằng dữ liệu của bản sao lưu lúc <strong>{backupTime}</strong>. Website và CMS có thể báo lỗi vài giây trong lúc phục hồi.</p>
+      <p>Để xác nhận, gõ chữ <strong>{restoreConfirmWord}</strong> vào ô bên dưới:</p>
+      <AdminInput autoComplete="off" data-restore-confirm-input placeholder={restoreConfirmWord} disabled={busy} onChange={(event) => setTyped(event.target.value)} value={typed} />
       <div className="admin-confirm-dialog__actions">
         <AdminButton disabled={busy} onClick={onClose} variant="secondary">Hủy</AdminButton>
         <AdminButton disabled={!matches || busy} onClick={onConfirm} variant="danger">{busy ? <LoaderCircle aria-hidden="true" className="admin-content-actions__spinner" size={16} /> : null}Phục hồi dữ liệu</AdminButton>
@@ -161,6 +162,6 @@ export function BackupManager({ canOperate, history, scheduled: initialScheduled
       <Steps steps={vpsScheduleSteps(latestVpsRepo)} />
     </AdminCard>
 
-    {confirmRow ? <RestoreConfirmDialog busy={restoring} confirmText={dateTime.format(confirmRow.ranAt)} onClose={() => !restoring && setConfirmRow(null)} onConfirm={() => void confirmRestore()} /> : null}
+    {confirmRow ? <RestoreConfirmDialog busy={restoring} backupTime={dateTime.format(confirmRow.ranAt)} onClose={() => !restoring && setConfirmRow(null)} onConfirm={() => void confirmRestore()} /> : null}
   </div>;
 }
