@@ -926,6 +926,20 @@
 
   /* Danh sách có panel sửa bên phải (chuyển hướng, tài khoản, vai trò). */
   .admin-list-manager { min-width: 0; }
+  /* Ô bảng hai dòng: giá trị chính + dòng phụ nhỏ (IP, thiết bị, thời điểm). */
+  .admin-cell-stack { display: grid; min-width: 0; gap: 1px; }
+  .admin-cell-stack > * { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .admin-cell-stack > small { color: var(--cms-muted); font-size: var(--cms-text-xs); }
+  /* Khung sửa tài khoản: truy cập và hoạt động gần đây (user-access-summary.tsx). */
+  .admin-user-access { display: grid; gap: 10px; border-top: 1px solid var(--cms-border); padding: var(--cms-card-padding); }
+  .admin-user-access h3 { font-size: var(--cms-text-sm); font-weight: 600; }
+  .admin-user-access dl { display: grid; gap: 8px; margin: 0; }
+  .admin-user-access dl > div { display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 8px; font-size: var(--cms-text-sm); }
+  .admin-user-access dt { color: var(--cms-muted); }
+  .admin-user-access dd { display: grid; min-width: 0; gap: 1px; margin: 0; }
+  .admin-user-access small { color: var(--cms-muted); font-size: var(--cms-text-xs); }
+  .admin-user-access ul { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+  .admin-user-access li { display: grid; gap: 1px; border-left: 2px solid var(--cms-border); padding-left: 10px; font-size: var(--cms-text-sm); }
   .admin-list-manager__identity { display: grid; width: 100%; gap: 1px; overflow: hidden; border: 0; background: transparent; padding: 0; color: inherit; text-align: left; }
   .admin-list-manager__identity strong,
   .admin-list-manager__identity small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

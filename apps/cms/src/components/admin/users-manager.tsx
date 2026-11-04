@@ -10,6 +10,8 @@ import type { AdminListPage as ListPageResult } from "@iorder/core/server/shared
 import { cmsUserRequestSchema, cmsUserSaveResponseSchema } from "@iorder/core/server/users/users.contract";
 import type { CmsUserRoleOption } from "@iorder/core/server/users/users.contract";
 
+import { accessSource, formatAccessTime, UserAccessSummary, type UserAccess } from "./user-access-summary";
+import { auditActionLabel } from "./ui/audit-labels";
 import { AdminButton } from "./ui/admin-button";
 import { AdminPasswordInput } from "./ui/admin-password-input";
 import { AdminCard } from "./ui/admin-card";
@@ -25,7 +27,8 @@ import { AdminSidePanel } from "./ui/admin-side-panel";
 import { pageSizeOptions } from "./ui/page-size-options";
 import { useNavigationGuard } from "./ui/use-navigation-guard";
 
-type CmsUser = Omit<CmsUserInput, "password"> & { id: string; lastLoginAt: Date | null };
+type CmsUser = Omit<CmsUserInput, "password"> & UserAccess;
+const noAccess: Omit<UserAccess, "id"> = { lastLoginAt: null, lastLoginIp: null, lastLoginUserAgent: null, lastAction: null, lastActionAt: null, activeSessions: 0 };
 type UserStatusFilter = "all" | CmsUser["status"];
 
 const blank: CmsUserInput = { username: "", email: null, fullName: "", status: "active", role: "editor", password: null };
@@ -129,7 +132,7 @@ export function UsersManager({ canAssignSuperAdmin, initialPage, initialQuery, r
       const responseData = cmsUserSaveResponseSchema.safeParse(body);
       if (!responseData.success || (activeId && responseData.data.id !== activeId)) throw new Error("Phản hồi lưu tài khoản không hợp lệ. Hãy kiểm tra danh sách trước khi thử lại.");
       const values = { ...parsed.data.values, password: null };
-      const saved: CmsUser = { id: responseData.data.id, username: values.username, email: values.email, fullName: values.fullName, status: values.status, role: values.role, lastLoginAt: active?.lastLoginAt ?? null };
+      const saved: CmsUser = { id: responseData.data.id, username: values.username, email: values.email, fullName: values.fullName, status: values.status, role: values.role, ...noAccess, ...(active ? { lastLoginAt: active.lastLoginAt, lastLoginIp: active.lastLoginIp, lastLoginUserAgent: active.lastLoginUserAgent, lastAction: active.lastAction, lastActionAt: active.lastActionAt, activeSessions: active.activeSessions } : {}) };
       setActive(saved);
       setActiveId(saved.id);
       setForm(values);
@@ -145,11 +148,13 @@ export function UsersManager({ canAssignSuperAdmin, initialPage, initialQuery, r
   }
 
   const columns: AdminDataTableColumn<CmsUser>[] = [
-    { id: "user", label: "Người dùng", defaultWidth: 270, minWidth: 200, sortKey: "fullName", cell: (user) => <button className="admin-list-manager__identity" onClick={(event) => { event.stopPropagation(); select(user); }} type="button"><strong>{user.fullName}</strong><small>@{user.username}{user.email ? ` · ${user.email}` : ""}</small></button> },
-    { id: "role", label: "Vai trò", defaultWidth: 190, minWidth: 160, sortKey: "role", cell: (user) => <span>{roleLabel(roles, user.role)}</span> },
-    { id: "status", label: "Trạng thái", defaultWidth: 145, minWidth: 128, sortKey: "status", cell: (user) => <AdminStatusBadge tone={statusTone[user.status]}>{statusLabel[user.status]}</AdminStatusBadge> },
-    { id: "lastLogin", label: "Đăng nhập gần nhất", defaultWidth: 200, minWidth: 165, sortKey: "lastLoginAt", sortFirst: "desc", cell: (user) => <span className="admin-list-manager__muted">{dateLabel(user.lastLoginAt)}</span> },
-    { id: "actions", label: "Thao tác", defaultWidth: 126, minWidth: 116, align: "right", cell: () => <AdminRowEditIcon /> },
+    { id: "user", label: "Người dùng", defaultWidth: 220, minWidth: 180, sortKey: "fullName", cell: (user) => <button className="admin-list-manager__identity" onClick={(event) => { event.stopPropagation(); select(user); }} type="button"><strong>{user.fullName}</strong><small>@{user.username}{user.email ? ` · ${user.email}` : ""}</small></button> },
+    { id: "role", label: "Vai trò", defaultWidth: 160, minWidth: 130, sortKey: "role", cell: (user) => <span>{roleLabel(roles, user.role)}</span> },
+    { id: "status", label: "Trạng thái", defaultWidth: 125, minWidth: 115, sortKey: "status", cell: (user) => <AdminStatusBadge tone={statusTone[user.status]}>{statusLabel[user.status]}</AdminStatusBadge> },
+    { id: "lastLogin", label: "Đăng nhập gần nhất", defaultWidth: 220, minWidth: 170, sortKey: "lastLoginAt", sortFirst: "desc", cell: (user) => <span className="admin-cell-stack"><span>{dateLabel(user.lastLoginAt)}</span>{user.lastLoginAt && accessSource(user.lastLoginIp, user.lastLoginUserAgent) ? <small title={user.lastLoginUserAgent ?? undefined}>{accessSource(user.lastLoginIp, user.lastLoginUserAgent)}</small> : null}</span> },
+    { id: "lastAction", label: "Thao tác gần nhất", defaultWidth: 180, minWidth: 150, cell: (user) => user.lastAction ? <span className="admin-cell-stack"><span>{auditActionLabel(user.lastAction)}</span><small>{formatAccessTime(user.lastActionAt)}</small></span> : <span className="admin-list-manager__muted">Chưa có</span> },
+    { id: "sessions", label: "Phiên", defaultWidth: 100, minWidth: 90, align: "right", cell: (user) => <span className={user.activeSessions ? undefined : "admin-list-manager__muted"} title="Số phiên đăng nhập còn hiệu lực (thiết bị đang đăng nhập)">{user.activeSessions ? `${user.activeSessions} thiết bị` : "—"}</span> },
+    { id: "actions", label: "Thao tác", defaultWidth: 116, minWidth: 116, align: "right", cell: () => <AdminRowEditIcon /> },
   ];
 
   const activeCount = initialPage.counts.active;
@@ -170,6 +175,7 @@ export function UsersManager({ canAssignSuperAdmin, initialPage, initialQuery, r
         <fieldset disabled={busy}><div className="admin-list-manager__form-grid"><Field label="Tên đăng nhập"><input className="admin-input" minLength={3} onChange={(event) => setForm({ ...form, username: event.target.value })} pattern="[A-Za-z0-9._-]+" required value={form.username} /></Field><Field label="Họ và tên"><input className="admin-input" onChange={(event) => setForm({ ...form, fullName: event.target.value })} required value={form.fullName} /></Field></div><Field label="Email"><input className="admin-input" onChange={(event) => setForm({ ...form, email: event.target.value || null })} type="email" value={form.email ?? ""} /></Field><div className="admin-list-manager__form-grid"><Field label="Vai trò"><select className="admin-input" onChange={(event) => setForm({ ...form, role: event.target.value as CmsUserInput["role"] })} value={form.role}>{assignableRoles.filter((role) => role.code !== form.role).concat(roles.filter((role) => role.code === form.role)).map((role) => <option key={role.code} value={role.code}>{role.name}</option>)}</select></Field><Field label="Trạng thái"><select className="admin-input" onChange={(event) => setForm({ ...form, status: event.target.value as CmsUserInput["status"] })} value={form.status}><option value="active">Đang hoạt động</option><option value="disabled">Đã khóa</option></select></Field></div><div className="admin-list-manager__field"><label htmlFor="cms-user-password">{active ? "Mật khẩu mới — để trống nếu không đổi" : "Mật khẩu ban đầu"}</label><AdminPasswordInput autoComplete="new-password" id="cms-user-password" minLength={10} onChange={(event) => setForm({ ...form, password: event.target.value || null })} required={!active} value={form.password ?? ""} /></div></fieldset>
         <AdminNotice tone="warning">Khóa tài khoản sẽ thu hồi phiên đăng nhập. Hệ thống luôn bảo vệ tài khoản đang đăng nhập và quản trị viên cuối cùng.</AdminNotice>
       </form> : <AdminEmptyState action={<AdminButton hideWithoutPermission permission="users.create" onClick={() => select()}>Tạo tài khoản</AdminButton>} description="Chọn một tài khoản trong danh sách để chỉnh sửa." icon={<UserRound aria-hidden="true" size={20} />} title="Chưa chọn tài khoản" />}
+      {active ? <UserAccessSummary user={active} /> : null}
     </AdminSidePanel>
   </AdminListPage>;
 }
