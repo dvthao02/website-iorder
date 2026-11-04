@@ -10,14 +10,21 @@ import { parseStoredSetting } from "../settings/stored-setting";
 // Đổi cấu trúc ở đây thì sửa cả hai script.
 export const backupSuccessKey = "system.backup.success";
 export const backupFailureKey = "system.backup.failure";
+export const backupHistoryKey = "system.backup.history";
 // Sao lưu chạy mỗi đêm; quá 36 giờ chưa có bản mới nghĩa là lịch chạy đã hỏng.
 export const backupStaleAfterHours = 36;
 
 const source = z.enum(["vps", "windows"]);
+// Thư mục sao lưu và thư mục repo trên máy chạy script (để điền sẵn lệnh phục hồi); bản ghi cũ không có.
+const location = z.string().max(300).optional();
+const repoDir = z.string().max(300).optional();
 export const backupSuccessSchema = z.object({
   finishedAt: z.iso.datetime({ offset: true }),
   source,
+  location,
+  repoDir,
   stamp: z.string().max(40),
+  database: z.string().max(63).optional(),
   databaseBytes: z.number().int().nonnegative(),
   verified: z.boolean(),
   users: z.number().int().nonnegative().nullable(),
@@ -26,6 +33,8 @@ export const backupSuccessSchema = z.object({
 export const backupFailureSchema = z.object({
   failedAt: z.iso.datetime({ offset: true }),
   source,
+  location,
+  repoDir,
   message: z.string().max(500),
 });
 
@@ -49,13 +58,41 @@ export function summarizeBackupStatus(success: BackupSuccess | null, failure: Ba
   return { state, lastSuccess, lastFailure };
 }
 
-export async function getBackupStatus(now = new Date()): Promise<BackupStatus> {
-  const rows = await getDb().select({ key: siteSettings.key, value: siteSettings.value }).from(siteSettings)
-    .where(inArray(siteSettings.key, [backupSuccessKey, backupFailureKey]));
-  const value = (key: string) => rows.find((row) => row.key === key)?.value;
+export type BackupHistoryEntry =
+  | ({ ok: true; ranAt: Date } & Omit<BackupSuccess, "finishedAt">)
+  | ({ ok: false; ranAt: Date } & Omit<BackupFailure, "failedAt">);
+
+/** Lịch sử do script ghi (mới nhất trước); phần tử lệch schema bị bỏ qua thay vì làm hỏng cả trang. */
+export function parseBackupHistory(value: unknown): BackupHistoryEntry[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item): BackupHistoryEntry[] => {
+    const success = backupSuccessSchema.safeParse(item);
+    if (success.success) { const { finishedAt, ...rest } = success.data; return [{ ok: true, ranAt: new Date(finishedAt), ...rest }]; }
+    const failure = backupFailureSchema.safeParse(item);
+    if (failure.success) { const { failedAt, ...rest } = failure.data; return [{ ok: false, ranAt: new Date(failedAt), ...rest }]; }
+    return [];
+  });
+}
+
+async function readBackupSettings(keys: string[]) {
+  const rows = await getDb().select({ key: siteSettings.key, value: siteSettings.value }).from(siteSettings).where(inArray(siteSettings.key, keys));
+  return new Map(rows.map((row) => [row.key, row.value]));
+}
+
+function statusFrom(values: Map<string, unknown>, now: Date) {
   return summarizeBackupStatus(
-    rows.some((row) => row.key === backupSuccessKey) ? parseStoredSetting(backupSuccessSchema, value(backupSuccessKey), backupSuccessKey) : null,
-    rows.some((row) => row.key === backupFailureKey) ? parseStoredSetting(backupFailureSchema, value(backupFailureKey), backupFailureKey) : null,
+    values.has(backupSuccessKey) ? parseStoredSetting(backupSuccessSchema, values.get(backupSuccessKey), backupSuccessKey) : null,
+    values.has(backupFailureKey) ? parseStoredSetting(backupFailureSchema, values.get(backupFailureKey), backupFailureKey) : null,
     now,
   );
+}
+
+export async function getBackupStatus(now = new Date()): Promise<BackupStatus> {
+  return statusFrom(await readBackupSettings([backupSuccessKey, backupFailureKey]), now);
+}
+
+/** Trang "Sao lưu & phục hồi": trạng thái + lịch sử 30 lần gần nhất. */
+export async function getBackupOverview(now = new Date()): Promise<{ status: BackupStatus; history: BackupHistoryEntry[] }> {
+  const values = await readBackupSettings([backupSuccessKey, backupFailureKey, backupHistoryKey]);
+  return { status: statusFrom(values, now), history: parseBackupHistory(values.get(backupHistoryKey)) };
 }

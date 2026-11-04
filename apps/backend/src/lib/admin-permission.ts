@@ -28,6 +28,8 @@ const resourceModules: Record<string, CmsModuleKey> = {
   "external-links": "settings",
   // Cùng quyền với màn "Kiểm tra xuất bản" chứa nó; service tự lọc nội dung theo quyền xem từng module.
   "seo-audit": "settings",
+  // Trạng thái sao lưu (chỉ đọc) là thông tin vận hành, cùng quyền với cài đặt hệ thống.
+  backup: "settings",
 };
 
 export const revisionTargetModules = {

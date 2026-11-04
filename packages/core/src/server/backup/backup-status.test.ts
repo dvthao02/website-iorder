@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { backupSuccessSchema, summarizeBackupStatus, type BackupFailure, type BackupSuccess } from "./backup-status";
+import { backupSuccessSchema, parseBackupHistory, summarizeBackupStatus, type BackupFailure, type BackupSuccess } from "./backup-status";
 
 const now = new Date("2026-11-04T10:00:00Z");
 const success = (finishedAt: string): BackupSuccess => ({ finishedAt, source: "vps", stamp: "20261104T023000Z", databaseBytes: 1024, verified: true, users: 3, mediaAssets: 10 });
@@ -25,4 +25,15 @@ test("Schema nhận đúng JSON script ghi, kể cả múi giờ +07:00 của Po
   assert.ok(backupSuccessSchema.safeParse({ ...success("2026-11-04T09:30:00.123+07:00"), source: "windows", users: null, mediaAssets: null }).success);
   assert.equal(backupSuccessSchema.safeParse({ ...success("hôm qua") }).success, false);
   assert.equal(backupSuccessSchema.safeParse({ ...success("2026-11-04T02:30:00Z"), source: "laptop" }).success, false);
+});
+
+test("Lịch sử giữ thứ tự, phân biệt thành công/lỗi và bỏ phần tử hỏng", () => {
+  const history = parseBackupHistory([
+    { ...failure("2026-11-04T03:00:00Z"), location: "/var/backups/iorder" },
+    { hỏng: true },
+    success("2026-11-04T02:30:00Z"),
+  ]);
+  assert.deepEqual(history.map((entry) => [entry.ok, entry.ranAt.toISOString()]), [[false, "2026-11-04T03:00:00.000Z"], [true, "2026-11-04T02:30:00.000Z"]]);
+  assert.equal(history[0]?.location, "/var/backups/iorder");
+  assert.deepEqual(parseBackupHistory({ khong: "phai mang" }), []);
 });
