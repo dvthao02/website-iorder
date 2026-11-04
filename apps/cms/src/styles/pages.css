@@ -37,6 +37,12 @@
   .admin-dashboard__list strong { font-size: var(--cms-text-sm); font-weight: 500; }
   .admin-dashboard__list small { color: var(--cms-muted); }
   .admin-dashboard__empty { color: var(--cms-muted); font-size: var(--cms-text-sm); }
+  .admin-dashboard__backup dl { display: grid; gap: 8px; margin: 0; }
+  .admin-dashboard__backup dl > div { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 8px; }
+  .admin-dashboard__backup dt { color: var(--cms-muted); font-size: var(--cms-text-xs); }
+  .admin-dashboard__backup dd { margin: 0; font-size: var(--cms-text-sm); }
+  .admin-dashboard__backup dd small { display: block; color: var(--cms-muted); font-size: var(--cms-text-xs); }
+  .admin-dashboard__backup-error { margin: 10px 0 0; color: var(--cms-status-error-text); font-size: var(--cms-text-sm); }
 
   @media (max-width: 1280px) {
     .admin-dashboard__layout { grid-template-columns: minmax(0, 1fr) 280px; }

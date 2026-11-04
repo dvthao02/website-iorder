@@ -5,10 +5,11 @@ import { CalendarDays, FileText, Image, PackagePlus, PenLine, Plus } from "lucid
 import { AdminButton } from "@/components/admin/ui/admin-button";
 import { AdminCard } from "@/components/admin/ui/admin-card";
 import { AdminPageBarActions, AdminPageBarMeta } from "@/components/admin/ui/admin-page-bar";
+import { BackupStatusCard } from "@/components/admin/backup-status-card";
 import { DashboardRecentTable } from "@/components/admin/dashboard-recent-table";
 import { AnalyticsMetricTiles, AnalyticsTrafficPanel, TopPagesList } from "@/components/admin/analytics-status";
 import { hasCmsPermission, type CmsPermissionCode } from "@iorder/core/server/auth/permissions";
-import { administratorSessionCookieName, getAnalyticsOverview, getCurrentAdministrator, getDashboardContentSummary, getPublishingReadiness } from "@/lib/backend";
+import { administratorSessionCookieName, getAnalyticsOverview, getBackupStatus, getCurrentAdministrator, getDashboardContentSummary, getPublishingReadiness } from "@/lib/backend";
 
 type ContentStatus = "draft" | "review" | "scheduled" | "published" | "archived";
 type DashboardContent = { id: string; title: string; type: string; status: ContentStatus; updatedAt: Date; href: string };
@@ -37,7 +38,7 @@ export default async function AdministratorHomePage() {
   const administrator = await getCurrentAdministrator(cookieStore.get(administratorSessionCookieName)?.value);
   if (!administrator) return null;
 
-  const [analytics, readiness, content] = await Promise.all([getAnalyticsOverview(), getPublishingReadiness(), getDashboardContentSummary()]);
+  const [analytics, readiness, content, backup] = await Promise.all([getAnalyticsOverview(), getPublishingReadiness(), getDashboardContentSummary(), getBackupStatus()]);
   const can = (permission: CmsPermissionCode) => hasCmsPermission(administrator, permission);
   const contentSummary = ([
     { label: "Trang website", value: content.pages.total, detail: `${content.pages.published} trang đã xuất bản`, href: "/admin/pages", permission: "pages.view" },
@@ -98,6 +99,7 @@ export default async function AdministratorHomePage() {
       <aside className="admin-dashboard__aside">
         {quickActions.length ? <AdminCard><header><h2>Tạo nhanh</h2></header><div className="admin-dashboard__list">{quickActions.map((action) => { const Icon = action.icon; return <Link href={action.href} key={action.label}><Icon aria-hidden="true" size={16} /><strong>{action.label}</strong></Link>; })}</div></AdminCard> : null}
         <AdminCard><header><div><h2>Sẵn sàng xuất bản</h2><p>{readyChecks}/{readiness.length} mục đạt</p></div><Link href="/admin/seo/publish-check">Chi tiết</Link></header><div className="admin-dashboard__list">{readiness.slice(0, 4).map((item) => <Link href={item.href} key={item.id}><i className={item.status === "ready" ? "admin-status admin-status--ready" : "admin-status"} /><span><strong>{item.label}</strong><small>{item.detail}</small></span></Link>)}</div></AdminCard>
+        {backup ? <BackupStatusCard status={backup} /> : null}
         <AdminCard><header><h2>Cần xử lý</h2></header>{workItems.length ? <div className="admin-dashboard__list">{workItems.map((item) => <Link href={item.href} key={`${item.label}-${item.detail}`}><i className="admin-status" /><span><strong>{item.label}</strong><small>{item.detail}</small></span></Link>)}</div> : <p className="admin-dashboard__empty">Không có việc tồn đọng.</p>}</AdminCard>
       </aside>
     </div>

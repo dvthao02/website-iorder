@@ -15,6 +15,7 @@ import type { MatrixModule } from "@/components/admin/ui/role-permission-matrix"
 import { partnerListPageSchema, partnerListQuerySchema, testimonialListPageSchema, testimonialListQuerySchema, type PartnerListQuery, type TestimonialListQuery } from "@iorder/core/server/supporting/supporting.contract";
 
 import type { getAnalyticsOverview as getAnalyticsOverviewFromCore } from "@iorder/core/server/analytics/analytics.service";
+import type { BackupStatus } from "@iorder/core/server/backup/backup-status";
 import type { getDashboardContentSummary as getDashboardContentSummaryFromCore } from "@iorder/core/server/dashboard/dashboard-content.service";
 import type { getRequestAdministrator as getRequestAdministratorFromCore } from "@iorder/core/server/auth/request-administrator";
 import type { getRecentAuditLogs as getRecentAuditLogsFromCore } from "@iorder/core/server/audit/audit.service";
@@ -69,7 +70,7 @@ type AdminMedia = Awaited<ReturnType<typeof getAdminMediaFromCore>>;
 type AuditLogs = Awaited<ReturnType<typeof getRecentAuditLogsFromCore>>;
 const emptyContentStat = { missingSeo: 0, pending: 0, published: 0, scheduled: 0, total: 0 };
 
-type DashboardPayload = { administrator: Administrator; analytics: AnalyticsOverview; readiness: PublishingReadiness; auditLogs: AuditLogs; content: DashboardContentSummary };
+type DashboardPayload = { administrator: Administrator; analytics: AnalyticsOverview; readiness: PublishingReadiness; auditLogs: AuditLogs; content: DashboardContentSummary; backup: BackupStatus | null };
 type EquipmentPayload = { result: EquipmentPage; equipmentGroups: EquipmentGroups };
 type EquipmentGroupsPayload = { equipmentGroups: EquipmentGroups };
 
@@ -132,6 +133,8 @@ export async function getAdminNotifications(): Promise<AdminNotifications> {
     return [];
   }
 }
+// null khi người xem không có settings.view.
+export async function getBackupStatus(): Promise<BackupStatus | null> { return (await getDashboard())?.backup ?? null; }
 export async function getPublishingReadiness(): Promise<PublishingReadiness> { return (await getDashboard())?.readiness ?? []; }
 // null: người xem không có quyền (403) — màn chỉ ẩn phần kiểm tra SEO.
 export async function getSeoAudit(): Promise<SeoAuditResult | null> {
