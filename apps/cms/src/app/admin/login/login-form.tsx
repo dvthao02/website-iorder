@@ -3,6 +3,8 @@
 import { apiErrorMessage } from "@/lib/admin-api";
 import { FormEvent, useState } from "react";
 
+import { AdminPasswordInput } from "@/components/admin/ui/admin-password-input";
+
 type LoginFormProps = {
   initialError?: string;
 };
@@ -43,21 +45,21 @@ export function LoginForm({ initialError }: LoginFormProps) {
         Tên đăng nhập
         <input
           autoComplete="username"
+          autoFocus
           className="admin-input"
           name="username"
           required
         />
       </label>
-      <label className="admin-field">
-        Mật khẩu
-        <input
+      <div className="admin-field">
+        <label htmlFor="login-password">Mật khẩu</label>
+        <AdminPasswordInput
           autoComplete="current-password"
-          className="admin-input"
+          id="login-password"
           name="password"
           required
-          type="password"
         />
-      </label>
+      </div>
       {error ? <p className="admin-help admin-text-error">{error}</p> : null}
       <button
         className="admin-button admin-button--primary w-full"
@@ -66,6 +68,7 @@ export function LoginForm({ initialError }: LoginFormProps) {
       >
         {isSubmitting ? "Đang đăng nhập…" : "Đăng nhập"}
       </button>
+      <p className="admin-help text-center">Quên mật khẩu? Nhờ quản trị viên đặt lại trong mục Người dùng CMS.</p>
     </form>
   );
 }

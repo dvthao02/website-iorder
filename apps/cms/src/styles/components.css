@@ -239,6 +239,11 @@
   }
 
   /* Thanh thao tác hàng loạt: hiện thay chỗ bộ lọc khi đang chọn dòng. */
+  /* Ô mật khẩu có nút hiện/ẩn (admin-password-input.tsx). */
+  .admin-password-input { position: relative; display: block; }
+  .admin-password-input > input { width: 100%; padding-right: 40px; font-weight: 400; }
+  .admin-password-input__toggle { position: absolute; top: 50%; right: 4px; display: grid; width: 30px; height: 28px; place-items: center; border: 0; border-radius: var(--cms-radius-component); background: transparent; color: var(--cms-muted); cursor: pointer; transform: translateY(-50%); }
+  .admin-password-input__toggle:hover, .admin-password-input__toggle:focus-visible { background: var(--cms-hover); color: var(--cms-text); }
   .admin-bulk-bar { display: flex; min-height: 48px; flex-wrap: wrap; align-items: center; gap: 8px; border-top: 1px solid var(--cms-border); background: var(--cms-primary-soft); padding: 6px var(--cms-card-padding); font-size: var(--cms-text-sm); }
   .admin-bulk-bar > strong { margin-right: 4px; font-weight: 600; }
   .admin-bulk-bar__actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }

@@ -5,6 +5,7 @@ import { useRef, useState, type FormEvent } from "react";
 import { requestAdminJson } from "@/lib/admin-api";
 
 import { AdminButton } from "./ui/admin-button";
+import { AdminPasswordInput } from "./ui/admin-password-input";
 import { useAdminToast } from "./ui/admin-feedback";
 
 const blank = { currentPassword: "", newPassword: "", confirmPassword: "" };
@@ -39,9 +40,9 @@ export function ChangePasswordForm() {
   const set = (key: keyof typeof blank) => (event: { target: { value: string } }) => setValues((current) => ({ ...current, [key]: event.target.value }));
   return <form className="grid gap-4" onSubmit={submit}>
     <fieldset className="admin-form-grid" disabled={busy}>
-      <label className="admin-field admin-field--wide">Mật khẩu hiện tại<input autoComplete="current-password" onChange={set("currentPassword")} required type="password" value={values.currentPassword} /></label>
-      <div className="admin-field"><label htmlFor="new-password">Mật khẩu mới</label><input aria-describedby="new-password-hint" autoComplete="new-password" id="new-password" minLength={10} onChange={set("newPassword")} required type="password" value={values.newPassword} /><span className="admin-field__hint" id="new-password-hint">Ít nhất 10 ký tự, khác mật khẩu đang dùng.</span></div>
-      <div className="admin-field"><label htmlFor="confirm-password">Nhập lại mật khẩu mới</label><input aria-describedby={mismatch ? "confirm-password-hint" : undefined} aria-invalid={mismatch} autoComplete="new-password" id="confirm-password" onChange={set("confirmPassword")} required type="password" value={values.confirmPassword} />{mismatch ? <span className="admin-field__hint admin-text-error" id="confirm-password-hint">Chưa khớp với mật khẩu mới.</span> : null}</div>
+      <div className="admin-field admin-field--wide"><label htmlFor="current-password">Mật khẩu hiện tại</label><AdminPasswordInput autoComplete="current-password" id="current-password" onChange={set("currentPassword")} required value={values.currentPassword} /></div>
+      <div className="admin-field"><label htmlFor="new-password">Mật khẩu mới</label><AdminPasswordInput aria-describedby="new-password-hint" autoComplete="new-password" id="new-password" minLength={10} onChange={set("newPassword")} required value={values.newPassword} /><span className="admin-field__hint" id="new-password-hint">Ít nhất 10 ký tự, khác mật khẩu đang dùng.</span></div>
+      <div className="admin-field"><label htmlFor="confirm-password">Nhập lại mật khẩu mới</label><AdminPasswordInput aria-describedby={mismatch ? "confirm-password-hint" : undefined} aria-invalid={mismatch} autoComplete="new-password" id="confirm-password" onChange={set("confirmPassword")} required value={values.confirmPassword} />{mismatch ? <span className="admin-field__hint admin-text-error" id="confirm-password-hint">Chưa khớp với mật khẩu mới.</span> : null}</div>
     </fieldset>
     <AdminButton className="justify-self-start" disabled={busy || mismatch} type="submit">{busy ? "Đang lưu…" : "Đổi mật khẩu"}</AdminButton>
   </form>;

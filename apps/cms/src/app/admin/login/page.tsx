@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 
+import Image from "next/image";
+
 import { LoginForm } from "./login-form";
 
 export const metadata: Metadata = {
@@ -24,9 +26,9 @@ export default async function AdministratorLoginPage({
   return (
     <main className="grid min-h-screen place-items-center p-4">
       <section className="w-full max-w-sm rounded-[var(--cms-radius-card)] border border-[var(--cms-border)] bg-[var(--cms-card)] p-6">
-        <p className="mb-1 text-[13px] text-[var(--cms-muted)]">iOrder CMS</p>
-        <h1 className="mb-1">Đăng nhập</h1>
-        <p className="mb-5 text-[13px] text-[var(--cms-muted)]">Dùng tài khoản quản trị đã được khởi tạo trong database.</p>
+        <Image alt="iOrder" className="mb-4" height={51} priority src="/brand/iorder-logo.png" width={140} />
+        <h1 className="mb-1">Đăng nhập CMS</h1>
+        <p className="mb-5 text-[13px] text-[var(--cms-muted)]">Quản lý nội dung, sản phẩm và khách hàng của website iOrder.</p>
         <LoginForm initialError={error ? thongBaoLoiDangNhap[error] : undefined} />
       </section>
     </main>

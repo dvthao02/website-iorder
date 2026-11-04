@@ -47,6 +47,14 @@ const fieldLabels: Record<string, string> = {
   destinationPath: "Đường dẫn mới", statusCode: "Mã chuyển hướng", items: "Danh sách mục", rows: "Số dòng",
   query: "Từ khóa", type: "Loại", description: "Mô tả", phone: "Điện thoại", address: "Địa chỉ", url: "Liên kết",
   passwordChanged: "Mật khẩu", role: "Vai trò", parentId: "Chuyên mục cha", facebook: "Facebook", youtube: "YouTube", zalo: "Zalo", tiktok: "TikTok",
+  kind: "Loại", deletedAt: "Xóa khỏi CMS", logoMediaId: "Logo", avatarMediaId: "Ảnh đại diện", websiteUrl: "Website",
+  authorName: "Người đánh giá", authorRole: "Chức vụ", company: "Công ty", quote: "Nội dung đánh giá", rating: "Số sao",
+  fileMediaId: "Tệp", icon: "Biểu tượng", meta: "Thông tin phụ", warrantyMonths: "Bảo hành", isFeatured: "Nổi bật",
+  specificationGroups: "Thông số kỹ thuật", features: "Tính năng", benefits: "Lợi ích", authorId: "Tác giả", extraMediaIds: "Ảnh thêm",
+  promotionStartAt: "Bắt đầu khuyến mãi", promotionEndAt: "Kết thúc khuyến mãi", template: "Mẫu trang", label: "Nhãn", href: "Liên kết",
+  companyName: "Tên doanh nghiệp", legalName: "Tên pháp lý", hotline: "Hotline", supportEmail: "Email hỗ trợ", salesEmail: "Email kinh doanh",
+  workingHours: "Giờ làm việc", siteUrl: "Địa chỉ website", defaultTitle: "Tiêu đề mặc định", defaultDescription: "Mô tả mặc định",
+  allowSearchIndexing: "Cho phép tìm kiếm", defaultOgMediaId: "Ảnh chia sẻ mặc định", originalName: "Tên tệp", caption: "Chú thích", mimeType: "Loại tệp",
 };
 // Trường kỹ thuật thay đổi ở mọi lần lưu, không giúp người đọc nhật ký.
 const technicalFields = new Set(["version", "updatedAt", "updatedBy", "createdAt", "id", "draftVersion"]);
