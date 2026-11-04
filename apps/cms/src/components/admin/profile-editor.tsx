@@ -50,7 +50,7 @@ export function ProfileEditor({ initial, initialVersion }: { initial: ProfileInp
   }
   return <form className="grid gap-4" onSubmit={submit}>
     <div className="admin-form-grid">{fields.map(([key, label]) => <label className={key === "address" ? "admin-field admin-field--wide" : "admin-field"} key={key}>{label}<input className="block w-full" name={key} required={key === "companyName"} type={key.endsWith("Email") ? "email" : "text"} value={form[key] ?? ""} onChange={(event) => setForm((current) => ({ ...current, [key]: key === "companyName" ? event.target.value : event.target.value || null }))} /></label>)}</div>
-    <h3>Logo doanh nghiệp</h3><MediaPicker disabled={busy} value={form.logoMediaId} onUploadingChange={handleUploadingChange} onChange={(logoMediaId) => setForm((current) => ({ ...current, logoMediaId }))} />
+    <MediaPicker disabled={busy} hint="Hiện ở đầu và cuối website. Nên dùng PNG hoặc WebP nền trong suốt." label="Logo doanh nghiệp" value={form.logoMediaId} onUploadingChange={handleUploadingChange} onChange={(logoMediaId) => setForm((current) => ({ ...current, logoMediaId }))} />
     <AdminEditorActions><p role="status">{isUploading ? "Đang tải logo lên…" : message || (isDirty ? "Có thay đổi chưa lưu." : "Không có thay đổi chưa lưu.")}</p><AdminButton disabled={busy || isUploading || !isDirty} permission="settings.update" type="submit">{busy ? "Đang lưu…" : "Lưu thông tin doanh nghiệp"}</AdminButton></AdminEditorActions>
   </form>;
 }

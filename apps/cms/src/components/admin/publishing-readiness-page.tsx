@@ -1,3 +1,4 @@
+import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 
 import { AdminStatusBadge } from "@/components/admin/ui/admin-feedback";
@@ -17,6 +18,7 @@ export async function PublishingReadinessPage() {
       <span className={item.status === "ready" ? "admin-status admin-status--ready" : "admin-status"} />
       <span><strong>{item.label}</strong><small>{item.detail}</small></span>
       <AdminStatusBadge tone={item.status === "ready" ? "success" : "warning"}>{item.status === "ready" ? "Sẵn sàng" : "Cần xử lý"}</AdminStatusBadge>
+      <ChevronRight aria-hidden="true" className="admin-check-list__go" size={16} />
     </Link>)}</div>
     {seoAudit ? <SeoAuditPanel audit={seoAudit} /> : null}
   </main>;

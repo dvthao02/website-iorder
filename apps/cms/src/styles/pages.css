@@ -61,9 +61,11 @@
 
   /* Danh sách kiểm tra xuất bản */
   .admin-check-list { display: grid; overflow: hidden; border: 1px solid var(--cms-border); border-radius: var(--cms-radius-card); background: var(--cms-card); }
-  .admin-check-list > a { display: grid; grid-template-columns: 8px minmax(0, 1fr) auto; align-items: center; gap: 12px; border-top: 1px solid var(--cms-border); padding: 10px var(--cms-card-padding); }
+  .admin-check-list > a { display: grid; grid-template-columns: 8px minmax(0, 1fr) auto auto; align-items: center; gap: 12px; border-top: 1px solid var(--cms-border); padding: 10px var(--cms-card-padding); }
   .admin-check-list > a:first-child { border-top: 0; }
   .admin-check-list > a:hover { background: var(--cms-subtle); }
+  .admin-check-list__go { color: var(--cms-muted); }
+  .admin-check-list > a:hover .admin-check-list__go { color: var(--cms-primary); }
   .admin-check-list strong,
   .admin-check-list small { display: block; }
   .admin-check-list strong { font-size: var(--cms-text-sm); font-weight: 500; }

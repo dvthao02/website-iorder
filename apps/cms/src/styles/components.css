@@ -960,7 +960,6 @@
   .media-picker__heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
   .media-picker__heading h3 { font-size: var(--cms-text-sm); font-weight: 500; }
   .media-picker__heading p { color: var(--cms-muted); font-size: var(--cms-text-xs); }
-  .media-picker__selected { border-radius: 999px; background: var(--cms-hover); padding: 2px 8px; color: var(--cms-muted); font-size: var(--cms-text-xs); }
   .media-picker__upload { display: flex; min-height: 72px; align-items: center; gap: 12px; border: 1px dashed var(--cms-border-strong); border-radius: var(--cms-radius-card); background: var(--cms-subtle); padding: 12px 14px; color: var(--cms-muted); text-align: left; }
   .media-picker__upload:hover:not(:disabled) { border-color: var(--cms-primary); background: var(--cms-primary-soft); color: var(--cms-primary); }
   .media-picker__upload:disabled { cursor: wait; opacity: 0.65; }
@@ -994,7 +993,8 @@
   .media-picker .media-picker__thumb--selected { border-color: var(--cms-primary); box-shadow: 0 0 0 2px var(--cms-primary-soft); }
   .media-picker__thumb img { width: 100%; height: auto; aspect-ratio: 4 / 3; border-radius: calc(var(--cms-radius-component) - 2px); background: var(--cms-subtle); object-fit: contain; }
   .media-picker__thumb span { overflow: hidden; font-size: var(--cms-text-xs); text-overflow: ellipsis; white-space: nowrap; }
-  .media-picker__file-icon img { width: 100%; height: 100%; object-fit: cover; }
+  /* contain: logo và ảnh tách nền hiện trọn, không bị cắt. */
+  .media-picker__file-icon img { width: 100%; height: 100%; background: var(--cms-card); object-fit: contain; }
   .media-picker__file > span:nth-child(2) { display: grid; min-width: 0; gap: 1px; }
   .media-picker__file strong,
   .media-picker__file small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -1009,9 +1009,7 @@
   .media-picker__library button:hover { text-decoration: underline; }
   .media-picker__library button:disabled { opacity: 0.55; }
   .media-picker__library-select { display: grid; gap: 6px; color: var(--cms-text); font-size: var(--cms-text-sm); font-weight: 500; }
-  .media-picker__usage { border: 1px solid var(--cms-border); border-radius: var(--cms-radius-component); background: var(--cms-subtle); padding: 8px 10px; color: var(--cms-muted); font-size: var(--cms-text-xs); }
-  .media-picker__usage strong { color: var(--cms-text); }
-  .media-picker__usage ul { margin: 4px 0 0; padding-left: 18px; list-style: disc; }
+  .media-picker__usage { overflow: hidden; color: var(--cms-muted); font-size: var(--cms-text-xs); text-overflow: ellipsis; white-space: nowrap; }
   .media-picker__error { color: var(--cms-status-error-text); font-size: var(--cms-text-sm); }
   /* Bộ chọn biểu tượng (khối Danh sách theo nhóm): ô vuông mở lưới biểu tượng chia nhóm. */
   .admin-icon-picker > summary.admin-icon-picker__trigger { display: inline-flex; height: 36px; align-items: center; gap: 4px; border: 1px solid var(--cms-border); border-radius: var(--cms-radius-component); background: var(--cms-card); padding: 0 8px; color: var(--cms-text); }

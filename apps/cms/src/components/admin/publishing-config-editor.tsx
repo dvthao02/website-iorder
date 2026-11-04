@@ -6,6 +6,7 @@ import { publishingConfigSchema, type PublishingConfig } from "@iorder/core/serv
 import { useAdminToast } from "@/components/admin/ui/admin-feedback";
 import { MediaPicker } from "./media-picker";
 import { AdminButton } from "./ui/admin-button";
+import { AdminEditorActions } from "./ui/admin-editor-actions";
 import { useNavigationGuard } from "./ui/use-navigation-guard";
 
 export function PublishingConfigEditor({ initial, initialVersion }: { initial: PublishingConfig; initialVersion: number }) {
@@ -52,14 +53,11 @@ export function PublishingConfigEditor({ initial, initialVersion }: { initial: P
     } finally { saving.current = false; setBusy(false); }
   }
   return <form className="grid gap-4" onSubmit={save}>
-    <p>URL chính thức giúp tạo canonical, sitemap.xml và robots.txt. Để trống nếu chưa có domain production; website sẽ không tự công bố sitemap.</p>
-    <label>URL website chính thức<input className="block w-full" type="url" value={config.siteUrl ?? ""} onChange={event => setConfig(current => ({ ...current, siteUrl: event.target.value || null }))} placeholder="https://www.ten-mien-cua-ban.vn" /></label>
-    <label>Tiêu đề mặc định<input className="block w-full" maxLength={220} value={config.defaultTitle ?? ""} onChange={event => setConfig(current => ({ ...current, defaultTitle: event.target.value || null }))} /></label>
-    <label>Mô tả mặc định<textarea className="block w-full" maxLength={180} rows={3} value={config.defaultDescription ?? ""} onChange={event => setConfig(current => ({ ...current, defaultDescription: event.target.value || null }))} /></label>
-    <label className="flex gap-2"><input type="checkbox" checked={config.allowSearchIndexing} onChange={event => setConfig(current => ({ ...current, allowSearchIndexing: event.target.checked }))} />Cho phép công cụ tìm kiếm index website</label>
-    <p>Ảnh chia sẻ mặc định</p>
-    <MediaPicker disabled={busy} value={config.defaultOgMediaId} onUploadingChange={handleUploadingChange} onChange={defaultOgMediaId => setConfig(current => ({ ...current, defaultOgMediaId }))} />
-    <AdminButton className="justify-self-start" disabled={busy || isUploading || !dirty} permission="settings.update" type="submit">{busy ? "Đang lưu…" : "Lưu cấu hình xuất bản"}</AdminButton>
-    <p role="status">{isUploading ? "Đang tải ảnh chia sẻ lên…" : message || (dirty ? "Có thay đổi chưa lưu." : "Không có thay đổi chưa lưu.")}</p>
+    <label>Địa chỉ website chính thức<input className="block w-full" type="url" value={config.siteUrl ?? ""} onChange={event => setConfig(current => ({ ...current, siteUrl: event.target.value || null }))} placeholder="https://www.ten-mien-cua-ban.vn" /><small className="admin-help block">Dùng cho Google và khi chia sẻ liên kết. Để trống nếu chưa có tên miền chính thức (website sẽ chưa gửi sơ đồ trang cho Google).</small></label>
+    <label>Tiêu đề mặc định<input className="block w-full" maxLength={220} placeholder="Tên thương hiệu – mô tả ngắn" value={config.defaultTitle ?? ""} onChange={event => setConfig(current => ({ ...current, defaultTitle: event.target.value || null }))} /></label>
+    <label>Mô tả mặc định<textarea className="block w-full" maxLength={180} placeholder="1–2 câu giới thiệu doanh nghiệp, hiện dưới tiêu đề trên Google khi trang chưa có mô tả riêng." rows={3} value={config.defaultDescription ?? ""} onChange={event => setConfig(current => ({ ...current, defaultDescription: event.target.value || null }))} /></label>
+    <label className="flex gap-2"><input type="checkbox" checked={config.allowSearchIndexing} onChange={event => setConfig(current => ({ ...current, allowSearchIndexing: event.target.checked }))} />Cho phép Google và các công cụ tìm kiếm hiển thị website</label>
+    <MediaPicker disabled={busy} hint="Hiện khi chia sẻ liên kết lên Facebook/Zalo nếu trang không có ảnh riêng. Nên dùng ảnh ngang 1200×630." label="Ảnh chia sẻ mặc định" value={config.defaultOgMediaId} onUploadingChange={handleUploadingChange} onChange={defaultOgMediaId => setConfig(current => ({ ...current, defaultOgMediaId }))} />
+    <AdminEditorActions><p role="status">{isUploading ? "Đang tải ảnh chia sẻ lên…" : message || (dirty ? "Có thay đổi chưa lưu." : "Không có thay đổi chưa lưu.")}</p><AdminButton disabled={busy || isUploading || !dirty} permission="settings.update" type="submit">{busy ? "Đang lưu…" : "Lưu thay đổi"}</AdminButton></AdminEditorActions>
   </form>;
 }

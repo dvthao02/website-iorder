@@ -18,7 +18,7 @@ export function BusinessProfileManager({ profile, version }: BusinessProfileMana
       <header>
         <div>
           <h2 id="business-profile-title">Thông tin hiển thị</h2>
-          <p>Nội dung này xuất hiện ở Header, Footer và các trang liên hệ.</p>
+          <p>Nội dung này xuất hiện ở đầu trang, chân trang và các trang liên hệ.</p>
         </div>
       </header>
       <ProfileEditor initial={profile} initialVersion={version} />

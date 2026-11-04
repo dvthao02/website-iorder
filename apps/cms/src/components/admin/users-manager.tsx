@@ -1,7 +1,7 @@
 "use client";
 
 import { adminApiError, readAdminJson } from "@/lib/admin-api";
-import { Edit3, Plus, RotateCcw, Save, UserRound } from "lucide-react";
+import { Plus, RotateCcw, Save, UserRound } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition, type FormEvent, type ReactNode } from "react";
 
@@ -13,6 +13,7 @@ import type { CmsUserRoleOption } from "@iorder/core/server/users/users.contract
 import { AdminButton } from "./ui/admin-button";
 import { AdminCard } from "./ui/admin-card";
 import { AdminDataTable, type AdminDataTableColumn } from "./ui/admin-data-table";
+import { AdminRowEditIcon } from "./ui/admin-row-title";
 import { AdminEmptyState } from "./ui/admin-empty-state";
 import { AdminNotice, AdminStatusBadge, useAdminToast, type AdminFeedbackTone } from "./ui/admin-feedback";
 import { AdminFilterBar, type AdminFilterChip } from "./ui/admin-filter-bar";
@@ -147,7 +148,7 @@ export function UsersManager({ canAssignSuperAdmin, initialPage, initialQuery, r
     { id: "role", label: "Vai trò", defaultWidth: 190, minWidth: 160, sortKey: "role", cell: (user) => <span>{roleLabel(roles, user.role)}</span> },
     { id: "status", label: "Trạng thái", defaultWidth: 145, minWidth: 128, sortKey: "status", cell: (user) => <AdminStatusBadge tone={statusTone[user.status]}>{statusLabel[user.status]}</AdminStatusBadge> },
     { id: "lastLogin", label: "Đăng nhập gần nhất", defaultWidth: 200, minWidth: 165, sortKey: "lastLoginAt", sortFirst: "desc", cell: (user) => <span className="admin-list-manager__muted">{dateLabel(user.lastLoginAt)}</span> },
-    { id: "actions", label: "Thao tác", defaultWidth: 126, minWidth: 116, align: "right", cell: (user) => <button aria-label={`Chỉnh sửa ${user.fullName}`} className="admin-list-manager__row-action" onClick={(event) => { event.stopPropagation(); select(user); }} type="button"><Edit3 aria-hidden="true" size={15} />Sửa</button> },
+    { id: "actions", label: "Thao tác", defaultWidth: 126, minWidth: 116, align: "right", cell: () => <AdminRowEditIcon /> },
   ];
 
   const activeCount = initialPage.counts.active;

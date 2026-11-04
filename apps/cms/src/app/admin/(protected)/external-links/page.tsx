@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 export default async function ExternalLinksPage() {
   await requireAdminPermission("settings.view");
   return <SettingsDetailPage
-    description="Quản lý các liên kết ứng dụng và mạng xã hội xuất hiện ở Footer hoặc nút kêu gọi hành động."
+    description="Quản lý các liên kết ứng dụng và mạng xã hội xuất hiện ở chân trang hoặc nút kêu gọi hành động."
     eyebrow="Cài đặt"
     title="Liên kết & Mạng xã hội"
   ><ExternalLinksEditor initial={await getExternalLinks()} initialVersion={await getExternalLinksVersion()} /></SettingsDetailPage>;
