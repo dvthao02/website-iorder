@@ -166,8 +166,6 @@
     background: var(--cms-card);
     padding: 0 var(--cms-page-gutter);
   }
-  .admin-topbar__context { display: none; }
-  .admin-shell--collapsed .admin-topbar__context { display: inline-flex; flex: 0 0 auto; align-items: center; margin-right: 8px; font-weight: 600; white-space: nowrap; }
   .admin-topbar__view-site {
     display: inline-flex;
     height: 32px;
@@ -362,7 +360,6 @@
     .admin-mobile-navigation-toggle { display: grid; width: 32px; height: 32px; flex: 0 0 auto; place-items: center; border: 0; border-radius: var(--cms-radius-component); background: transparent; color: var(--cms-text); }
     .admin-mobile-navigation-toggle:hover { background: var(--cms-hover); }
     .admin-sidebar-toggle,
-    .admin-shell .admin-topbar__context { display: none; }
     .admin-sidebar {
       position: fixed;
       top: var(--cms-topbar-height);

@@ -206,7 +206,6 @@ export function AdminShell({ administrator, children, notifications }: { adminis
     .flatMap((group) => visibleNavigationItems(administrator, group.items)
       .map((item) => ({ group, item })))
     .find(({ item }) => isActive(pathname, item));
-  const currentNavigationLabel = currentNavigation?.item.label ?? "Tổng quan";
 
   function toggleMobileNavigation() {
     if (!isMobileNavigationOpen) {
@@ -249,7 +248,6 @@ export function AdminShell({ administrator, children, notifications }: { adminis
         <button aria-controls="admin-mobile-navigation" aria-expanded={isMobileNavigationOpen} aria-label={isMobileNavigationOpen ? "Đóng điều hướng" : "Mở điều hướng"} className="admin-mobile-navigation-toggle" onClick={toggleMobileNavigation} type="button">
           {isMobileNavigationOpen ? <X aria-hidden="true" size={19} /> : <Menu aria-hidden="true" size={19} />}
         </button>
-        {isSidebarCollapsed ? <div className="admin-topbar__context" title={currentNavigation?.group.label ?? currentNavigationLabel}><span>{currentNavigationLabel}</span></div> : null}
         <AdminGlobalSearch />
         <a className="admin-topbar__view-site" href={publishedPublicUrl("/")} rel="noreferrer" target="_blank">Xem website <span aria-hidden="true">↗</span></a>
         <div className="admin-topbar__account">
