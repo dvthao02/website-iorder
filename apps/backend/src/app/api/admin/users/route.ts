@@ -3,7 +3,7 @@ import { z } from "zod";
 import { getRequestAdministrator } from "@iorder/core/server/auth/request-administrator";
 import { cmsUserListQuerySchema, cmsUserRequestSchema } from "@iorder/core/server/users/users.contract";
 import { hasDatabaseErrorCode } from "@iorder/core/server/shared/database-error";
-import { getCmsUsersPage, saveCmsUser } from "@iorder/core/server/users/users.service";
+import { getCmsUsersPage, removeCmsUser, saveCmsUser } from "@iorder/core/server/users/users.service";
 import { CmsAccessError } from "@iorder/core/server/roles/roles.errors";
 import { getCmsRoles } from "@iorder/core/server/roles/roles.service";
 import { denyUnless } from "@/lib/admin-access";
@@ -46,5 +46,22 @@ async function handlePOST(request: Request) {
   }
 }
 
+// Xóa mềm tài khoản đã khóa (?id=); repository kiểm quyền users.delete, không tự xóa mình, không xóa tài khoản quyền cao hơn.
+async function handleDELETE(request: Request) {
+  const actor = await getRequestAdministrator();
+  if (!actor) return fail("UNAUTHORIZED", "Vui lòng đăng nhập lại.", 401);
+  const denied = denyUnless(actor, "users.delete", "Bạn không có quyền xóa tài khoản.");
+  if (denied) return denied;
+  try {
+    const deletedId = await removeCmsUser(new URL(request.url).searchParams.get("id") ?? "", actor.userId);
+    if (!deletedId) return fail("NOT_FOUND", "Không tìm thấy tài khoản cần xóa. Vui lòng tải lại danh sách.", 404);
+    return NextResponse.json({ deletedId });
+  } catch (error: unknown) {
+    if (error instanceof CmsAccessError) return fail(error.code, error.message, error.status);
+    return fail("INTERNAL_ERROR", "Không thể xóa tài khoản lúc này.", 500);
+  }
+}
+
 export const GET = withRequestContext(handleGET);
 export const POST = withRequestContext(handlePOST);
+export const DELETE = withRequestContext(handleDELETE);

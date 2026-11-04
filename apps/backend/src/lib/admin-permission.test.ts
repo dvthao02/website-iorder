@@ -19,6 +19,7 @@ const routeTable: Array<[string, string, CmsPermissionCode[] | null]> = [
   ["/api/admin/audit", "GET", ["audit.view"]],
   ["/api/admin/users", "GET", ["users.view"]],
   ["/api/admin/users", "POST", ["users.create", "users.update"]],
+  ["/api/admin/users", "DELETE", ["users.delete"]],
   ["/api/admin/roles", "GET", ["roles.view"]],
   ["/api/admin/roles", "POST", ["roles.create", "roles.update"]],
   ["/api/admin/roles", "DELETE", ["roles.delete"]],
