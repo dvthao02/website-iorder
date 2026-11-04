@@ -57,7 +57,7 @@ if [ "$BACKUP_VERIFY" = "1" ]; then
   db_sh 'dropdb -U "$POSTGRES_USER" --if-exists "$1" && createdb -U "$POSTGRES_USER" "$1"' "$CHECK_DB"
   trap 'db_sh "dropdb -U \"\$POSTGRES_USER\" --if-exists \"\$1\"" "$CHECK_DB" || true' EXIT
   db_sh 'pg_restore -U "$POSTGRES_USER" --no-owner --exit-on-error -d "$1"' "$CHECK_DB" < "$partial/$main.dump"
-  read -r migrations users media < <(db_sh 'psql -U "$POSTGRES_USER" -d "$1" -tA -F " " -c "select (select count(*) from drizzle.__drizzle_migrations), (select count(*) from users), (select count(*) from media_assets)"' "$CHECK_DB")
+  read -r migrations users media < <(db_sh 'psql -U "$POSTGRES_USER" -d "$1" -tA -F " " -c "select (select count(*) from drizzle.__drizzle_migrations), (select count(*) from users u where to_jsonb(u)->>\$\$deleted_at\$\$ is null), (select count(*) from media_assets)"' "$CHECK_DB")
   log "Khôi phục thử: $migrations migration, $users tài khoản, $media media"
   if [ "${migrations:-0}" -eq 0 ] || [ "${users:-0}" -eq 0 ]; then fail "Bản khôi phục thử không có dữ liệu."; exit 1; fi
   db_sh 'dropdb -U "$POSTGRES_USER" "$1"' "$CHECK_DB"

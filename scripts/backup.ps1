@@ -79,7 +79,7 @@ try {
     Write-Step "Thu khoi phuc $main vao database tam $checkDb"
     try {
       Invoke-Db "dropdb -U `$POSTGRES_USER --if-exists $checkDb && createdb -U `$POSTGRES_USER $checkDb && pg_restore -U `$POSTGRES_USER --no-owner --exit-on-error -d $checkDb /tmp/iorder-backup-$main.dump" "Khoi phuc thu that bai." | Out-Null
-      $counts = (Invoke-Db "psql -U `$POSTGRES_USER -d $checkDb -tA -F ' ' -c 'select (select count(*) from drizzle.__drizzle_migrations), (select count(*) from users), (select count(*) from media_assets)'" "Khong dem duoc du lieu ban khoi phuc.") -split " "
+      $counts = (Invoke-Db "psql -U `$POSTGRES_USER -d $checkDb -tA -F ' ' -c 'select (select count(*) from drizzle.__drizzle_migrations), (select count(*) from users u where to_jsonb(u)->>`$`$deleted_at`$`$ is null), (select count(*) from media_assets)'" "Khong dem duoc du lieu ban khoi phuc.") -split " "
       Write-Host "Khoi phuc thu: $($counts[0]) migration, $($counts[1]) tai khoan, $($counts[2]) media"
       if ([int]$counts[0] -eq 0 -or [int]$counts[1] -eq 0) { throw "Ban khoi phuc thu khong co du lieu." }
       $users = $counts[1]; $media = $counts[2]

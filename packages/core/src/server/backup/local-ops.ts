@@ -123,7 +123,7 @@ async function verifyDumpFile(repoRoot: string, envFile: string, dumpFile: strin
     await runInDbContainer(repoRoot, envFile, `pg_restore -U '${user}' --no-owner --exit-on-error -d '${temporaryDatabase}'`, { input: dumpFile });
     const countsFile = path.join(path.dirname(dumpFile), ".counts");
     await runInDbContainer(repoRoot, envFile,
-      `psql -U '${user}' -d '${temporaryDatabase}' -tA -F ' ' -c "select (select count(*) from drizzle.__drizzle_migrations), (select count(*) from users), (select count(*) from media_assets)"`,
+      `psql -U '${user}' -d '${temporaryDatabase}' -tA -F ' ' -c "select (select count(*) from drizzle.__drizzle_migrations), (select count(*) from users u where to_jsonb(u)->>'deleted_at' is null), (select count(*) from media_assets)"`,
       { output: countsFile });
     const [migrations = "0", users = "0", media = "0"] = (await readFile(countsFile, "utf8")).trim().split(" ");
     await rm(countsFile, { force: true });
