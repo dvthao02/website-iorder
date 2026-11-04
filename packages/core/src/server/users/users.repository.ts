@@ -1,4 +1,4 @@
-import { and, asc, count, eq, ilike, or, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, gt, ilike, inArray, isNull, notInArray, or, sql } from "drizzle-orm";
 import { getDb } from "@iorder/core/db/client";
 import { auditLogs, roles, sessions, userRoles, users } from "@iorder/core/db/schema";
 import { userAuditSnapshot } from "./user-audit";
@@ -32,8 +32,37 @@ export async function listCmsUsersPage(query: CmsUserListQuery, database = getDb
       active: sql<number>`count(*) filter (where ${members.status} = 'active')::int`,
       admins: sql<number>`count(*) filter (where ${members.status} = 'active' and ${members.role} = ${superAdminRoleCode})::int`,
     }).from(members);
-    return { ...toAdminListPage(items, query, totals.total), counts };
+    return { ...toAdminListPage(await withAccessDetails(tx, items), query, totals.total), counts };
   }, { isolationLevel: "repeatable read", accessMode: "read only" });
+}
+
+type ReadTransaction = Parameters<Parameters<ReturnType<typeof getDb>["transaction"]>[0]>[0];
+const sessionActions = ["user.login", "user.logout", "user.login_failed"];
+
+// Thông tin truy cập cho trang tài khoản đang xem (tối đa một trang, ≤100 tài khoản): lần đăng nhập gần nhất
+// (IP, trình duyệt từ nhật ký), thao tác gần nhất (bỏ đăng nhập/đăng xuất) và số phiên còn hiệu lực.
+async function withAccessDetails<Item extends { id: string }>(tx: ReadTransaction, items: Item[]) {
+  const ids = items.map((item) => item.id);
+  if (!ids.length) return [];
+  const [logins, actions, openSessions] = await Promise.all([
+    tx.selectDistinctOn([auditLogs.userId], { userId: auditLogs.userId, ipAddress: auditLogs.ipAddress, userAgent: auditLogs.userAgent })
+      .from(auditLogs).where(and(inArray(auditLogs.userId, ids), eq(auditLogs.action, "user.login"))).orderBy(auditLogs.userId, desc(auditLogs.createdAt)),
+    tx.selectDistinctOn([auditLogs.userId], { userId: auditLogs.userId, action: auditLogs.action, createdAt: auditLogs.createdAt })
+      .from(auditLogs).where(and(inArray(auditLogs.userId, ids), notInArray(auditLogs.action, sessionActions))).orderBy(auditLogs.userId, desc(auditLogs.createdAt)),
+    tx.select({ userId: sessions.userId, total: count() }).from(sessions)
+      .where(and(inArray(sessions.userId, ids), isNull(sessions.revokedAt), gt(sessions.expiresAt, sql`now()`))).groupBy(sessions.userId),
+  ]);
+  const loginOf = new Map(logins.map((row) => [row.userId, row]));
+  const actionOf = new Map(actions.map((row) => [row.userId, row]));
+  const sessionsOf = new Map(openSessions.map((row) => [row.userId, row.total]));
+  return items.map((item) => ({
+    ...item,
+    lastLoginIp: loginOf.get(item.id)?.ipAddress ?? null,
+    lastLoginUserAgent: loginOf.get(item.id)?.userAgent ?? null,
+    lastAction: actionOf.get(item.id)?.action ?? null,
+    lastActionAt: actionOf.get(item.id)?.createdAt ?? null,
+    activeSessions: sessionsOf.get(item.id) ?? 0,
+  }));
 }
 
 export function listCmsUsers(database = getDb()) {

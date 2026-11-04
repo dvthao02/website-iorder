@@ -11,12 +11,13 @@ test("Phản hồi lưu tài khoản chỉ nhận UUID, không mang hash/mật k
 test("Phản hồi danh sách kiểm metadata, ID trùng và bỏ mật khẩu/hash", () => {
   const empty = { items: [], page: 1, pageSize: 25, total: 0, totalPages: 1, counts: { all: 2, active: 1, admins: 1 } };
   assert.equal(cmsUserListPageSchema.safeParse(empty).success, true);
-  const user = { id: "11111111-1111-4111-8111-111111111111", username: "fixture", email: null, fullName: "Người thử", role: "editor", status: "active", lastLoginAt: null };
+  const user = { id: "11111111-1111-4111-8111-111111111111", username: "fixture", email: null, fullName: "Người thử", role: "editor", status: "active", lastLoginAt: null, lastLoginIp: null, lastLoginUserAgent: null, lastAction: null, lastActionAt: null, activeSessions: 0 };
   const result = cmsUserListPageSchema.parse({ ...empty, total: 1, items: [{ ...user, password: "fixture", passwordHash: "fixture" }] });
   assert.deepEqual(result.items, [user]);
   for (const patch of [{ total: 1 }, { totalPages: 2 }, { pageSize: 101 }, { counts: { all: 1, active: 2, admins: 0 } }, { counts: { all: 2, active: 1, admins: 2 } }]) assert.equal(cmsUserListPageSchema.safeParse({ ...empty, ...patch }).success, false);
   assert.equal(cmsUserListPageSchema.safeParse({ ...empty, total: 2, items: [user, user] }).success, false);
   assert.equal(cmsUserListPageSchema.safeParse({ ...empty, total: 1, items: [{ ...user, lastLoginAt: "sai" }] }).success, false);
+  assert.equal(cmsUserListPageSchema.safeParse({ ...empty, total: 1, items: [{ ...user, activeSessions: -1 }] }).success, false);
 });
 
 test("Bộ lọc tài khoản giới hạn phân trang, role/status và không nhận trường mật khẩu", () => {

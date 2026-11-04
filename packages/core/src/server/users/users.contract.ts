@@ -11,6 +11,9 @@ export const cmsUserListPageSchema = z.object({
   items: z.array(z.object({
     id: z.string().uuid(), username: z.string().min(1).max(80), email: z.string().nullable(),
     fullName: z.string().min(1).max(180), status: z.enum(["active", "disabled"]), role: z.string().min(1).max(80), lastLoginAt: z.date().nullable(),
+    // Lần đăng nhập gần nhất theo nhật ký (IP, trình duyệt), thao tác gần nhất và số phiên còn hiệu lực.
+    lastLoginIp: z.string().nullable(), lastLoginUserAgent: z.string().nullable(),
+    lastAction: z.string().nullable(), lastActionAt: z.date().nullable(), activeSessions: z.number().int().nonnegative(),
   })),
   page: z.number().int().positive(), pageSize: z.number().int().min(5).max(100),
   total: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER), totalPages: z.number().int().positive(),
