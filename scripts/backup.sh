@@ -19,7 +19,7 @@ CHECK_DB="iorder_restore_check"
 compose() { docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "$@"; }
 db_sh() { compose exec -T db sh -c "$1" sh "${@:2}"; }
 log() { echo "[$(date -u +%FT%TZ)] $*"; }
-record_status() { compose exec -T -e BACKUP_SOURCE=vps "$@" db sh -c 'psql -q -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f -' < scripts/backup-status.sql; }
+record_status() { compose exec -T -e BACKUP_SOURCE=vps -e "BACKUP_LOCATION=$BACKUP_DIR" -e "BACKUP_REPO=$PWD" "$@" db sh -c 'psql -q -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f -' < scripts/backup-status.sql; }
 fail() {
   log "$1"
   record_status -e BACKUP_SUCCESS=false -e "BACKUP_MESSAGE=$1" || log "Không ghi được trạng thái lỗi vào database."
@@ -78,5 +78,5 @@ mapfile -t old < <(find "$BACKUP_DIR/db" -mindepth 1 -maxdepth 1 -type d ! -name
 for dir in "${old[@]}"; do rm -rf "$dir"; done
 step="ghi trạng thái"
 verified=false; [ "$BACKUP_VERIFY" = "1" ] && verified=true
-record_status -e BACKUP_SUCCESS=true -e "BACKUP_STAMP=$stamp" -e "BACKUP_BYTES=$bytes" -e "BACKUP_VERIFIED=$verified" -e "BACKUP_USERS=$users" -e "BACKUP_MEDIA=$media"
+record_status -e BACKUP_SUCCESS=true -e "BACKUP_STAMP=$stamp" -e "BACKUP_DATABASE=${databases[0]}" -e "BACKUP_BYTES=$bytes" -e "BACKUP_VERIFIED=$verified" -e "BACKUP_USERS=$users" -e "BACKUP_MEDIA=$media"
 log "Hoàn tất $stamp (xoá ${#old[@]} bản cũ)."

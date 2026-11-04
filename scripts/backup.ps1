@@ -31,7 +31,7 @@ function Invoke-Db([string]$command, [string]$failure) {
   return $output
 }
 function Write-Status([string[]]$environment) {
-  $arguments = $compose + @("exec", "-T", "-e", "BACKUP_SOURCE=windows")
+  $arguments = $compose + @("exec", "-T", "-e", "BACKUP_SOURCE=windows", "-e", "BACKUP_LOCATION=$BackupDir", "-e", "BACKUP_REPO=$root")
   foreach ($item in $environment) { $arguments += @("-e", $item.Replace('"', "'")) }
   $arguments += @("db", "sh", "-c", 'psql -q -U $POSTGRES_USER -d $POSTGRES_DB -f -')
   Get-Content -Raw -Encoding UTF8 (Join-Path $root "scripts/backup-status.sql") | & docker @arguments
@@ -44,6 +44,8 @@ if ($LASTEXITCODE -ne 0) { Write-Host "Docker chua chay. Bat bang: powershell -E
 if ((& docker @compose ps db --format "{{.Health}}") -ne "healthy") { Write-Host "Container db chua chay. Bat bang: powershell -ExecutionPolicy Bypass -File scripts/dev.ps1" -ForegroundColor Red; exit 1 }
 
 New-Item -ItemType Directory -Force (Join-Path $BackupDir "db"), (Join-Path $BackupDir "media") | Out-Null
+# Duong dan day du: CMS hien no trong huong dan phuc hoi.
+$BackupDir = (Resolve-Path $BackupDir).Path
 try {
   $lock = [System.IO.File]::Open((Join-Path $BackupDir ".lock"), "OpenOrCreate", "ReadWrite", "None")
 } catch {
@@ -108,7 +110,7 @@ try {
   $old | Remove-Item -Recurse -Force
 
   $step = "ghi trang thai"
-  if (-not (Write-Status @("BACKUP_SUCCESS=true", "BACKUP_STAMP=$stamp", "BACKUP_BYTES=$bytes", "BACKUP_VERIFIED=$(([bool](-not $NoVerify)).ToString().ToLower())", "BACKUP_USERS=$users", "BACKUP_MEDIA=$media"))) {
+  if (-not (Write-Status @("BACKUP_SUCCESS=true", "BACKUP_STAMP=$stamp", "BACKUP_DATABASE=$($databases[0])", "BACKUP_BYTES=$bytes", "BACKUP_VERIFIED=$(([bool](-not $NoVerify)).ToString().ToLower())", "BACKUP_USERS=$users", "BACKUP_MEDIA=$media"))) {
     throw "Khong ghi duoc trang thai sao luu vao database."
   }
   Write-Host ""
