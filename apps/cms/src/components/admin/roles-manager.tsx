@@ -1,6 +1,6 @@
 "use client";
 
-import { Edit3, Lock, Plus, RotateCcw, Save, ShieldCheck } from "lucide-react";
+import { Lock, Plus, RotateCcw, Save, ShieldCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 
@@ -15,6 +15,7 @@ import { AdminDataTable, type AdminDataTableColumn } from "./ui/admin-data-table
 import { AdminNotice, AdminStatusBadge, useAdminToast } from "./ui/admin-feedback";
 import { AdminListHeader } from "./ui/admin-list-header";
 import { AdminListPage } from "./ui/admin-list-page";
+import { AdminRowEditIcon } from "./ui/admin-row-title";
 import { useAdminPermissions } from "./ui/admin-permissions";
 import { AdminSidePanel } from "./ui/admin-side-panel";
 import { allState, moduleState, permissionCode, setModules, setPermission, type CheckState, type MatrixModule } from "./ui/role-permission-matrix";
@@ -29,7 +30,7 @@ function valuesOf(role: CmsRole): RoleForm {
   return { name: role.name, description: role.description ?? "", permissions: [...role.permissions].sort() };
 }
 
-export function RolesManager({ roles, modules, actionLabels }: RolesManagerProps) {
+export function RolesManager({ roles, modules, actionLabels, tabs }: RolesManagerProps & { tabs?: ReactNode }) {
   const router = useRouter();
   const { show: showToast } = useAdminToast();
   const { confirm } = useAdminConfirm();
@@ -131,7 +132,7 @@ export function RolesManager({ roles, modules, actionLabels }: RolesManagerProps
     { id: "permissions", label: "Quyền", defaultWidth: 120, minWidth: 100, sortValue: (role) => (role.isSystem ? Number.MAX_SAFE_INTEGER : role.permissions.length), sortFirst: "desc", cell: (role) => <span>{role.isSystem ? "Toàn quyền" : `${role.permissions.length} quyền`}</span> },
     { id: "users", label: "Tài khoản", defaultWidth: 120, minWidth: 100, sortValue: (role) => role.userCount, sortFirst: "desc", cell: (role) => <span>{role.userCount}</span> },
     { id: "type", label: "Loại", defaultWidth: 130, minWidth: 110, sortValue: (role) => (role.isSystem ? 0 : 1), cell: (role) => <AdminStatusBadge tone={role.isSystem ? "info" : "neutral"}>{role.isSystem ? "Hệ thống" : "Tùy chỉnh"}</AdminStatusBadge> },
-    { id: "actions", label: "Thao tác", defaultWidth: 116, minWidth: 104, align: "right", cell: (role) => <button aria-label={`Mở ${role.name}`} className="admin-list-manager__row-action" onClick={(event) => { event.stopPropagation(); select(role); }} type="button">{role.isSystem ? <Lock aria-hidden="true" size={15} /> : <Edit3 aria-hidden="true" size={15} />}{role.isSystem ? "Xem" : "Sửa"}</button> },
+    { id: "actions", label: "Thao tác", defaultWidth: 116, minWidth: 104, align: "right", cell: (role) => role.isSystem ? <span className="admin-content-actions"><span aria-hidden="true" className="admin-content-actions__button" title="Vai trò hệ thống: chỉ xem"><Lock size={16} /></span></span> : <AdminRowEditIcon /> },
   ];
 
   const canDelete = Boolean(active && !active.isSystem && can("roles.delete"));
@@ -143,6 +144,7 @@ export function RolesManager({ roles, modules, actionLabels }: RolesManagerProps
   return <AdminListPage className="admin-list-manager" variant="dense">
     <AdminCard className="admin-list-manager__card">
       <AdminListHeader actions={can("roles.create") ? <AdminButton leadingIcon={<Plus aria-hidden="true" size={16} />} onClick={() => select()}>Tạo vai trò</AdminButton> : null} description={`${roles.length} vai trò`} title="Vai trò & quyền" />
+      {tabs}
       <AdminDataTable columns={columns} emptyMessage="Chưa có vai trò." getRowId={(role) => role.id} onRowClick={select} onSettingsOpenChange={setIsColumnSettingsOpen} rows={roles} settingsOpen={isColumnSettingsOpen} tableId="cms-roles" />
     </AdminCard>
     <AdminSidePanel footer={footer} isOpen={form !== null} label="Trình chỉnh sửa vai trò" onClose={closeEditor}>

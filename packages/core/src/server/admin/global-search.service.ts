@@ -45,7 +45,7 @@ const cmsRoutes: CmsRoute[] = [
   { id: "partners", label: "Đối tác & Đánh giá", slug: "/admin/partners", type: "Điều hướng CMS", href: "/admin/partners", permission: "supporting.view" },
   { id: "leads", label: "Khách hàng tiềm năng", slug: "/admin/leads", type: "Điều hướng CMS", href: "/admin/leads", permission: "leads.view" },
   { id: "users", label: "Người dùng CMS", slug: "/admin/users", type: "Điều hướng CMS", href: "/admin/users", permission: "users.view" },
-  { id: "roles", label: "Vai trò & quyền", slug: "/admin/roles", type: "Điều hướng CMS", href: "/admin/roles", permission: "roles.view" },
+  { id: "roles", label: "Vai trò & quyền", slug: "/admin/users?tab=roles", type: "Điều hướng CMS", href: "/admin/users?tab=roles", permission: "roles.view" },
   { id: "audit", label: "Nhật ký hoạt động", slug: "/admin/audit-log", type: "Điều hướng CMS", href: "/admin/audit-log", permission: "audit.view" },
   { id: "publishing", label: "Kiểm tra xuất bản", slug: "/admin/seo/publish-check", type: "Điều hướng CMS", href: "/admin/seo/publish-check", permission: "settings.view" },
   { id: "appearance", label: "Giao diện CMS", slug: "/admin/appearance", type: "Điều hướng CMS", href: "/admin/appearance" },

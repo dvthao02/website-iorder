@@ -6,7 +6,7 @@ test.describe("CMS", () => {
   test.beforeEach(async ({ page }) => { await loginAsAdmin(page); });
 
   test("Đăng nhập và thấy menu quản trị", async ({ page }) => {
-    await expect(page.getByRole("link", { name: "Vai trò & quyền" }).first()).toBeAttached();
+    await expect(page.getByRole("link", { name: "Người dùng & vai trò" }).first()).toBeAttached();
     await expect(page.getByRole("link", { name: "Bài viết & Tin tức" }).first()).toBeAttached();
   });
 
@@ -37,7 +37,7 @@ test.describe("CMS", () => {
 
   test("Super Admin chỉ xem, không sửa được", async ({ page }) => {
     await page.goto("/admin/roles");
-    await page.getByRole("button", { name: /Super Admin/ }).first().click();
+    await page.locator(".admin-data-table tbody tr", { hasText: "Super Admin" }).first().click();
     await expect(page.getByText("Super Admin luôn có toàn quyền")).toBeVisible();
     await expect(page.getByRole("checkbox", { name: "Xóa — Vai trò" })).toBeChecked();
     await expect(page.getByRole("checkbox", { name: "Xóa — Vai trò" })).toBeDisabled();

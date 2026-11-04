@@ -24,7 +24,6 @@ import {
   History,
   Home,
   Image,
-  KeyRound,
   Laptop,
   LayoutDashboard,
   LayoutTemplate,
@@ -121,8 +120,7 @@ const navigationGroups = ensureUniqueNavigationPaths([
     label: "Quản trị hệ thống",
     icon: ShieldCheck,
     items: [
-      { href: "/admin/users", label: "Người dùng CMS", icon: Users, permission: "users.view" },
-      { href: "/admin/roles", label: "Vai trò & quyền", icon: KeyRound, permission: "roles.view" },
+      { href: "/admin/users", label: "Người dùng & vai trò", icon: Users, permission: ["users.view", "roles.view"] },
       { href: "/admin/audit-log", label: "Nhật ký hoạt động", icon: History, permission: "audit.view" },
     ],
   },
