@@ -348,8 +348,11 @@
     .admin-shell__content { display: flex; height: 100%; min-height: 0; flex-direction: column; }
     .admin-shell__content > .admin-page-bar { flex: 0 0 auto; }
     .admin-shell__scroll { position: relative; min-height: 0; flex: 1 1 auto; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; padding-bottom: 56px; }
-    /* Chân trang danh sách dính đáy vùng cuộn: bù đúng phần đệm đáy 56px để không lộ dòng bảng dưới nó. */
-    .admin-shell__scroll .admin-pagination { bottom: -56px; }
+    /* Trang có chân trang danh sách: bỏ đệm đáy để thẻ danh sách kết thúc đúng đáy vùng cuộn. Chân trang dính đáy (position: sticky)
+       chỉ ở được trong thẻ, nên còn đệm thì lúc cuộn hết nó dừng cách đáy 56px và để lộ khoảng trống bên dưới. */
+    .admin-shell__scroll:has(.admin-pagination) { padding-bottom: 0; }
+    /* Cùng lý do với lề đáy của .admin-page, nhưng chỉ khi phần có chân trang là phần cuối (Trang tự tạo còn danh mục bên dưới nên giữ lề). */
+    .admin-page:has(> :last-child .admin-pagination) { padding-bottom: 0; }
     /* Màn soạn thảo tự chia vùng (tiêu đề / thân cuộn / thanh lưu) nên khung ngoài không cuộn, không chừa đáy. */
     .admin-shell__scroll:has(> .admin-editor-detail-page) { overflow: hidden; padding-bottom: 0; }
   }
