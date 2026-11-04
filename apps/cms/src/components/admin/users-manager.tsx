@@ -11,12 +11,12 @@ import { cmsUserRequestSchema, cmsUserSaveResponseSchema } from "@iorder/core/se
 import type { CmsUserRoleOption } from "@iorder/core/server/users/users.contract";
 
 import { accessSource, formatAccessTime, UserAccessSummary, type UserAccess } from "./user-access-summary";
+import { UserRowActions } from "./user-row-actions";
 import { auditActionLabel } from "./ui/audit-labels";
 import { AdminButton } from "./ui/admin-button";
 import { AdminPasswordInput } from "./ui/admin-password-input";
 import { AdminCard } from "./ui/admin-card";
 import { AdminDataTable, type AdminDataTableColumn } from "./ui/admin-data-table";
-import { AdminRowEditIcon } from "./ui/admin-row-title";
 import { AdminEmptyState } from "./ui/admin-empty-state";
 import { AdminNotice, AdminStatusBadge, useAdminToast, type AdminFeedbackTone } from "./ui/admin-feedback";
 import { AdminFilterBar, type AdminFilterChip } from "./ui/admin-filter-bar";
@@ -47,7 +47,7 @@ function dateLabel(value: Date | null) {
   return new Intl.DateTimeFormat("vi-VN", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
 }
 
-export function UsersManager({ canAssignSuperAdmin, initialPage, initialQuery, roles, tabs }: { tabs?: ReactNode; canAssignSuperAdmin: boolean; initialPage: ListPageResult<CmsUser> & { counts: { all: number; active: number; admins: number } }; initialQuery: CmsUserListQuery; roles: CmsUserRoleOption[] }) {
+export function UsersManager({ canAssignSuperAdmin, currentUserId, initialPage, initialQuery, roles, tabs }: { tabs?: ReactNode; currentUserId: string; canAssignSuperAdmin: boolean; initialPage: ListPageResult<CmsUser> & { counts: { all: number; active: number; admins: number } }; initialQuery: CmsUserListQuery; roles: CmsUserRoleOption[] }) {
   const assignableRoles = roles.filter((role) => canAssignSuperAdmin || !role.isSystem);
   const router = useRouter();
   const { show: showToast } = useAdminToast();
@@ -154,7 +154,7 @@ export function UsersManager({ canAssignSuperAdmin, initialPage, initialQuery, r
     { id: "lastLogin", label: "Đăng nhập gần nhất", defaultWidth: 220, minWidth: 170, sortKey: "lastLoginAt", sortFirst: "desc", cell: (user) => <span className="admin-cell-stack"><span>{dateLabel(user.lastLoginAt)}</span>{user.lastLoginAt && accessSource(user.lastLoginIp, user.lastLoginUserAgent) ? <small title={user.lastLoginUserAgent ?? undefined}>{accessSource(user.lastLoginIp, user.lastLoginUserAgent)}</small> : null}</span> },
     { id: "lastAction", label: "Thao tác gần nhất", defaultWidth: 180, minWidth: 150, cell: (user) => user.lastAction ? <span className="admin-cell-stack"><span>{auditActionLabel(user.lastAction)}</span><small>{formatAccessTime(user.lastActionAt)}</small></span> : <span className="admin-list-manager__muted">Chưa có</span> },
     { id: "sessions", label: "Phiên", defaultWidth: 100, minWidth: 90, align: "right", cell: (user) => <span className={user.activeSessions ? undefined : "admin-list-manager__muted"} title="Số phiên đăng nhập còn hiệu lực (thiết bị đang đăng nhập)">{user.activeSessions ? `${user.activeSessions} thiết bị` : "—"}</span> },
-    { id: "actions", label: "Thao tác", defaultWidth: 116, minWidth: 116, align: "right", cell: () => <AdminRowEditIcon /> },
+    { id: "actions", label: "Thao tác", defaultWidth: 116, minWidth: 116, align: "right", cell: (user) => <UserRowActions isSelf={user.id === currentUserId} user={user} /> },
   ];
 
   const activeCount = initialPage.counts.active;

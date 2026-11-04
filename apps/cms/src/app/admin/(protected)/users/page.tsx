@@ -37,6 +37,6 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
     redirect(`/admin/users?${target}`);
   }
   return <main className="admin-page">
-    <UsersManager canAssignSuperAdmin={isSuperAdmin(actor)} key={JSON.stringify(query)} initialPage={result} initialQuery={query} roles={roles} tabs={tabs} />
+    <UsersManager canAssignSuperAdmin={isSuperAdmin(actor)} currentUserId={actor.userId} key={JSON.stringify(query)} initialPage={result} initialQuery={query} roles={roles} tabs={tabs} />
   </main>;
 }
