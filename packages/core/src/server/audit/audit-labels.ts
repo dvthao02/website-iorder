@@ -56,6 +56,7 @@ const fieldLabels: Record<string, string> = {
   companyName: "Tên doanh nghiệp", legalName: "Tên pháp lý", hotline: "Hotline", supportEmail: "Email hỗ trợ", salesEmail: "Email kinh doanh",
   workingHours: "Giờ làm việc", siteUrl: "Địa chỉ website", defaultTitle: "Tiêu đề mặc định", defaultDescription: "Mô tả mặc định",
   allowSearchIndexing: "Cho phép tìm kiếm", defaultOgMediaId: "Ảnh chia sẻ mặc định", originalName: "Tên tệp", caption: "Chú thích", mimeType: "Loại tệp",
+  stamp: "Bản sao lưu", databaseBytes: "Dung lượng", fromStamp: "Phục hồi từ bản", preBackupStamp: "Bản sao lưu an toàn",
 };
 // Trường kỹ thuật thay đổi ở mọi lần lưu, không giúp người đọc nhật ký.
 const technicalFields = new Set(["version", "updatedAt", "updatedBy", "createdAt", "id", "draftVersion"]);
