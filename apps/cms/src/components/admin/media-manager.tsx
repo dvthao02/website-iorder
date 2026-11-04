@@ -13,6 +13,7 @@ import { AdminBulkBar } from "./ui/admin-bulk-bar";
 import { AdminBulkMenu } from "./ui/admin-bulk-menu";
 import { useAdminPermissions } from "./ui/admin-permissions";
 import { AdminButton } from "./ui/admin-button";
+import { AdminPagination } from "./ui/admin-pagination";
 import { AdminFileIcon, fileKindOf } from "./ui/admin-file-icon";
 import { useRowSelection } from "./ui/content-bulk-bar";
 import { AdminCard } from "./ui/admin-card";
@@ -62,7 +63,8 @@ export function MediaManager({ initialPage, initialQuery }: { initialPage: { ass
   const [assets, setAssets] = useState(initialPage.assets);
   const [page, setPage] = useState(initialPage.page);
   const [total, setTotal] = useState(initialPage.total);
-  const totalPages = Math.max(1, Math.ceil(total / 25));
+  const [pageSize, setPageSize] = useState(initialPage.pageSize);
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const [loading, setLoading] = useState(false);
   const [pickedName, setPickedName] = useState("");
   const [dragging, setDragging] = useState(false);
@@ -91,7 +93,7 @@ export function MediaManager({ initialPage, initialQuery }: { initialPage: { ass
   useNavigationGuard(busy, () => showToast("Đang tải tệp lên. Vui lòng chờ trước khi rời thư viện.", "info"));
   const editing = () => [...editorStates.current.values()].some(state => state.pending || state.dirty);
 
-  async function loadPage(nextPage: number, nextFilter: MediaFilter = filter, nextQuery: string = query, nextOrder: string = order) {
+  async function loadPage(nextPage: number, nextFilter: MediaFilter = filter, nextQuery: string = query, nextOrder: string = order, nextPageSize: number = pageSize) {
     if (listing.current || uploading.current || editing()) {
       showToast("Hãy hoàn tất xử lý và lưu hoặc bỏ thay đổi thông tin tệp trước khi chuyển bộ lọc.", "warning");
       return;
@@ -101,20 +103,22 @@ export function MediaManager({ initialPage, initialQuery }: { initialPage: { ass
     setListError("");
     try {
       const [sort, dir] = nextOrder.split(":");
-      const params = new URLSearchParams({ page: String(nextPage), pageSize: "25", type: nextFilter, query: nextQuery, sort, dir });
+      const params = new URLSearchParams({ page: String(nextPage), pageSize: String(nextPageSize), type: nextFilter, query: nextQuery, sort, dir });
       const response = await fetch(`/api/admin/media?${params}`);
       const body = await readAdminJson(response);
       if (!response.ok) throw adminApiError(body, "Không tải được danh sách tệp.");
       const result = mediaListResponseSchema.safeParse(body);
-      if (!result.success || result.data.page !== nextPage || result.data.pageSize !== 25) throw new Error("Phản hồi danh sách tệp không hợp lệ.");
+      if (!result.success || result.data.page !== nextPage || result.data.pageSize !== nextPageSize) throw new Error("Phản hồi danh sách tệp không hợp lệ.");
       setAssets(result.data.assets);
       setPage(result.data.page);
+      setPageSize(nextPageSize);
       setTotal(result.data.total);
       setFilter(nextFilter);
       setQuery(nextQuery);
       setOrder(nextOrder);
       const url = new URL(window.location.href);
       url.searchParams.set("page", String(result.data.page));
+      if (nextPageSize === 25) url.searchParams.delete("pageSize"); else url.searchParams.set("pageSize", String(nextPageSize));
       url.searchParams.set("type", nextFilter);
       if (nextQuery) url.searchParams.set("query", nextQuery); else url.searchParams.delete("query");
       if (nextOrder === "createdAt:desc") { url.searchParams.delete("sort"); url.searchParams.delete("dir"); } else { url.searchParams.set("sort", sort); url.searchParams.set("dir", dir); }
@@ -217,7 +221,7 @@ export function MediaManager({ initialPage, initialQuery }: { initialPage: { ass
           uploaded += 1;
           const fits = matchesFilter(parsed.data, filter);
           if (!query && page === 1 && fits) {
-            setAssets((current) => [parsed.data, ...current.filter(asset => asset.id !== parsed.data.id)].slice(0, 25));
+            setAssets((current) => [parsed.data, ...current.filter(asset => asset.id !== parsed.data.id)].slice(0, pageSize));
             lastShown = parsed.data.id;
           }
           if (!query && fits) setTotal((current) => current + 1);
@@ -296,15 +300,8 @@ export function MediaManager({ initialPage, initialQuery }: { initialPage: { ass
           </li>)}</ul></>
           : <AdminDataTable columns={columns} emptyMessage="Không có tệp." getRowId={(asset) => asset.id} onRowClick={(asset) => setActiveId(asset.id)} onSortChange={(next) => void loadPage(1, filter, query, next ? `${next.key}:${next.dir}` : "createdAt:desc")} onSelectionChange={setSelectedIds} rows={visibleAssets} selectedIds={selectedIds} sort={sortKey === "createdAt" ? null : { key: sortKey, dir: sortDir }} tableId="media" />}
       </fieldset>
-      <nav aria-label="Phân trang" className="admin-pagination">
-        <span role="status">{loading ? "Đang tải danh sách…" : `${total} tệp`}</span>
-        <div>
-          {page > totalPages ? <AdminButton disabled={loading || busy} onClick={() => void loadPage(totalPages)} size="sm" variant="secondary">Về trang cuối có dữ liệu</AdminButton> : null}
-          <AdminButton disabled={loading || busy || page <= 1} onClick={() => void loadPage(page - 1)} size="sm" variant="secondary">Trang trước</AdminButton>
-          <span className="admin-pagination__page">{page}/{Math.max(page, totalPages)}</span>
-          <AdminButton disabled={loading || busy || page >= totalPages} onClick={() => void loadPage(page + 1)} size="sm" variant="secondary">Trang sau</AdminButton>
-        </div>
-      </nav>
+      {page > totalPages ? <div className="admin-list-toolbar"><AdminButton disabled={loading || busy} onClick={() => void loadPage(totalPages)} size="sm" variant="secondary">Về trang cuối có dữ liệu</AdminButton></div> : null}
+      <AdminPagination unit="tệp" disabled={loading || busy} onChange={(next) => void loadPage(next)} onPageSizeChange={(size) => void loadPage(1, filter, query, order, size)} page={page} pageSize={pageSize} total={total} totalPages={totalPages} />
     </AdminCard>
     <AdminSidePanel isOpen={Boolean(activeAsset)} label="Chi tiết tệp" onClose={() => void closePanel()}>
       {activeAsset ? <MediaDetail asset={activeAsset} key={activeAsset.id} navigation={{ index: activeIndex, total: visibleAssets.length, onStep: (delta) => void step(delta) }} onDeleted={handleDeleted} onSaved={(saved) => setAssets((current) => current.map((item) => item.id === saved.id ? saved : item))} onStateChange={reportEditorState} /> : null}

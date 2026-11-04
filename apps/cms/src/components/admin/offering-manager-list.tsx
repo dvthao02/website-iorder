@@ -53,7 +53,7 @@ function CreateOfferingButton({ type }: { type: OfferingTypeFilter }) {
 }
 
 export function OfferingManagerList({ initialQuery, initialStatus, initialType, result }: OfferingManagerListProps) {
-  const { navigate, searchParams, setFilter, setSort, sort } = useListNavigation();
+  const { navigate, pagination, searchParams, setFilter, setSort, sort } = useListNavigation();
   const [query, setQuery] = useState(initialQuery);
   const { selectedIds, setSelectedIds, clear } = useRowSelection(searchParams.toString());
   const [isColumnSettingsOpen, setIsColumnSettingsOpen] = useState(false);
@@ -86,7 +86,7 @@ export function OfferingManagerList({ initialQuery, initialStatus, initialType, 
       <AdminFilterBar onSubmit={submitSearch} chips={chips} onClearAll={() => { setQuery(""); navigate({ page: undefined, query: undefined, status: undefined }); }} search={<AdminSearchField id="offering-search" label={`Tìm kiếm ${noun}`} onChange={(event) => setQuery(event.target.value)} placeholder="Tìm theo tên hoặc slug" value={query} />}><label className="sr-only" htmlFor="offering-status">Lọc theo trạng thái</label><select id="offering-status" onChange={(event) => setFilter("status", event.target.value === "all" ? undefined : event.target.value)} value={initialStatus}><option value="all">Tất cả trạng thái</option><option value="draft">Bản nháp</option><option value="review">Chờ duyệt</option><option value="scheduled">Hẹn giờ</option><option value="published">Đã xuất bản</option><option value="archived">Lưu trữ</option></select></AdminFilterBar>
       <ContentBulkBar items={result.items} module="offerings" noun={noun} onClear={clear} request={(item, action) => ({ method: "PATCH", url: `/api/admin/offerings/${item.id}?type=${item.type}`, body: { action, expectedVersion: item.draftVersion } })} deleteRequest={(item) => ({ method: "DELETE", url: `/api/admin/offerings/${item.id}`, body: { expectedVersion: item.draftVersion } })} exportDataset={initialType === "all" ? undefined : `offerings-${initialType}`} exportUnavailable="Chọn tab Sản phẩm, Giải pháp hoặc Dịch vụ để xuất Excel." selectedIds={selectedIds} />
       <AdminDataTable columns={columns} emptyMessage={filtered ? "Không có mục khớp bộ lọc. Thử đổi từ khóa hoặc trạng thái." : `Chưa có ${noun} nào.`} getRowId={(item) => item.id} onSelectionChange={setSelectedIds} onSettingsOpenChange={setIsColumnSettingsOpen} onSortChange={setSort} rows={result.items} selectedIds={selectedIds} settingsOpen={isColumnSettingsOpen} sort={sort} tableId={initialType === "all" ? "offerings-all" : `offerings-${initialType}`} />
-      <AdminPagination page={result.page} pageSize={result.pageSize} total={result.total} totalPages={result.totalPages} onChange={(page) => navigate({ page: page === 1 ? undefined : String(page) })} />
+      <AdminPagination unit={noun} page={result.page} pageSize={result.pageSize} total={result.total} totalPages={result.totalPages} {...pagination} />
     </AdminCard>
   </AdminListPage>;
 }

@@ -47,7 +47,7 @@ type PostManagerListProps = {
 };
 
 export function PostManagerList({ baseHref = "/admin/news", createHref = `${baseHref}/moi`, initialQuery, initialStatus, result, tabs, title = "Bài viết & Tin tức", singularLabel = "bài viết", typeOptions = [], categories = [], tags = [], showTaxonomyLink = false }: PostManagerListProps) {
-  const { navigate, searchParams, setFilter, setSort, sort } = useListNavigation();
+  const { navigate, pagination, searchParams, setFilter, setSort, sort } = useListNavigation();
   const [query, setQuery] = useState(initialQuery);
   const { selectedIds, setSelectedIds, clear } = useRowSelection(searchParams.toString());
   const columns = useMemo<AdminDataTableColumn<AdminPostListItem>[]>(() => [
@@ -90,7 +90,7 @@ export function PostManagerList({ baseHref = "/admin/news", createHref = `${base
       </AdminFilterBar>
       <ContentBulkBar items={result.items} module="posts" noun={singularLabel} onClear={clear} request={(item, action) => ({ method: "PATCH", url: `/api/admin/posts/${item.id}`, body: { action, expectedVersion: item.draftVersion } })} deleteRequest={(item) => ({ method: "DELETE", url: `/api/admin/posts/${item.id}`, body: { expectedVersion: item.draftVersion } })} exportDataset={transferKind} selectedIds={selectedIds} />
       <AdminDataTable columns={columns} emptyMessage={filtered ? "Không có nội dung khớp bộ lọc. Thử đổi từ khóa hoặc bộ lọc." : "Chưa có nội dung nào."} getRowId={(item) => item.id} onSelectionChange={setSelectedIds} onSortChange={setSort} rows={result.items} selectedIds={selectedIds} sort={sort} tableId={`posts-${title.toLocaleLowerCase("vi").replaceAll(" ", "-")}`} />
-      <AdminPagination page={result.page} pageSize={result.pageSize} total={result.total} totalPages={result.totalPages} onChange={(page) => navigate({ page: page === 1 ? undefined : String(page) })} />
+      <AdminPagination unit={singularLabel} page={result.page} pageSize={result.pageSize} total={result.total} totalPages={result.totalPages} {...pagination} />
     </AdminCard>
   </AdminListPage>;
 }

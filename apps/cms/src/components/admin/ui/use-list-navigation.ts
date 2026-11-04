@@ -28,5 +28,11 @@ export function useListNavigation() {
     navigate({ page: undefined, [key]: value });
   }
 
-  return { navigate, searchParams, setFilter, setSort, sort };
+  // Chân trang chung (AdminPagination): trang 1 bỏ khỏi URL cho gọn; đổi số dòng/trang thì về trang 1.
+  const pagination = {
+    onChange: (page: number) => navigate({ page: page === 1 ? undefined : String(page) }),
+    onPageSizeChange: (pageSize: number) => navigate({ page: undefined, pageSize: String(pageSize) }),
+  };
+
+  return { navigate, pagination, searchParams, setFilter, setSort, sort };
 }

@@ -64,7 +64,7 @@ export function LeadsManager({ initialPage, initialQuery }: { initialPage: ListR
   const openLead = leads.find((lead) => lead.id === openId) ?? null;
 
   // Giữ bộ lọc khác khi đổi trạng thái/trang; patch ghi đè từng phần.
-  function navigate(status: LeadListQuery["status"], page = 1, query = initialQuery.query, patch: Partial<Pick<LeadListQuery, "from" | "to" | "sort" | "dir">> = {}) {
+  function navigate(status: LeadListQuery["status"], page = 1, query = initialQuery.query, patch: Partial<Pick<LeadListQuery, "from" | "to" | "sort" | "dir" | "pageSize">> = {}) {
     if (pending.current.size || loading) return;
     const next = { status, page: String(page), pageSize: String(initialQuery.pageSize), query, from: initialQuery.from, to: initialQuery.to, sort: initialQuery.sort, dir: initialQuery.dir, ...patch };
     const params = new URLSearchParams(Object.entries(next).filter(([key, value]) => value && !(key === "status" && value === "all") && !(key === "page" && value === "1")).map(([key, value]) => [key, String(value)]));
@@ -140,7 +140,7 @@ export function LeadsManager({ initialPage, initialQuery }: { initialPage: ListR
         <AdminBulkMenu busy={bulkBusy} actions={statuses.map((status) => ({ key: status, label: `Chuyển sang “${statusLabel[status]}”`, icon: statusIcons[status], count: selectedLeads.filter((lead) => lead.status !== status).length, disabledReason: canUpdate ? undefined : "Cần quyền cập nhật liên hệ.", onSelect: () => bulkStatus(status) }))} />
       </AdminBulkBar>
       <AdminDataTable columns={columns} emptyMessage={filter === "all" && !filtered ? "Chưa có liên hệ nào. Liên hệ gửi từ biểu mẫu website sẽ xuất hiện tại đây." : "Không có liên hệ khớp bộ lọc. Thử đổi trạng thái, từ khóa hoặc khoảng thời gian."} getRowId={(lead) => lead.id} onRowClick={(lead) => setOpenId(lead.id)} onSelectionChange={setSelectedIds} onSortChange={(next) => navigate(filter, 1, initialQuery.query, { sort: next?.key, dir: next?.dir })} rows={leads} selectedIds={selectedIds} sort={sort} tableId="leads" />
-      <AdminPagination disabled={loading || busy.size > 0} label="Phân trang liên hệ" onChange={(page) => navigate(filter, page)} page={initialPage.page} pageSize={initialPage.pageSize} total={initialPage.total} totalPages={initialPage.totalPages} />
+      <AdminPagination unit="liên hệ" disabled={loading || busy.size > 0} label="Phân trang liên hệ" onChange={(page) => navigate(filter, page)} onPageSizeChange={(pageSize) => navigate(filter, 1, initialQuery.query, { pageSize })} page={initialPage.page} pageSize={initialPage.pageSize} total={initialPage.total} totalPages={initialPage.totalPages} />
     </AdminCard>
 
     <AdminSidePanel isOpen={openLead !== null} label="Chi tiết liên hệ" onClose={() => setOpenId(null)}>

@@ -267,8 +267,8 @@ export async function getTestimonialsPage(input: TestimonialListQuery) {
   return parsed.data;
 }
 export async function getAdminMediaPage(input: Partial<MediaListQuery> = {}) {
-  const query = mediaListQuerySchema.parse({ ...input, pageSize: 25 });
-  const params = listParams({ ...query, pageSize: 25 });
+  const query = mediaListQuerySchema.parse(input);
+  const params = listParams(query);
   const result = await getData<{ assets: AdminMedia; page: number; pageSize: number; total: number; totalPages: number }>(`/api/admin/media?${params}`);
   if (!result) throw new Error("Không tải được trang thư viện tệp.");
   const parsed = mediaListResponseSchema.safeParse(result);

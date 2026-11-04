@@ -39,7 +39,7 @@ type PagesManagerProps = {
 };
 
 export function PagesManager({ initialQuery, initialStatus, result }: PagesManagerProps) {
-  const { navigate, searchParams, setFilter, setSort, sort } = useListNavigation();
+  const { navigate, pagination, searchParams, setFilter, setSort, sort } = useListNavigation();
   const [query, setQuery] = useState(initialQuery);
   const { selectedIds, setSelectedIds, clear } = useRowSelection(searchParams.toString());
   const chips: AdminFilterChip[] = [
@@ -72,7 +72,7 @@ export function PagesManager({ initialQuery, initialStatus, result }: PagesManag
       </AdminFilterBar>
       <ContentBulkBar deleteRequest={(page) => ({ method: "DELETE", url: `/api/admin/pages/${page.id}`, body: { expectedVersion: page.draftVersion } })} items={result.items} module="pages" noun="trang" onClear={clear} request={pageStateRequest} selectedIds={selectedIds} />
       <AdminDataTable columns={columns} emptyMessage={filtered ? "Không có trang khớp bộ lọc." : "Chưa có trang tự tạo. Dùng “Tạo trang” cho trang landing, khuyến mãi… (hiện ở /trang/<đường dẫn>), rồi thêm vào Menu."} getRowId={(page) => page.id} onSelectionChange={setSelectedIds} onSortChange={setSort} rows={result.items} selectedIds={selectedIds} sort={sort} tableId="pages" />
-      <AdminPagination page={result.page} pageSize={result.pageSize} total={result.total} totalPages={result.totalPages} onChange={(page) => navigate({ page: page === 1 ? undefined : String(page) })} />
+      <AdminPagination unit="trang" page={result.page} pageSize={result.pageSize} total={result.total} totalPages={result.totalPages} {...pagination} />
     </AdminCard>
   </AdminListPage>;
 }

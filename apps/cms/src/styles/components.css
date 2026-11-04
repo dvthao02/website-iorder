@@ -38,7 +38,8 @@
 
   /* Card */
   .admin-card { min-width: 0; border: 1px solid var(--cms-border); border-radius: var(--cms-radius-card); background: var(--cms-card); padding: var(--cms-card-padding); }
-  .admin-card--flush { padding: 0; overflow: hidden; }
+  /* clip (không phải hidden): vẫn cắt theo góc bo nhưng không thành vùng cuộn, nên chân trang position: sticky bên trong vẫn dính vào vùng cuộn của khung CMS. */
+  .admin-card--flush { padding: 0; overflow: clip; }
   .admin-card > header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
   .admin-card > header > div { display: grid; min-width: 0; gap: 2px; }
   .admin-card > header p { color: var(--cms-muted); font-size: var(--cms-text-sm); }
@@ -180,7 +181,7 @@
   /* Màn danh sách: header, bộ lọc, bảng và phân trang nằm liền trong một card, bảng sát mép card. */
   .admin-list-page { display: grid; min-width: 0; grid-template-columns: minmax(0, 1fr); gap: var(--cms-block-gap); }
   .admin-list-page > .admin-card:has(> .admin-list-header),
-  .admin-list-manager__card { display: grid; min-width: 0; grid-template-columns: minmax(0, 1fr); gap: 0; overflow: hidden; padding: 0; }
+  .admin-list-manager__card { display: grid; min-width: 0; grid-template-columns: minmax(0, 1fr); gap: 0; overflow: clip; padding: 0; }
   .admin-list-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; border-top: 1px solid var(--cms-border); padding: 8px var(--cms-card-padding); }
   .admin-list-toolbar > * { min-width: 0; max-width: 100%; }
   .admin-list-toolbar input[type="file"] { width: 100%; max-width: 320px; }
@@ -267,9 +268,20 @@
   .admin-bulk-menu__icon .admin-file-icon { width: 24px; height: 24px; }
   .admin-bulk-menu__item--danger > span:last-child, .admin-bulk-menu__item--danger .admin-bulk-menu__icon { color: var(--cms-status-error-text); }
   .admin-bulk-menu__item--danger .admin-bulk-menu__icon { background: var(--cms-status-error-background); }
-  .admin-pagination { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; border-top: 1px solid var(--cms-border); padding: 8px var(--cms-card-padding); color: var(--cms-muted); font-size: var(--cms-text-sm); }
-  .admin-pagination > div { display: flex; align-items: center; gap: 4px; margin-left: auto; }
-  .admin-pagination__page { min-width: 48px; text-align: center; color: var(--cms-text); }
+  /* Chân trang dùng chung (ui/admin-pagination.tsx): Tổng · Mỗi trang · ‹ 1 2 3 … 12 › · Nhảy tới trang. Màn hẹp thì xuống dòng. */
+  /* Dính đáy vùng cuộn: danh sách dài (100 dòng/trang) vẫn đổi trang được mà không phải cuộn tới cuối. Danh sách ngắn thì nằm đúng chỗ dưới bảng. */
+  .admin-pagination { position: sticky; bottom: 0; z-index: 2; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; border-top: 1px solid var(--cms-border); background: var(--cms-card); padding: 8px var(--cms-card-padding); color: var(--cms-muted); font-size: var(--cms-text-sm); box-shadow: 0 -6px 8px -8px rgb(16 24 40 / 14%); }
+  /* Điện thoại: chân trang xuống nhiều dòng (~117px) nên không dính đáy, nằm dưới bảng như thường. */
+  @media (max-width: 700px) { .admin-pagination { position: static; box-shadow: none; } }
+  .admin-pagination__summary { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin-right: auto; }
+  .admin-pagination__summary strong { color: var(--cms-text); font-weight: 600; }
+  .admin-pagination :is(.admin-pagination__size, .admin-pagination__jump label) { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
+  .admin-pagination__select { width: auto; height: var(--cms-control-height-sm); padding-block: 0; font-size: var(--cms-text-sm); }
+  .admin-pagination__pages { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+  .admin-pagination__pages .admin-button { min-width: 28px; justify-content: center; padding-inline: 7px; }
+  .admin-pagination__gap { min-width: 20px; text-align: center; }
+  .admin-pagination__jump { display: inline-flex; align-items: center; gap: 6px; }
+  .admin-pagination__input { width: 64px; height: var(--cms-control-height-sm); padding-inline: 6px; text-align: center; font-size: var(--cms-text-sm); }
 
   /* Lưới thẻ có ảnh (đối tác, đánh giá, media) nằm trong card danh sách. */
 

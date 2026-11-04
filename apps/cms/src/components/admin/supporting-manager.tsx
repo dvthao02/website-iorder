@@ -34,7 +34,7 @@ import { AdminListPage } from "./ui/admin-list-page";
 import { AdminSearchField } from "./ui/admin-search-field";
 import { DataTransferActions } from "./data-transfer-actions";
 import { AdminSidePanel } from "./ui/admin-side-panel";
-import { pageSizeOptions } from "./ui/page-size-options";
+import { AdminPagination } from "./ui/admin-pagination";
 import { requestNavigationFocus } from "./ui/navigation-focus";
 import { useNavigationGuard } from "./ui/use-navigation-guard";
 
@@ -359,18 +359,7 @@ export function SupportingManager({
               ? <AdminDataTable columns={partnerColumns} emptyMessage="Chưa có đối tác." getRowId={(item) => item.id} onRowClick={selectPartner} onSelectionChange={selection.setSelectedIds} rows={visiblePartners} selectedIds={selection.selectedIds} tableId="cms-partners" />
               : <AdminDataTable columns={testimonialColumns} emptyMessage="Chưa có đánh giá." getRowId={(item) => item.id} onRowClick={selectTestimonial} onSelectionChange={selection.setSelectedIds} rows={visibleTestimonials} selectedIds={selection.selectedIds} tableId="cms-testimonials" />}
         </div>
-        <nav aria-label="Phân trang" className="admin-pagination">
-          <label className="admin-check">Mỗi trang
-            <select disabled={processing || loading} value={pagination.pageSize} onChange={event => navigate({ page: 1, pageSize: Number(event.target.value) })}>
-              {pageSizeOptions(pagination.pageSize).map(size => <option key={size} value={size}>{size}</option>)}
-            </select>
-          </label>
-          <div>
-            <AdminButton size="sm" variant="secondary" disabled={processing || loading || pagination.page <= 1} onClick={() => navigate({ page: pagination.page - 1 })}>Trang trước</AdminButton>
-            <span className="admin-pagination__page">{pagination.page}/{Math.max(pagination.totalPages, 1)}</span>
-            <AdminButton size="sm" variant="secondary" disabled={processing || loading || pagination.page >= pagination.totalPages} onClick={() => navigate({ page: pagination.page + 1 })}>Trang sau</AdminButton>
-          </div>
-        </nav>
+        <AdminPagination unit={kind === "partners" ? "đối tác" : "đánh giá"} disabled={processing || loading} label="Phân trang" onChange={(page) => navigate({ page })} onPageSizeChange={(pageSize) => navigate({ page: 1, pageSize })} page={pagination.page} pageSize={pagination.pageSize} total={pagination.total} totalPages={pagination.totalPages} />
       </AdminCard>
 
       {form ? (
