@@ -23,6 +23,7 @@ export async function findActiveAdministratorByUsername(username: string, databa
       and(
         eq(users.username, username),
         eq(users.status, "active"),
+        isNull(users.deletedAt),
       ),
     )
     // Nếu có cả hai role, quyền admin đã được cấp phải được nhận nhất quán.
@@ -79,6 +80,7 @@ export async function findActiveAdministratorSession(tokenHash: string, now: Dat
         isNull(sessions.revokedAt),
         gt(sessions.expiresAt, now),
         eq(users.status, "active"),
+        isNull(users.deletedAt),
       ),
     )
     .groupBy(sessions.id, users.id)
@@ -99,7 +101,7 @@ export async function revokeSessionByTokenHash(tokenHash: string) {
 }
 
 export async function findActivePasswordHash(userId: string, database = getDb()) {
-  const [user] = await database.select({ passwordHash: users.passwordHash }).from(users).where(and(eq(users.id, userId), eq(users.status, "active"))).limit(1);
+  const [user] = await database.select({ passwordHash: users.passwordHash }).from(users).where(and(eq(users.id, userId), eq(users.status, "active"), isNull(users.deletedAt))).limit(1);
   return user?.passwordHash;
 }
 

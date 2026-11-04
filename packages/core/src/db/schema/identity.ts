@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import { boolean, index, integer, pgTable, primaryKey, timestamp, uniqueIndex, uuid, varchar } from "drizzle-orm/pg-core";
 
 import { userStatusEnum } from "./enums";
@@ -13,11 +14,14 @@ export const users = pgTable(
     fullName: varchar("full_name", { length: 180 }).notNull(),
     status: userStatusEnum("status").default("active").notNull(),
     lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
+    // Xóa mềm: tài khoản ẩn khỏi CMS, không đăng nhập được, nhưng nhật ký vẫn giữ tên người thực hiện.
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
     ...timestamps(),
   },
   (table) => [
-    uniqueIndex("users_username_unique").on(table.username),
-    uniqueIndex("users_email_unique").on(table.email),
+    // Tài khoản đã xóa nhả tên đăng nhập/email để tạo lại được.
+    uniqueIndex("users_username_unique").on(table.username).where(sql`${table.deletedAt} is null`),
+    uniqueIndex("users_email_unique").on(table.email).where(sql`${table.deletedAt} is null`),
     index("users_status_index").on(table.status),
   ],
 );

@@ -17,7 +17,7 @@ export async function listCmsUsersPage(query: CmsUserListQuery, database = getDb
       status: users.status, lastLoginAt: users.lastLoginAt,
       role: sql<string>`case when bool_or(${roles.code} = ${superAdminRoleCode}) then ${superAdminRoleCode} else min(${roles.code}) end`.as("cms_role"),
     }).from(users).innerJoin(userRoles, eq(userRoles.userId, users.id)).innerJoin(roles, eq(roles.id, userRoles.roleId))
-      .groupBy(users.id).as("cms_members");
+      .where(isNull(users.deletedAt)).groupBy(users.id).as("cms_members");
     const keyword = query.query ? `%${query.query.replace(/[\\%_]/g, "\\$&")}%` : undefined;
     const condition = and(
       query.status === "all" ? undefined : eq(members.status, query.status),
@@ -73,6 +73,7 @@ export function listCmsUsers(database = getDb()) {
   }).from(users)
     .innerJoin(userRoles, eq(userRoles.userId, users.id))
     .innerJoin(roles, eq(roles.id, userRoles.roleId))
+    .where(isNull(users.deletedAt))
     .groupBy(users.id)
     .orderBy(asc(users.username), asc(users.id));
 }
@@ -83,7 +84,7 @@ export async function writeCmsUser(id: string | null, values: { username: string
     requireActorPermission(access, id ? "users.update" : "users.create");
     const [targetRole] = await tx.select({ id: roles.id }).from(roles).where(eq(roles.code, values.role)).limit(1);
     if (!targetRole) throw accessErrors.roleNotFound();
-    const [before] = id ? await tx.select().from(users).where(eq(users.id, id)).for("update") : [];
+    const [before] = id ? await tx.select().from(users).where(and(eq(users.id, id), isNull(users.deletedAt))).for("update") : [];
     if (id && !before) return undefined;
     const beforeRoleIds = before ? (await tx.select({ roleId: userRoles.roleId }).from(userRoles).where(eq(userRoles.userId, before.id))).map(row => row.roleId) : [];
     const wasSuperAdmin = beforeRoleIds.includes(access.superRoleId);
@@ -100,7 +101,7 @@ export async function writeCmsUser(id: string | null, values: { username: string
     if (before?.status === "active" && wasSuperAdmin && (targetRole.id !== access.superRoleId || values.status !== "active")) {
       const [count] = await tx.select({ total: sql<number>`count(*)::int` }).from(users)
         .innerJoin(userRoles, eq(userRoles.userId, users.id))
-        .where(and(eq(users.status, "active"), eq(userRoles.roleId, access.superRoleId)));
+        .where(and(eq(users.status, "active"), isNull(users.deletedAt), eq(userRoles.roleId, access.superRoleId)));
       assertActiveAdministratorRemains(true, false, count?.total ?? 0);
     }
     const { passwordHash, role, ...userValues } = values;
@@ -114,5 +115,31 @@ export async function writeCmsUser(id: string | null, values: { username: string
     await tx.insert(auditLogs).values({ userId: actorId, action: id ? "user.update" : "user.create", entityType: "user", entityId: saved.id,
       beforeData: userAuditSnapshot(before), afterData: { ...userAuditSnapshot(saved), role, passwordChanged: Boolean(passwordHash) } });
     return saved.id;
+  });
+}
+
+// Xóa mềm: chỉ tài khoản đã khóa; ẩn khỏi CMS, bỏ vai trò, thu hồi mọi phiên. Nhật ký vẫn giữ tên người thực hiện
+// (dòng users còn nguyên), tên đăng nhập/email được nhả ra để tạo lại tài khoản mới nếu cần.
+export async function deleteCmsUser(id: string, actorId: string, database = getDb()) {
+  return database.transaction(async tx => {
+    const access = await loadActorAccess(tx, actorId);
+    requireActorPermission(access, "users.delete");
+    if (id === actorId) throw accessErrors.selfDelete();
+    const [before] = await tx.select().from(users).where(and(eq(users.id, id), isNull(users.deletedAt))).for("update");
+    if (!before) return undefined;
+    if (before.status !== "disabled") throw accessErrors.activeUserDelete();
+    const roleRows = await tx.select({ roleId: userRoles.roleId, code: roles.code }).from(userRoles).innerJoin(roles, eq(roles.id, userRoles.roleId)).where(eq(userRoles.userId, id));
+    if (!access.isSuperAdmin) {
+      if (roleRows.some(row => row.roleId === access.superRoleId)) throw accessErrors.superAdminOnly();
+      for (const row of roleRows) {
+        if ((await rolePermissionCodes(tx, row.roleId)).some(code => !access.permissions.has(code))) throw accessErrors.outranked();
+      }
+    }
+    const now = new Date();
+    await tx.update(users).set({ deletedAt: now, updatedAt: now }).where(eq(users.id, id));
+    await tx.delete(userRoles).where(eq(userRoles.userId, id));
+    await tx.update(sessions).set({ revokedAt: now }).where(and(eq(sessions.userId, id), isNull(sessions.revokedAt)));
+    await tx.insert(auditLogs).values({ userId: actorId, action: "user.delete", entityType: "user", entityId: id, beforeData: { ...userAuditSnapshot(before), role: roleRows.map(row => row.code).join(", ") } });
+    return id;
   });
 }

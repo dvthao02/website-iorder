@@ -113,6 +113,13 @@
       "when": 1792722445074,
       "tag": "0015_vietnamese_public_urls",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1793763707891,
+      "tag": "0016_user_soft_delete",
+      "breakpoints": true
     }
   ]
 }

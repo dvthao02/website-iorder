@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 
 import { getDb } from "@iorder/core/db/client";
 import { auditLogs, permissions, rolePermissions, roles, userRoles, users } from "@iorder/core/db/schema";
@@ -22,7 +22,7 @@ export async function loadActorAccess(tx: CmsTransaction, actorId: string): Prom
     .innerJoin(userRoles, eq(userRoles.userId, users.id))
     .leftJoin(rolePermissions, eq(rolePermissions.roleId, userRoles.roleId))
     .leftJoin(permissions, eq(permissions.id, rolePermissions.permissionId))
-    .where(and(eq(users.id, actorId), eq(users.status, "active")));
+    .where(and(eq(users.id, actorId), eq(users.status, "active"), isNull(users.deletedAt)));
   if (!rows.length) throw accessErrors.notAllowed();
   const roleIds = new Set(rows.map((row) => row.roleId));
   return {

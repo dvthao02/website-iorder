@@ -5,7 +5,7 @@ import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
 import { z } from "zod";
 import * as schema from "../packages/core/src/db/schema";
-import { listCmsUsers, listCmsUsersPage, writeCmsUser } from "../packages/core/src/server/users/users.repository";
+import { deleteCmsUser, listCmsUsers, listCmsUsersPage, writeCmsUser } from "../packages/core/src/server/users/users.repository";
 import { cmsUserListQuerySchema } from "../packages/core/src/server/users/users.contract";
 import { findActiveAdministratorByUsername, findActiveAdministratorSession } from "../packages/core/src/server/auth/auth.repository";
 import { hasDatabaseErrorCode } from "../packages/core/src/server/shared/database-error";
@@ -235,6 +235,31 @@ async function main() {
     assert.equal(await findActiveAdministratorSession("fixture-grant-grant-peer", new Date(), db[0]), undefined);
     assert.equal((await findActiveAdministratorSession("fixture-grant-grant-manager", new Date(), db[0]))?.userId, manager);
     console.log("Đạt: sửa tài khoản cùng mức quyền vẫn được; đổi tên giữ session, đặt lại mật khẩu thu hồi session của tài khoản đó, không đụng session người thao tác.");
+
+    // Xóa mềm: chỉ tài khoản đã khóa, không tự xóa, người thiếu users.delete bị từ chối; tên đăng nhập được nhả ra.
+    const deleter = randomUUID();
+    await clients[0]`insert into users (id, username, full_name, status, password_hash) values (${deleter}, 'audit-deleter', 'Quản trị xóa thử', 'active', 'hash-ban-dau')`;
+    await clients[0]`insert into user_roles (user_id, role_id) select ${deleter}, id from roles where code='admin'`;
+    const victim = await writeCmsUser(null, { ...base, username: "audit-xoa", role: "editor" }, deleter, db[0]);
+    assert.ok(victim);
+    await clients[0]`insert into sessions (user_id, token_hash, expires_at) values (${victim}, 'fixture-xoa', now() + interval '1 day')`;
+    await assert.rejects(deleteCmsUser(victim, deleter, db[0]), (error: unknown) => error instanceof CmsAccessError && error.code === "USER_ACTIVE");
+    await assert.rejects(deleteCmsUser(deleter, deleter, db[0]), (error: unknown) => error instanceof CmsAccessError && error.status === 403);
+    await assert.rejects(deleteCmsUser(victim, manager, db[0]), (error: unknown) => error instanceof CmsAccessError && error.status === 403);
+    await writeCmsUser(victim, { ...edit, username: "audit-xoa", role: "editor", status: "disabled" }, deleter, db[0]);
+    assert.equal(await deleteCmsUser(victim, deleter, db[0]), victim);
+    const [gone] = await clients[0]`select u.deleted_at, (select count(*)::int from user_roles where user_id=u.id) as roles,
+      (select count(*)::int from sessions where user_id=u.id and revoked_at is null) as open from users u where u.id=${victim}`;
+    assert.ok(gone.deleted_at);
+    assert.equal(gone.roles, 0);
+    assert.equal(gone.open, 0);
+    assert.equal((await listCmsUsers(db[0])).some((user) => user.id === victim), false);
+    assert.equal(await findActiveAdministratorByUsername("audit-xoa", db[0]), undefined);
+    assert.equal(await deleteCmsUser(victim, deleter, db[0]), undefined);
+    const recreated = await writeCmsUser(null, { ...base, username: "audit-xoa", role: "editor" }, deleter, db[0]);
+    assert.ok(recreated && recreated !== victim);
+    assert.equal((await clients[0]`select count(*)::int as total from audit_logs where action='user.delete' and entity_id=${victim}`)[0].total, 1);
+    console.log("Đạt: xóa mềm chỉ với tài khoản đã khóa, không tự xóa, thiếu users.delete bị từ chối; tài khoản ẩn khỏi danh sách và đăng nhập, bỏ role, thu hồi session, nhả tên đăng nhập; nhật ký ghi một dòng.");
   } finally {
     await Promise.all(clients.map((client) => client.end({ timeout: 10 })));
     try {

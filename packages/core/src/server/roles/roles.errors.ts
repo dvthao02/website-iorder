@@ -1,6 +1,6 @@
 // One error type for role/user access rules; routes map `status` to the HTTP response.
 export class CmsAccessError extends Error {
-  constructor(readonly code: "FORBIDDEN" | "ROLE_PROTECTED" | "ROLE_IN_USE" | "NOT_FOUND", message: string, readonly status: 403 | 404 | 409) {
+  constructor(readonly code: "FORBIDDEN" | "ROLE_PROTECTED" | "ROLE_IN_USE" | "NOT_FOUND" | "USER_ACTIVE", message: string, readonly status: 403 | 404 | 409) {
     super(message);
     this.name = "CmsAccessError";
   }
@@ -16,4 +16,6 @@ export const accessErrors = {
   protectedRole: () => new CmsAccessError("ROLE_PROTECTED", "Vai trò Super Admin được bảo vệ, không thể sửa hoặc xóa.", 403),
   roleInUse: (count: number) => new CmsAccessError("ROLE_IN_USE", `Vai trò đang được gán cho ${count} tài khoản. Hãy chuyển các tài khoản sang vai trò khác trước khi xóa.`, 409),
   roleNotFound: () => new CmsAccessError("NOT_FOUND", "Không tìm thấy vai trò.", 404),
+  selfDelete: () => new CmsAccessError("FORBIDDEN", "Không thể xóa chính tài khoản đang đăng nhập.", 403),
+  activeUserDelete: () => new CmsAccessError("USER_ACTIVE", "Hãy khóa tài khoản trước khi xóa.", 409),
 };

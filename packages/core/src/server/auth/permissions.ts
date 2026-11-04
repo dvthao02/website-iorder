@@ -25,7 +25,7 @@ export const cmsModules = [
   { key: "redirects", name: "Chuyển hướng URL", actions: ["view", "create", "update", "delete"] },
   { key: "leads", name: "Khách hàng tiềm năng", actions: ["view", "update"] },
   { key: "audit", name: "Nhật ký hoạt động", actions: ["view"] },
-  { key: "users", name: "Người dùng CMS", actions: ["view", "create", "update"] },
+  { key: "users", name: "Người dùng CMS", actions: ["view", "create", "update", "delete"] },
   { key: "roles", name: "Vai trò & quyền", actions: ["view", "create", "update", "delete"] },
 ] as const satisfies ReadonlyArray<{ key: string; name: string; actions: readonly CmsAction[] }>;
 
