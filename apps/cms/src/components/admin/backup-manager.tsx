@@ -1,37 +1,31 @@
 "use client";
 
-import { Copy, TriangleAlert } from "lucide-react";
-import { useMemo, useState } from "react";
+import { Copy, History, LoaderCircle, RotateCcw, Save } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useMemo, useRef, useState } from "react";
 
 import type { BackupHistoryEntry } from "@iorder/core/server/backup/backup-status";
-import { restoreSteps, scheduleSteps, type BackupSource, type BackupStep, type RestorableBackup } from "@/lib/backup-commands";
+import { requestAdminJson } from "@/lib/admin-api";
+import { vpsRestoreSteps, vpsScheduleSteps, type BackupStep } from "@/lib/backup-commands";
+import { AdminButton } from "./ui/admin-button";
 import { AdminCard } from "./ui/admin-card";
 import { AdminDataTable, type AdminDataTableColumn } from "./ui/admin-data-table";
+import { useAdminFocusTrap } from "./ui/admin-focus-trap";
 import { AdminStatusBadge, useAdminToast } from "./ui/admin-feedback";
+import { AdminInput } from "./ui/admin-input";
 
 const dateTime = new Intl.DateTimeFormat("vi-VN", { dateStyle: "short", timeStyle: "short", timeZone: "Asia/Ho_Chi_Minh" });
-const sources: Record<BackupSource, string> = { vps: "Máy chủ", windows: "Máy Windows" };
-// Script giữ 14 bản database (mặc định); bản cũ hơn có thể đã bị xóa khỏi thư mục nên không đưa vào hướng dẫn phục hồi.
-const restorableLimit = 14;
-
-type Row = BackupHistoryEntry & { id: string };
+const kindLabel = { success: "Thành công", failure: "Lỗi", restore: "Đã phục hồi" } as const;
+const kindTone = { success: "success", failure: "error", restore: "neutral" } as const;
 const size = (bytes: number) => bytes < 1024 * 1024 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(bytes / 1024 / 1024).toLocaleString("vi-VN", { maximumFractionDigits: 1 })} MB`;
 
-function restorable(entry: BackupHistoryEntry): RestorableBackup | null {
-  return entry.ok && entry.location && entry.repoDir && entry.database
-    ? { source: entry.source, location: entry.location, repoDir: entry.repoDir, stamp: entry.stamp, database: entry.database }
-    : null;
-}
+type Row = BackupHistoryEntry & { id: string };
 
 function Steps({ steps }: { steps: BackupStep[] }) {
   const { show } = useAdminToast();
   async function copy(command: string) {
-    try {
-      await navigator.clipboard.writeText(command);
-      show("Đã chép lệnh.", "success");
-    } catch {
-      show("Trình duyệt không cho chép tự động. Hãy bôi đen lệnh để chép.", "error");
-    }
+    try { await navigator.clipboard.writeText(command); show("Đã chép lệnh.", "success"); }
+    catch { show("Trình duyệt không cho chép tự động. Hãy bôi đen lệnh để chép.", "error"); }
   }
   return <ol className="admin-backup-steps">
     {steps.map((step) => <li key={step.title}>
@@ -45,52 +39,128 @@ function Steps({ steps }: { steps: BackupStep[] }) {
   </ol>;
 }
 
-/** Lịch sử sao lưu, hướng dẫn phục hồi (điền sẵn đường dẫn của bản được chọn) và cách lên lịch. CMS không tự chạy lệnh nào. */
-export function BackupManager({ history }: { history: BackupHistoryEntry[] }) {
+/** Hộp xác nhận gõ lại đúng thời điểm của bản sao lưu — vừa chống bấm nhầm, vừa buộc đọc lại đang chọn đúng bản nào. */
+function RestoreConfirmDialog({ busy, confirmText, onClose, onConfirm }: { busy: boolean; confirmText: string; onClose: () => void; onConfirm: () => void }) {
+  const [typed, setTyped] = useState("");
+  const dialogRef = useRef<HTMLElement>(null);
+  useAdminFocusTrap({ containerRef: dialogRef, initialFocusSelector: "[data-restore-confirm-input]", isOpen: true, onClose });
+  const matches = typed.trim() === confirmText;
+  return <div className="admin-confirm-dialog-backdrop" onMouseDown={() => !busy && onClose()} role="presentation">
+    <section aria-labelledby="restore-confirm-title" aria-modal="true" className="admin-confirm-dialog" onMouseDown={(event) => event.stopPropagation()} ref={dialogRef} role="alertdialog" tabIndex={-1}>
+      <h2 id="restore-confirm-title">Phục hồi dữ liệu?</h2>
+      <p>Toàn bộ dữ liệu hiện tại (bài viết, trang, tài khoản, cấu hình…) sẽ bị thay bằng dữ liệu của bản sao lưu lúc <strong>{confirmText}</strong>. Website và CMS có thể báo lỗi vài giây trong lúc phục hồi.</p>
+      <p>Gõ lại đúng <strong>{confirmText}</strong> để xác nhận:</p>
+      <AdminInput autoComplete="off" data-restore-confirm-input disabled={busy} onChange={(event) => setTyped(event.target.value)} value={typed} />
+      <div className="admin-confirm-dialog__actions">
+        <AdminButton disabled={busy} onClick={onClose} variant="secondary">Hủy</AdminButton>
+        <AdminButton disabled={!matches || busy} onClick={onConfirm} variant="danger">{busy ? <LoaderCircle aria-hidden="true" className="admin-content-actions__spinner" size={16} /> : null}Phục hồi dữ liệu</AdminButton>
+      </div>
+    </section>
+  </div>;
+}
+
+/** Lịch sử sao lưu/phục hồi, nút "Sao lưu ngay"/"Phục hồi" (một cú bấm, không cần biết Docker hay PowerShell là gì), và bật/tắt lịch tự động mỗi đêm. */
+export function BackupManager({ canOperate, history, scheduled: initialScheduled }: { canOperate: boolean; history: BackupHistoryEntry[]; scheduled: boolean }) {
+  const router = useRouter();
+  const { show } = useAdminToast();
+  const [scheduled, setScheduled] = useState(initialScheduled);
+  const [running, setRunning] = useState(false);
+  const [scheduling, setScheduling] = useState(false);
+  const [restoring, setRestoring] = useState(false);
+  const [confirmRow, setConfirmRow] = useState<(Row & { kind: "success" }) | null>(null);
+
   const rows = useMemo<Row[]>(() => history.map((entry, index) => ({ ...entry, id: `${entry.ranAt.valueOf()}-${index}` })), [history]);
-  const choices = useMemo(() => rows.flatMap((row) => { const backup = restorable(row); return backup ? [{ id: row.id, ranAt: row.ranAt, backup }] : []; }).slice(0, restorableLimit), [rows]);
-  const [chosenId, setChosenId] = useState(choices[0]?.id ?? "");
-  const chosen = choices.find((choice) => choice.id === chosenId) ?? choices[0];
-  const [scheduleSource, setScheduleSource] = useState<BackupSource>(rows[0]?.source ?? "windows");
-  const scheduleRepo = rows.find((row) => row.source === scheduleSource && row.repoDir)?.repoDir ?? null;
+  // Chỉ bản sao lưu thành công, còn đủ thông tin, mới dùng được để hiện lệnh phục hồi VPS.
+  type VpsSuccess = Row & { kind: "success"; location: string; repoDir: string; database: string };
+  const isVpsSuccess = (row: Row): row is VpsSuccess => row.kind === "success" && row.source === "vps" && Boolean(row.location) && Boolean(row.repoDir) && Boolean(row.database);
+  const vpsSuccesses = rows.filter(isVpsSuccess);
+  const latestVpsRepo = vpsSuccesses[0]?.repoDir ?? null;
+
+  async function runNow() {
+    setRunning(true);
+    try {
+      await requestAdminJson("/api/admin/backup", "POST", { action: "run" }, "Không sao lưu được lúc này.");
+      show("Đã sao lưu xong.", "success");
+      router.refresh();
+    } catch (error) {
+      show(error instanceof Error ? error.message : "Không kết nối được máy chủ.", "error");
+    } finally {
+      setRunning(false);
+    }
+  }
+
+  async function toggleSchedule() {
+    setScheduling(true);
+    const next = !scheduled;
+    try {
+      await requestAdminJson("/api/admin/backup", "POST", { action: next ? "schedule-on" : "schedule-off" }, "Không đổi được lịch tự động.");
+      setScheduled(next);
+      show(next ? "Đã bật tự động sao lưu mỗi đêm lúc 21:00." : "Đã tắt tự động sao lưu.", "success");
+    } catch (error) {
+      show(error instanceof Error ? error.message : "Không kết nối được máy chủ.", "error");
+    } finally {
+      setScheduling(false);
+    }
+  }
+
+  async function confirmRestore() {
+    if (!confirmRow) return;
+    setRestoring(true);
+    try {
+      await requestAdminJson("/api/admin/backup", "POST", { action: "restore", stamp: confirmRow.stamp }, "Không phục hồi được lúc này.");
+      show("Đã phục hồi xong.", "success");
+      setConfirmRow(null);
+      router.refresh();
+    } catch (error) {
+      show(error instanceof Error ? error.message : "Không kết nối được máy chủ.", "error");
+    } finally {
+      setRestoring(false);
+    }
+  }
 
   const columns: AdminDataTableColumn<Row>[] = [
     { id: "ranAt", label: "Thời điểm", defaultWidth: 130, minWidth: 120, cell: (row) => <span className="whitespace-nowrap">{dateTime.format(row.ranAt)}</span> },
-    { id: "result", label: "Kết quả", defaultWidth: 110, minWidth: 100, cell: (row) => row.ok ? <AdminStatusBadge tone="success">Thành công</AdminStatusBadge> : <AdminStatusBadge tone="error">Lỗi</AdminStatusBadge> },
-    { id: "source", label: "Máy", defaultWidth: 120, minWidth: 100, cell: (row) => sources[row.source] },
-    { id: "size", label: "Database", defaultWidth: 100, minWidth: 90, cell: (row) => row.ok ? size(row.databaseBytes) : "—" },
-    { id: "detail", label: "Chi tiết", defaultWidth: 320, minWidth: 180, cell: (row) => row.ok
-      ? <span className="text-[var(--cms-muted)]">{row.verified ? `Đã khôi phục thử${row.users === null ? "" : `: ${row.users} tài khoản, ${row.mediaAssets ?? 0} media`}` : "Chưa khôi phục thử"}</span>
-      : <span className="text-[var(--cms-status-error-text)]" title={row.message}>{row.message}</span> },
+    { id: "result", label: "Kết quả", defaultWidth: 110, minWidth: 100, cell: (row) => <AdminStatusBadge tone={kindTone[row.kind]}>{kindLabel[row.kind]}</AdminStatusBadge> },
+    { id: "source", label: "Máy", defaultWidth: 110, minWidth: 100, cell: (row) => row.source === "windows" ? "Máy Windows" : "Máy chủ" },
+    { id: "size", label: "Database", defaultWidth: 100, minWidth: 90, cell: (row) => row.kind === "success" ? size(row.databaseBytes) : "—" },
+    { id: "detail", label: "Chi tiết", defaultWidth: 320, minWidth: 180, cell: (row) => {
+      if (row.kind === "success") return <span className="text-[var(--cms-muted)]">{row.verified ? `Đã khôi phục thử${row.users === null ? "" : `: ${row.users} tài khoản, ${row.mediaAssets ?? 0} media`}` : "Chưa khôi phục thử"}</span>;
+      if (row.kind === "failure") return <span className="text-[var(--cms-status-error-text)]" title={row.message}>{row.message}</span>;
+      return <span className="text-[var(--cms-muted)]">Từ bản lúc {dateTime.format(new Date(row.fromStamp.replace(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z$/, "$1-$2-$3T$4:$5:$6Z")))}</span>;
+    } },
+    { id: "action", label: "", defaultWidth: 90, minWidth: 80, cell: (row) => canOperate && row.kind === "success" && row.source === "windows" && row.location && row.repoDir && row.database
+      ? <AdminButton onClick={() => setConfirmRow(row)} size="sm" variant="secondary"><RotateCcw aria-hidden="true" size={14} />Phục hồi</AdminButton>
+      : null },
   ];
 
   return <div className="admin-backup">
+    <AdminCard>
+      <header><div><h2>Sao lưu</h2><p>Dump database (kèm khôi phục thử) và toàn bộ ảnh, tệp media vào máy này; giữ 14 bản database gần nhất.</p></div></header>
+      {canOperate ? <div className="admin-backup__actions">
+        <AdminButton leadingIcon={running ? <LoaderCircle aria-hidden="true" className="admin-content-actions__spinner" size={16} /> : <Save aria-hidden="true" size={16} />} disabled={running} onClick={() => void runNow()}>{running ? "Đang sao lưu…" : "Sao lưu ngay"}</AdminButton>
+        <AdminButton leadingIcon={scheduling ? <LoaderCircle aria-hidden="true" className="admin-content-actions__spinner" size={16} /> : <History aria-hidden="true" size={16} />} disabled={scheduling} onClick={() => void toggleSchedule()} variant="secondary">
+          {scheduled ? "Tắt tự động sao lưu mỗi đêm" : "Bật tự động sao lưu mỗi đêm 21:00"}
+        </AdminButton>
+        {scheduled ? <AdminStatusBadge tone="success">Đang tự động chạy mỗi đêm</AdminStatusBadge> : null}
+      </div> : <p className="admin-help">Chỉ Super Admin sao lưu/phục hồi và bật lịch tự động được; bạn xem được lịch sử bên dưới.</p>}
+      <p className="admin-help">Bản sao lưu đang nằm cùng máy với dữ liệu: hỏng ổ đĩa là mất cả hai. Nên thỉnh thoảng chép thư mục sao lưu ra ổ khác hoặc lưu trữ đám mây.</p>
+    </AdminCard>
+
     <AdminCard className="admin-card--flush">
-      <header className="admin-backup__flush-header"><div><h2>Lịch sử sao lưu</h2><p>30 lần gần nhất. Bấm một bản thành công để xem cách phục hồi bản đó.</p></div></header>
-      <AdminDataTable columns={columns} emptyMessage="Chưa có lần sao lưu nào được ghi nhận." getRowId={(row) => row.id} onRowClick={(row) => { if (choices.some((choice) => choice.id === row.id)) setChosenId(row.id); }} rows={rows} showSettingsButton={false} tableId="backup-history" />
+      <header className="admin-backup__flush-header"><div><h2>Lịch sử</h2><p>30 lần gần nhất. Bản thành công trên máy này bấm &quot;Phục hồi&quot; ngay trong bảng.</p></div></header>
+      <AdminDataTable columns={columns} emptyMessage="Chưa có lần sao lưu nào được ghi nhận." getRowId={(row) => row.id} rows={rows} showSettingsButton={false} tableId="backup-history" />
     </AdminCard>
 
-    <AdminCard>
-      <header><div><h2>Phục hồi từ bản sao lưu</h2><p>Chạy lần lượt các lệnh dưới đây trong cùng một cửa sổ {chosen?.backup.source === "vps" ? "terminal trên VPS" : "PowerShell"}.</p></div></header>
-      {chosen ? <>
-        <div className="admin-notice admin-notice--warning" role="note"><TriangleAlert aria-hidden="true" size={18} /><span>Phục hồi <strong>ghi đè toàn bộ dữ liệu hiện tại</strong> (bài viết, trang, tài khoản, cấu hình…) bằng dữ liệu của bản đã chọn, và website tạm ngừng trong lúc làm.</span></div>
-        <label className="admin-field admin-backup__choice">
-          <span>Bản sao lưu</span>
-          <select onChange={(event) => setChosenId(event.target.value)} value={chosen.id}>
-            {choices.map((choice) => <option key={choice.id} value={choice.id}>{dateTime.format(choice.ranAt)} · {sources[choice.backup.source]} · {choice.backup.stamp}</option>)}
-          </select>
-        </label>
-        <Steps steps={restoreSteps(chosen.backup)} />
-      </> : <p className="admin-help">Chưa có bản sao lưu nào đủ thông tin để hướng dẫn phục hồi. Chạy sao lưu một lần (mục bên dưới) rồi tải lại trang.</p>}
-    </AdminCard>
+    {vpsSuccesses.length ? <AdminCard>
+      <header><div><h2>Phục hồi trên máy chủ thật (VPS)</h2><p>CMS không tự phục hồi được lên máy chủ ở xa; làm theo các lệnh dưới đây trên VPS, chạy lần lượt.</p></div></header>
+      <Steps steps={vpsRestoreSteps(vpsSuccesses[0]!)} />
+    </AdminCard> : null}
 
     <AdminCard>
-      <header><div><h2>Chạy sao lưu và lên lịch</h2><p>Sao lưu gồm database (kèm khôi phục thử) và toàn bộ ảnh, tệp media; giữ 14 bản database gần nhất.</p></div></header>
-      <div aria-label="Nơi chạy sao lưu" className="admin-view-tabs admin-backup__tabs" role="tablist">
-        {(["windows", "vps"] as const).map((source) => <button aria-selected={scheduleSource === source} className={`admin-view-tabs__tab${scheduleSource === source ? " admin-view-tabs__tab--active" : ""}`} key={source} onClick={() => setScheduleSource(source)} role="tab" type="button">{source === "windows" ? "Máy Windows" : "Máy chủ (VPS)"}</button>)}
-      </div>
-      <Steps steps={scheduleSteps(scheduleSource, scheduleRepo)} />
-      <p className="admin-help">Bản sao lưu đang nằm cùng máy với dữ liệu: hỏng ổ đĩa là mất cả hai. Nên chép thư mục sao lưu ra ổ khác hoặc lưu trữ đám mây định kỳ.</p>
+      <header><div><h2>Lên lịch trên máy chủ thật (VPS)</h2><p>Khi đã triển khai lên VPS, lên lịch sao lưu tự động bằng cron.</p></div></header>
+      <Steps steps={vpsScheduleSteps(latestVpsRepo)} />
     </AdminCard>
+
+    {confirmRow ? <RestoreConfirmDialog busy={restoring} confirmText={dateTime.format(confirmRow.ranAt)} onClose={() => !restoring && setConfirmRow(null)} onConfirm={() => void confirmRestore()} /> : null}
   </div>;
 }

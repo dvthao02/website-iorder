@@ -51,8 +51,7 @@
   .admin-backup { display: grid; min-width: 0; gap: var(--cms-block-gap); }
   .admin-backup__flush-header { margin: 0; padding: 12px var(--cms-card-padding); }
   .admin-backup .admin-notice { margin-bottom: 12px; }
-  .admin-backup__choice { max-width: 440px; }
-  .admin-backup__tabs { margin: 0 calc(var(--cms-card-padding) * -1); border-bottom: 1px solid var(--cms-border); }
+  .admin-backup__actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 8px; }
   .admin-backup-steps { display: grid; gap: 14px; margin: 14px 0 12px; padding-left: 20px; list-style: decimal; }
   .admin-backup-steps > li::marker { color: var(--cms-muted); font-size: var(--cms-text-sm); }
   .admin-backup-steps strong { font-size: var(--cms-text-sm); font-weight: 600; }

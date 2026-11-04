@@ -136,7 +136,10 @@ export async function getAdminNotifications(): Promise<AdminNotifications> {
 // null khi người xem không có settings.view.
 export async function getBackupStatus(): Promise<BackupStatus | null> { return (await getDashboard())?.backup ?? null; }
 type BackupOverview = Awaited<ReturnType<typeof getBackupOverviewFromCore>>;
-export async function getBackupOverview(): Promise<BackupOverview | null> { return (await getData<{ backup: BackupOverview }>("/api/admin/backup"))?.backup ?? null; }
+export async function getBackupOverview(): Promise<(BackupOverview & { scheduled: boolean }) | null> {
+  const payload = await getData<{ backup: BackupOverview; scheduled: boolean }>("/api/admin/backup");
+  return payload ? { ...payload.backup, scheduled: payload.scheduled } : null;
+}
 export async function getPublishingReadiness(): Promise<PublishingReadiness> { return (await getDashboard())?.readiness ?? []; }
 // null: người xem không có quyền (403) — màn chỉ ẩn phần kiểm tra SEO.
 export async function getSeoAudit(): Promise<SeoAuditResult | null> {
