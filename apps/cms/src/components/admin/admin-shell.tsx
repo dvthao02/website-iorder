@@ -16,6 +16,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ClipboardCheck,
+  DatabaseBackup,
   Download,
   FileText,
   FolderTree,
@@ -122,6 +123,7 @@ const navigationGroups = ensureUniqueNavigationPaths([
     items: [
       { href: "/admin/users", label: "Người dùng & vai trò", icon: Users, permission: ["users.view", "roles.view"] },
       { href: "/admin/audit-log", label: "Nhật ký hoạt động", icon: History, permission: "audit.view" },
+      { href: "/admin/backup", label: "Sao lưu & phục hồi", icon: DatabaseBackup, permission: "settings.view" },
     ],
   },
   {

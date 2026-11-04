@@ -42,6 +42,27 @@
   .admin-dashboard__backup dt { color: var(--cms-muted); font-size: var(--cms-text-xs); }
   .admin-dashboard__backup dd { margin: 0; font-size: var(--cms-text-sm); }
   .admin-dashboard__backup dd small { display: block; color: var(--cms-muted); font-size: var(--cms-text-xs); }
+  .admin-dashboard__backup-actions { display: inline-flex; align-items: center; gap: 10px; }
+  .admin-dashboard__backup-actions > a { color: var(--cms-primary); font-size: var(--cms-text-sm); white-space: nowrap; }
+  .admin-dashboard__backup-actions > a:hover { text-decoration: underline; }
+
+  /* Sao lưu & phục hồi: nội dung chính + thẻ trạng thái bên phải (xuống dưới trên màn hẹp). */
+  .admin-backup__layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; align-items: start; gap: var(--cms-block-gap); }
+  .admin-backup { display: grid; min-width: 0; gap: var(--cms-block-gap); }
+  .admin-backup__flush-header { margin: 0; padding: 12px var(--cms-card-padding); }
+  .admin-backup .admin-notice { margin-bottom: 12px; }
+  .admin-backup__choice { max-width: 440px; }
+  .admin-backup__tabs { margin: 0 calc(var(--cms-card-padding) * -1); border-bottom: 1px solid var(--cms-border); }
+  .admin-backup-steps { display: grid; gap: 14px; margin: 14px 0 12px; padding-left: 20px; list-style: decimal; }
+  .admin-backup-steps > li::marker { color: var(--cms-muted); font-size: var(--cms-text-sm); }
+  .admin-backup-steps strong { font-size: var(--cms-text-sm); font-weight: 600; }
+  .admin-backup-steps p { margin: 2px 0 6px; color: var(--cms-muted); font-size: var(--cms-text-sm); }
+  .admin-backup-steps__command { position: relative; }
+  /* Lệnh dài xuống dòng thay vì cuộn ngang, để vừa màn hình điện thoại. */
+  .admin-backup-steps__command pre { margin: 0; border: 1px solid var(--cms-border); border-radius: var(--cms-radius-component); background: var(--cms-subtle); padding: 8px 40px 8px 10px; font-size: 12px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .admin-backup-steps__command button { position: absolute; top: 5px; right: 5px; display: grid; width: 28px; height: 28px; place-items: center; border: 1px solid var(--cms-border); border-radius: var(--cms-radius-sm); background: var(--cms-card); color: var(--cms-muted); cursor: pointer; }
+  .admin-backup-steps__command button:hover { color: var(--cms-text); }
+  @media (max-width: 960px) { .admin-backup__layout { grid-template-columns: minmax(0, 1fr); } .admin-backup__layout > aside { order: -1; } }
   .admin-dashboard__backup-error { margin: 10px 0 0; color: var(--cms-status-error-text); font-size: var(--cms-text-sm); }
 
   @media (max-width: 1280px) {

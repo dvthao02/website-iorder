@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import type { BackupState, BackupStatus } from "@iorder/core/server/backup/backup-status";
 
 import { AdminCard } from "./ui/admin-card";
@@ -23,17 +25,17 @@ function size(bytes: number) {
 }
 
 /** Thẻ Tổng quan: lần sao lưu gần nhất (script backup.sh/backup.ps1 ghi vào site_settings), báo quá hạn hoặc lỗi. */
-export function BackupStatusCard({ status, now = new Date() }: { status: BackupStatus; now?: Date }) {
+export function BackupStatusCard({ status, now = new Date(), detailsHref }: { status: BackupStatus; now?: Date; detailsHref?: string }) {
   const badge = badges[status.state];
   const { lastSuccess, lastFailure } = status;
   return <AdminCard className="admin-dashboard__backup">
-    <header><h2>Sao lưu</h2><AdminStatusBadge tone={badge.tone}>{badge.label}</AdminStatusBadge></header>
+    <header><h2>Sao lưu</h2><span className="admin-dashboard__backup-actions"><AdminStatusBadge tone={badge.tone}>{badge.label}</AdminStatusBadge>{detailsHref ? <Link href={detailsHref}>Chi tiết</Link> : null}</span></header>
     {lastSuccess ? <dl>
       <div><dt>Bản gần nhất</dt><dd>{dateTime.format(lastSuccess.finishedAt)}<small>{ago(lastSuccess.finishedAt, now)} · {sources[lastSuccess.source]}</small></dd></div>
       <div><dt>Database</dt><dd>{size(lastSuccess.databaseBytes)}<small>{lastSuccess.verified ? `Đã khôi phục thử${lastSuccess.users === null ? "" : `: ${lastSuccess.users} tài khoản, ${lastSuccess.mediaAssets ?? 0} media`}` : "Chưa khôi phục thử"}</small></dd></div>
     </dl> : <p className="admin-dashboard__empty">Chưa có bản sao lưu nào được ghi nhận.</p>}
     {status.state === "failed" && lastFailure ? <p className="admin-dashboard__backup-error">Lỗi lúc {dateTime.format(lastFailure.failedAt)}: {lastFailure.message}</p> : null}
     {status.state === "stale" ? <p className="admin-dashboard__backup-error">Hơn 36 giờ chưa có bản mới: kiểm tra lịch chạy sao lưu.</p> : null}
-    {status.state === "never" ? <p className="admin-help">Máy chủ: lên lịch <code>scripts/backup.sh</code>. Máy Windows: chạy <code>scripts/backup.ps1</code>.</p> : null}
+    {status.state === "never" ? <p className="admin-help">Máy chủ: lên lịch <code>scripts/backup.sh</code>. Máy Windows: chạy <code>pnpm backup:local</code>.</p> : null}
   </AdminCard>;
 }

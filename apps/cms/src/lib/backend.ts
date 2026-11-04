@@ -15,7 +15,7 @@ import type { MatrixModule } from "@/components/admin/ui/role-permission-matrix"
 import { partnerListPageSchema, partnerListQuerySchema, testimonialListPageSchema, testimonialListQuerySchema, type PartnerListQuery, type TestimonialListQuery } from "@iorder/core/server/supporting/supporting.contract";
 
 import type { getAnalyticsOverview as getAnalyticsOverviewFromCore } from "@iorder/core/server/analytics/analytics.service";
-import type { BackupStatus } from "@iorder/core/server/backup/backup-status";
+import type { BackupStatus, getBackupOverview as getBackupOverviewFromCore } from "@iorder/core/server/backup/backup-status";
 import type { getDashboardContentSummary as getDashboardContentSummaryFromCore } from "@iorder/core/server/dashboard/dashboard-content.service";
 import type { getRequestAdministrator as getRequestAdministratorFromCore } from "@iorder/core/server/auth/request-administrator";
 import type { getRecentAuditLogs as getRecentAuditLogsFromCore } from "@iorder/core/server/audit/audit.service";
@@ -135,6 +135,8 @@ export async function getAdminNotifications(): Promise<AdminNotifications> {
 }
 // null khi người xem không có settings.view.
 export async function getBackupStatus(): Promise<BackupStatus | null> { return (await getDashboard())?.backup ?? null; }
+type BackupOverview = Awaited<ReturnType<typeof getBackupOverviewFromCore>>;
+export async function getBackupOverview(): Promise<BackupOverview | null> { return (await getData<{ backup: BackupOverview }>("/api/admin/backup"))?.backup ?? null; }
 export async function getPublishingReadiness(): Promise<PublishingReadiness> { return (await getDashboard())?.readiness ?? []; }
 // null: người xem không có quyền (403) — màn chỉ ẩn phần kiểm tra SEO.
 export async function getSeoAudit(): Promise<SeoAuditResult | null> {

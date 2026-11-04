@@ -99,7 +99,7 @@ export default async function AdministratorHomePage() {
       <aside className="admin-dashboard__aside">
         {quickActions.length ? <AdminCard><header><h2>Tạo nhanh</h2></header><div className="admin-dashboard__list">{quickActions.map((action) => { const Icon = action.icon; return <Link href={action.href} key={action.label}><Icon aria-hidden="true" size={16} /><strong>{action.label}</strong></Link>; })}</div></AdminCard> : null}
         <AdminCard><header><div><h2>Sẵn sàng xuất bản</h2><p>{readyChecks}/{readiness.length} mục đạt</p></div><Link href="/admin/seo/publish-check">Chi tiết</Link></header><div className="admin-dashboard__list">{readiness.slice(0, 4).map((item) => <Link href={item.href} key={item.id}><i className={item.status === "ready" ? "admin-status admin-status--ready" : "admin-status"} /><span><strong>{item.label}</strong><small>{item.detail}</small></span></Link>)}</div></AdminCard>
-        {backup ? <BackupStatusCard status={backup} /> : null}
+        {backup ? <BackupStatusCard detailsHref="/admin/backup" status={backup} /> : null}
         <AdminCard><header><h2>Cần xử lý</h2></header>{workItems.length ? <div className="admin-dashboard__list">{workItems.map((item) => <Link href={item.href} key={`${item.label}-${item.detail}`}><i className="admin-status" /><span><strong>{item.label}</strong><small>{item.detail}</small></span></Link>)}</div> : <p className="admin-dashboard__empty">Không có việc tồn đọng.</p>}</AdminCard>
       </aside>
     </div>
