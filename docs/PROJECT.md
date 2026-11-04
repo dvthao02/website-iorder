@@ -145,6 +145,9 @@ Sao lưu (`scripts/backup.sh`, chạy trên host ở thư mục repo):
 - Mặc định `BACKUP_DIR=/var/backups/iorder`, giữ `BACKUP_KEEP=14` bản database. Có khóa `flock`, không chạy chồng.
 - Lên lịch: `30 2 * * * cd /srv/iorder && scripts/backup.sh >> /var/log/iorder-backup.log 2>&1`.
 - Bản sao lưu nằm cùng VPS chỉ chống lỗi thao tác/dữ liệu, không chống mất máy: phải chép `BACKUP_DIR` ra nơi khác (máy khác hoặc object storage ngoài).
+- Trạng thái: cuối mỗi lần chạy, script ghi `system.backup.success` (thời điểm, dung lượng dump, kết quả khôi phục thử) hoặc `system.backup.failure` (bước lỗi) vào `site_settings` qua `scripts/backup-status.sql` (giá trị truyền bằng biến môi trường, không ghép chuỗi SQL). CMS đọc bằng `server/backup/backup-status.ts`: thẻ "Sao lưu" ở Tổng quan và mục trong chuông thông báo khi lỗi hoặc quá 36 giờ chưa có bản mới, chỉ người có `settings.view`. Script lỗi trước khi kết nối được database thì không ghi được lỗi, nhưng thẻ vẫn chuyển "Quá hạn" sau 36 giờ.
+
+Sao lưu trên máy Windows (dev local): `pnpm backup:local` (`scripts/backup.ps1`) làm đúng các bước trên với container `db`/`storage` của `compose.yaml` (dump trong container rồi `docker compose cp`, không qua pipeline PowerShell vì làm hỏng dữ liệu nhị phân). Mặc định ghi vào `..iorder-backupsdb` và `..iorder-backupsmedia` cạnh thư mục repo, giữ 14 bản; tùy chọn `-BackupDir`, `-Keep`, `-NoVerify`, `-NoMedia`, `-EnvFile`. Tệp khác trong thư mục sao lưu không bị đụng tới. Muốn chạy hằng ngày thì tạo Task Scheduler gọi lệnh trên.
 
 Khôi phục (phá hủy dữ liệu hiện tại, chỉ làm khi cần):
 
