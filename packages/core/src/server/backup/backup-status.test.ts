@@ -1,11 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { backupSuccessSchema, parseBackupHistory, summarizeBackupStatus, type BackupFailure, type BackupSuccess } from "./backup-status";
+import { backupSuccessSchema, parseBackupHistory, summarizeBackupStatus, type BackupFailure, type BackupRestoreEvent, type BackupSuccess } from "./backup-status";
 
 const now = new Date("2026-11-04T10:00:00Z");
 const success = (finishedAt: string): BackupSuccess => ({ finishedAt, source: "vps", stamp: "20261104T023000Z", databaseBytes: 1024, verified: true, users: 3, mediaAssets: 10 });
 const failure = (failedAt: string): BackupFailure => ({ failedAt, source: "vps", message: "pg_dump lỗi" });
+const restore = (restoredAt: string): BackupRestoreEvent => ({ restoredAt, source: "windows", fromStamp: "20261104T023000Z" });
 
 test("Chưa chạy lần nào là never; thành công trong 36 giờ là ok, quá 36 giờ là stale", () => {
   assert.equal(summarizeBackupStatus(null, null, now).state, "never");
@@ -27,13 +28,17 @@ test("Schema nhận đúng JSON script ghi, kể cả múi giờ +07:00 của Po
   assert.equal(backupSuccessSchema.safeParse({ ...success("2026-11-04T02:30:00Z"), source: "laptop" }).success, false);
 });
 
-test("Lịch sử giữ thứ tự, phân biệt thành công/lỗi và bỏ phần tử hỏng", () => {
+test("Lịch sử giữ thứ tự, phân biệt thành công/lỗi/phục hồi và bỏ phần tử hỏng", () => {
   const history = parseBackupHistory([
+    restore("2026-11-04T04:00:00Z"),
     { ...failure("2026-11-04T03:00:00Z"), location: "/var/backups/iorder" },
     { hỏng: true },
     success("2026-11-04T02:30:00Z"),
   ]);
-  assert.deepEqual(history.map((entry) => [entry.ok, entry.ranAt.toISOString()]), [[false, "2026-11-04T03:00:00.000Z"], [true, "2026-11-04T02:30:00.000Z"]]);
-  assert.equal(history[0]?.location, "/var/backups/iorder");
+  assert.deepEqual(history.map((entry) => [entry.kind, entry.ranAt.toISOString()]), [
+    ["restore", "2026-11-04T04:00:00.000Z"], ["failure", "2026-11-04T03:00:00.000Z"], ["success", "2026-11-04T02:30:00.000Z"],
+  ]);
+  assert.equal(history[0]?.kind === "restore" ? history[0].fromStamp : undefined, "20261104T023000Z");
+  assert.equal(history[1]?.kind === "failure" ? history[1].location : undefined, "/var/backups/iorder");
   assert.deepEqual(parseBackupHistory({ khong: "phai mang" }), []);
 });

@@ -4,7 +4,7 @@ export const auditEntityLabels: Record<string, string> = {
   partner: "Đối tác", testimonial: "Đánh giá", support_download: "Tệp hỗ trợ",
   contact_lead: "Liên hệ khách hàng", user: "Tài khoản", menu: "Menu điều hướng",
   category: "Chuyên mục", tag: "Thẻ", redirect: "Chuyển hướng",
-  site_setting: "Cấu hình website", site_profile: "Thông tin doanh nghiệp",
+  site_setting: "Cấu hình website", site_profile: "Thông tin doanh nghiệp", backup: "Sao lưu & phục hồi",
 };
 const actionSubjects: Record<string, string> = {
   ...auditEntityLabels, lead: "Liên hệ khách hàng", navigation: "Menu điều hướng",
@@ -18,6 +18,7 @@ const verbs: Record<string, string> = {
 // Thao tác tự nói đủ nghĩa, không cần ghép "· Tài khoản".
 const actionOverrides: Record<string, string> = {
   "user.login": "Đăng nhập", "user.login_failed": "Đăng nhập thất bại (sai mật khẩu)", "user.logout": "Đăng xuất",
+  "backup.run": "Chạy sao lưu", "backup.restore": "Phục hồi dữ liệu",
 };
 export function auditEntityLabel(code: string) {
   return Object.hasOwn(auditEntityLabels, code) ? auditEntityLabels[code] : code;
