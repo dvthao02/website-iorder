@@ -11,14 +11,15 @@ export async function MediaTextSection({ data, frame }: { data: Extract<PageBloc
   const media = data.mediaId ? await getMediaById(data.mediaId) : null;
   const image = media?.mimeType.startsWith("image/") ? media : null;
   const imageLeft = data.layout === "image_left";
+  const dark = frame.tone === "dark";
   return <FrameSection frame={frame} width={image ? "default" : "text"}>
     <div className={`grid items-center gap-10 ${image ? "lg:grid-cols-2 lg:gap-16" : ""}`}>
       <div className={imageLeft ? "lg:order-2" : ""}>
-        <SectionHeading align={image ? "left" : "center"} className="" description={data.description} eyebrow={data.eyebrow} title={data.title} />
-        <CheckList items={data.bullets} />
-        <Actions center={!image} primary={data.primaryAction} secondary={data.secondaryAction} />
+        <SectionHeading align={image ? "left" : "center"} className="" dark={dark} description={data.description} eyebrow={data.eyebrow} title={data.title} />
+        <CheckList dark={dark} items={data.bullets} />
+        <Actions center={!image} dark={dark} primary={data.primaryAction} secondary={data.secondaryAction} />
       </div>
-      {image ? <div className={imageLeft ? "lg:order-1" : ""}><Image alt={image.altText ?? data.title} className="h-auto w-full rounded-card" height={900} sizes="(min-width: 1024px) 45vw, 100vw" src={image.url} width={1200} /></div> : null}
+      {image ? <div className={imageLeft ? "lg:order-1" : ""}><Image alt={image.altText ?? data.title} className={`h-auto w-full rounded-card ${dark ? "shadow-raised ring-1 ring-white/15" : ""}`.trim()} height={900} sizes="(min-width: 1024px) 45vw, 100vw" src={image.url} width={1200} /></div> : null}
     </div>
   </FrameSection>;
 }

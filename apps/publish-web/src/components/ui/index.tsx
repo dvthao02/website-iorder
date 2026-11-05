@@ -22,7 +22,7 @@ export function Container({ children, width = "default", className = "" }: { chi
   return <div className={`${base} ${className}`.trim()}>{children}</div>;
 }
 
-const tones = { white: "bg-white", tinted: "bg-surface-tinted", dark: "bg-navy text-white", plain: "" } as const;
+const tones = { white: "bg-white", tinted: "bg-surface-tinted", dark: "bg-navy bg-[radial-gradient(ellipse_70%_60%_at_100%_0%,rgb(21_112_224/.32),transparent),radial-gradient(ellipse_50%_50%_at_0%_100%,rgb(47_134_246/.16),transparent)] text-white", plain: "" } as const;
 const spacing = { sm: "py-10 sm:py-14", md: "py-14 sm:py-20", lg: "py-20 sm:py-28" } as const;
 export type SectionTone = keyof typeof tones;
 export type SectionSpace = keyof typeof spacing;

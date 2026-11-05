@@ -148,9 +148,10 @@ export const groupedListDataSchema = z.object({
   groups: z.array(groupedListGroupSchema).min(1).max(6),
 }).strict();
 export type GroupedListData = z.infer<typeof groupedListDataSchema>;
-// `cardStyle`: "visual" = thẻ ảnh (ảnh hoặc biểu tượng lớn trên mảng màu) kể cả khi chưa thẻ nào có ảnh; bỏ trống/"compact" = thẻ gọn,
+// `cardStyle`: "bento" = thẻ đầu tiên to (ảnh nền, chữ phủ lên) chiếm hai hàng bên trái, bốn thẻ ảnh nhỏ bên phải (cần đúng 5 thẻ, khác 5 thì vẽ như "visual");
+// "visual" = thẻ ảnh (ảnh hoặc biểu tượng lớn trên mảng màu) kể cả khi chưa thẻ nào có ảnh; bỏ trống/"compact" = thẻ gọn,
 // tự chuyển sang thẻ ảnh khi có thẻ nào chọn ảnh. Chỉ "Lưới thẻ" dùng; "Các bước" luôn là các bước.
-const cardBlockDataSchema =z.object({ cardStyle: z.enum(["compact", "visual"]).optional(), eyebrow: z.string().trim().max(160).nullable(), title: z.string().trim().min(1).max(220), description: z.string().trim().max(10_000).nullable(), items: z.array(cardSchema).max(30) }).strict();
+const cardBlockDataSchema =z.object({ cardStyle: z.enum(["compact", "visual", "bento"]).optional(), eyebrow: z.string().trim().max(160).nullable(), title: z.string().trim().min(1).max(220), description: z.string().trim().max(10_000).nullable(), items: z.array(cardSchema).max(30) }).strict();
 
 export const pageBlockInputSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("hero"), data: z.object({ eyebrow: z.string().trim().max(160).nullable(), title: z.string().trim().min(1).max(220), description: z.string().trim().max(10_000).nullable(), primaryAction: actionSchema.nullable(), secondaryAction: actionSchema.nullable(), mediaId: z.string().uuid().nullable().optional(),

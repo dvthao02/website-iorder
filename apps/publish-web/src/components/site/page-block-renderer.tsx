@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { resolveBlockFrames, type BlockFrame, type SectionSurface } from "@iorder/core/server/pages/block-layout";
 import type { PageBlock } from "@iorder/core/server/pages/pages.contract";
 import { getMediaById } from "@/lib/backend";
@@ -25,11 +26,43 @@ type CardItem = Extract<PageBlock, { type: "features" | "industries" | "ecosyste
 // Lưới thẻ: ô biểu tượng (hoặc số thứ tự khi thẻ chưa chọn biểu tượng), tiêu đề, mô tả, liên kết.
 // Chỉ cần một thẻ có ảnh (mediaId) là cả lưới chuyển sang thẻ ảnh kiểu KiotViet/iPOS: ảnh ngang bo góc ở đầu thẻ;
 // thẻ chưa có ảnh dùng mảng màu nhấn với biểu tượng lớn để lưới vẫn đều nhau trong lúc chờ ảnh.
-async function CardGrid({ items, visual = false }: { items: CardItem[]; visual?: boolean }) {
+async function CardGrid({ items, visual = false, bento = false }: { items: CardItem[]; visual?: boolean; bento?: boolean }) {
   const photos = await Promise.all(items.map(async item => {
     const media = item.mediaId ? await getMediaById(item.mediaId) : null;
     return media?.mimeType.startsWith("image/") ? media : null;
   }));
+  // Bố cục "bento": thẻ đầu to bên trái (ảnh nền, chữ phủ lên) chiếm hai hàng, bốn thẻ ảnh nhỏ xếp hai cột bên phải; đúng 5 thẻ mới đủ khít.
+  if (bento && items.length === 5) {
+    const [lead, ...rest] = items;
+    const leadPhoto = photos[0];
+    const leadBody = <>
+      {leadPhoto ? <Image alt={leadPhoto.altText ?? lead.title} className="object-cover transition duration-700 group-hover:scale-[1.03]" fill sizes="(min-width: 1024px) 50vw, 100vw" src={leadPhoto.url} /> : null}
+      <span aria-hidden="true" className="absolute inset-0 bg-gradient-to-t from-navy via-navy/55 to-navy/0" />
+      <span className="relative mt-auto flex flex-col gap-3 p-6 text-white sm:p-8">
+        <span className="text-h2 leading-tight font-bold tracking-tight text-balance">{lead.title}</span>
+        {lead.description ? <span className="max-w-xl text-body text-white/85">{lead.description}</span> : null}
+        {lead.href ? <span className="mt-1 text-small font-semibold text-white group-hover:underline">Xem chi tiết →</span> : null}
+      </span>
+    </>;
+    const leadClass = "group relative flex min-h-[24rem] flex-col overflow-hidden rounded-card bg-navy shadow-raised sm:col-span-2 lg:row-span-2 lg:min-h-[34rem]";
+    return <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+      {lead.href ? <Link className={leadClass} href={lead.href}>{leadBody}</Link> : <div className={leadClass}>{leadBody}</div>}
+      {rest.map((item, index) => {
+        const photo = photos[index + 1];
+        return <Card flush href={item.href} key={`${item.title}-${index}`}>
+          <div className={`relative w-full overflow-hidden bg-subtle ${photo ? "aspect-[16/9]" : "aspect-[16/5] sm:aspect-[16/9]"}`}>
+            {photo ? <Image alt={photo.altText ?? item.title} className="object-cover transition duration-500 group-hover:scale-[1.03]" fill sizes="(min-width: 1024px) 25vw, 50vw" src={photo.url} />
+              : <span aria-hidden="true" className={`absolute inset-0 grid place-items-center ${accentClass(index)}`}>{item.icon ? <BlockIcon name={item.icon} size={48} strokeWidth={1.4} /> : null}</span>}
+          </div>
+          <div className="flex flex-1 flex-col p-5">
+            <CardTitle>{item.title}</CardTitle>
+            {item.description ? <CardText className="mt-2 line-clamp-3 text-small!">{item.description}</CardText> : null}
+            {item.href ? <MoreLink /> : null}
+          </div>
+        </Card>;
+      })}
+    </div>;
+  }
   if (!visual && !photos.some(Boolean)) return <div className={`grid gap-5 ${gridColumns(items.length, 4)}`}>
     {items.map((item, index) => <Card href={item.href} key={`${item.title}-${index}`}>
       <span className="mb-5"><IconTile>{item.icon ? <BlockIcon name={item.icon} size={22} strokeWidth={1.8} /> : String(index + 1).padStart(2, "0")}</IconTile></span>
@@ -57,14 +90,14 @@ async function CardGrid({ items, visual = false }: { items: CardItem[]; visual?:
 }
 
 // Các bước theo thứ tự: số lớn nối bằng đường kẻ (ngang trên máy tính, dọc trên điện thoại).
-function ProcessSteps({ items }: { items: CardItem[] }) {
+function ProcessSteps({ items, dark = false }: { items: CardItem[]; dark?: boolean }) {
   return <ol className="relative m-0 grid list-none gap-8 p-0 md:grid-flow-col md:auto-cols-fr md:gap-6">
     {items.map((item, index) => <li className="relative pl-16 md:pt-16 md:pl-0" key={`${item.title}-${index}`}>
-      <span aria-hidden className="absolute top-0 left-0 grid size-12 place-items-center rounded-full bg-brand-600 text-h3 font-bold text-white shadow-brand">{index + 1}</span>
-      {index < items.length - 1 ? <span aria-hidden className="absolute top-12 bottom-[-2rem] left-6 w-px bg-brand-200 md:top-6 md:right-[-1.5rem] md:bottom-auto md:left-14 md:h-px md:w-auto" /> : null}
-      <CardTitle>{item.title}</CardTitle>
-      {item.description ? <CardText>{item.description}</CardText> : null}
-      {item.href ? <TextLink className="mt-3 inline-block text-small font-bold text-brand-700 hover:underline" href={item.href}>Xem thêm →</TextLink> : null}
+      <span aria-hidden className={`absolute top-0 left-0 grid size-12 place-items-center rounded-full text-h3 font-bold shadow-brand ${dark ? "bg-white text-brand-700" : "bg-brand-600 text-white"}`}>{index + 1}</span>
+      {index < items.length - 1 ? <span aria-hidden className={`absolute top-12 bottom-[-2rem] left-6 w-px md:top-6 md:right-[-1.5rem] md:bottom-auto md:left-14 md:h-px md:w-auto ${dark ? "bg-white/25" : "bg-brand-200"}`} /> : null}
+      <CardTitle className={dark ? "text-white!" : ""}>{item.title}</CardTitle>
+      {item.description ? <CardText className={dark ? "mt-2 text-white/75!" : "mt-2"}>{item.description}</CardText> : null}
+      {item.href ? <TextLink className={`mt-3 inline-block text-small font-bold hover:underline ${dark ? "text-white" : "text-brand-700"}`} href={item.href}>Xem thêm →</TextLink> : null}
     </li>)}
   </ol>;
 }
@@ -100,11 +133,11 @@ async function Block({ block, first, frame }: { block: PageBlock; first: boolean
     case "industries":
     case "ecosystem": return <FrameSection frame={frame}>
       <SectionHeading dark={dark} description={block.data.description} eyebrow={block.data.eyebrow} title={block.data.title} />
-      <CardGrid items={block.data.items} visual={block.data.cardStyle === "visual"} />
+      <CardGrid bento={block.data.cardStyle === "bento"} items={block.data.items} visual={block.data.cardStyle === "visual"} />
     </FrameSection>;
     case "process": return <FrameSection frame={frame}>
-      <SectionHeading description={block.data.description} eyebrow={block.data.eyebrow} title={block.data.title} />
-      <ProcessSteps items={block.data.items} />
+      <SectionHeading dark={dark} description={block.data.description} eyebrow={block.data.eyebrow} title={block.data.title} />
+      <ProcessSteps dark={dark} items={block.data.items} />
     </FrameSection>;
     case "testimonials": {
       const testimonials = (await getTestimonials(true)).slice(0, block.data.limit);

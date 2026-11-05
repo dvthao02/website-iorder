@@ -9,8 +9,8 @@ export type BlockFrame = { tone: SectionSurface; spacing: SectionSpacing; anchor
 // Khối mang sẵn nền riêng khi để "Tự động" (số liệu nổi bật là dải nền tối).
 const fixedTone: Partial<Record<PageBlock["type"], SectionSurface>> = { stats: "dark" };
 // Nền tối chỉ hợp với khối mà nội dung nằm trong thẻ trắng hoặc chữ đã có màu cho nền tối;
-// khối chữ dài, ảnh + chữ, quy trình, biểu mẫu đặt trên nền tối sẽ khó đọc nên "Tối" được đổi thành xanh nhạt.
-const darkCapable = new Set<PageBlock["type"]>(["stats", "cta", "features", "industries", "ecosystem", "testimonials", "faq", "pricing", "grouped_list", "collection_list", "featured_posts", "download_list", "partners"]);
+// khối chữ dài, biểu mẫu đặt trên nền tối sẽ khó đọc nên "Tối" được đổi thành xanh nhạt (ảnh + chữ và quy trình đã có màu chữ cho nền tối).
+const darkCapable = new Set<PageBlock["type"]>(["stats", "cta", "media_text", "process", "features", "industries", "ecosystem", "testimonials", "faq", "pricing", "grouped_list", "collection_list", "featured_posts", "download_list", "partners"]);
 export function blockSupportsDarkTone(type: PageBlock["type"]) { return darkCapable.has(type); }
 
 // Dải mỏng (logo, ảnh đơn) và danh sách nằm ngay dưới phần đầu trang danh sách (không tiêu đề) dùng khoảng cách gọn.
