@@ -1,4 +1,5 @@
 import Image from "next/image";
+import type { CSSProperties } from "react";
 import Link from "next/link";
 import { resolveBlockFrames, type BlockFrame, type SectionSurface } from "@iorder/core/server/pages/block-layout";
 import type { PageBlock } from "@iorder/core/server/pages/pages.contract";
@@ -160,14 +161,24 @@ async function Block({ block, first, frame }: { block: PageBlock; first: boolean
       const partners = (await getPartners(true)).filter(item => block.data.kind === "all" || item.kind === block.data.kind).slice(0, block.data.limit);
       if (!partners.length) return null;
       // Dải logo không khung, xám nhạt, hiện màu khi rê chuột (như dải logo khách hàng của Sapo/KiotViet); nền tối thì logo trắng.
-      // Lưới ô cùng kích thước (logo nào cũng nằm gọn trong ô 40px cao × 120px rộng) và số cột chia đều số logo để hàng cuối không lẻ.
+      // Ít logo: lưới ô cùng kích thước (logo nằm gọn trong ô 40px cao × 120px rộng), số cột chia đều để hàng cuối không lẻ.
+      // Từ 8 logo: một dải chạy ngang liên tục (bản sao thứ hai chỉ để nối vòng, ẩn với trình đọc màn hình và phím Tab);
+      // dừng khi rê chuột/focus, bật giảm chuyển động thì thành hàng logo tĩnh xuống dòng (globals.css: .logo-marquee).
+      const logo = (item: (typeof partners)[number], hidden = false) => {
+        const content = item.logo ? <Image alt={hidden ? "" : item.logo.altText ?? item.name} className={`max-h-10 w-auto max-w-[120px] object-contain opacity-70 transition group-hover:opacity-100 ${dark ? "brightness-0 invert" : "grayscale group-hover:grayscale-0"}`} height={96} src={item.logo.url} width={240} /> : <span className={`text-body font-semibold whitespace-nowrap ${dark ? "text-white/80" : "text-muted"}`}>{item.name}</span>;
+        const box = "group flex h-14 items-center justify-center";
+        return item.websiteUrl ? <a aria-label={item.name} className={box} href={item.websiteUrl} rel="noopener noreferrer" tabIndex={hidden ? -1 : undefined} target="_blank">{content}</a> : <div className={box}>{content}</div>;
+      };
+      const marquee = partners.length >= 8;
       return <FrameSection frame={frame}>
         <SectionHeading className="mb-8" dark={dark} eyebrow={block.data.eyebrow} size="sm" title={block.data.title} />
-        <ul className={`m-0 grid list-none gap-x-6 gap-y-5 p-0 ${logoGridClass(partners.length)}`}>{partners.map(item => {
-          const content = item.logo ? <Image alt={item.logo.altText ?? item.name} className={`max-h-10 w-auto max-w-[120px] object-contain opacity-70 transition group-hover:opacity-100 ${dark ? "brightness-0 invert" : "grayscale group-hover:grayscale-0"}`} height={96} src={item.logo.url} width={240} /> : <span className={`text-body font-semibold ${dark ? "text-white/80" : "text-muted"}`}>{item.name}</span>;
-          const box = "group flex h-14 items-center justify-center";
-          return <li key={item.id}>{item.websiteUrl ? <a aria-label={item.name} className={box} href={item.websiteUrl} rel="noopener noreferrer" target="_blank">{content}</a> : <div className={box}>{content}</div>}</li>;
-        })}</ul>
+        {marquee ? <div className="logo-marquee" style={{ "--marquee-duration": `${partners.length * 3.5}s` } as CSSProperties}>
+          <div className="logo-marquee__track">
+            <ul className="logo-marquee__list">{partners.map(item => <li key={item.id}>{logo(item)}</li>)}</ul>
+            <ul aria-hidden="true" className="logo-marquee__list logo-marquee__list--clone">{partners.map(item => <li key={item.id}>{logo(item, true)}</li>)}</ul>
+          </div>
+        </div>
+        : <ul className={`m-0 grid list-none gap-x-6 gap-y-5 p-0 ${logoGridClass(partners.length)}`}>{partners.map(item => <li key={item.id}>{logo(item)}</li>)}</ul>}
       </FrameSection>;
     }
     case "faq": return <FrameSection frame={frame} width="narrow">

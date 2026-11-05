@@ -137,6 +137,9 @@ body { margin: 0; background: var(--color-canvas); color: var(--color-ink); font
 @media (max-width: 640px) { :root { --header-height: 4rem; } }
 .site-header { position: sticky; top: 0; z-index: 40; border-bottom: 1px solid rgb(226 232 240 / .92); background: rgb(255 255 255 / .98); transition: box-shadow 200ms ease, background 200ms ease, border-color 200ms ease; }
 .site-header--scrolled { box-shadow: 0 12px 30px rgb(15 23 42 / .08); }
+/* Cuộn xuống: nền trắng mờ kính (nội dung chạy ngầm phía dưới thấy lờ mờ). Từ 1024px header thấp lại 12px; margin-bottom
+ * giữ nguyên chỗ trong luồng trang (phần tử sticky vẫn chiếm chỗ cũ) nên nội dung bên dưới không bị giật khi đổi. */
+@supports (backdrop-filter: blur(1px)) { .site-header--scrolled { background: rgb(255 255 255 / .84); backdrop-filter: blur(14px) saturate(1.6); } }
 body:has([data-hero-top]) .site-header:not(.site-header--scrolled) { border-bottom-color: transparent; background: transparent; }
 /* +1px: viền dưới của header (trong suốt khi ở đầu trang) cũng chiếm chỗ. */
 [data-hero-top] { margin-top: calc(-1 * var(--header-height) - 1px); }
@@ -146,6 +149,15 @@ body:has([data-hero-top="dark"]) .site-header:not(.site-header--scrolled) .site-
 body:has([data-hero-top="dark"]) .site-header:not(.site-header--scrolled) .site-nav__link:hover { color: rgb(255 255 255 / .8); }
 body:has([data-hero-top="dark"]) .site-header:not(.site-header--scrolled) .brand img { filter: brightness(0) invert(1); }
 .site-header__inner { display: flex; align-items: center; gap: clamp(16px, 2vw, 40px); width: 100%; max-width: var(--site-width); height: var(--header-height); margin: 0 auto; padding: 0 var(--gutter); }
+/* Header thấp lại khi cuộn (xem chú thích .site-header--scrolled phía trên); đặt sau .site-header__inner để thắng chiều cao gốc. */
+@media (min-width: 1024px) {
+  .site-header { --header-shrink: 0px; margin-bottom: var(--header-shrink); transition: box-shadow 200ms ease, background 200ms ease, border-color 200ms ease, margin 220ms ease; }
+  .site-header--scrolled { --header-shrink: .75rem; }
+  .site-header__inner { height: calc(var(--header-height) - var(--header-shrink)); transition: height 220ms ease; }
+  .site-header .brand img { transition: scale 220ms ease; transform-origin: left center; }
+  .site-header--scrolled .brand img { scale: .92; }
+}
+@media (prefers-reduced-motion: reduce) { .site-header, .site-header__inner, .site-header .brand img { transition: none; } }
 .site-header__actions { display: flex; flex-shrink: 0; align-items: center; gap: .625rem; margin-left: auto; }
 .brand { display: inline-flex; flex-shrink: 0; align-items: center; gap: 8px; font-size: 1.25rem; font-weight: 800; letter-spacing: -.04em; }
 .brand__mark { display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 9px; background: var(--color-brand-600); color: white; font: italic 1.5rem Georgia, serif; }
@@ -346,3 +358,31 @@ a.site-footer__heading:hover { color: var(--color-brand-700); }
 @media (prefers-reduced-motion: reduce) { .hero-images__item, .hero-images__item--active { transition: none; } }
 /* Menu điện thoại đang mở thì ẩn nút nổi để không che các nút cuối menu. */
 body:has(.site-mobile-menu--open) .floating-contact, body:has(.site-mobile-menu--open) .floating-top { display: none; }
+/*
+ * Dải logo chạy ngang (khối Đối tác từ 8 logo): hai bản danh sách nối nhau, trượt đúng một bản (-50%) rồi lặp lại nên không
+ * thấy chỗ nối. Hai mép mờ dần. Dừng khi rê chuột hoặc focus vào logo. Thời gian một vòng theo số logo (--marquee-duration).
+ * Bật giảm chuyển động: bỏ bản sao, logo xếp thành hàng tĩnh xuống dòng.
+ */
+.logo-marquee { overflow: hidden; mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); }
+.logo-marquee__track { display: flex; width: max-content; animation: logo-marquee var(--marquee-duration, 50s) linear infinite; }
+.logo-marquee:hover .logo-marquee__track, .logo-marquee:focus-within .logo-marquee__track { animation-play-state: paused; }
+.logo-marquee__list { display: flex; flex-shrink: 0; align-items: center; gap: clamp(2.5rem, 4vw, 4.5rem); margin: 0; padding: 0 clamp(1.25rem, 2vw, 2.25rem); list-style: none; }
+@keyframes logo-marquee { to { translate: -50% 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .logo-marquee { mask-image: none; }
+  .logo-marquee__track { display: block; width: auto; animation: none; }
+  .logo-marquee__list { flex-wrap: wrap; justify-content: center; gap: 1.25rem 2.5rem; }
+  .logo-marquee__list--clone { display: none; }
+}
+
+/*
+ * Nội dung hiện dần khi cuộn tới (mọi phần dùng <Section>, data-reveal): mờ → rõ và trượt lên 24px, chạy theo vị trí cuộn
+ * (animation-timeline: view()), không cần JavaScript. Trình duyệt chưa hỗ trợ hoặc bật giảm chuyển động thì nội dung hiện sẵn.
+ * Dùng thuộc tính `translate` (không phải transform) để không đè transform riêng của phần tử.
+ */
+@keyframes reveal-up { from { opacity: 0; translate: 0 1.5rem; } to { opacity: 1; translate: 0 0; } }
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    [data-reveal] > div > * { animation: reveal-up linear both; animation-timeline: view(); animation-range: entry 0% entry 45%; }
+  }
+}
