@@ -280,8 +280,9 @@ a.site-footer__heading:hover { color: var(--color-brand-700); }
  * (gọn / vừa / rộng), để khối ít nội dung không sinh khoảng trắng lớn. Điện thoại giữ chiều cao tự nhiên.
  */
 @media (min-width: 1024px) {
-  .screen-hero { display: flex; flex-direction: column; justify-content: center; min-height: calc(100svh - var(--header-height)); }
-  .screen-hero[data-hero-top] { min-height: 100svh; }
+  /* Tối đa 800px: màn cao (1080p trở lên) không còn khoảng trắng lớn dưới nội dung, phần kế tiếp (dải logo/số liệu) ló lên làm dấu hiệu cuộn tiếp như KiotViet/iPOS. */
+  .screen-hero { display: flex; flex-direction: column; justify-content: center; min-height: min(calc(100svh - var(--header-height)), 760px); }
+  .screen-hero[data-hero-top] { min-height: min(100svh, 800px); }
   /* `section` để thắng chiều cao mặc định của .hero-slider khai báo phía dưới. */
   section .hero-slider { height: max(100svh - var(--header-height), 520px); }
   [data-hero-flush] .hero-slider { height: max(100svh, 560px); }

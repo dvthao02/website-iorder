@@ -110,9 +110,10 @@ export function Actions({ primary, secondary, dark = false, center = false, clas
 }
 
 // Thẻ: viền + nền trắng + bóng nhẹ; có liên kết thì cả thẻ bấm được và nổi lên khi rê chuột.
-const cardBase = "group relative flex h-full flex-col rounded-card border bg-white p-6 text-ink transition sm:p-7";
-export function Card({ children, href, highlighted = false, className = "", as = "article" }: { children: ReactNode; href?: string | null; highlighted?: boolean; className?: string; as?: "article" | "li" | "figure" | "div" }) {
-  const look = `${cardBase} ${highlighted ? "border-brand-500 shadow-raised ring-1 ring-brand-500" : "border-line shadow-card"} ${className}`.trim();
+// `flush`: thẻ không đệm, để ảnh tràn sát mép (thẻ ảnh); phần chữ tự đặt đệm riêng.
+const cardBase = "group relative flex h-full flex-col rounded-card border bg-white text-ink transition";
+export function Card({ children, href, highlighted = false, flush = false, className = "", as = "article" }: { children: ReactNode; href?: string | null; highlighted?: boolean; flush?: boolean; className?: string; as?: "article" | "li" | "figure" | "div" }) {
+  const look = `${cardBase} ${flush ? "overflow-hidden" : "p-6 sm:p-7"} ${highlighted ? "border-brand-500 shadow-raised ring-1 ring-brand-500" : "border-line shadow-card"} ${className}`.trim();
   const interactive = `${look} hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-raised`;
   if (href) return isExternal(href) ? <a className={interactive} href={href} rel="noopener noreferrer" target="_blank">{children}</a> : <Link className={interactive} href={href}>{children}</Link>;
   const Tag = as;

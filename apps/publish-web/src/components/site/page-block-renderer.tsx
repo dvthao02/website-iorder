@@ -3,7 +3,7 @@ import { resolveBlockFrames, type BlockFrame, type SectionSurface } from "@iorde
 import type { PageBlock } from "@iorder/core/server/pages/pages.contract";
 import { getMediaById } from "@/lib/backend";
 import { getPartners, getTestimonials } from "@/lib/backend";
-import { ButtonLink, Card, CardText, CardTitle, FaqList, FrameSection, IconTile, MoreLink, SectionHeading, TextLink, gridColumns } from "@/components/ui";
+import { ButtonLink, Card, CardText, CardTitle, FaqList, FrameSection, IconTile, MoreLink, SectionHeading, TextLink, accentClass, gridColumns } from "@/components/ui";
 import { BlockIcon } from "./block-icon";
 import { CollectionList } from "./collection-list";
 import { HeroSection } from "./hero-section";
@@ -23,14 +23,36 @@ export async function PageBlockRenderer({ blocks, previous = null }: { blocks: P
 type CardItem = Extract<PageBlock, { type: "features" | "industries" | "ecosystem" | "process" }>["data"]["items"][number];
 
 // Lưới thẻ: ô biểu tượng (hoặc số thứ tự khi thẻ chưa chọn biểu tượng), tiêu đề, mô tả, liên kết.
-function CardGrid({ items }: { items: CardItem[] }) {
-  return <div className={`grid gap-5 ${gridColumns(items.length, 4)}`}>
+// Chỉ cần một thẻ có ảnh (mediaId) là cả lưới chuyển sang thẻ ảnh kiểu KiotViet/iPOS: ảnh ngang bo góc ở đầu thẻ;
+// thẻ chưa có ảnh dùng mảng màu nhấn với biểu tượng lớn để lưới vẫn đều nhau trong lúc chờ ảnh.
+async function CardGrid({ items, visual = false }: { items: CardItem[]; visual?: boolean }) {
+  const photos = await Promise.all(items.map(async item => {
+    const media = item.mediaId ? await getMediaById(item.mediaId) : null;
+    return media?.mimeType.startsWith("image/") ? media : null;
+  }));
+  if (!visual && !photos.some(Boolean)) return <div className={`grid gap-5 ${gridColumns(items.length, 4)}`}>
     {items.map((item, index) => <Card href={item.href} key={`${item.title}-${index}`}>
       <span className="mb-5"><IconTile>{item.icon ? <BlockIcon name={item.icon} size={22} strokeWidth={1.8} /> : String(index + 1).padStart(2, "0")}</IconTile></span>
       <CardTitle>{item.title}</CardTitle>
       {item.description ? <CardText>{item.description}</CardText> : null}
       {item.href ? <MoreLink /> : null}
     </Card>)}
+  </div>;
+  return <div className={`grid gap-5 ${gridColumns(items.length, 4)}`}>
+    {items.map((item, index) => {
+      const photo = photos[index];
+      return <Card flush href={item.href} key={`${item.title}-${index}`}>
+        <div className={`relative w-full overflow-hidden bg-subtle ${photo ? "aspect-[16/10]" : "aspect-[16/5] sm:aspect-[16/10]"}`}>
+          {photo ? <Image alt={photo.altText ?? item.title} className="object-cover transition duration-500 group-hover:scale-[1.03]" fill sizes="(min-width: 1280px) 280px, (min-width: 640px) 50vw, 100vw" src={photo.url} />
+            : <span aria-hidden="true" className={`absolute inset-0 grid place-items-center ${accentClass(index)}`}>{item.icon ? <BlockIcon name={item.icon} size={56} strokeWidth={1.4} /> : <span className="text-display font-bold">{String(index + 1).padStart(2, "0")}</span>}</span>}
+        </div>
+        <div className="flex flex-1 flex-col p-5 sm:p-6">
+          <CardTitle>{item.title}</CardTitle>
+          {item.description ? <CardText>{item.description}</CardText> : null}
+          {item.href ? <MoreLink /> : null}
+        </div>
+      </Card>;
+    })}
   </div>;
 }
 
@@ -45,6 +67,13 @@ function ProcessSteps({ items }: { items: CardItem[] }) {
       {item.href ? <TextLink className="mt-3 inline-block text-small font-bold text-brand-700 hover:underline" href={item.href}>Xem thêm →</TextLink> : null}
     </li>)}
   </ol>;
+}
+
+// Số cột của dải logo: ít logo thì căn giữa theo số logo; nhiều thì chọn số cột chia hết (8, 6 hoặc 5) để các hàng đầy, không dư một hai logo lẻ.
+function logoGridClass(count: number) {
+  if (count <= 5) return "grid-cols-2 sm:grid-cols-3 lg:grid-flow-col lg:auto-cols-fr";
+  const columns = count % 8 === 0 ? "lg:grid-cols-8" : count % 6 === 0 ? "lg:grid-cols-6" : count % 5 === 0 ? "lg:grid-cols-5" : "lg:grid-cols-6";
+  return `grid-cols-2 sm:grid-cols-4 ${columns}`;
 }
 
 function initials(name: string) {
@@ -71,7 +100,7 @@ async function Block({ block, first, frame }: { block: PageBlock; first: boolean
     case "industries":
     case "ecosystem": return <FrameSection frame={frame}>
       <SectionHeading dark={dark} description={block.data.description} eyebrow={block.data.eyebrow} title={block.data.title} />
-      <CardGrid items={block.data.items} />
+      <CardGrid items={block.data.items} visual={block.data.cardStyle === "visual"} />
     </FrameSection>;
     case "process": return <FrameSection frame={frame}>
       <SectionHeading description={block.data.description} eyebrow={block.data.eyebrow} title={block.data.title} />
@@ -96,10 +125,11 @@ async function Block({ block, first, frame }: { block: PageBlock; first: boolean
       const partners = (await getPartners(true)).filter(item => block.data.kind === "all" || item.kind === block.data.kind).slice(0, block.data.limit);
       if (!partners.length) return null;
       // Dải logo không khung, xám nhạt, hiện màu khi rê chuột (như dải logo khách hàng của Sapo/KiotViet); nền tối thì logo trắng.
+      // Lưới ô cùng kích thước (logo nào cũng nằm gọn trong ô 40px cao × 120px rộng) và số cột chia đều số logo để hàng cuối không lẻ.
       return <FrameSection frame={frame}>
         <SectionHeading className="mb-8" dark={dark} eyebrow={block.data.eyebrow} size="sm" title={block.data.title} />
-        <ul className="m-0 flex list-none flex-wrap items-center justify-center gap-x-10 gap-y-6 p-0 sm:gap-x-14">{partners.map(item => {
-          const content = item.logo ? <Image alt={item.logo.altText ?? item.name} className={`h-10 w-auto max-w-[150px] object-contain opacity-60 transition group-hover:opacity-100 sm:h-12 ${dark ? "brightness-0 invert" : "grayscale group-hover:grayscale-0"}`} height={96} src={item.logo.url} width={240} /> : <span className={`text-body font-semibold ${dark ? "text-white/80" : "text-muted"}`}>{item.name}</span>;
+        <ul className={`m-0 grid list-none gap-x-6 gap-y-5 p-0 ${logoGridClass(partners.length)}`}>{partners.map(item => {
+          const content = item.logo ? <Image alt={item.logo.altText ?? item.name} className={`max-h-10 w-auto max-w-[120px] object-contain opacity-70 transition group-hover:opacity-100 ${dark ? "brightness-0 invert" : "grayscale group-hover:grayscale-0"}`} height={96} src={item.logo.url} width={240} /> : <span className={`text-body font-semibold ${dark ? "text-white/80" : "text-muted"}`}>{item.name}</span>;
           const box = "group flex h-14 items-center justify-center";
           return <li key={item.id}>{item.websiteUrl ? <a aria-label={item.name} className={box} href={item.websiteUrl} rel="noopener noreferrer" target="_blank">{content}</a> : <div className={box}>{content}</div>}</li>;
         })}</ul>
