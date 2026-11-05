@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronDown, Menu, X } from "lucide-react";
+import { ArrowRight, ChevronDown, Compass, CodeXml, Menu, Network, Package, ReceiptText, Server, ShieldCheck, ShoppingCart, X, Zap, type LucideIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 
 export type HeaderLink = { key: string; label: string; url: string; target: "_self" | "_blank"; children: HeaderLink[] };
@@ -15,6 +15,36 @@ function matches(pathname: string, url: string) {
   return path === "/" ? pathname === "/" : pathname === path || pathname.startsWith(`${path}/`);
 }
 const isActive = (pathname: string, link: HeaderLink): boolean => matches(pathname, link.url) || link.children.some((child) => isActive(pathname, child));
+
+// Biểu tượng cho mục con của menu: chọn theo đường dẫn (slug ổn định, không đổi khi sửa nhãn). Mục không khớp thì không có biểu tượng;
+// bảng chỉ hiện ô biểu tượng khi có ít nhất một mục khớp (menu Hỗ trợ, Tin tức… giữ dạng chữ).
+const dropdownIcons: { keys: string[]; icon: LucideIcon }[] = [
+  { keys: ["ban-hang"], icon: ShoppingCart },
+  { keys: ["tram-sac"], icon: Zap },
+  { keys: ["hoa-don", "chu-ky-so"], icon: ReceiptText },
+  { keys: ["chuyen-doi-so", "tu-van"], icon: Compass },
+  { keys: ["phat-trien-phan-mem", "theo-yeu-cau"], icon: CodeXml },
+  { keys: ["ha-tang", "wifi", "camera"], icon: Network },
+  { keys: ["data-center", "trung-tam-du-lieu"], icon: Server },
+  { keys: ["kiem-soat", "cham-cong"], icon: ShieldCheck },
+];
+const iconFor = (url: string): LucideIcon | null => dropdownIcons.find((entry) => entry.keys.some((key) => url.includes(key)))?.icon ?? null;
+
+// Bảng thả xuống: nhiều mục (>4) chia 2 cột; mục có biểu tượng thì hiện ô biểu tượng; chân bảng có liên kết "Xem tất cả".
+function DropdownPanel({ link, pathname }: { link: HeaderLink; pathname: string }) {
+  const withIcons = link.children.some((child) => iconFor(child.url));
+  const wide = link.children.length > 4;
+  return <div className={wide ? "site-nav__dropdown site-nav__dropdown--wide" : "site-nav__dropdown"}>
+    <ul className="site-nav__dropdown-list">{link.children.map((child) => {
+      const Icon = withIcons ? (iconFor(child.url) ?? Package) : null;
+      return <li key={child.key}><Link aria-current={matches(pathname, child.url) ? "page" : undefined} className="site-nav__dropdown-link" href={child.url} {...external(child)}>
+        {Icon ? <span aria-hidden="true" className="site-nav__dropdown-icon"><Icon size={20} strokeWidth={1.75} /></span> : null}
+        <span>{child.label}</span>
+      </Link></li>;
+    })}</ul>
+    <Link className="site-nav__dropdown-all" href={link.url} {...external(link)}>Xem tất cả {link.label.toLocaleLowerCase("vi")}<ArrowRight aria-hidden="true" size={16} /></Link>
+  </div>;
+}
 
 // Đầu trang: dính trên cùng, có bóng khi cuộn. Máy tính: menu ngang, mục có con mở bảng thả xuống
 // (nhiều mục thì chia 2 cột). Điện thoại: nút ☰ mở bảng menu toàn chiều ngang, mục có con gập/mở.
@@ -54,7 +84,7 @@ export function SiteHeaderBar({ actions, brand, links, logo }: { actions: Header
           if (!link.children.length) return <li className="site-nav__item" key={link.key}><Link aria-current={matches(pathname, link.url) ? "page" : undefined} className={active ? "site-nav__link site-nav__link--active" : "site-nav__link"} href={link.url} {...external(link)}>{link.label}</Link></li>;
           return <li className="site-nav__item site-nav__item--branch" key={link.key}>
             <Link aria-haspopup="true" className={active ? "site-nav__link site-nav__link--active" : "site-nav__link"} href={link.url} {...external(link)}>{link.label}<ChevronDown aria-hidden="true" className="site-nav__caret" size={16} /></Link>
-            <ul className={link.children.length > 4 ? "site-nav__dropdown site-nav__dropdown--wide" : "site-nav__dropdown"}>{link.children.map((child) => <li key={child.key}><Link aria-current={matches(pathname, child.url) ? "page" : undefined} className="site-nav__dropdown-link" href={child.url} {...external(child)}>{child.label}</Link></li>)}</ul>
+            <DropdownPanel link={link} pathname={pathname} />
           </li>;
         })}</ul>
       </nav>
