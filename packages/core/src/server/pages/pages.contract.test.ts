@@ -103,3 +103,13 @@ test("Khối danh sách theo nhóm: biểu tượng phải thuộc bộ có sẵ
   assert.equal(pageBlockInputSchema.safeParse({ type: "grouped_list", isEnabled: true, data: { eyebrow: null, title: "A", description: null, groupLabel: null, groups: [{ ...group, icon: "khong-co" }] } }).success, false);
   assert.equal(pageBlockInputSchema.safeParse({ type: "grouped_list", isEnabled: true, data: { eyebrow: null, title: "A", description: null, groupLabel: null, groups: [] } }).success, false);
 });
+
+test("Lưới thẻ: ảnh thẻ và kiểu thẻ là tùy chọn, dữ liệu cũ vẫn hợp lệ, giá trị sai bị từ chối", () => {
+  const photo = "22222222-2222-4222-8222-222222222222";
+  const block = (data: Record<string, unknown>, type = "features") => ({ type, isEnabled: true, data: { eyebrow: null, title: "Giải pháp", description: null, items: [{ title: "Thẻ", description: "Mô tả", href: null }], ...data } });
+  assert.ok(pageBlockInputSchema.safeParse(block({})).success, "thẻ cũ không có mediaId/cardStyle");
+  assert.ok(pageBlockInputSchema.safeParse(block({ cardStyle: "visual", items: [{ title: "Thẻ", description: "Mô tả", href: null, icon: "store", mediaId: photo }] })).success);
+  assert.ok(pageBlockInputSchema.safeParse(block({ cardStyle: "compact", items: [{ title: "Thẻ", description: "Mô tả", href: null, mediaId: null }] })).success);
+  assert.equal(pageBlockInputSchema.safeParse(block({ items: [{ title: "Thẻ", description: "Mô tả", href: null, mediaId: "không-phải-uuid" }] })).success, false);
+  assert.equal(pageBlockInputSchema.safeParse(block({ cardStyle: "to" })).success, false);
+});

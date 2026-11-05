@@ -128,7 +128,8 @@ const heroPanelSchema = z.object({
 export type HeroPanel = z.infer<typeof heroPanelSchema>;
 const heroSlideSchema = z.object({ mediaId: z.string().uuid(), title: z.string().trim().max(220).nullable(), description: z.string().trim().max(2_000).nullable(), action: actionSchema.nullable() }).strict();
 // Thẻ của "Lưới thẻ": có biểu tượng thì hiện biểu tượng, không thì hiện số thứ tự (dữ liệu cũ chưa có trường này).
-const cardSchema = z.object({ title: z.string().trim().min(1).max(220), description: z.string().trim().max(10_000), href: z.string().trim().max(1000).nullable(), icon: blockIconSchema.nullable().optional() }).strict();
+// `mediaId`: ảnh đầu thẻ (ảnh người dùng, cửa hàng, sản phẩm…); có ảnh thì thẻ chuyển sang kiểu thẻ ảnh (website quyết giao diện).
+const cardSchema = z.object({ title: z.string().trim().min(1).max(220), description: z.string().trim().max(10_000), href: z.string().trim().max(1000).nullable(), icon: blockIconSchema.nullable().optional(), mediaId: z.string().uuid().nullable().optional() }).strict();
 const groupedListItemSchema = z.object({ label: z.string().trim().min(1).max(120), icon: blockIconSchema.nullable(), href: z.string().trim().max(1000).nullable() }).strict();
 const groupedListGroupSchema = z.object({
   title: z.string().trim().min(1).max(120),
@@ -147,7 +148,9 @@ export const groupedListDataSchema = z.object({
   groups: z.array(groupedListGroupSchema).min(1).max(6),
 }).strict();
 export type GroupedListData = z.infer<typeof groupedListDataSchema>;
-const cardBlockDataSchema =z.object({ eyebrow: z.string().trim().max(160).nullable(), title: z.string().trim().min(1).max(220), description: z.string().trim().max(10_000).nullable(), items: z.array(cardSchema).max(30) }).strict();
+// `cardStyle`: "visual" = thẻ ảnh (ảnh hoặc biểu tượng lớn trên mảng màu) kể cả khi chưa thẻ nào có ảnh; bỏ trống/"compact" = thẻ gọn,
+// tự chuyển sang thẻ ảnh khi có thẻ nào chọn ảnh. Chỉ "Lưới thẻ" dùng; "Các bước" luôn là các bước.
+const cardBlockDataSchema =z.object({ cardStyle: z.enum(["compact", "visual"]).optional(), eyebrow: z.string().trim().max(160).nullable(), title: z.string().trim().min(1).max(220), description: z.string().trim().max(10_000).nullable(), items: z.array(cardSchema).max(30) }).strict();
 
 export const pageBlockInputSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("hero"), data: z.object({ eyebrow: z.string().trim().max(160).nullable(), title: z.string().trim().min(1).max(220), description: z.string().trim().max(10_000).nullable(), primaryAction: actionSchema.nullable(), secondaryAction: actionSchema.nullable(), mediaId: z.string().uuid().nullable().optional(),
