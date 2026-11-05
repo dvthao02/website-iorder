@@ -1,21 +1,20 @@
 "use client";
 
-import { Check, ChevronDown } from "lucide-react";
+import { ArrowRight, ChevronDown } from "lucide-react";
 import { useState, type FormEvent, type ReactNode } from "react";
 
-type LeadFormProps = { title: string; description: string | null; submitLabel: string; needOptions: string[]; dark?: boolean };
+type LeadFormProps = { title: string; description: string | null; submitLabel: string; needOptions: string[]; dark?: boolean; trialUrl?: string | null };
 
 const controlClassName = "w-full rounded-control border border-line bg-white px-4 text-body text-ink transition placeholder:text-faint hover:border-brand-300 focus:border-brand-500 focus:ring-4 focus:ring-brand-100 focus:outline-none";
 const inputClassName = `${controlClassName} h-12`;
-// Những ý dưới tiêu đề dùng đúng cam kết đã nêu ở đầu trang chủ (Tư vấn miễn phí, Khảo sát và đề xuất theo nhu cầu, Cài đặt, đào tạo tại cửa hàng).
-const promises = ["Tư vấn miễn phí", "Khảo sát và đề xuất theo nhu cầu", "Cài đặt, đào tạo tại cửa hàng"];
 
 function Field({ label, required, className = "", children }: { label: string; required?: boolean; className?: string; children: ReactNode }) {
   return <label className={`grid content-start gap-1.5 text-small font-semibold text-ink ${className}`.trim()}><span>{label}{required ? <span aria-hidden="true" className="ml-0.5 text-accent-rose">*</span> : null}</span>{children}</label>;
 }
 
-// Khối "Để lại thông tin": hai cột trên máy tính (lời mời + cam kết bên trái, biểu mẫu trong thẻ trắng bên phải), một cột trên điện thoại.
-export function LeadForm({ title, description, submitLabel, needOptions, dark = false }: LeadFormProps) {
+// Khối "Để lại thông tin": hai cột trên máy tính (lời mời + lối tắt Đăng ký dùng thử bên trái, biểu mẫu trong thẻ trắng bên phải), một cột trên điện thoại.
+// Thông tin liên hệ nằm ở chân trang nên không nhắc lại ở đây.
+export function LeadForm({ title, description, submitLabel, needOptions, dark = false, trialUrl = null }: LeadFormProps) {
   const [message, setMessage] = useState("");
   const [success, setSuccess] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -42,7 +41,10 @@ export function LeadForm({ title, description, submitLabel, needOptions, dark = 
     <div className="lg:sticky lg:top-28">
       <h2 className={`mb-0 text-h2 font-bold tracking-tight text-balance ${dark ? "text-white" : "text-ink"}`}>{title}</h2>
       {description ? <p className={`mt-4 mb-0 text-lead ${dark ? "text-white/80" : "text-muted"}`}>{description}</p> : null}
-      <ul className="mt-8 mb-0 grid list-none gap-3 p-0">{promises.map(text => <li className={`flex items-center gap-3 text-body font-medium ${dark ? "text-white" : "text-ink"}`} key={text}><span aria-hidden="true" className="grid size-7 shrink-0 place-items-center rounded-full bg-brand-600 text-white"><Check size={16} strokeWidth={2.5} /></span>{text}</li>)}</ul>
+      {trialUrl ? <div className={`mt-8 rounded-card border p-5 ${dark ? "border-white/20 bg-white/10" : "border-line bg-white shadow-card"}`}>
+        <p className={`mb-3 text-body font-semibold ${dark ? "text-white" : "text-ink"}`}>Muốn tự trải nghiệm trước?</p>
+        <a className="button button--primary" href={trialUrl} rel="noopener noreferrer" target="_blank">Đăng ký dùng thử<ArrowRight aria-hidden="true" size={18} /></a>
+      </div> : null}
     </div>
     <form className="grid gap-5 rounded-card border border-line bg-white p-6 shadow-raised sm:grid-cols-2 sm:p-8" onSubmit={submit}>
       <Field label="Họ và tên" required><input autoComplete="name" className={inputClassName} name="name" placeholder="Nguyễn Văn A" required /></Field>

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { resolveBlockFrames, type BlockFrame, type SectionSurface } from "@iorder/core/server/pages/block-layout";
 import type { PageBlock } from "@iorder/core/server/pages/pages.contract";
 import { getMediaById } from "@/lib/backend";
-import { getPartners, getTestimonials } from "@/lib/backend";
+import { getExternalLinks, getPartners, getTestimonials } from "@/lib/backend";
 import { ButtonLink, Card, CardText, CardTitle, FaqList, FrameSection, IconTile, MoreLink, SectionHeading, TextLink, accentClass, gridColumns } from "@/components/ui";
 import { BlockIcon } from "./block-icon";
 import { CollectionList } from "./collection-list";
@@ -178,7 +178,7 @@ async function Block({ block, first, frame }: { block: PageBlock; first: boolean
         <ButtonLink action={block.data.action} variant="light" />
       </div>
     </FrameSection>;
-    case "lead_form": return <FrameSection frame={frame}><LeadForm {...block.data} dark={frame.tone === "dark"} /></FrameSection>;
+    case "lead_form": return <FrameSection frame={frame}><LeadForm {...block.data} dark={frame.tone === "dark"} trialUrl={(await getExternalLinks())?.trial ?? null} /></FrameSection>;
     case "rich_text": return <FrameSection frame={frame} width="text">
       {block.data.heading ? <h2 className="mb-6 text-h2 font-bold tracking-tight text-ink">{block.data.heading}</h2> : null}
       {typeof block.data.body === "string" ? <div className="grid gap-5 text-lead text-ink/80">{block.data.body.split("\n").map((paragraph, index) => paragraph ? <p className="mb-0" key={index}>{paragraph}</p> : null)}</div> : <RichContent doc={block.data.body} />}
