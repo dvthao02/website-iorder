@@ -102,7 +102,10 @@ async function renderItems(data: CollectionListData, Card: "h2" | "h3") {
           <p className={`mb-3 ${chipClass}`}>{item.groupName}</p>
           <Card className={`${titleClass} line-clamp-2`}>{item.name}</Card>
           {item.summary ? <p className={`${textClass} line-clamp-2`}>{item.summary}</p> : null}
-          <p className="mt-auto mb-0 pt-5 text-h3 font-bold text-brand-700">{priceFormatter.format(item.priceVnd)}</p>
+          <div className="mt-auto flex flex-col gap-1 pt-5">
+            <p className="mb-0 text-h3 font-bold text-brand-700">{priceFormatter.format(item.priceVnd)}</p>
+            <span className="text-small font-semibold text-brand-700 group-hover:underline">Xem chi tiết →</span>
+          </div>
         </div>
       </Link>)}</div> : null;
     }

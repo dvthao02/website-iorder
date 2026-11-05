@@ -134,6 +134,8 @@ body { margin: 0; background: var(--color-canvas); color: var(--color-ink); font
  * Trang không có phần đầu trang giữ header trắng.
  */
 :root { --header-height: 4.75rem; }
+/* Bấm liên kết tới mã neo (#tu-van…): đích dừng dưới header cố định, chừa thêm 1rem; áp cho mọi phần trang, không cần class riêng. */
+html { scroll-padding-top: calc(var(--header-height) + 1rem); }
 @media (max-width: 640px) { :root { --header-height: 4rem; } }
 .site-header { position: sticky; top: 0; z-index: 40; border-bottom: 1px solid rgb(226 232 240 / .92); background: rgb(255 255 255 / .98); transition: box-shadow 200ms ease, background 200ms ease, border-color 200ms ease; }
 .site-header--scrolled { box-shadow: 0 12px 30px rgb(15 23 42 / .08); }
@@ -150,7 +152,8 @@ body:has([data-hero-top="dark"]) .site-header:not(.site-header--scrolled) .site-
 body:has([data-hero-top="dark"]) .site-header:not(.site-header--scrolled) .brand img { filter: brightness(0) invert(1); }
 .site-header__inner { display: flex; align-items: center; gap: clamp(16px, 2vw, 40px); width: 100%; max-width: var(--site-width); height: var(--header-height); margin: 0 auto; padding: 0 var(--gutter); }
 /* Header thấp lại khi cuộn (xem chú thích .site-header--scrolled phía trên); đặt sau .site-header__inner để thắng chiều cao gốc. */
-@media (min-width: 1024px) {
+/* Chỉ khi menu ngang đang hiện (từ 1220px): màn hẹp hơn dùng nút ☰, bảng menu điện thoại đặt theo --header-height nên header không đổi cao. */
+@media (min-width: 1220px) {
   .site-header { --header-shrink: 0px; margin-bottom: var(--header-shrink); transition: box-shadow 200ms ease, background 200ms ease, border-color 200ms ease, margin 220ms ease; }
   .site-header--scrolled { --header-shrink: .75rem; }
   .site-header__inner { height: calc(var(--header-height) - var(--header-shrink)); transition: height 220ms ease; }
@@ -162,7 +165,7 @@ body:has([data-hero-top="dark"]) .site-header:not(.site-header--scrolled) .brand
 .brand { display: inline-flex; flex-shrink: 0; align-items: center; gap: 8px; font-size: 1.25rem; font-weight: 800; letter-spacing: -.04em; }
 .brand__mark { display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 9px; background: var(--color-brand-600); color: white; font: italic 1.5rem Georgia, serif; }
 /* Tỉ lệ header theo iorder.com.vn: logo 38px, chữ menu 16,5px, nút cao 42px chữ 15,5px — logo, chữ và nút cùng tâm dọc. */
-.header-cta { min-height: 2.625rem; padding: 0 1.25rem; font-size: .97rem; font-weight: 600; }
+.header-cta { min-height: 2.625rem; padding: 0 1.25rem; font-size: .97rem; font-weight: 600; white-space: nowrap; }
 .header-cta--primary { background: var(--color-brand-600); color: white; }
 .header-cta--primary:hover { background: var(--color-brand-700); }
 .header-cta--secondary { border: 1px solid var(--color-line); background: white; color: var(--color-ink); }
@@ -192,10 +195,20 @@ body:has([data-hero-top="dark"]) .site-header:not(.site-header--scrolled) .brand
 .site-nav__dropdown-all { display: flex; align-items: center; gap: .375rem; margin: .625rem -.625rem -.625rem; padding: .875rem 1.375rem; border-top: 1px solid var(--color-line); border-radius: 0 0 1.25rem 1.25rem; background: var(--color-canvas); color: var(--color-brand-700); font-size: .92rem; font-weight: 600; transition: color 150ms ease, gap 150ms ease; }
 .site-nav__dropdown-all:hover { gap: .625rem; color: var(--color-brand-600); }
 
+/* Máy tính màn hẹp: menu và nút gọn lại để logo – menu – nút luôn cách nhau, không chữ nào đè lên nhau.
+ * Hẹp hơn nữa (xem breakpoint menu điện thoại bên dưới) thì chuyển sang nút ☰. Đổi nhãn menu dài hơn trong CMS thì đo lại. */
+@media (max-width: 1439px) {
+  .site-header__inner { gap: 1rem; }
+  .site-nav__list { gap: 0; }
+  .site-nav__link { padding: 0 .625rem; font-size: .97rem; }
+  .header-cta { padding: 0 1rem; font-size: .93rem; }
+}
+
 /* Menu điện thoại: nút ☰ và bảng toàn chiều ngang dưới đầu trang. */
 .site-menu-toggle { display: none; width: 44px; height: 44px; place-items: center; border: 1px solid var(--color-line); border-radius: 12px; background: white; color: var(--color-ink); }
 .site-mobile-menu { display: none; }
-@media (max-width: 1080px) {
+/* Ngưỡng 1219px: đo với menu hiện tại (6 mục + 2 nút), từ 1220px logo – menu – nút cách nhau ≥ 23px. */
+@media (max-width: 1219px) {
   .site-nav { display: none; }
   .site-menu-toggle { display: grid; }
   .site-mobile-menu--open { position: fixed; inset: var(--header-height) 0 0; z-index: 39; display: block; overflow-y: auto; border-top: 1px solid var(--color-line); background: white; padding: 12px 20px 32px; }

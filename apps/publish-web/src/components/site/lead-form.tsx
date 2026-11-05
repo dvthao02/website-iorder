@@ -50,8 +50,8 @@ export function LeadForm({ title, description, submitLabel, needOptions, trialTi
       <Field label="Họ và tên" required><input autoComplete="name" className={inputClassName} name="name" placeholder="Nguyễn Văn A" required /></Field>
       <Field label="Số điện thoại" required><input autoComplete="tel" className={inputClassName} inputMode="tel" name="phone" placeholder="09xx xxx xxx" required /></Field>
       <Field label="Email"><input autoComplete="email" className={inputClassName} name="email" placeholder="ten@congty.vn" type="email" /></Field>
-      <Field label="Mô hình kinh doanh"><input className={inputClassName} name="businessModel" placeholder="Ví dụ: quán cà phê, cửa hàng bán lẻ" /></Field>
-      <Field label="Số chi nhánh/quầy"><input className={inputClassName} name="branches" placeholder="Ví dụ: 1 chi nhánh, 2 quầy" /></Field>
+      <Field label="Mô hình kinh doanh"><input className={inputClassName} name="businessModel" placeholder="VD: quán cà phê, bán lẻ" /></Field>
+      <Field label="Số chi nhánh/quầy"><input className={inputClassName} name="branches" placeholder="VD: 1 chi nhánh, 2 quầy" /></Field>
       <Field label="Nhu cầu chính">{needOptions.length
         ? <div className="relative"><select className={`${inputClassName} appearance-none pr-10`} name="need"><option value="">Chọn nhu cầu</option>{needOptions.map(option => <option key={option}>{option}</option>)}</select><ChevronDown aria-hidden="true" className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-muted" size={18} /></div>
         : <input className={inputClassName} name="need" />}</Field>

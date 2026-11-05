@@ -49,7 +49,7 @@ function RichNodeView({ node, path, headingId }: { node: RichNode; path: string;
     case "hardBreak": return <br />;
     case "paragraph": return <p>{children(node.content, path)}</p>;
     case "heading": {
-      const className = node.attrs.level === 2 ? "clear-both pt-6 scroll-mt-24 text-2xl font-bold tracking-tight text-slate-950" : node.attrs.level === 3 ? "pt-2 scroll-mt-24 text-xl font-bold text-slate-950" : "text-lg font-bold text-slate-900";
+      const className = node.attrs.level === 2 ? "clear-both pt-6 text-2xl font-bold tracking-tight text-slate-950" : node.attrs.level === 3 ? "pt-2 text-xl font-bold text-slate-950" : "text-lg font-bold text-slate-900";
       if (node.attrs.level === 2) return <h2 className={className} id={headingId}>{children(node.content, path)}</h2>;
       if (node.attrs.level === 3) return <h3 className={className} id={headingId}>{children(node.content, path)}</h3>;
       return <h4 className={className}>{children(node.content, path)}</h4>;

@@ -29,7 +29,7 @@ export type SectionSpace = keyof typeof spacing;
 
 // Một phần trang: nền + khoảng cách trên dưới + khung ngang. Cao theo nội dung (chỉ phần đầu trang chiếm cả màn hình).
 export function Section({ children, tone = "plain", space = "md", width = "default", id, label, className = "" }: { children: ReactNode; tone?: SectionTone; space?: SectionSpace; width?: "default" | "narrow" | "text"; id?: string | null; label?: string; className?: string }) {
-  return <section aria-label={label} className={`${id ? "scroll-mt-20" : ""} ${tones[tone]} ${className}`.trim()} data-reveal="" id={id ?? undefined}><Container className={spacing[space]} width={width}>{children}</Container></section>;
+  return <section aria-label={label} className={`${tones[tone]} ${className}`.trim()} data-reveal="" id={id ?? undefined}><Container className={spacing[space]} width={width}>{children}</Container></section>;
 }
 
 // Phần trang của một khối: nền, khoảng cách, mã neo lấy từ vỏ chung (resolveBlockFrames).

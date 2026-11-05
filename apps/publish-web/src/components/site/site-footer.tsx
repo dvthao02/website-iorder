@@ -19,8 +19,7 @@ const tel = (phone: string) => `tel:${phone.replace(/[^\d+]/g, "")}`;
 // Mạng xã hội: logo đúng màu thương hiệu trong nút tròn trắng; kho ứng dụng: nút viên thuốc.
 const socialOrder: Array<[keyof ExternalLinks, string, ReactNode]> = [["facebook", "Facebook", <FacebookIcon key="facebook" size={22} />], ["zalo", "Zalo", <ZaloIcon key="zalo" size={22} />], ["youtube", "YouTube", <YouTubeIcon key="youtube" size={22} />]];
 const storeOrder: Array<[keyof ExternalLinks, string]> = [["appStore", "App Store"], ["googlePlay", "Google Play"]];
-// Lối vào ứng dụng (đăng nhập, dùng thử): cùng kiểu nút viên thuốc với kho ứng dụng.
-const appLinkOrder: Array<[keyof ExternalLinks, string]> = [["appLogin", "Đăng nhập ứng dụng"], ["trial", "Dùng thử"]];
+// Đăng nhập ứng dụng và Đăng ký dùng thử đã có ở header (luôn hiện khi cuộn) nên chân trang không lặp lại.
 
 // Chân trang: cột thông tin doanh nghiệp (có biểu tượng), các cột menu chân trang từ CMS, dòng bản quyền.
 export async function SiteFooter({ profile, navigation, externalLinks, tagline }: { profile: Profile; navigation: NavigationItems; externalLinks: ExternalLinks | null; tagline: string | null }) {
@@ -35,8 +34,7 @@ export async function SiteFooter({ profile, navigation, externalLinks, tagline }
     profile?.supportEmail ? { icon: Mail, label: profile.supportEmail, href: `mailto:${profile.supportEmail}` } : null,
     profile?.workingHours ? { icon: Clock, label: profile.workingHours, href: null } : null,
   ].filter((entry) => entry !== null);
-  const appLinks = appLinkOrder.filter(([key]) => externalLinks?.[key]);
-  if (!profile && !groups.length && !appLinks.length && !stores.length && !socials.length) return null;
+  if (!profile && !groups.length && !stores.length && !socials.length) return null;
 
   return <footer className="site-footer">
     <div className="site-footer__inner" style={{ "--footer-columns": Math.max(groups.length, 1) } as CSSProperties}>
@@ -45,8 +43,7 @@ export async function SiteFooter({ profile, navigation, externalLinks, tagline }
         {tagline ? <p className="site-footer__tagline">{tagline}</p> : null}
         {profile?.legalName ? <p className="site-footer__legal">{profile.legalName}</p> : null}
         <ul className="site-footer__contact">{contact.map(({ icon: Icon, label, href }) => <li key={label}><span aria-hidden="true" className="site-footer__contact-icon"><Icon size={16} /></span>{href ? <a href={href}>{label}</a> : <span>{label}</span>}</li>)}</ul>
-        {appLinks.length || stores.length || socials.length ? <div className="site-footer__apps">
-          {appLinks.length ? <ul aria-label="Ứng dụng iOrder" className="site-footer__stores">{appLinks.map(([key, label]) => <li key={key}><a href={externalLinks![key]!} rel="noopener noreferrer" target="_blank">{label}</a></li>)}</ul> : null}
+        {stores.length || socials.length ? <div className="site-footer__apps">
           {stores.length ? <ul aria-label="Tải ứng dụng" className="site-footer__stores">{stores.map(([key, label]) => <li key={key}><a href={externalLinks![key]!} rel="noopener noreferrer" target="_blank">{label}</a></li>)}</ul> : null}
           {socials.length ? <ul aria-label="Mạng xã hội" className="site-footer__socials">{socials.map(([key, label, mark]) => <li key={key}><a aria-label={label} href={externalLinks![key]!} rel="noopener noreferrer" target="_blank" title={label}>{mark}</a></li>)}</ul> : null}
         </div> : null}
