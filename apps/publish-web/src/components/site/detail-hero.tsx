@@ -33,8 +33,8 @@ export function DetailHero({ back, label, title, summary, image, imageStyle = "c
         <Actions primary={primary} secondary={secondary} />
       </div>
       {image ? imageStyle === "product"
-        ? <div className="rounded-card border border-line bg-white p-4 shadow-card"><Image alt={image.alt} className="aspect-[4/3] w-full rounded-xl bg-slate-50 object-contain p-4" height={image.height ?? 750} priority sizes="(min-width: 1024px) 600px, 100vw" src={image.url} width={image.width ?? 1000} /></div>
-        : <Image alt={image.alt} className="h-auto w-full rounded-card border border-line bg-white shadow-card" height={image.height ?? 630} priority sizes="(min-width: 1024px) 600px, 100vw" src={image.url} width={image.width ?? 1200} /> : null}
+        ? <div className="rounded-card border border-line bg-white p-4 shadow-card"><Image alt={image.alt} className="aspect-[4/3] w-full rounded-xl bg-slate-50 object-contain p-4" height={image.height ?? 750} priority sizes="(min-width: 1024px) 50vw, 100vw" src={image.url} width={image.width ?? 1000} /></div>
+        : <Image alt={image.alt} className="h-auto w-full rounded-card border border-line bg-white shadow-card" height={image.height ?? 630} priority sizes="(min-width: 1024px) 50vw, 100vw" src={image.url} width={image.width ?? 1200} /> : null}
     </div>
   </section>;
 }

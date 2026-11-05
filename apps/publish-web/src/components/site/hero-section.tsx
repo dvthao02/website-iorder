@@ -23,7 +23,7 @@ function HeroText({ data, first, dark = false, center = false, headingAs }: { da
   const Heading = headingAs ?? (first ? "h1" : "h2");
   return <div className={center ? "mx-auto max-w-3xl text-center" : ""}>
     {data.eyebrow ? <Eyebrow dark={dark}>{data.eyebrow}</Eyebrow> : null}
-    <Heading className={`mb-0 text-4xl leading-[1.12] font-bold tracking-tight text-balance sm:text-5xl lg:text-[clamp(2.25rem,5.4svh,4rem)] ${dark ? "text-white" : "text-ink"}`}>{data.title}</Heading>
+    <Heading className={`mb-0 text-4xl leading-[1.12] font-bold tracking-tight text-balance sm:text-5xl lg:text-[clamp(2.25rem,5.4svh,5rem)] ${dark ? "text-white" : "text-ink"}`}>{data.title}</Heading>
     {data.description ? <p className={`mt-6 text-lg leading-8 sm:text-xl ${dark ? "text-white/90" : "text-muted"}`}>{data.description}</p> : null}
     {data.highlights.length ? <ul className={`hero-highlights mt-8 grid gap-4 sm:grid-cols-3 ${center ? "text-left" : ""}`}>{data.highlights.map((item, index) => <li className="flex items-start gap-3" key={`${item.title}-${index}`}>
       <span className={`grid size-10 shrink-0 place-items-center rounded-full ${dark ? "bg-white/15 text-white" : "bg-brand-50 text-brand-700"}`}><CircleCheck aria-hidden="true" size={20} /></span>
@@ -84,7 +84,7 @@ export async function HeroSection({ data, first }: { data: HeroData; first: bool
   const sectionTone = tone === "light" ? "bg-white" : "bg-gradient-to-b from-brand-50/70 to-white";
   if (data.layout === "centered") {
     const frame = "h-auto w-full rounded-3xl border border-line shadow-xl shadow-slate-900/10";
-    const sizes = "(min-width: 1024px) 1024px, 100vw";
+    const sizes = "(min-width: 1024px) 70vw, 100vw";
     return <section className={`screen-hero border-b border-line ${sectionTone}`} {...heroTop(first, "light")}>
       <div className={`${container} py-12 sm:py-16 lg:pt-10 lg:pb-24`}>
         <HeroText center data={data} first={first} />
@@ -96,7 +96,7 @@ export async function HeroSection({ data, first }: { data: HeroData; first: bool
 
   // Chữ – ảnh hai cột (mặc định) hoặc đảo chiều.
   const reverse = data.layout === "split_reverse";
-  const splitSizes = "(min-width: 1024px) 560px, 100vw";
+  const splitSizes = "(min-width: 1024px) 50vw, 100vw";
   return <section className={`screen-hero relative overflow-hidden border-b border-line ${sectionTone}`} {...heroTop(first, "light")}>
     <div className={`${container} grid items-center gap-12 py-12 sm:py-16 lg:pt-10 lg:pb-24 ${image ? (reverse ? "lg:grid-cols-[1fr_1.05fr]" : "lg:grid-cols-[1.05fr_1fr]") : ""}`}>
       <div className={`${image ? "" : "max-w-3xl"} ${reverse ? "lg:order-2" : ""}`}><HeroText data={data} first={first} /></div>
@@ -137,7 +137,7 @@ async function PanelHero({ data, first }: { data: HeroData; first: boolean }) {
       const image = images[index];
       return <div key={index}>
         <HeroText center data={entry.text} first={first} headingAs={headingAs(index)} />
-        {image ? <Image alt={image.altText ?? ""} className="mx-auto mt-12 h-auto w-full max-w-5xl rounded-3xl border border-line shadow-xl shadow-slate-900/10" height={800} priority={first && index === 0} sizes="(min-width: 1024px) 1024px, 100vw" src={image.url} width={1400} /> : null}
+        {image ? <Image alt={image.altText ?? ""} className="mx-auto mt-12 h-auto w-full max-w-5xl rounded-3xl border border-line shadow-xl shadow-slate-900/10" height={800} priority={first && index === 0} sizes="(min-width: 1024px) 70vw, 100vw" src={image.url} width={1400} /> : null}
       </div>;
     });
     return <section className={`screen-hero border-b border-line ${sectionTone}`} {...heroTop(first, "light")}>
@@ -151,7 +151,7 @@ async function PanelHero({ data, first }: { data: HeroData; first: boolean }) {
     const image = images[index];
     return <div className={`grid items-center gap-12 ${reverse ? "lg:grid-cols-[1fr_1.05fr]" : "lg:grid-cols-[1.05fr_1fr]"}`} key={index}>
       <div className={reverse ? "lg:order-2" : ""}><HeroText data={entry.text} first={first} headingAs={headingAs(index)} /></div>
-      {image ? <Image alt={image.altText ?? ""} className={`h-auto w-full ${reverse ? "lg:order-1" : ""}`} height={800} priority={first && index === 0} sizes="(min-width: 1024px) 560px, 100vw" src={image.url} width={1200} /> : <div aria-hidden className="hidden lg:block" />}
+      {image ? <Image alt={image.altText ?? ""} className={`h-auto w-full ${reverse ? "lg:order-1" : ""}`} height={800} priority={first && index === 0} sizes="(min-width: 1024px) 50vw, 100vw" src={image.url} width={1200} /> : <div aria-hidden className="hidden lg:block" />}
     </div>;
   });
   return <section className={`screen-hero relative overflow-hidden border-b border-line ${sectionTone}`} {...heroTop(first, "light")}>

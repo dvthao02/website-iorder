@@ -43,7 +43,7 @@ async function CardGrid({ items, visual = false }: { items: CardItem[]; visual?:
       const photo = photos[index];
       return <Card flush href={item.href} key={`${item.title}-${index}`}>
         <div className={`relative w-full overflow-hidden bg-subtle ${photo ? "aspect-[16/10]" : "aspect-[16/5] sm:aspect-[16/10]"}`}>
-          {photo ? <Image alt={photo.altText ?? item.title} className="object-cover transition duration-500 group-hover:scale-[1.03]" fill sizes="(min-width: 1280px) 280px, (min-width: 640px) 50vw, 100vw" src={photo.url} />
+          {photo ? <Image alt={photo.altText ?? item.title} className="object-cover transition duration-500 group-hover:scale-[1.03]" fill sizes="(min-width: 1280px) 25vw, (min-width: 640px) 50vw, 100vw" src={photo.url} />
             : <span aria-hidden="true" className={`absolute inset-0 grid place-items-center ${accentClass(index)}`}>{item.icon ? <BlockIcon name={item.icon} size={56} strokeWidth={1.4} /> : <span className="text-display font-bold">{String(index + 1).padStart(2, "0")}</span>}</span>}
         </div>
         <div className="flex flex-1 flex-col p-5 sm:p-6">
@@ -153,7 +153,7 @@ async function Block({ block, first, frame }: { block: PageBlock; first: boolean
     case "image": {
       const media = await getMediaById(block.data.mediaId);
       return media?.mimeType.startsWith("image/") ? <FrameSection frame={frame}><figure className="m-0">
-        <Image alt={block.data.alt ?? media.altText ?? ""} className="h-auto w-full rounded-card border border-line" height={800} sizes="(min-width: 1152px) 1104px, 100vw" src={media.url} width={1200} />
+        <Image alt={block.data.alt ?? media.altText ?? ""} className="h-auto w-full rounded-card border border-line" height={800} sizes="(min-width: 1152px) 92vw, 100vw" src={media.url} width={1200} />
         {block.data.caption ? <figcaption className="mt-3 text-center text-small text-muted">{block.data.caption}</figcaption> : null}
       </figure></FrameSection> : null;
     }

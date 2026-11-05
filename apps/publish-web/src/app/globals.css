@@ -83,11 +83,10 @@
  * Khung nội dung dùng chung (đầu trang, chân trang, mọi phần trang) nới rộng theo màn hình để màn lớn không bị dồn vào giữa;
  * cỡ chữ gốc tăng nhẹ trên màn rất rộng (mọi khoảng cách dùng rem nên tăng theo).
  */
-:root { --container-max: 1240px; --gutter: 24px; }
-@media (min-width: 1440px) { :root { --container-max: 1400px; } }
-@media (min-width: 1680px) { :root { --container-max: 1560px; } }
-@media (min-width: 1920px) { :root { --container-max: 1680px; } html { font-size: 106.25%; } }
-@media (min-width: 2200px) { :root { --container-max: 1840px; } html { font-size: 112.5%; } }
+/* Co giãn liên tục theo bề rộng màn (không theo bậc): khung nội dung = 92% bề rộng (tối thiểu 1240px, tối đa 2800px) nên màn rộng không bị dồn vào giữa;
+   cỡ chữ gốc tăng 0,33px mỗi 100px bề rộng từ 1440px (16px ở ≤1440px, ~18,3px ở 2133px, tối đa 24px) — chữ, khoảng cách, nút, thanh menu đều dùng rem nên phóng theo. */
+:root { --container-max: clamp(1240px, 92vw, 2800px); --gutter: 24px; }
+html { font-size: clamp(16px, calc(16px + (100vw - 1440px) * 0.0033), 24px); }
 @media (max-width: 640px) { :root { --gutter: 16px; } }
 /*
  * Nút nổi (lên đầu trang bên trái, liên hệ bên phải) luôn nằm ngoài mép nội dung: từ 1025px khung chừa mỗi bên
@@ -118,7 +117,7 @@ body { margin: 0; background: var(--color-canvas); color: var(--color-ink); font
  * Chính = nền thương hiệu; phụ = nền trắng chữ xanh; sáng/viền sáng dùng trên nền tối hoặc ảnh.
  */
 .header-cta, .button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border-radius: var(--radius-control); font-size: 1rem; font-weight: 600; transition: background 160ms ease, border-color 160ms ease, box-shadow 160ms ease, color 160ms ease; }
-.button { min-height: 48px; padding: 0 24px; }
+.button { min-height: 3rem; padding: 0 1.5rem; }
 .button--primary { background: var(--color-brand-600); box-shadow: var(--shadow-brand); color: white; }
 .button--primary:hover { background: var(--color-brand-700); }
 .button--secondary { border: 1px solid var(--color-line); background: white; color: var(--color-brand-700); }
@@ -134,8 +133,8 @@ body { margin: 0; background: var(--color-canvas); color: var(--color-ink); font
  * viền và bóng. Nền tối (ảnh nền, trượt ảnh) thì chữ menu và logo chuyển trắng khi còn trong suốt.
  * Trang không có phần đầu trang giữ header trắng.
  */
-:root { --header-height: 76px; }
-@media (max-width: 640px) { :root { --header-height: 64px; } }
+:root { --header-height: 4.75rem; }
+@media (max-width: 640px) { :root { --header-height: 4rem; } }
 .site-header { position: sticky; top: 0; z-index: 40; border-bottom: 1px solid rgb(226 232 240 / .92); background: rgb(255 255 255 / .98); transition: box-shadow 200ms ease, background 200ms ease, border-color 200ms ease; }
 .site-header--scrolled { box-shadow: 0 12px 30px rgb(15 23 42 / .08); }
 body:has([data-hero-top]) .site-header:not(.site-header--scrolled) { border-bottom-color: transparent; background: transparent; }
@@ -147,11 +146,11 @@ body:has([data-hero-top="dark"]) .site-header:not(.site-header--scrolled) .site-
 body:has([data-hero-top="dark"]) .site-header:not(.site-header--scrolled) .site-nav__link:hover { color: rgb(255 255 255 / .8); }
 body:has([data-hero-top="dark"]) .site-header:not(.site-header--scrolled) .brand img { filter: brightness(0) invert(1); }
 .site-header__inner { display: flex; align-items: center; gap: clamp(16px, 2vw, 40px); width: 100%; max-width: var(--site-width); height: var(--header-height); margin: 0 auto; padding: 0 var(--gutter); }
-.site-header__actions { display: flex; flex-shrink: 0; align-items: center; gap: 10px; margin-left: auto; }
+.site-header__actions { display: flex; flex-shrink: 0; align-items: center; gap: .625rem; margin-left: auto; }
 .brand { display: inline-flex; flex-shrink: 0; align-items: center; gap: 8px; font-size: 1.25rem; font-weight: 800; letter-spacing: -.04em; }
 .brand__mark { display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 9px; background: var(--color-brand-600); color: white; font: italic 1.5rem Georgia, serif; }
 /* Tỉ lệ header theo iorder.com.vn: logo 38px, chữ menu 16,5px, nút cao 42px chữ 15,5px — logo, chữ và nút cùng tâm dọc. */
-.header-cta { min-height: 42px; padding: 0 20px; font-size: .97rem; font-weight: 600; }
+.header-cta { min-height: 2.625rem; padding: 0 1.25rem; font-size: .97rem; font-weight: 600; }
 .header-cta--primary { background: var(--color-brand-600); color: white; }
 .header-cta--primary:hover { background: var(--color-brand-700); }
 .header-cta--secondary { border: 1px solid var(--color-line); background: white; color: var(--color-ink); }
@@ -161,7 +160,7 @@ body:has([data-hero-top="dark"]) .site-header:not(.site-header--scrolled) .brand
 .site-nav { display: flex; flex: 1 1 auto; justify-content: center; min-width: 0; }
 .site-nav__list { display: flex; align-items: center; gap: 2px; margin: 0; padding: 0; list-style: none; }
 .site-nav__item { position: relative; }
-.site-nav__link { display: inline-flex; align-items: center; gap: 4px; min-height: 42px; padding: 0 14px; border-radius: 12px; color: var(--color-ink); font-size: 1.03rem; font-weight: 600; white-space: nowrap; transition: background 150ms ease, color 150ms ease; }
+.site-nav__link { display: inline-flex; align-items: center; gap: 4px; min-height: 2.625rem; padding: 0 .875rem; border-radius: .75rem; color: var(--color-ink); font-size: 1.03rem; font-weight: 600; white-space: nowrap; transition: background 150ms ease, color 150ms ease; }
 .site-nav__link:hover { color: var(--color-brand-600); }
 .site-nav__link--active { background: var(--color-brand-50); color: var(--color-brand-700); }
 .site-nav__link:focus-visible, .site-nav__dropdown-link:focus-visible { outline: 3px solid rgb(21 112 224 / .3); outline-offset: 2px; }

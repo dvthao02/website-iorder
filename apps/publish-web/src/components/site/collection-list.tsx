@@ -47,7 +47,7 @@ async function renderItems(data: CollectionListData, Card: "h2" | "h3") {
     case "posts": {
       const posts = take((await getPublishedPostSummaries()).filter(post => post.type !== "guide"), data.limit);
       return posts.length ? <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{posts.map(post => <Link className={cardClass} href={`/tin-tuc/${post.slug}`} key={post.id}>
-        {post.cover ? <Image alt={post.cover.altText ?? post.title} className="mb-5 aspect-[16/9] w-full rounded-control bg-subtle object-cover" height={338} sizes="(min-width: 1024px) 400px, (min-width: 640px) 50vw, 100vw" src={post.cover.url} width={600} /> : null}
+        {post.cover ? <Image alt={post.cover.altText ?? post.title} className="mb-5 aspect-[16/9] w-full rounded-control bg-subtle object-cover" height={338} sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw" src={post.cover.url} width={600} /> : null}
         <p className={`mb-3 ${chipClass}`}>{postTypeLabel[post.type]}</p>
         <Card className={`${titleClass} line-clamp-2`}>{post.title}</Card>
         {post.excerpt ? <p className={`${textClass} line-clamp-3`}>{post.excerpt}</p> : null}
@@ -79,7 +79,7 @@ async function renderItems(data: CollectionListData, Card: "h2" | "h3") {
       const equipment = take(await getEquipment(true), data.limit);
       // Ảnh thiết bị cùng khung 4:3 nền nhạt (ảnh nền trong suốt vẫn đều nhau); 4 cột trên màn rộng.
       return equipment.length ? <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">{equipment.map(item => <Link className={cardClass} href={`/thiet-bi/${item.slug}`} key={item.id}>
-        {item.coverUrl ? <Image alt={item.coverAlt ?? item.name} className="mb-5 aspect-[4/3] w-full rounded-control bg-subtle object-contain p-2" height={450} sizes="(min-width: 1280px) 320px, (min-width: 640px) 50vw, 100vw" src={item.coverUrl} width={600} /> : null}
+        {item.coverUrl ? <Image alt={item.coverAlt ?? item.name} className="mb-5 aspect-[4/3] w-full rounded-control bg-subtle object-contain p-2" height={450} sizes="(min-width: 1280px) 25vw, (min-width: 640px) 50vw, 100vw" src={item.coverUrl} width={600} /> : null}
         <p className={`mb-2 ${chipClass}`}>{item.groupName}</p>
         <Card className={titleClass}>{item.name}</Card>
         {item.summary ? <p className={`${textClass} line-clamp-3`}>{item.summary}</p> : null}
@@ -91,7 +91,7 @@ async function renderItems(data: CollectionListData, Card: "h2" | "h3") {
     case "service": {
       const offerings = take(await getPublishedOfferingSummaries(data.source), data.limit);
       return offerings.length ? <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{offerings.map(offering => <Link className={cardClass} href={`${offeringPath[data.source as keyof typeof offeringPath]}/${offering.slug}`} key={offering.id}>
-        {offering.cover ? <Image alt={offering.cover.altText ?? `Ảnh minh họa ${offering.title}`} className="mb-5 aspect-[16/10] w-full rounded-control bg-brand-50 object-cover" height={offering.cover.height ?? 630} sizes="(min-width: 1024px) 400px, (min-width: 640px) 50vw, 100vw" src={offering.cover.url} width={offering.cover.width ?? 1200} /> : null}
+        {offering.cover ? <Image alt={offering.cover.altText ?? `Ảnh minh họa ${offering.title}`} className="mb-5 aspect-[16/10] w-full rounded-control bg-brand-50 object-cover" height={offering.cover.height ?? 630} sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw" src={offering.cover.url} width={offering.cover.width ?? 1200} /> : null}
         {offering.isFeatured ? <p className={`mb-3 ${chipClass}`}>Nổi bật</p> : null}
         <Card className={titleClass}>{offering.title}</Card>
         {offering.summary ? <p className={textClass}>{offering.summary}</p> : null}

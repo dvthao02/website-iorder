@@ -18,7 +18,7 @@ export async function MediaTextSection({ data, frame }: { data: Extract<PageBloc
         <CheckList items={data.bullets} />
         <Actions center={!image} primary={data.primaryAction} secondary={data.secondaryAction} />
       </div>
-      {image ? <div className={imageLeft ? "lg:order-1" : ""}><Image alt={image.altText ?? data.title} className="h-auto w-full rounded-card" height={900} sizes="(min-width: 1024px) 540px, 100vw" src={image.url} width={1200} /></div> : null}
+      {image ? <div className={imageLeft ? "lg:order-1" : ""}><Image alt={image.altText ?? data.title} className="h-auto w-full rounded-card" height={900} sizes="(min-width: 1024px) 45vw, 100vw" src={image.url} width={1200} /></div> : null}
     </div>
   </FrameSection>;
 }
