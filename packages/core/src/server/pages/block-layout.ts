@@ -15,7 +15,7 @@ export function blockSupportsDarkTone(type: PageBlock["type"]) { return darkCapa
 
 // Dải mỏng (logo, ảnh đơn) và danh sách nằm ngay dưới phần đầu trang danh sách (không tiêu đề) dùng khoảng cách gọn.
 function defaultSpacing(block: PageBlock): SectionSpacing {
-  if (block.type === "partners" || block.type === "image") return "sm";
+  if (block.type === "partners" || block.type === "image" || block.type === "cta") return "sm";
   if (block.type === "collection_list" && !block.data.title) return "sm";
   return "md";
 }

@@ -6,7 +6,7 @@ import type { PageBlock } from "@iorder/core/server/pages/pages.contract";
 import { resolveSettingLinks } from "@iorder/core/server/pages/setting-links";
 import { getMediaById } from "@/lib/backend";
 import { getExternalLinks, getPartners, getTestimonials } from "@/lib/backend";
-import { ButtonLink, Card, CardText, CardTitle, FaqList, FrameSection, IconTile, MoreLink, SectionHeading, TextLink, accentClass, gridColumns } from "@/components/ui";
+import { ButtonLink, Card, CardText, CardTitle, FaqList, FrameSection, IconTile, MoreLink, SectionHeading, TextLink, gridColumns } from "@/components/ui";
 import { BlockIcon } from "./block-icon";
 import { CollectionList } from "./collection-list";
 import { HeroSection } from "./hero-section";
@@ -24,6 +24,9 @@ export async function PageBlockRenderer({ blocks, previous = null }: { blocks: P
   return <>{await Promise.all(enabled.map(async (block, index) => <Block block={block} first={index === 0} frame={frames[index]} key={`${block.type}-${index}`} />))}</>;
 }
 
+// Thẻ ảnh chưa có ảnh: mảng xanh thương hiệu nhạt + biểu tượng, cùng một tông cho cả lưới (không xoay màu nhấn để trang khỏi rối).
+const photoFallback = "bg-gradient-to-br from-brand-50 to-brand-100 text-brand-600";
+
 type CardItem = Extract<PageBlock, { type: "features" | "industries" | "ecosystem" | "process" }>["data"]["items"][number];
 
 // Lưới thẻ: ô biểu tượng (hoặc số thứ tự khi thẻ chưa chọn biểu tượng), tiêu đề, mô tả, liên kết.
@@ -40,7 +43,7 @@ async function CardGrid({ items, visual = false, bento = false }: { items: CardI
     const leadPhoto = photos[0];
     const leadBody = <>
       {leadPhoto ? <Image alt={leadPhoto.altText ?? lead.title} className="object-cover transition duration-700 group-hover:scale-[1.03]" fill sizes="(min-width: 1024px) 50vw, 100vw" src={leadPhoto.url} /> : null}
-      <span aria-hidden="true" className="absolute inset-0 bg-gradient-to-t from-navy via-navy/55 to-navy/0" />
+      <span aria-hidden="true" className="absolute inset-0 bg-gradient-to-t from-navy via-navy/75 to-navy/30" />
       <span className="relative mt-auto flex flex-col gap-3 p-6 text-white sm:p-8">
         <span className="text-h2 leading-tight font-bold tracking-tight text-balance">{lead.title}</span>
         {lead.description ? <span className="max-w-xl text-body text-white/85">{lead.description}</span> : null}
@@ -55,7 +58,7 @@ async function CardGrid({ items, visual = false, bento = false }: { items: CardI
         return <Card flush href={item.href} key={`${item.title}-${index}`}>
           <div className={`relative w-full overflow-hidden bg-subtle ${photo ? "aspect-[16/9]" : "aspect-[16/5] sm:aspect-[16/9]"}`}>
             {photo ? <Image alt={photo.altText ?? item.title} className="object-cover transition duration-500 group-hover:scale-[1.03]" fill sizes="(min-width: 1024px) 25vw, 50vw" src={photo.url} />
-              : <span aria-hidden="true" className={`absolute inset-0 grid place-items-center ${accentClass(index)}`}>{item.icon ? <BlockIcon name={item.icon} size={48} strokeWidth={1.4} /> : null}</span>}
+              : <span aria-hidden="true" className={`absolute inset-0 grid place-items-center ${photoFallback}`}>{item.icon ? <BlockIcon name={item.icon} size={48} strokeWidth={1.4} /> : null}</span>}
           </div>
           <div className="flex flex-1 flex-col p-5">
             <CardTitle>{item.title}</CardTitle>
@@ -80,7 +83,7 @@ async function CardGrid({ items, visual = false, bento = false }: { items: CardI
       return <Card flush href={item.href} key={`${item.title}-${index}`}>
         <div className={`relative w-full overflow-hidden bg-subtle ${photo ? "aspect-[16/10]" : "aspect-[16/5] sm:aspect-[16/10]"}`}>
           {photo ? <Image alt={photo.altText ?? item.title} className="object-cover transition duration-500 group-hover:scale-[1.03]" fill sizes="(min-width: 1280px) 25vw, (min-width: 640px) 50vw, 100vw" src={photo.url} />
-            : <span aria-hidden="true" className={`absolute inset-0 grid place-items-center ${accentClass(index)}`}>{item.icon ? <BlockIcon name={item.icon} size={56} strokeWidth={1.4} /> : <span className="text-display font-bold">{String(index + 1).padStart(2, "0")}</span>}</span>}
+            : <span aria-hidden="true" className={`absolute inset-0 grid place-items-center ${photoFallback}`}>{item.icon ? <BlockIcon name={item.icon} size={56} strokeWidth={1.4} /> : <span className="text-display font-bold">{String(index + 1).padStart(2, "0")}</span>}</span>}
         </div>
         <div className="flex flex-1 flex-col p-5 sm:p-6">
           <CardTitle>{item.title}</CardTitle>
