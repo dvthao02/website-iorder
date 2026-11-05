@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { resolveBlockFrames, type BlockFrame, type SectionSurface } from "@iorder/core/server/pages/block-layout";
 import type { PageBlock } from "@iorder/core/server/pages/pages.contract";
+import { resolveSettingLinks } from "@iorder/core/server/pages/setting-links";
 import { getMediaById } from "@/lib/backend";
 import { getExternalLinks, getPartners, getTestimonials } from "@/lib/backend";
 import { ButtonLink, Card, CardText, CardTitle, FaqList, FrameSection, IconTile, MoreLink, SectionHeading, TextLink, accentClass, gridColumns } from "@/components/ui";
@@ -15,8 +16,9 @@ import { RichContent } from "./rich-content";
 // Vẽ các khối trang theo thứ tự CMS. Nền, khoảng cách và mã neo của mọi khối đi qua một quy luật chung
 // (resolveBlockFrames: nền tự xen kẽ, khoảng cách chuẩn); giao diện từng khối dùng component nền @/components/ui.
 // `previous`: nền của phần ngay phía trên khối đầu tiên (ví dụ phần đầu trang danh sách).
+// Nút "theo Cài đặt" (`setting:trial`…) được đổi sang địa chỉ hiện tại trước khi vẽ.
 export async function PageBlockRenderer({ blocks, previous = null }: { blocks: PageBlock[]; previous?: SectionSurface | null }) {
-  const enabled = blocks.filter(block => block.isEnabled);
+  const enabled = resolveSettingLinks(blocks.filter(block => block.isEnabled), await getExternalLinks());
   const frames = resolveBlockFrames(enabled, previous);
   return <>{await Promise.all(enabled.map(async (block, index) => <Block block={block} first={index === 0} frame={frames[index]} key={`${block.type}-${index}`} />))}</>;
 }

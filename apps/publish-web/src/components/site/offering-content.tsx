@@ -1,12 +1,15 @@
 import Link from "next/link";
 import { ArrowRight, Check, Sparkles } from "lucide-react";
 import type { OfferingContent } from "@iorder/core/server/offerings/offering-content.contract";
+import { resolveSettingLinks } from "@iorder/core/server/pages/setting-links";
+import { getExternalLinks } from "@/lib/backend";
 import { Card, FaqList, IconTile, Section, SectionHeading } from "@/components/ui";
 import { PricingSection } from "./section-blocks";
 
 // Nội dung trang chi tiết sản phẩm/giải pháp/dịch vụ, cùng nhịp với khối trang (nền trắng / xanh nhạt xen kẽ,
 // khoảng cách chuẩn): tổng quan → tính năng → lợi ích → bảng giá → nội dung liên quan + câu hỏi thường gặp.
-export function OfferingContent({ content }: { content: OfferingContent }) {
+export async function OfferingContent({ content }: { content: OfferingContent }) {
+  const pricing = content.pricing ? resolveSettingLinks(content.pricing, await getExternalLinks()) : null;
   const present = ["overview", content.features.length ? "features" : null, content.benefits.length ? "benefits" : null, content.pricing ? "pricing" : null, content.items.length || content.faq.length ? "related" : null].filter(Boolean);
   const tone = (section: string): "white" | "tinted" => present.indexOf(section) % 2 === 0 ? "white" : "tinted";
   return <>
@@ -29,7 +32,7 @@ export function OfferingContent({ content }: { content: OfferingContent }) {
       </li>)}</ul>
     </Section> : null}
 
-    {content.pricing ? <PricingSection data={content.pricing} frame={{ tone: tone("pricing"), spacing: "md", anchor: "bang-gia" }} /> : null}
+    {pricing ? <PricingSection data={pricing} frame={{ tone: tone("pricing"), spacing: "md", anchor: "bang-gia" }} /> : null}
 
     {content.items.length || content.faq.length ? <Section tone={tone("related")} width="narrow">
       {content.items.length ? <div className={content.faq.length ? "mb-16" : ""}>
