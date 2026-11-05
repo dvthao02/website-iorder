@@ -23,9 +23,9 @@ function HeroText({ data, first, dark = false, center = false, headingAs }: { da
   const Heading = headingAs ?? (first ? "h1" : "h2");
   return <div className={center ? "mx-auto max-w-3xl text-center" : ""}>
     {data.eyebrow ? <Eyebrow dark={dark}>{data.eyebrow}</Eyebrow> : null}
-    <Heading className={`mb-0 text-4xl leading-[1.12] font-bold tracking-tight text-balance sm:text-5xl ${dark ? "text-white" : "text-ink"}`}>{data.title}</Heading>
+    <Heading className={`mb-0 text-4xl leading-[1.12] font-bold tracking-tight text-balance sm:text-5xl lg:text-[clamp(2.25rem,5.4svh,4rem)] ${dark ? "text-white" : "text-ink"}`}>{data.title}</Heading>
     {data.description ? <p className={`mt-6 text-lg leading-8 sm:text-xl ${dark ? "text-white/90" : "text-muted"}`}>{data.description}</p> : null}
-    {data.highlights.length ? <ul className={`mt-8 grid gap-4 sm:grid-cols-3 ${center ? "text-left" : ""}`}>{data.highlights.map((item, index) => <li className="flex items-start gap-3" key={`${item.title}-${index}`}>
+    {data.highlights.length ? <ul className={`hero-highlights mt-8 grid gap-4 sm:grid-cols-3 ${center ? "text-left" : ""}`}>{data.highlights.map((item, index) => <li className="flex items-start gap-3" key={`${item.title}-${index}`}>
       <span className={`grid size-10 shrink-0 place-items-center rounded-full ${dark ? "bg-white/15 text-white" : "bg-brand-50 text-brand-700"}`}><CircleCheck aria-hidden="true" size={20} /></span>
       <span><strong className={`block ${dark ? "text-white" : "text-slate-900"}`}>{item.title}</strong>{item.note ? <span className={`block text-sm ${dark ? "text-white/75" : "text-slate-500"}`}>{item.note}</span> : null}</span>
     </li>)}</ul> : null}
