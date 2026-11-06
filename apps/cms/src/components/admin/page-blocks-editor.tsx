@@ -10,7 +10,7 @@ import { isDarkColor } from "@iorder/core/server/pages/block-layout";
 import { youtubeEmbedUrl, youtubeVideoId } from "@iorder/core/server/shared/youtube";
 import { settingLinkHref, settingLinkKey, settingLinkOptions, type SettingLinkKey } from "@iorder/core/server/pages/setting-links";
 
-import { BlockAppearanceFields, ColorField } from "./block-appearance-fields";
+import { BlockAppearanceFields, ColorField, colorSwatches, defaultAppearance } from "./block-appearance-fields";
 import { MediaPicker } from "./media-picker";
 import { useAdminConfirm } from "./ui/admin-confirm-dialog";
 import { AdminStatusBadge } from "./ui/admin-feedback";
@@ -202,13 +202,29 @@ const heroImageHints: Record<Exclude<HeroLayout, "slider">, { label: string; hin
 };
 
 // Màu nền phần đầu trang; với kiểu ảnh nền là màu lớp phủ lên ảnh (nền sáng thì chữ đậm, nền tối thì chữ trắng).
-function HeroToneField({ data, onChange }: { data: HeroBlock["data"]; onChange: (tone: HeroTone) => void }) {
+// "Màu tự chọn…" lưu ở vỏ chung (appearance.tone = custom + backgroundColor): màu tối thì chữ, nút và menu phía trên tự chuyển sáng.
+function HeroToneField({ block, onChange, disabled }: { block: HeroBlock; onChange: (block: PageBlock) => void; disabled?: boolean }) {
+  const data = block.data;
   const background = data.layout === "background";
-  return <label className="admin-field">{background ? "Lớp phủ lên ảnh" : "Màu nền"}<select className="admin-input" onChange={event => onChange(event.target.value as HeroTone)} value={heroToneOf(data)}>
-    <option value="light">{background ? "Trắng (chữ đậm)" : "Trắng"}</option>
-    <option value="tinted">{background ? "Xanh biển nhạt (chữ đậm)" : "Xanh biển nhạt"}</option>
-    {background ? <option value="dark">Tối (chữ trắng)</option> : null}
-  </select></label>;
+  const appearance = { ...defaultAppearance, ...block.appearance };
+  const custom = appearance.tone === "custom";
+  const color = appearance.backgroundColor ?? colorSwatches[1].value;
+  function choose(value: string) {
+    if (value === "custom") onChange({ ...block, appearance: { ...appearance, tone: "custom", backgroundColor: color } });
+    else onChange({ ...block, data: { ...data, tone: value as HeroTone }, appearance: { ...appearance, tone: "auto" } });
+  }
+  return <div className="admin-field">
+    <label className="admin-field">{background ? "Lớp phủ lên ảnh" : "Màu nền"}<select className="admin-input" disabled={disabled} onChange={event => choose(event.target.value)} value={custom ? "custom" : heroToneOf(data)}>
+      <option value="light">{background ? "Trắng (chữ đậm)" : "Trắng"}</option>
+      <option value="tinted">{background ? "Xanh biển nhạt (chữ đậm)" : "Xanh biển nhạt"}</option>
+      {background ? <option value="dark">Tối (chữ trắng)</option> : null}
+      <option value="custom">Màu tự chọn…</option>
+    </select></label>
+    {custom ? <>
+      <ColorField disabled={disabled} label={background ? "Màu lớp phủ" : "Màu nền"} onChange={next => onChange({ ...block, appearance: { ...appearance, tone: "custom", backgroundColor: next ?? color } })} value={color} />
+      <small className="admin-help">{isDarkColor(color) ? "Màu tối: chữ, nút và menu phía trên tự chuyển sang màu sáng." : "Màu sáng: chữ đậm như bình thường."}{background ? " Độ đậm lớp phủ chỉnh ở mục Giao diện phần đầu trang bên dưới." : ""}</small>
+    </> : null}
+  </div>;
 }
 
 // Ảnh của các kiểu chữ – ảnh, ảnh nền, chữ ở giữa: ô đầu là `mediaId`, các ô sau là `extraMediaIds`.
@@ -275,7 +291,7 @@ function HeroFields({ block, onChange, disabled, onUploadingChange }: { block: H
       <NullableField label="Dòng ghi chú dưới nút (ví dụ: Dùng thử miễn phí 15 ngày)" value={data.footnote} onChange={footnote => set({ footnote })} />
       <HeroImagesFields data={data} disabled={disabled} onUploadingChange={onUploadingChange} set={set} />
       <HeroPanelsFields data={data} disabled={disabled} onUploadingChange={onUploadingChange} set={set} />
-      <HeroToneField data={data} onChange={tone => set({ tone })} />
+      <HeroToneField block={block} disabled={disabled} onChange={onChange} />
     </>}
     {slider ? <Section title={`Các ảnh trượt (${slides.length}/8)`}>
       {slides.length === 0 ? <p className="admin-help admin-text-warning">Chưa có ảnh nào: website sẽ hiện tiêu đề trên nền màu.</p> : null}

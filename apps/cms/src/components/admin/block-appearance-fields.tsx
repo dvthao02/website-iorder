@@ -100,6 +100,8 @@ export type AppearanceEditorOptions = {
   tones?: readonly BlockTone[];
   /** Nhãn riêng cho "Tự động" (ví dụ phần đầu trang: theo ô Nền của chính nó). */
   autoLabel?: string;
+  /** false: không có ô "Nền" và bảng màu (chọn ở chỗ khác, ví dụ ô Màu nền của phần đầu trang); xem trước vẫn theo giá trị. */
+  toneSelect?: boolean;
   /** Màu và sắc thái chữ để xem trước khi để "Tự động". */
   autoPreview?: { color: string; dark: boolean };
   darkAllowed?: boolean;
@@ -129,16 +131,17 @@ export function AppearanceEditor({ value, onChange, disabled, onUploadingChange,
   const width = appearance.width ?? 100;
   const setWidth = (next: number) => onChange({ width: next >= blockWidthLimits.max ? null : Math.max(blockWidthLimits.min, next) });
   const showImage = options.image !== false;
+  const showTone = options.toneSelect !== false;
   const showWidth = options.width !== false;
 
   return <div className="admin-appearance">
     <div className="admin-appearance__controls">
-      <div className="admin-form-grid">
-        <label className="admin-field">Nền<select className="admin-input" disabled={disabled} onChange={(event) => setTone(event.target.value as BlockTone)} value={tone}>{tones.map((value) => <option key={value} value={value}>{value === "auto" && options.autoLabel ? options.autoLabel : toneLabels[value]}</option>)}</select></label>
+      {showTone || options.spacing !== false ? <div className="admin-form-grid">
+        {showTone ? <label className="admin-field">Nền<select className="admin-input" disabled={disabled} onChange={(event) => setTone(event.target.value as BlockTone)} value={tone}>{tones.map((value) => <option key={value} value={value}>{value === "auto" && options.autoLabel ? options.autoLabel : toneLabels[value]}</option>)}</select></label> : null}
         {options.spacing !== false ? <label className="admin-field">Khoảng cách trên dưới<select className="admin-input" disabled={disabled} onChange={(event) => onChange({ spacing: event.target.value as BlockSpacing })} value={appearance.spacing}>{blockSpacingSchema.options.map((value) => <option key={value} value={value}>{spacingLabels[value]}</option>)}</select></label> : null}
-      </div>
+      </div> : null}
 
-      {color ? <div className="admin-appearance__colors">
+      {color && showTone ? <div className="admin-appearance__colors">
         <ColorField disabled={disabled} onChange={(next) => onChange({ backgroundColor: next ?? colorSwatches[1].value })} value={color} />
         <p className={darkFallback ? "admin-help admin-text-warning" : "admin-help"}>{darkFallback
           ? "Phần này có nhiều chữ hoặc ô nhập, đặt trên nền tối sẽ khó đọc nên website dùng nền xanh nhạt. Chọn màu sáng hơn để giữ màu riêng."
@@ -208,7 +211,7 @@ export function BlockAppearanceFields({ block, onChange, disabled, onUploadingCh
   const hero = block.type === "hero" ? block : null;
   const options: AppearanceEditorOptions = hero ? {
     tones: ["auto", "custom"],
-    autoLabel: "Theo ô Nền của phần đầu trang",
+    toneSelect: false,
     autoPreview: heroPreview[heroToneOf(hero.data)],
     spacing: false,
     image: hero.data.layout !== "background" && hero.data.layout !== "slider",
@@ -217,8 +220,8 @@ export function BlockAppearanceFields({ block, onChange, disabled, onUploadingCh
   } : { darkAllowed: blockSupportsDarkTone(block.type) };
 
   return <fieldset className="admin-block-group">
-    <legend>{hero ? "Giao diện phần đầu trang: màu nền, ảnh nền, độ rộng" : "Giao diện khối: nền, độ rộng, khoảng cách"}</legend>
+    <legend>{hero ? "Giao diện phần đầu trang: ảnh nền, độ rộng, mã neo" : "Giao diện khối: nền, độ rộng, khoảng cách"}</legend>
     <AppearanceEditor disabled={disabled} extra={anchorField} onChange={update} onUploadingChange={onUploadingChange} options={options} value={value} />
-    <p className="admin-help">{hero ? "Màu tối thì chữ, nút và menu phía trên tự chuyển sang màu sáng." : "Hai phần liền nhau cùng nền trắng / xanh nhạt thì website thêm vạch ngăn mảnh. Nên dùng nền tối hoặc màu đậm cho tối đa một hai phần mỗi trang để làm điểm nhấn."}</p>
+    <p className="admin-help">{hero ? "Màu nền (kể cả Màu tự chọn) chọn ở ô Màu nền phía trên; ô xem trước vẽ theo lựa chọn đó." : "Hai phần liền nhau cùng nền trắng / xanh nhạt thì website thêm vạch ngăn mảnh. Nên dùng nền tối hoặc màu đậm cho tối đa một hai phần mỗi trang để làm điểm nhấn."}</p>
   </fieldset>;
 }
