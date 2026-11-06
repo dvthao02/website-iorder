@@ -126,7 +126,8 @@ export async function collectMediaUsage(mediaId: string): Promise<MediaUsage[]> 
       // Ảnh nền của khối nằm ở vỏ chung (appearance), nên dò cả hai cột.
       .where(and(isNull(pages.deletedAt), sql<boolean>`position(${mediaId} in (${pageBlocks.data}::text || coalesce(${pageBlocks.appearance}::text, ''))) > 0`)),
     getDb().select({ id: posts.id, label: posts.title }).from(posts).where(and(eq(posts.coverMediaId, mediaId), isNull(posts.deletedAt))),
-    getDb().select({ id: offerings.id, label: offerings.title }).from(offerings).where(and(eq(offerings.coverMediaId, mediaId), isNull(offerings.deletedAt))),
+    // Ảnh bìa, hoặc ảnh nền của một phần trang chi tiết (nằm trong nội dung JSON).
+    getDb().select({ id: offerings.id, label: offerings.title }).from(offerings).where(and(or(eq(offerings.coverMediaId, mediaId), sql<boolean>`position(${mediaId} in ${offerings.content}::text) > 0`), isNull(offerings.deletedAt))),
     getDb().select({ id: equipmentGroups.id, label: equipmentGroups.name }).from(equipmentGroups).where(and(eq(equipmentGroups.coverMediaId, mediaId), isNull(equipmentGroups.deletedAt))),
     getDb().select({ id: salesEquipment.id, label: salesEquipment.name }).from(salesEquipment).where(and(eq(salesEquipment.coverMediaId, mediaId), isNull(salesEquipment.deletedAt))),
     getDb().select({ id: partners.id, label: partners.name }).from(partners).where(and(eq(partners.logoMediaId, mediaId), isNull(partners.deletedAt))),

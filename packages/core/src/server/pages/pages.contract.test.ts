@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { adminPagesPageSchema, fixedWebsitePages, heroToneOf, isListingPageSlug, listingHeaderFromBlocks, listingLayoutFromBlocks, pageBlockInputSchema, pageListQuerySchema, pagePermissionCodes, pageSaveRequestSchema } from "./pages.contract";
 import { publicationDate } from "../shared/publication-date";
+import { offeringContentSchema } from "../offerings/offering-content.contract";
 import { assertPageVersion, PageVersionConflictError } from "./page-version";
 
 test("Phiên bản Trang cũ/thiếu/sai bị từ chối, đúng phiên bản được phép", () => {
@@ -133,4 +134,27 @@ test("Giao diện khối: dữ liệu cũ nhận mặc định; màu, ảnh nề
   assert.equal(faq({ backgroundColor: "blue" }).success, false);
   assert.equal(faq({ width: 30 }).success, false);
   assert.equal(faq({ backgroundOverlay: 100 }).success, false);
+});
+
+test("Màu nền thẻ con (thẻ lưới, gói giá, nhóm) là tùy chọn và phải là mã màu", () => {
+  const features = (background: unknown) => pageBlockInputSchema.safeParse({ type: "features", isEnabled: true, data: { eyebrow: null, title: "Lưới", description: null, items: [{ title: "Thẻ", description: "Mô tả", href: null, background }] } });
+  assert.ok(features(undefined).success);
+  assert.ok(features(null).success);
+  const dark = features("#0A2A57");
+  assert.ok(dark.success && dark.data.type === "features" && dark.data.data.items[0].background === "#0a2a57");
+  assert.equal(features("navy").success, false);
+  const plan = { name: "Cơ bản", price: "Liên hệ", period: null, description: null, features: [], action: null, highlighted: false, badge: null };
+  assert.ok(pageBlockInputSchema.safeParse({ type: "pricing", isEnabled: true, data: { eyebrow: null, title: "Giá", description: null, note: null, plans: [{ ...plan, background: "#fff7ed" }] } }).success);
+  assert.equal(pageBlockInputSchema.safeParse({ type: "pricing", isEnabled: true, data: { eyebrow: null, title: "Giá", description: null, note: null, plans: [{ ...plan, background: "#fff" }] } }).success, false);
+});
+
+test("Nội dung sản phẩm: dữ liệu cũ không có giao diện các phần vẫn hợp lệ; giao diện từng phần dùng vỏ chung", () => {
+  const content = { description: "Mô tả", tags: [], bestFor: null, keyValue: null, metrics: [], features: [], benefits: [], faq: [], items: [], category: null };
+  const old = offeringContentSchema.safeParse(content);
+  assert.ok(old.success);
+  assert.deepEqual(old.data.appearance, {});
+  const styled = offeringContentSchema.safeParse({ ...content, appearance: { benefits: { tone: "custom", backgroundColor: "#0A2A57", width: 80 } } });
+  assert.ok(styled.success);
+  assert.equal(styled.data.appearance.benefits?.backgroundColor, "#0a2a57");
+  assert.equal(offeringContentSchema.safeParse({ ...content, appearance: { hero: {} } }).success, false);
 });

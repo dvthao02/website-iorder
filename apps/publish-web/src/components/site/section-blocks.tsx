@@ -29,7 +29,7 @@ export function PricingSection({ data, frame = defaultFrame }: { data: Extract<P
   const dark = frame.tone === "dark";
   return <FrameSection frame={frame}>
     <SectionHeading dark={dark} description={data.description} eyebrow={data.eyebrow} title={data.title} />
-    <div className={`grid items-stretch gap-6 ${gridColumns(data.plans.length, 4)}`}>{data.plans.map((plan, index) => <Card className={plan.highlighted ? "lg:-my-3 lg:py-10" : ""} highlighted={plan.highlighted} key={`${plan.name}-${index}`}>
+    <div className={`grid items-stretch gap-6 ${gridColumns(data.plans.length, 4)}`}>{data.plans.map((plan, index) => <Card background={plan.background} className={plan.highlighted ? "lg:-my-3 lg:py-10" : ""} highlighted={plan.highlighted} key={`${plan.name}-${index}`}>
       {plan.badge ? <Badge className="absolute -top-3 left-7">{plan.badge}</Badge> : null}
       <CardTitle>{plan.name}</CardTitle>
       {plan.description ? <p className="mt-2 mb-0 text-small text-muted">{plan.description}</p> : null}
@@ -50,7 +50,7 @@ export function GroupedListSection({ data, frame }: { data: Extract<PageBlock, {
       <SectionHeading align="left" className="" dark={dark} eyebrow={data.eyebrow} title={data.title} />
       {data.description ? <p className={`mb-0 text-lead ${dark ? "text-white/80" : "text-muted"}`}>{data.description}</p> : null}
     </div>
-    <div className={`grid items-stretch gap-6 ${data.groups.length === 2 ? "md:grid-cols-2" : gridColumns(data.groups.length)}`}>{data.groups.map((group, index) => <Card as="div" className="grouped-card" key={`${group.title}-${index}`}>
+    <div className={`grid items-stretch gap-6 ${data.groups.length === 2 ? "md:grid-cols-2" : gridColumns(data.groups.length)}`}>{data.groups.map((group, index) => <Card as="div" background={group.background} className="grouped-card" key={`${group.title}-${index}`}>
       <div className="flex items-center gap-4 border-b border-line pb-5">
         <IconTile size="lg">{group.icon ? <BlockIcon name={group.icon} size={26} strokeWidth={1.8} /> : String(index + 1).padStart(2, "0")}</IconTile>
         <div className="min-w-0 flex-1">

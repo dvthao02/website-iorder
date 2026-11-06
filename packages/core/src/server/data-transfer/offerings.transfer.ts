@@ -47,7 +47,7 @@ export function offeringTransfer(type: PublicOfferingType): TransferDataset<Offe
       const base: AdminOfferingInput = existing
         ? Object.fromEntries(Object.keys(adminOfferingInputSchema.shape).map((key) => [key, Reflect.get(existing, key)])) as AdminOfferingInput
         : { coverMediaId: null, type, title: "", slug: "", summary: null, icon: null, status: "draft", scheduledAt: null, sortOrder: 0, isFeatured: false, seoTitle: null, seoDescription: null, canonicalUrl: null,
-          content: { description: "", tags: [], bestFor: null, keyValue: null, metrics: [], features: [], benefits: [], faq: [], items: [], category: null, pricing: null } };
+          content: { description: "", tags: [], bestFor: null, keyValue: null, metrics: [], features: [], benefits: [], faq: [], items: [], category: null, pricing: null, appearance: {} } };
       const input: AdminOfferingInput = { ...base, content: { ...base.content } };
       if (typeof changes.slug === "string" && !existing) input.slug = changes.slug;
       if (typeof changes.name === "string") input.title = changes.name;

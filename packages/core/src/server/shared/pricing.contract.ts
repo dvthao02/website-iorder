@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { cardBackgroundSchema } from "./appearance";
+
 // Bảng giá dùng chung: khối "Bảng giá" của trang và bảng giá trên trang chi tiết sản phẩm/dịch vụ.
 // 1–4 gói; gói "nổi bật" được làm to và có nhãn.
 const pricingActionSchema = z.object({ label: z.string().trim().min(1).max(120), href: z.string().trim().min(1).max(1000) }).strict();
@@ -18,6 +20,8 @@ export const pricingDataSchema = z.object({
     action: pricingActionSchema.nullable(),
     highlighted: z.boolean(),
     badge: z.string().trim().max(40).nullable(),
+    // Màu nền riêng của gói (màu tối thì chữ trắng); thiếu = theo kiểu gói (thường/nổi bật).
+    background: cardBackgroundSchema,
   }).strict()).min(1).max(4),
 }).strict();
 

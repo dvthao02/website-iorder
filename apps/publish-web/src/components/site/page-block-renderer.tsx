@@ -4,6 +4,7 @@ import Link from "next/link";
 import { resolveBlockFrames, type BlockFrame, type SectionSurface } from "@iorder/core/server/pages/block-layout";
 import type { PageBlock } from "@iorder/core/server/pages/pages.contract";
 import { resolveSettingLinks } from "@iorder/core/server/pages/setting-links";
+import { isDarkColor } from "@iorder/core/server/shared/color";
 import { youtubeVideoId } from "@iorder/core/server/shared/youtube";
 import { getMediaById } from "@/lib/backend";
 import { getExternalLinks, getPartners, getSiteProfile, getTestimonials } from "@/lib/backend";
@@ -70,13 +71,14 @@ async function CardGrid({ items, visual = false, bento = false }: { items: CardI
         {lead.href ? <span className="mt-1 text-small font-semibold text-brand-700 group-hover:underline">Xem chi tiết →</span> : null}
       </div>
     </>;
-    const leadClass = "group relative flex min-h-[26rem] flex-col overflow-hidden rounded-card border border-line bg-white shadow-card transition hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-raised sm:col-span-2 lg:col-span-1 lg:row-span-2 lg:min-h-0";
+    const leadClass = `group relative flex min-h-[26rem] flex-col overflow-hidden rounded-card border border-line bg-white shadow-card transition hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-raised sm:col-span-2 lg:col-span-1 lg:row-span-2 lg:min-h-0 ${lead.background && isDarkColor(lead.background) ? "card-on-dark" : ""}`;
+    const leadStyle = lead.background ? { backgroundColor: lead.background } : undefined;
     // Máy tính: hai hàng cao theo chiều cao màn (globals.css .bento-grid) để cả lưới vừa một màn hình ở mọi cỡ.
     return <div className="bento-grid grid gap-5 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)_minmax(0,1fr)]">
-      {lead.href ? <Link className={leadClass} href={lead.href}>{leadBody}</Link> : <div className={leadClass}>{leadBody}</div>}
+      {lead.href ? <Link className={leadClass} href={lead.href} style={leadStyle}>{leadBody}</Link> : <div className={leadClass} style={leadStyle}>{leadBody}</div>}
       {rest.map((item, index) => {
         const photo = photos[index + 1];
-        return <Card className="lg:flex-row" flush href={item.href} key={`${item.title}-${index}`}>
+        return <Card background={item.background} className="lg:flex-row" flush href={item.href} key={`${item.title}-${index}`}>
           <div className={`relative w-full overflow-hidden bg-subtle lg:aspect-auto lg:w-[28%] lg:shrink-0 xl:w-[36%] ${photo ? "aspect-[16/9]" : "aspect-[16/5] sm:aspect-[16/9]"}`}>
             {photo ? <Image alt={photo.altText ?? item.title} className="object-cover transition duration-500 group-hover:scale-[1.03]" fill sizes="(min-width: 1024px) 12vw, 50vw" src={photo.url} />
               : <span aria-hidden="true" className={`absolute inset-0 grid place-items-center ${photoFallback}`}>{item.icon ? <BlockIcon name={item.icon} size={40} strokeWidth={1.4} /> : null}</span>}
@@ -91,7 +93,7 @@ async function CardGrid({ items, visual = false, bento = false }: { items: CardI
     </div>;
   }
   if (!visual && !photos.some(Boolean)) return <div className={`grid gap-5 ${gridColumns(items.length, 4)}`}>
-    {items.map((item, index) => <Card href={item.href} key={`${item.title}-${index}`}>
+    {items.map((item, index) => <Card background={item.background} href={item.href} key={`${item.title}-${index}`}>
       <span className="mb-5"><IconTile>{item.icon ? <BlockIcon name={item.icon} size={22} strokeWidth={1.8} /> : String(index + 1).padStart(2, "0")}</IconTile></span>
       <CardTitle>{item.title}</CardTitle>
       {item.description ? <CardText>{item.description}</CardText> : null}
@@ -101,7 +103,7 @@ async function CardGrid({ items, visual = false, bento = false }: { items: CardI
   return <div className={`grid gap-5 ${gridColumns(items.length, 4)}`}>
     {items.map((item, index) => {
       const photo = photos[index];
-      return <Card flush href={item.href} key={`${item.title}-${index}`}>
+      return <Card background={item.background} flush href={item.href} key={`${item.title}-${index}`}>
         <div className={`relative w-full overflow-hidden bg-subtle ${photo ? "aspect-[16/10]" : "aspect-[16/5] sm:aspect-[16/10]"}`}>
           {photo ? <Image alt={photo.altText ?? item.title} className="object-cover transition duration-500 group-hover:scale-[1.03]" fill sizes="(min-width: 1280px) 25vw, (min-width: 640px) 50vw, 100vw" src={photo.url} />
             : <span aria-hidden="true" className={`absolute inset-0 grid place-items-center ${photoFallback}`}>{item.icon ? <BlockIcon name={item.icon} size={56} strokeWidth={1.4} /> : <span className="text-display font-bold">{String(index + 1).padStart(2, "0")}</span>}</span>}
@@ -157,7 +159,7 @@ function initials(name: string) {
 async function Block({ block, first, frame }: { block: PageBlock; first: boolean; frame: BlockFrame }) {
   const dark = frame.tone === "dark";
   switch (block.type) {
-    case "hero": return <HeroSection data={block.data} first={first} />;
+    case "hero": return <HeroSection data={block.data} first={first} frame={frame} />;
     case "media_text": return <MediaTextSection data={block.data} frame={frame} />;
     case "pricing": return <PricingSection data={block.data} frame={frame} />;
     case "grouped_list": return <GroupedListSection data={block.data} frame={frame} />;

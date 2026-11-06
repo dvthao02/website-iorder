@@ -101,6 +101,17 @@ html { font-size: clamp(16px, calc(16px + (100vw - 1440px) * 0.0033), 24px); }
 /* Độ rộng nội dung chọn trong CMS (% khung của khối), căn giữa; điện thoại luôn rộng hết khung để chữ không bị ép. */
 .block-width { width: 100%; margin-inline: auto; }
 @media (min-width: 768px) { .block-width { width: var(--block-width, 100%); } }
+/* Thẻ có màu nền riêng đủ tối (CMS): chữ, đường kẻ, liên kết bên trong chuyển sang màu sáng. Màu sáng thì giữ nguyên chữ. */
+.card-on-dark.border-line, .card-on-dark .border-line { border-color: rgb(255 255 255 / .16); }
+.card-on-dark :is(.text-ink, .text-ink\/80) { color: #fff; }
+.card-on-dark :is(.text-muted, .text-faint) { color: rgb(255 255 255 / .75); }
+.card-on-dark :is(.text-brand-600, .text-brand-700) { color: var(--color-brand-200); }
+.card-on-dark .bg-subtle { background-color: rgb(255 255 255 / .12); }
+/* Nút chính trong thẻ tối: nền trắng chữ xanh, để không lẫn khi thẻ chọn màu trùng xanh thương hiệu. */
+.card-on-dark .button--primary { background: #fff; box-shadow: none; color: var(--color-brand-700); }
+.card-on-dark .button--primary:hover { background: var(--color-brand-50); }
+/* Phần đầu trang: thu hẹp cả khung (chữ + ảnh) theo tỉ lệ chọn trong CMS. */
+@media (min-width: 768px) { .site-container.hero-width { max-width: calc(min(var(--site-width), 100%) * var(--hero-width, 1)); } }
 
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }

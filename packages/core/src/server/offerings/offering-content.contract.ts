@@ -1,7 +1,19 @@
 import { z } from "zod";
+import { blockAppearanceSchema } from "../shared/appearance";
 import { pricingDataSchema } from "../shared/pricing.contract";
 
 const shortTextSchema = z.string().trim().min(1).max(500);
+
+// Giao diện từng phần của trang chi tiết (nền, màu tự chọn, ảnh nền, độ rộng, khoảng cách) — cùng vỏ chung với khối trang.
+// Thiếu phần nào thì phần đó "Tự động" (nền trắng / xanh nhạt xen kẽ).
+export const offeringSectionKeys = ["overview", "benefits", "pricing", "related"] as const;
+export type OfferingSectionKey = typeof offeringSectionKeys[number];
+export const offeringSectionAppearanceSchema = z.object({
+  overview: blockAppearanceSchema.optional(),
+  benefits: blockAppearanceSchema.optional(),
+  pricing: blockAppearanceSchema.optional(),
+  related: blockAppearanceSchema.optional(),
+}).strict();
 
 export const publicOfferingTypeSchema = z.enum(["software", "solution", "service"]);
 export const offeringSlugSchema = z.string().trim().min(1).max(180);
@@ -20,6 +32,7 @@ export const offeringContentSchema = z
     category: z.string().trim().min(1).max(180).nullable(),
     // Bảng giá trên trang chi tiết (thường chỉ phần mềm có); dữ liệu cũ không có trường này → null.
     pricing: pricingDataSchema.nullable().default(null),
+    appearance: offeringSectionAppearanceSchema.default({}),
   })
   .strict();
 

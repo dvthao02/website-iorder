@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Check, CircleCheck } from "lucide-react";
 import type { CSSProperties, ReactNode } from "react";
 import type { BlockBackground, BlockFrame } from "@iorder/core/server/pages/block-layout";
+import { isDarkColor } from "@iorder/core/server/shared/color";
 
 /*
  * Bộ component nền của website. Mọi khối trang ghép từ các viên gạch này, nên giao diện
@@ -128,12 +129,14 @@ export function Actions({ primary, secondary, dark = false, center = false, clas
 // Thẻ: viền + nền trắng + bóng nhẹ; có liên kết thì cả thẻ bấm được và nổi lên khi rê chuột.
 // `flush`: thẻ không đệm, để ảnh tràn sát mép (thẻ ảnh); phần chữ tự đặt đệm riêng.
 const cardBase = "group relative flex h-full flex-col rounded-card border bg-white text-ink transition";
-export function Card({ children, href, highlighted = false, flush = false, className = "", as = "article" }: { children: ReactNode; href?: string | null; highlighted?: boolean; flush?: boolean; className?: string; as?: "article" | "li" | "figure" | "div" }) {
-  const look = `${cardBase} ${flush ? "overflow-hidden" : "p-6 sm:p-7"} ${highlighted ? "border-brand-500 shadow-raised ring-1 ring-brand-500" : "border-line shadow-card"} ${className}`.trim();
+// `background`: màu nền riêng của thẻ chọn trong CMS; màu tối thì chữ, đường kẻ, liên kết trong thẻ chuyển sang màu sáng (CSS .card-on-dark).
+export function Card({ children, href, highlighted = false, flush = false, className = "", as = "article", background = null }: { children: ReactNode; href?: string | null; highlighted?: boolean; flush?: boolean; className?: string; as?: "article" | "li" | "figure" | "div"; background?: string | null }) {
+  const look = `${cardBase} ${flush ? "overflow-hidden" : "p-6 sm:p-7"} ${highlighted ? "border-brand-500 shadow-raised ring-1 ring-brand-500" : "border-line shadow-card"} ${background && isDarkColor(background) ? "card-on-dark" : ""} ${className}`.replace(/\s+/g, " ").trim();
+  const style = background ? { backgroundColor: background } : undefined;
   const interactive = `${look} hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-raised`;
-  if (href) return isExternal(href) ? <a className={interactive} href={href} rel="noopener noreferrer" target="_blank">{children}</a> : <Link className={interactive} href={href}>{children}</Link>;
+  if (href) return isExternal(href) ? <a className={interactive} href={href} rel="noopener noreferrer" style={style} target="_blank">{children}</a> : <Link className={interactive} href={href} style={style}>{children}</Link>;
   const Tag = as;
-  return <Tag className={look}>{children}</Tag>;
+  return <Tag className={look} style={style}>{children}</Tag>;
 }
 
 // Danh sách có dấu ✓.

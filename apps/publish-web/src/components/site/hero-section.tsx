@@ -1,6 +1,7 @@
 import Image from "next/image";
-import { Fragment } from "react";
+import { Fragment, type CSSProperties } from "react";
 import { CircleCheck, ShieldCheck } from "lucide-react";
+import type { BlockFrame } from "@iorder/core/server/pages/block-layout";
 import { heroToneOf, type HeroTone, type PageBlock } from "@iorder/core/server/pages/pages.contract";
 import { getMediaById } from "@/lib/backend";
 import { Actions, Eyebrow } from "@/components/ui";
@@ -15,6 +16,36 @@ async function imageOf(id: string | null | undefined) {
   if (!id) return null;
   const media = await getMediaById(id);
   return media?.mimeType.startsWith("image/") ? media : null;
+}
+
+// Giao diện chọn ở vỏ chung (resolveBlockFrames): màu tự chọn (dark = chữ trắng), ảnh nền phủ lớp màu, độ rộng nội dung.
+type HeroSkin = { color: string | null; imageUrl: string | null; overlay: number; width: number | null; dark: boolean };
+function skinOf(frame: BlockFrame | null | undefined, data: HeroData): HeroSkin {
+  return {
+    color: frame?.background?.color ?? null,
+    imageUrl: frame?.background?.imageUrl ?? null,
+    overlay: frame?.background?.overlay ?? 80,
+    width: frame?.width && frame.width < 100 ? frame.width : null,
+    dark: frame ? frame.tone === "dark" : heroToneOf(data) === "dark",
+  };
+}
+// Khung ngang của phần đầu trang; có độ rộng tự chọn thì thu hẹp theo % (từ máy tính bảng, CSS .hero-width).
+function box(skin: HeroSkin, className: string) {
+  return { className: `${container} ${skin.width ? "hero-width " : ""}${className}`, style: skin.width ? { "--hero-width": skin.width / 100 } as CSSProperties : undefined };
+}
+// Nền của kiểu chữ – ảnh và căn giữa: màu tự chọn thay nền mặc định; ảnh nền nằm dưới cùng, phủ lớp màu nền.
+function skinSection(skin: HeroSkin, sectionTone: string) {
+  return {
+    className: `${skin.color ? "" : sectionTone} ${skin.imageUrl ? "relative isolate overflow-hidden" : ""}`,
+    style: skin.color ? { backgroundColor: skin.color } : undefined,
+  };
+}
+function SkinLayers({ skin, tone }: { skin: HeroSkin; tone: HeroTone }) {
+  if (!skin.imageUrl) return null;
+  return <>
+    <Image alt="" className="-z-20 object-cover" fill sizes="100vw" src={skin.imageUrl} />
+    <span aria-hidden="true" className="absolute inset-0 -z-10" style={{ background: skin.color ?? (tone === "light" ? "#ffffff" : "var(--color-brand-50)"), opacity: skin.overlay / 100 }} />
+  </>;
 }
 
 // Chữ của phần đầu trang dùng chung cho mọi kiểu; `dark` khi chữ nằm trên ảnh nền.
@@ -51,7 +82,8 @@ const backgroundTones: Record<HeroTone, { section: string; overlay: string; top:
   tinted: { section: "bg-brand-50", overlay: "bg-brand-50/85 lg:bg-transparent lg:bg-gradient-to-r lg:from-brand-50/95 lg:via-brand-50/80 lg:to-brand-50/20", top: "bg-gradient-to-b from-brand-50 via-brand-50/85 to-transparent" },
 };
 
-export async function HeroSection({ data, first }: { data: HeroData; first: boolean }) {
+export async function HeroSection({ data, first, frame }: { data: HeroData; first: boolean; frame?: BlockFrame | null }) {
+  const skin = skinOf(frame, data);
   if (data.layout === "slider") {
     const slides = (await Promise.all(data.slides.map(async (slide) => ({ slide, image: await imageOf(slide.mediaId) }))))
       .filter((entry) => entry.image)
@@ -64,7 +96,7 @@ export async function HeroSection({ data, first }: { data: HeroData; first: bool
     return <section className="screen-hero border-b border-line bg-gradient-to-br from-brand-700 to-brand-950" {...heroTop(first, "dark")}><div className={`${container} py-20 sm:py-28 lg:pt-10 lg:pb-24`}><HeroText center dark data={data} first={first} /></div></section>;
   }
 
-  if (data.panels?.length) return <PanelHero data={data} first={first} />;
+  if (data.panels?.length) return <PanelHero data={data} first={first} skin={skin} />;
 
   // Ảnh đầu là `mediaId`, các ảnh sau là `extraMediaIds` (dữ liệu cũ có thể chưa có); từ 2 ảnh thì tự chuyển ảnh.
   const images = (await Promise.all([data.mediaId, ...(data.extraMediaIds ?? [])].map(imageOf)))
@@ -73,11 +105,13 @@ export async function HeroSection({ data, first }: { data: HeroData; first: bool
   const many = images.length > 1;
   const tone = heroToneOf(data);
   if (data.layout === "background") {
+    // Màu tự chọn thay nền và lớp phủ trên ảnh (độ phủ theo vỏ chung).
     const style = backgroundTones[tone];
-    const dark = tone === "dark";
-    return <section className={`screen-hero relative isolate overflow-hidden border-b border-line ${style.section}`} {...heroTop(first, dark ? "dark" : "light")}>
-      {image ? <>{many ? <HeroImages images={images} onLight={!dark} priority={first} sizes="100vw" variant="fill" /> : <Image alt={image.alt} className="-z-10 object-cover" fill priority={first} sizes="100vw" src={image.url} />}<div aria-hidden className={`absolute inset-0 -z-10 ${style.overlay}`} />{first && style.top ? <div aria-hidden className={`absolute inset-x-0 top-0 -z-10 h-[calc(var(--header-height)+160px)] ${style.top}`} /> : null}</> : null}
-      <div className={`${container} flex min-h-[520px] items-center py-20 sm:min-h-[620px] lg:min-h-0 lg:pt-10 lg:pb-24`}><div className="max-w-2xl"><HeroText dark={dark} data={data} first={first} /></div></div>
+    const dark = skin.dark;
+    const overlay = skin.color ? <div aria-hidden className="absolute inset-0 -z-10" style={{ background: skin.color, opacity: skin.overlay / 100 }} /> : <div aria-hidden className={`absolute inset-0 -z-10 ${style.overlay}`} />;
+    return <section className={`screen-hero relative isolate overflow-hidden border-b border-line ${skin.color ? "" : style.section}`} style={skin.color ? { backgroundColor: skin.color } : undefined} {...heroTop(first, dark ? "dark" : "light")}>
+      {image ? <>{many ? <HeroImages images={images} onLight={!dark} priority={first} sizes="100vw" variant="fill" /> : <Image alt={image.alt} className="-z-10 object-cover" fill priority={first} sizes="100vw" src={image.url} />}{overlay}{first && style.top && !skin.color ? <div aria-hidden className={`absolute inset-x-0 top-0 -z-10 h-[calc(var(--header-height)+160px)] ${style.top}`} /> : null}</> : null}
+      <div {...box(skin, "flex min-h-[520px] items-center py-20 sm:min-h-[620px] lg:min-h-0 lg:pt-10 lg:pb-24")}><div className="max-w-2xl"><HeroText dark={dark} data={data} first={first} /></div></div>
     </section>;
   }
 
@@ -86,9 +120,11 @@ export async function HeroSection({ data, first }: { data: HeroData; first: bool
     const frame = "h-auto w-full rounded-3xl border border-line shadow-xl shadow-slate-900/10";
     const sizes = "(min-width: 1024px) 70vw, 100vw";
     // Không có ảnh (ví dụ trang Liên hệ): chỉ cao theo nội dung, không chiếm trọn một màn hình để nội dung chính hiện ngay.
-    return <section className={`${image ? "screen-hero" : ""} border-b border-line ${sectionTone}`} {...heroTop(first, "light")}>
-      <div className={`${container} py-12 sm:py-16 ${image ? "lg:pt-10 lg:pb-24" : "lg:py-20"}`}>
-        <HeroText center data={data} first={first} />
+    const surface = skinSection(skin, sectionTone);
+    return <section className={`${image ? "screen-hero" : ""} border-b border-line ${surface.className}`} style={surface.style} {...heroTop(first, skin.dark ? "dark" : "light")}>
+      <SkinLayers skin={skin} tone={tone} />
+      <div {...box(skin, `py-12 sm:py-16 ${image ? "lg:pt-10 lg:pb-24" : "lg:py-20"}`)}>
+        <HeroText center dark={skin.dark} data={data} first={first} />
         {many ? <HeroImages className="mx-auto mt-12 max-w-5xl" imageClassName={frame} images={images} priority={first} sizes={sizes} variant="inline" />
           : image ? <Image alt={image.alt} className={`mx-auto mt-12 max-w-5xl ${frame}`} height={800} priority={first} sizes={sizes} src={image.url} width={1400} /> : null}
       </div>
@@ -98,9 +134,11 @@ export async function HeroSection({ data, first }: { data: HeroData; first: bool
   // Chữ – ảnh hai cột (mặc định) hoặc đảo chiều.
   const reverse = data.layout === "split_reverse";
   const splitSizes = "(min-width: 1024px) 50vw, 100vw";
-  return <section className={`${image ? "screen-hero" : ""} relative overflow-hidden border-b border-line ${sectionTone}`} {...heroTop(first, "light")}>
-    <div className={`${container} grid items-center gap-12 py-12 sm:py-16 ${image ? `lg:pt-10 lg:pb-24 ${reverse ? "lg:grid-cols-[1fr_1.05fr]" : "lg:grid-cols-[1.05fr_1fr]"}` : "lg:py-20"}`}>
-      <div className={`${image ? "" : "max-w-3xl"} ${reverse ? "lg:order-2" : ""}`}><HeroText data={data} first={first} /></div>
+  const surface = skinSection(skin, sectionTone);
+  return <section className={`${image ? "screen-hero" : ""} relative overflow-hidden border-b border-line ${surface.className}`} style={surface.style} {...heroTop(first, skin.dark ? "dark" : "light")}>
+    <SkinLayers skin={skin} tone={tone} />
+    <div {...box(skin, `grid items-center gap-12 py-12 sm:py-16 ${image ? `lg:pt-10 lg:pb-24 ${reverse ? "lg:grid-cols-[1fr_1.05fr]" : "lg:grid-cols-[1.05fr_1fr]"}` : "lg:py-20"}`)}>
+      <div className={`${image ? "" : "max-w-3xl"} ${reverse ? "lg:order-2" : ""}`}><HeroText dark={skin.dark} data={data} first={first} /></div>
       {many ? <HeroImages className={reverse ? "lg:order-1" : ""} images={images} priority={first} sizes={splitSizes} variant="inline" />
         : image ? <Image alt={image.alt} className={`h-auto w-full ${reverse ? "lg:order-1" : ""}`} height={800} priority={first} sizes={splitSizes} src={image.url} width={1200} /> : null}
     </div>
@@ -109,7 +147,7 @@ export async function HeroSection({ data, first }: { data: HeroData; first: bool
 
 // Phần đầu trang có nhiều khối nội dung (khối 1 = nội dung chính, các khối sau = `panels`): cả chữ và ảnh trượt cùng nhau
 // theo đúng kiểu bố cục đã chọn. Mỗi khối dùng một ảnh của riêng nó (ảnh thêm của khối 1 không dùng ở chế độ này).
-async function PanelHero({ data, first }: { data: HeroData; first: boolean }) {
+async function PanelHero({ data, first, skin }: { data: HeroData; first: boolean; skin: HeroSkin }) {
   const entries = [{ text: data, mediaId: data.mediaId }, ...data.panels.map(panel => ({ text: { ...data, ...panel }, mediaId: panel.mediaId }))];
   const images = await Promise.all(entries.map(entry => imageOf(entry.mediaId)));
   const headingAs = (index: number) => index === 0 ? (first ? "h1" : "h2") : "p";
@@ -117,18 +155,18 @@ async function PanelHero({ data, first }: { data: HeroData; first: boolean }) {
 
   if (data.layout === "background") {
     const style = backgroundTones[tone];
-    const dark = tone === "dark";
+    const dark = skin.dark;
     // Ảnh và lớp phủ nằm trong từng khối, định vị theo cả phần đầu trang (khối không có transform khi chỉ mờ dần).
     const panels = entries.map((entry, index) => {
       const image = images[index];
       return <Fragment key={index}>
-        {image ? <><Image alt={image.altText ?? ""} className="-z-10 object-cover" fill priority={first && index === 0} sizes="100vw" src={image.url} /><div aria-hidden className={`absolute inset-0 -z-10 ${style.overlay}`} /></> : null}
+        {image ? <><Image alt={image.altText ?? ""} className="-z-10 object-cover" fill priority={first && index === 0} sizes="100vw" src={image.url} />{skin.color ? <div aria-hidden className="absolute inset-0 -z-10" style={{ background: skin.color, opacity: skin.overlay / 100 }} /> : <div aria-hidden className={`absolute inset-0 -z-10 ${style.overlay}`} />}</> : null}
         <div className="flex min-h-[420px] items-center sm:min-h-[520px] lg:min-h-0"><div className="max-w-2xl"><HeroText dark={dark} data={entry.text} first={first} headingAs={headingAs(index)} /></div></div>
       </Fragment>;
     });
-    return <section className={`screen-hero relative isolate overflow-hidden border-b border-line ${style.section}`} {...heroTop(first, dark ? "dark" : "light")}>
-      {first && style.top ? <div aria-hidden className={`absolute inset-x-0 top-0 -z-10 h-[calc(var(--header-height)+160px)] ${style.top}`} /> : null}
-      <div className={`${container} py-16 lg:pt-10 lg:pb-20`}><HeroRotator dark={dark} fade panels={panels} /></div>
+    return <section className={`screen-hero relative isolate overflow-hidden border-b border-line ${skin.color ? "" : style.section}`} style={skin.color ? { backgroundColor: skin.color } : undefined} {...heroTop(first, dark ? "dark" : "light")}>
+      {first && style.top && !skin.color ? <div aria-hidden className={`absolute inset-x-0 top-0 -z-10 h-[calc(var(--header-height)+160px)] ${style.top}`} /> : null}
+      <div {...box(skin, "py-16 lg:pt-10 lg:pb-20")}><HeroRotator dark={dark} fade panels={panels} /></div>
     </section>;
   }
 
@@ -137,12 +175,14 @@ async function PanelHero({ data, first }: { data: HeroData; first: boolean }) {
     const panels = entries.map((entry, index) => {
       const image = images[index];
       return <div key={index}>
-        <HeroText center data={entry.text} first={first} headingAs={headingAs(index)} />
+        <HeroText center dark={skin.dark} data={entry.text} first={first} headingAs={headingAs(index)} />
         {image ? <Image alt={image.altText ?? ""} className="mx-auto mt-12 h-auto w-full max-w-5xl rounded-3xl border border-line shadow-xl shadow-slate-900/10" height={800} priority={first && index === 0} sizes="(min-width: 1024px) 70vw, 100vw" src={image.url} width={1400} /> : null}
       </div>;
     });
-    return <section className={`screen-hero border-b border-line ${sectionTone}`} {...heroTop(first, "light")}>
-      <div className={`${container} py-12 sm:py-16 lg:pt-10 lg:pb-20`}><HeroRotator center panels={panels} /></div>
+    const surface = skinSection(skin, sectionTone);
+    return <section className={`screen-hero border-b border-line ${surface.className}`} style={surface.style} {...heroTop(first, skin.dark ? "dark" : "light")}>
+      <SkinLayers skin={skin} tone={tone} />
+      <div {...box(skin, "py-12 sm:py-16 lg:pt-10 lg:pb-20")}><HeroRotator center dark={skin.dark} panels={panels} /></div>
     </section>;
   }
 
@@ -151,11 +191,13 @@ async function PanelHero({ data, first }: { data: HeroData; first: boolean }) {
   const panels = entries.map((entry, index) => {
     const image = images[index];
     return <div className={`grid items-center gap-12 ${reverse ? "lg:grid-cols-[1fr_1.05fr]" : "lg:grid-cols-[1.05fr_1fr]"}`} key={index}>
-      <div className={reverse ? "lg:order-2" : ""}><HeroText data={entry.text} first={first} headingAs={headingAs(index)} /></div>
+      <div className={reverse ? "lg:order-2" : ""}><HeroText dark={skin.dark} data={entry.text} first={first} headingAs={headingAs(index)} /></div>
       {image ? <Image alt={image.altText ?? ""} className={`h-auto w-full ${reverse ? "lg:order-1" : ""}`} height={800} priority={first && index === 0} sizes="(min-width: 1024px) 50vw, 100vw" src={image.url} width={1200} /> : <div aria-hidden className="hidden lg:block" />}
     </div>;
   });
-  return <section className={`screen-hero relative overflow-hidden border-b border-line ${sectionTone}`} {...heroTop(first, "light")}>
-    <div className={`${container} py-12 sm:py-16 lg:pt-10 lg:pb-20`}><HeroRotator panels={panels} /></div>
+  const surface = skinSection(skin, sectionTone);
+  return <section className={`screen-hero relative overflow-hidden border-b border-line ${surface.className}`} style={surface.style} {...heroTop(first, skin.dark ? "dark" : "light")}>
+    <SkinLayers skin={skin} tone={tone} />
+    <div {...box(skin, "py-12 sm:py-16 lg:pt-10 lg:pb-20")}><HeroRotator dark={skin.dark} panels={panels} /></div>
   </section>;
 }

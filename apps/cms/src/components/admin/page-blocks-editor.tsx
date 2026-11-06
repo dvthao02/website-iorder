@@ -10,7 +10,7 @@ import { isDarkColor } from "@iorder/core/server/pages/block-layout";
 import { youtubeEmbedUrl, youtubeVideoId } from "@iorder/core/server/shared/youtube";
 import { settingLinkHref, settingLinkKey, settingLinkOptions, type SettingLinkKey } from "@iorder/core/server/pages/setting-links";
 
-import { BlockAppearanceFields } from "./block-appearance-fields";
+import { BlockAppearanceFields, ColorField } from "./block-appearance-fields";
 import { MediaPicker } from "./media-picker";
 import { useAdminConfirm } from "./ui/admin-confirm-dialog";
 import { AdminStatusBadge } from "./ui/admin-feedback";
@@ -160,8 +160,13 @@ function CardStyleField({ block, onChange }: { block: CardBlock; onChange: (bloc
 }
 
 // `bento`: ghi rõ thẻ 1 là thẻ lớn để người vận hành biết nên đặt nội dung chính và ảnh đẹp nhất ở đâu.
+// Màu nền riêng của một thẻ con (thẻ lưới, gói giá, nhóm); "Mặc định" = thẻ trắng.
+function CardColor({ value, onChange, disabled }: { value: string | null | undefined; onChange: (value: string | null) => void; disabled?: boolean }) {
+  return <div className="admin-field"><span>Màu nền thẻ (tùy chọn)</span><ColorField allowNone compact disabled={disabled} label="Màu nền thẻ" onChange={onChange} value={value ?? null} /><small className="admin-help">Để “Mặc định” là thẻ trắng. Màu tối thì chữ trong thẻ tự chuyển sang trắng.</small></div>;
+}
+
 function CardItemsEditor({ items, onChange, showIcons, disabled, onUploadingChange, bento = false }: { items: CardBlock["data"]["items"]; onChange: (items: CardBlock["data"]["items"]) => void; showIcons: boolean; disabled?: boolean; onUploadingChange: (pending: boolean) => void; bento?: boolean }) {
-  return <Section title={`Các thẻ (${items.length})`}>{items.map((item, index) => <div className="admin-block-item" key={index}>{bento ? <strong>{index === 0 ? "Thẻ 1 — thẻ lớn" : `Thẻ ${index + 1}`}</strong> : null}{showIcons ? <div className="admin-field">Biểu tượng (để trống: hiện số thứ tự)<IconPicker label={`Biểu tượng thẻ ${index + 1}`} onChange={icon => onChange(items.map((entry, itemIndex) => itemIndex === index ? { ...entry, icon } : entry))} value={item.icon ?? null} /></div> : null}{showIcons ? <MediaPicker disabled={disabled} hint="Không bắt buộc. Có ảnh thì thẻ hiện thành thẻ ảnh (ảnh ngang, tỉ lệ 16:10, rộng từ 800px); không có ảnh thì dùng biểu tượng." label={`Ảnh thẻ ${index + 1}`} onUploadingChange={onUploadingChange} preview value={item.mediaId ?? null} onChange={mediaId => onChange(items.map((entry, itemIndex) => itemIndex === index ? { ...entry, mediaId } : entry))} /> : null}<div className="admin-form-grid"><Field label="Tiêu đề" value={item.title} onChange={title => onChange(items.map((entry, itemIndex) => itemIndex === index ? { ...entry, title } : entry))} /><NullableField label="Đường dẫn (ví dụ /lien-he hoặc https://...)" value={item.href} onChange={href => onChange(items.map((entry, itemIndex) => itemIndex === index ? { ...entry, href } : entry))} /></div><Field label="Mô tả" multiline value={item.description} onChange={description => onChange(items.map((entry, itemIndex) => itemIndex === index ? { ...entry, description } : entry))} /><ListButtons index={index} length={items.length} onMove={direction => onChange(changePosition(items, index, direction))} onDelete={() => onChange(items.filter((_, itemIndex) => itemIndex !== index))} /></div>)}<button type="button" onClick={() => onChange([...items, { title: "Mục mới", description: "Mô tả", href: null }])}>Thêm mục</button></Section>;
+  return <Section title={`Các thẻ (${items.length})`}>{items.map((item, index) => <div className="admin-block-item" key={index}>{bento ? <strong>{index === 0 ? "Thẻ 1 — thẻ lớn" : `Thẻ ${index + 1}`}</strong> : null}{showIcons ? <div className="admin-field">Biểu tượng (để trống: hiện số thứ tự)<IconPicker label={`Biểu tượng thẻ ${index + 1}`} onChange={icon => onChange(items.map((entry, itemIndex) => itemIndex === index ? { ...entry, icon } : entry))} value={item.icon ?? null} /></div> : null}{showIcons ? <MediaPicker disabled={disabled} hint="Không bắt buộc. Có ảnh thì thẻ hiện thành thẻ ảnh (ảnh ngang, tỉ lệ 16:10, rộng từ 800px); không có ảnh thì dùng biểu tượng." label={`Ảnh thẻ ${index + 1}`} onUploadingChange={onUploadingChange} preview value={item.mediaId ?? null} onChange={mediaId => onChange(items.map((entry, itemIndex) => itemIndex === index ? { ...entry, mediaId } : entry))} /> : null}<div className="admin-form-grid"><Field label="Tiêu đề" value={item.title} onChange={title => onChange(items.map((entry, itemIndex) => itemIndex === index ? { ...entry, title } : entry))} /><NullableField label="Đường dẫn (ví dụ /lien-he hoặc https://...)" value={item.href} onChange={href => onChange(items.map((entry, itemIndex) => itemIndex === index ? { ...entry, href } : entry))} /></div><Field label="Mô tả" multiline value={item.description} onChange={description => onChange(items.map((entry, itemIndex) => itemIndex === index ? { ...entry, description } : entry))} />{showIcons ? <CardColor disabled={disabled} onChange={background => onChange(items.map((entry, itemIndex) => itemIndex === index ? { ...entry, background } : entry))} value={item.background} /> : null}<ListButtons index={index} length={items.length} onMove={direction => onChange(changePosition(items, index, direction))} onDelete={() => onChange(items.filter((_, itemIndex) => itemIndex !== index))} /></div>)}<button type="button" onClick={() => onChange([...items, { title: "Mục mới", description: "Mô tả", href: null }])}>Thêm mục</button></Section>;
 }
 
 type HeroBlock = Extract<PageBlock, { type: "hero" }>;
@@ -329,6 +334,7 @@ function PricingFields({ block, onChange }: { block: PricingBlock; onChange: (bl
       <NullableField label="Mô tả ngắn" value={plan.description} onChange={description => setPlan(index, { description })} />
       <div className="admin-field"><span>Tính năng của gói</span><AdminListEditor addLabel="Thêm tính năng" itemLabel={`Tính năng gói ${index + 1}`} items={plan.features} maxItems={20} maxLength={200} onChange={features => setPlan(index, { features })} placeholder="Ví dụ: Không giới hạn đơn hàng" /></div>
       <ActionFields title="Nút của gói" value={plan.action} onChange={action => setPlan(index, { action })} />
+      <CardColor onChange={background => setPlan(index, { background })} value={plan.background} />
       <label className="admin-check"><input checked={plan.highlighted} onChange={event => set({ plans: data.plans.map((entry, planIndex) => ({ ...entry, highlighted: planIndex === index ? event.target.checked : false })) })} type="checkbox" />Gói nổi bật (làm to, viền màu)</label>
       <ListButtons index={index} length={data.plans.length} onMove={direction => set({ plans: changePosition(data.plans, index, direction) })} onDelete={() => { if (data.plans.length > 1) set({ plans: data.plans.filter((_, planIndex) => planIndex !== index) }); }} />
     </div>)}{data.plans.length < 4 ? <button type="button" onClick={() => set({ plans: [...data.plans, { name: `Gói ${data.plans.length + 1}`, price: "Liên hệ", period: null, description: null, features: [], action: { label: "Đăng ký", href: "/lien-he" }, highlighted: false, badge: null }] })}>Thêm gói</button> : null}</Section>
@@ -372,6 +378,7 @@ function GroupedListFields({ block, onChange }: { block: GroupedListBlock; onCha
           {group.items.length < maxGroupedListItems ? <button className="justify-self-start" type="button" onClick={() => setGroup(index, { items: [...group.items, { label: "", icon: group.items.at(-1)?.icon ?? null, href: null }] })}>Thêm mục</button> : null}
         </div>
         <ActionFields title="Nút cuối thẻ" value={group.action} onChange={action => setGroup(index, { action })} />
+        <CardColor onChange={background => setGroup(index, { background })} value={group.background} />
         <ListButtons index={index} length={data.groups.length} onMove={direction => set({ groups: changePosition(data.groups, index, direction) })} onDelete={() => { if (data.groups.length > 1) set({ groups: data.groups.filter((_, groupIndex) => groupIndex !== index) }); }} />
       </div>)}
       {data.groups.length < maxGroupedListGroups ? <button type="button" onClick={() => set({ groups: [...data.groups, { title: `Nhóm ${data.groups.length + 1}`, icon: null, items: [], action: data.groups.at(-1)?.action ?? null }] })}>Thêm nhóm</button> : null}
@@ -512,7 +519,7 @@ export function PageBlocksEditor({ blocks, onChange, disabled, onUploadingChange
               <button aria-label={`Xóa ${blockLabel(block.type)}`} className="admin-content-actions__button admin-content-actions__delete" disabled={disabled || pinned} onClick={() => void remove(index)} title="Xóa thành phần" type="button"><Trash2 aria-hidden="true" /></button>
             </div>
           </div>
-          {open ? <div className="admin-block__body"><BlockFields block={block} disabled={disabled} onUploadingChange={pending => reportUploading(index, pending)} onChange={next => update(index, next)} />{block.type === "hero" ? null : <BlockAppearanceFields block={block} disabled={disabled} onChange={next => update(index, next)} onUploadingChange={pending => reportUploading(-(index + 1), pending)} />}</div> : null}
+          {open ? <div className="admin-block__body"><BlockFields block={block} disabled={disabled} onUploadingChange={pending => reportUploading(index, pending)} onChange={next => update(index, next)} /><BlockAppearanceFields block={block} disabled={disabled} onChange={next => update(index, next)} onUploadingChange={pending => reportUploading(-(index + 1), pending)} /></div> : null}
         </li>;
       })}
     </ol>

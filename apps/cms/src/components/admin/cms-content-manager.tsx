@@ -22,6 +22,11 @@ import { seoChecks, truncateAtWord } from "@iorder/core/server/shared/seo";
 import type { AdminOffering, AdminOfferingInput, PublicOfferingType } from "@iorder/core/server/offerings/offering-content.contract";
 import { useAdminPermissions } from "./ui/admin-permissions";
 import { PricingEditor } from "./page-blocks-editor";
+import { AppearanceEditor, defaultAppearance } from "./block-appearance-fields";
+import { offeringSectionKeys, type OfferingSectionKey } from "@iorder/core/server/offerings/offering-content.contract";
+
+// Các phần của trang chi tiết có thể chỉnh giao diện (cùng vỏ chung với khối trang; phần không có nội dung thì không hiện).
+const offeringSectionLabels: Record<OfferingSectionKey, string> = { overview: "Tổng quan & tính năng chính", benefits: "Lợi ích mang lại", pricing: "Bảng giá", related: "Nội dung liên quan & hỏi đáp" };
 
 type LinkItem = { title: string; href: string };
 
@@ -182,6 +187,16 @@ export function OfferingEditor({ offering, offeringType, offeringTypeLabel, onSa
         <EditorSection description="Hiện dạng mở/đóng ở cuối trang." title="Câu hỏi thường gặp"><AdminFaqEditor items={form.faq} maxItems={50} onChange={(items) => update("faq", items)} /></EditorSection>
         <EditorSection description="Ví dụ: tài liệu, bảng giá, trang liên hệ. Để trống đường dẫn nếu chỉ muốn hiện chữ." title="Nội dung liên quan"><OfferingLinksEditor items={form.items} onChange={(items) => update("items", items)} /></EditorSection>
         <details className="admin-post-editor__panel">
+          <summary><span><strong>Giao diện các phần trang</strong><small>Nền, màu tự chọn, ảnh nền, độ rộng từng phần — để “Tự động” thì nền trắng / xanh nhạt xen kẽ.</small></span>{offeringSectionKeys.some((key) => form.appearance[key]) ? <AdminStatusBadge tone="info">Đã chỉnh</AdminStatusBadge> : null}</summary>
+          <div className="admin-post-editor__panel-body">
+            {offeringSectionKeys.map((key) => <fieldset className="admin-block-group" key={key}>
+              <legend>{offeringSectionLabels[key]}</legend>
+              <AppearanceEditor onChange={(patch) => update("appearance", { ...form.appearance, [key]: { ...defaultAppearance, ...form.appearance[key], ...patch } })} value={form.appearance[key]} />
+              {form.appearance[key] ? <AdminButton className="justify-self-start" onClick={() => { const next = { ...form.appearance }; delete next[key]; update("appearance", next); }} size="sm" variant="ghost">Về mặc định</AdminButton> : null}
+            </fieldset>)}
+          </div>
+        </details>
+        <details className="admin-post-editor__panel">
           <summary><span><strong>Google &amp; chia sẻ mạng xã hội</strong><small>Mặc định lấy từ tên và tóm tắt — chỉ mở khi muốn đặt riêng.</small></span><AdminStatusBadge tone={seoPassed === checks.length ? "success" : "warning"}>SEO {seoPassed}/{checks.length} đạt</AdminStatusBadge></summary>
           <div className="admin-post-editor__panel-body">
             <SeoAssistant content={seoContent} excerpt={form.summary} hasCover={Boolean(form.coverMediaId)} onChange={(field, value) => update(field, value)} path={publicPath} seoDescription={form.seoDescription} seoTitle={form.seoTitle} slug={form.slug} title={form.title} />
@@ -251,6 +266,7 @@ function offeringToForm(offering: AdminOffering | undefined, offeringType?: Publ
     items: offering?.content.items.map((item): LinkItem => typeof item === "string" ? { title: item, href: "" } : { title: item.title, href: item.href }) ?? [],
     category: offering?.content.category ?? "",
     pricing: offering?.content.pricing ?? null,
+    appearance: offering?.content.appearance ?? {},
     icon: offering?.icon ?? "",
     status: offering?.status ?? "draft",
     scheduledAt: formatLocalDateTime(offering?.scheduledAt),
@@ -281,6 +297,7 @@ function offeringFormToInput(form: ReturnType<typeof offeringToForm>): AdminOffe
       items: form.items.map(({ title, href }) => ({ title: title.trim(), href: href.trim() })).filter(({ title }) => Boolean(title)).map(({ title, href }) => href ? { title, href } : title),
       category: nullableText(form.category),
       pricing: form.pricing,
+      appearance: form.appearance,
     },
     icon: nullableText(form.icon),
     status: form.status,

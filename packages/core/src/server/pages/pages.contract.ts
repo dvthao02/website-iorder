@@ -4,6 +4,8 @@ import { adminListQuerySchema } from "../shared/admin-list.contract";
 import { pricingDataSchema } from "../shared/pricing.contract";
 import { blockIconSchema } from "../shared/block-icons";
 import { youtubeVideoId } from "../shared/youtube";
+import { blockAppearanceSchema, cardBackgroundSchema } from "../shared/appearance";
+export { blockAppearanceSchema, blockOverlayLimits, blockSpacingSchema, blockToneSchema, blockWidthLimits, type BlockAppearance, type BlockSpacing, type BlockTone } from "../shared/appearance";
 import type { CmsModuleKey, CmsPermissionCode } from "../auth/permissions";
 
 // `kind`: "custom" = trang admin tự tạo, "system" = trang có sẵn của website (route thuộc code).
@@ -88,28 +90,7 @@ export const collectionListDataSchema = z.object({
 }).strict();
 export type CollectionListData = z.infer<typeof collectionListDataSchema>;
 
-// Vỏ chung của mọi khối (lưu ở cột page_blocks.appearance): mã neo để liên kết #neo, nền, khoảng cách, độ rộng.
-// "auto" = website tự quyết theo quy luật chung (xem block-layout.ts): nền xen kẽ trắng / xanh nhạt, khoảng cách vừa.
-// "custom" = màu nền tự chọn (backgroundColor); website tự chọn chữ trắng hay chữ đậm theo độ sáng của màu.
-export const blockToneSchema = z.enum(["auto", "white", "tinted", "dark", "custom"]);
-export const blockSpacingSchema = z.enum(["auto", "sm", "md", "lg"]);
-// Độ rộng phần nội dung: % khung chuẩn của khối (null = mặc định). Điện thoại luôn rộng hết khung.
-export const blockWidthLimits = { min: 40, max: 100 } as const;
-export const blockOverlayLimits = { min: 0, max: 95 } as const;
-const hexColorSchema = z.string().trim().regex(/^#[0-9a-fA-F]{6}$/, "Màu nền phải là mã màu dạng #RRGGBB.").transform((value) => value.toLowerCase());
-export const blockAppearanceSchema = z.object({
-  anchor: z.string().trim().max(60).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).nullable().default(null),
-  tone: blockToneSchema.default("auto"),
-  spacing: blockSpacingSchema.default("auto"),
-  width: z.number().int().min(blockWidthLimits.min).max(blockWidthLimits.max).nullable().default(null),
-  backgroundColor: hexColorSchema.nullable().default(null),
-  // Ảnh nền từ Thư viện media, phủ một lớp màu nền của khối (backgroundOverlay % độ đậm) để chữ luôn đọc được.
-  backgroundMediaId: z.string().uuid().nullable().default(null),
-  backgroundOverlay: z.number().int().min(blockOverlayLimits.min).max(blockOverlayLimits.max).default(80),
-}).strict();
-export type BlockAppearance = z.infer<typeof blockAppearanceSchema>;
-export type BlockTone = z.infer<typeof blockToneSchema>;
-export type BlockSpacing = z.infer<typeof blockSpacingSchema>;
+// Vỏ chung của mọi khối (lưu ở cột page_blocks.appearance): mã neo, nền, khoảng cách, độ rộng, ảnh nền (shared/appearance.ts).
 
 export const videoBlockDataSchema = z.object({
   eyebrow: z.string().trim().max(160).nullable(),
@@ -149,7 +130,8 @@ export type HeroPanel = z.infer<typeof heroPanelSchema>;
 const heroSlideSchema = z.object({ mediaId: z.string().uuid(), title: z.string().trim().max(220).nullable(), description: z.string().trim().max(2_000).nullable(), action: actionSchema.nullable() }).strict();
 // Thẻ của "Lưới thẻ": có biểu tượng thì hiện biểu tượng, không thì hiện số thứ tự (dữ liệu cũ chưa có trường này).
 // `mediaId`: ảnh đầu thẻ (ảnh người dùng, cửa hàng, sản phẩm…); có ảnh thì thẻ chuyển sang kiểu thẻ ảnh (website quyết giao diện).
-const cardSchema = z.object({ title: z.string().trim().min(1).max(220), description: z.string().trim().max(10_000), href: z.string().trim().max(1000).nullable(), icon: blockIconSchema.nullable().optional(), mediaId: z.string().uuid().nullable().optional() }).strict();
+// `background`: màu nền riêng của thẻ (màu tối thì chữ trắng); thiếu = thẻ trắng.
+const cardSchema = z.object({ title: z.string().trim().min(1).max(220), description: z.string().trim().max(10_000), href: z.string().trim().max(1000).nullable(), icon: blockIconSchema.nullable().optional(), mediaId: z.string().uuid().nullable().optional(), background: cardBackgroundSchema }).strict();
 const groupedListItemSchema = z.object({ label: z.string().trim().min(1).max(120), icon: blockIconSchema.nullable(), href: z.string().trim().max(1000).nullable() }).strict();
 const groupedListGroupSchema = z.object({
   title: z.string().trim().min(1).max(120),
@@ -157,6 +139,7 @@ const groupedListGroupSchema = z.object({
   items: z.array(groupedListItemSchema).max(30),
   // Nút nhỏ cuối thẻ (ví dụ "Tư vấn triển khai theo mô hình").
   action: actionSchema.nullable(),
+  background: cardBackgroundSchema,
 }).strict();
 export const groupedListDataSchema = z.object({
   eyebrow: z.string().trim().max(160).nullable(),

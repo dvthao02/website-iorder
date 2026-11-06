@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { blockAnchor, resolveBlockFrames } from "./block-layout";
+import { blockAnchor, resolveBlockFrames, sectionFrame } from "./block-layout";
 import { pageBlockInputSchema, type PageBlock } from "./pages.contract";
 
 const block = (input: unknown) => pageBlockInputSchema.parse(input) as PageBlock;
@@ -46,4 +46,20 @@ test("Màu nền tự chọn: màu tối thì chữ trắng, khối không hợp
   const photo = resolveBlockFrames([faq({ tone: "tinted", backgroundMediaId: "22222222-2222-4222-8222-222222222222", backgroundOverlay: 60 })])[0];
   assert.deepEqual(photo.background, { color: null, mediaId: "22222222-2222-4222-8222-222222222222", overlay: 60 });
   assert.equal(resolveBlockFrames([faq({ tone: "custom" })])[0].background, null, "chưa chọn màu thì như Tự động");
+});
+
+test("Phần đầu trang: nền theo ô Nền của nó, chỉ màu tự chọn ở vỏ chung ghi đè; ảnh nền và độ rộng đi theo khung", () => {
+  const withAppearance = (appearance: unknown) => block({ type: "hero", isEnabled: true, data: { eyebrow: null, title: "Đầu trang", description: null, primaryAction: null, secondaryAction: null }, appearance });
+  const [plain, ignored] = resolveBlockFrames([hero, withAppearance({ tone: "dark", width: 80 })]);
+  assert.deepEqual([plain.tone, plain.background], ["tinted", null]);
+  assert.deepEqual([ignored.tone, ignored.width], ["tinted", 80], "nền Tối của vỏ chung không áp cho phần đầu trang");
+  const [custom, next] = resolveBlockFrames([withAppearance({ tone: "custom", backgroundColor: "#0a2a57", backgroundMediaId: "22222222-2222-4222-8222-222222222222" }), faq()]);
+  assert.deepEqual([custom.tone, custom.background?.color, custom.background?.mediaId], ["dark", "#0a2a57", "22222222-2222-4222-8222-222222222222"]);
+  assert.equal(next.tone, "white", "khối sau phần đầu trang màu tối vẫn tự xen kẽ");
+});
+
+test("Khung một phần trang riêng lẻ (trang sản phẩm): tự động theo nền gợi ý, màu tối về xanh nhạt khi phần không hợp nền tối", () => {
+  assert.deepEqual(sectionFrame(undefined, { fallback: "white", darkAllowed: true, spacing: "md", anchor: "bang-gia" }), { tone: "white", spacing: "md", anchor: "bang-gia", width: null, background: null });
+  assert.equal(sectionFrame({ tone: "custom", backgroundColor: "#0d1b33" }, { fallback: "white", darkAllowed: false, spacing: "md" }).tone, "tinted");
+  assert.deepEqual(sectionFrame({ tone: "custom", backgroundColor: "#fff7ed", spacing: "lg", width: 70 }, { fallback: "tinted", darkAllowed: true, spacing: "md" }), { tone: "white", spacing: "lg", anchor: null, width: 70, background: { color: "#fff7ed", mediaId: null, overlay: 80 } });
 });
