@@ -293,8 +293,9 @@ a.site-footer__heading:hover { color: var(--color-brand-700); }
 .site-footer__column ul a { display: inline-block; color: #3b4a63; font-size: 1rem; line-height: 1.45; text-wrap: pretty; transition: color 150ms ease; }
 .site-footer__column ul a:hover { color: var(--color-brand-600); }
 /* Dải cuối */
-.site-footer__bottom { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px 32px; border-top: 1px solid var(--color-line); padding: 24px 0 28px; }
-.site-footer__copyright { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; margin: 0; color: var(--color-ink); font-size: 1rem; }
+/* Dải cuối căn giữa: bản quyền | tên pháp lý | nhãn DMCA nằm cân giữa một hàng; màn hẹp tự xếp thành các dòng căn giữa. */
+.site-footer__bottom { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 14px 24px; border-top: 1px solid var(--color-line); padding: 24px 0 28px; text-align: center; }
+.site-footer__copyright { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px 20px; margin: 0; color: var(--color-ink); font-size: 1rem; }
 .site-footer__legal { border-left: 1px solid var(--color-line-strong, #c9d4e3); padding-left: 20px; }
 .site-footer__developer { color: var(--color-brand-600); font-weight: 700; }
 .site-footer__developer:hover { text-decoration: underline; }
@@ -319,8 +320,9 @@ a.site-footer__heading:hover { color: var(--color-brand-700); }
   .site-footer__contacts > li + li { border-top: 1px solid var(--color-line); border-left: 0; }
   .site-footer__contact-icon { width: 48px; height: 48px; }
   .site-footer__heading { font-size: .9rem; }
+  .site-footer__copyright { flex-direction: column; gap: 6px; }
   .site-footer__legal { border-left: 0; padding-left: 0; }
-  .site-footer__bottom { padding-bottom: 84px; }
+  .site-footer__bottom { flex-direction: column; padding-bottom: 84px; }
 }
 
 /* Nút nổi: bong bóng liên hệ (phải) và lên đầu trang (trái). Mọi nút cùng cỡ --float-size, nhỏ dần theo màn hình. */

@@ -45,7 +45,7 @@ type ContactItem = { icon: LucideIcon; label: string; value: string; href: strin
 // 1) thanh liên hệ trắng bo tròn, 4 mục ngăn bằng vạch dọc (hotline, email kinh doanh, email hỗ trợ, giờ làm việc — từ Cài đặt);
 // 2) cột thương hiệu (logo, mô tả mặc định, mạng xã hội, nút kho ứng dụng) | vạch dọc | các cột menu chân trang từ CMS,
 //    tiêu đề có biểu tượng (không vạch nhấn);
-// 3) dải cuối một hàng: © năm – đơn vị phát triển | tên pháp lý; bên phải nhãn DMCA.
+// 3) dải cuối căn giữa: © năm – đơn vị phát triển | tên pháp lý | nhãn DMCA.
 export async function SiteFooter({ profile, navigation, externalLinks, tagline }: { profile: Profile; navigation: NavigationItems; externalLinks: ExternalLinks | null; tagline: string | null }) {
   const logo = profile?.logoMediaId ? await getMediaById(profile.logoMediaId) : null;
   const items = navigation.filter((item) => item.isEnabled);
