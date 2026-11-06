@@ -23,7 +23,7 @@ const storeOrder: Array<[keyof ExternalLinks, string]> = [["appStore", "App Stor
 
 type ContactTile = { icon: typeof Phone; label: string; value: string; href: string | null };
 
-// Chân trang nền tối (khép trang, tách khỏi phần nội dung), theo nhịp của các website cùng lĩnh vực:
+// Chân trang tông trắng – xanh như toàn website, theo nhịp của các website cùng lĩnh vực:
 // 1) hàng ô liên hệ (hotline, email kinh doanh, email hỗ trợ, giờ làm việc — lấy từ Cài đặt › Thông tin website);
 // 2) cột thương hiệu (logo, mô tả, mạng xã hội, kho ứng dụng) + các cột menu chân trang từ CMS;
 // 3) dải pháp lý: tên công ty, địa chỉ; bản quyền, DMCA, đơn vị phát triển.
