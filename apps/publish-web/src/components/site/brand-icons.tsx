@@ -25,3 +25,19 @@ export function YouTubeIcon({ size = 24, className }: IconProps) {
     <path d="M9.75 8.6v6.8L15.6 12z" fill="#fff" />
   </svg>;
 }
+
+// Biểu tượng kho ứng dụng cho nút tải ứng dụng ở chân trang (nút nền đen, chữ trắng).
+export function AppleIcon({ size = 24, className }: IconProps) {
+  return <svg aria-hidden="true" className={className} fill="currentColor" height={size} viewBox="0 0 24 24" width={size} xmlns="http://www.w3.org/2000/svg">
+    <path d="M16.37 12.62c-.02-2.27 1.86-3.36 1.94-3.41-1.06-1.55-2.71-1.76-3.29-1.78-1.4-.14-2.73.82-3.44.82-.71 0-1.8-.8-2.96-.78-1.52.02-2.93.89-3.71 2.25-1.58 2.75-.4 6.82 1.14 9.05.75 1.09 1.65 2.32 2.82 2.27 1.13-.04 1.56-.73 2.93-.73 1.36 0 1.75.73 2.95.71 1.22-.02 1.99-1.11 2.74-2.21.86-1.27 1.22-2.5 1.24-2.56-.03-.01-2.37-.91-2.4-3.6zM14.12 5.95c.62-.76 1.05-1.81.93-2.86-.9.04-1.99.6-2.64 1.36-.58.67-1.09 1.75-.95 2.78 1 .08 2.03-.51 2.66-1.28z" />
+  </svg>;
+}
+
+export function GooglePlayIcon({ size = 24, className }: IconProps) {
+  return <svg aria-hidden="true" className={className} height={size} viewBox="0 0 24 24" width={size} xmlns="http://www.w3.org/2000/svg">
+    <path d="M3.6 2.2 13.5 12l-9.9 9.8c-.3-.2-.5-.6-.5-1V3.2c0-.4.2-.8.5-1z" fill="#00D7FE" />
+    <path d="m16.8 8.7-3.3 3.3L3.6 2.2c.3-.2.8-.2 1.2 0z" fill="#32BB71" />
+    <path d="m16.8 15.3-12 6.5c-.4.2-.9.2-1.2 0l9.9-9.8z" fill="#F6B60B" />
+    <path d="m20.4 10.7-3.6-2-3.3 3.3 3.3 3.3 3.6-2c1-.6 1-2 0-2.6z" fill="#F23A47" />
+  </svg>;
+}

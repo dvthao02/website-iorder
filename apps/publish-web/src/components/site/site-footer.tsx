@@ -1,12 +1,12 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { CSSProperties, ReactNode } from "react";
-import { Clock, Headphones, Mail, Phone } from "lucide-react";
+import { BookOpen, Box, Building2, Clock, Headphones, Mail, Phone, Settings, ShieldCheck, type LucideIcon } from "lucide-react";
 import type { NavigationItems } from "@iorder/core/server/navigation/navigation.contract";
 import type { ExternalLinks } from "@iorder/core/server/settings/external-links.contract";
 import { getMediaById } from "@/lib/backend";
 import { descendantsOf } from "@/lib/navigation-tree";
-import { FacebookIcon, YouTubeIcon, ZaloIcon } from "./brand-icons";
+import { AppleIcon, FacebookIcon, GooglePlayIcon, YouTubeIcon, ZaloIcon } from "./brand-icons";
 
 type Profile = { companyName: string; legalName: string | null; hotline: string | null; supportEmail: string | null; salesEmail: string | null; address: string | null; workingHours: string | null; logoMediaId: string | null } | null;
 
@@ -16,17 +16,36 @@ const dmcaUrl = "https://www.dmca.com/Protection/Status.aspx?ID=55ed00a2-083d-43
 
 const tel = (phone: string) => `tel:${phone.replace(/[^\d+]/g, "")}`;
 
-// Mạng xã hội: logo đúng màu thương hiệu trong nút tròn; kho ứng dụng: nút viên thuốc.
-const socialOrder: Array<[keyof ExternalLinks, string, ReactNode]> = [["facebook", "Facebook", <FacebookIcon key="facebook" size={20} />], ["zalo", "Zalo", <ZaloIcon key="zalo" size={20} />], ["youtube", "YouTube", <YouTubeIcon key="youtube" size={20} />]];
-const storeOrder: Array<[keyof ExternalLinks, string]> = [["appStore", "App Store"], ["googlePlay", "Google Play"]];
+// Mạng xã hội: logo đúng màu thương hiệu trong nút tròn trắng.
+const socialOrder: Array<[keyof ExternalLinks, string, ReactNode]> = [["facebook", "Facebook", <FacebookIcon key="facebook" size={24} />], ["zalo", "Zalo", <ZaloIcon key="zalo" size={24} />], ["youtube", "YouTube", <YouTubeIcon key="youtube" size={24} />]];
+// Kho ứng dụng: nút nền đen kiểu huy hiệu (dòng nhỏ + tên kho).
+const storeOrder: Array<[keyof ExternalLinks, string, string, ReactNode]> = [["appStore", "Download on the", "App Store", <AppleIcon key="apple" size={22} />], ["googlePlay", "GET IT ON", "Google Play", <GooglePlayIcon key="play" size={20} />]];
 // Đăng nhập ứng dụng và Đăng ký dùng thử đã có ở header (luôn hiện khi cuộn) nên chân trang không lặp lại.
 
-type ContactTile = { icon: typeof Phone; label: string; value: string; href: string | null };
+// Biểu tượng tiêu đề cột menu chân trang: chọn theo đường dẫn của nhóm (slug ổn định, không đổi khi sửa nhãn).
+const columnIcons: { keys: string[]; icon: LucideIcon }[] = [
+  { keys: ["phan-mem", "san-pham"], icon: Box },
+  { keys: ["giai-phap", "dich-vu"], icon: Settings },
+  { keys: ["huong-dan", "ho-tro", "tin-tuc", "tai-nguyen"], icon: BookOpen },
+  { keys: ["gioi-thieu", "cong-ty", "lien-he"], icon: Building2 },
+];
+const columnIcon = (url: string) => columnIcons.find((entry) => entry.keys.some((key) => url.includes(key)))?.icon ?? null;
 
-// Chân trang tông trắng – xanh như toàn website, theo nhịp của các website cùng lĩnh vực:
-// 1) hàng ô liên hệ (hotline, email kinh doanh, email hỗ trợ, giờ làm việc — lấy từ Cài đặt › Thông tin website);
-// 2) cột thương hiệu (logo, mô tả, mạng xã hội, kho ứng dụng) + các cột menu chân trang từ CMS;
-// 3) dải pháp lý: tên công ty, địa chỉ; bản quyền, DMCA, đơn vị phát triển.
+// Tên pháp lý in hoa (CÔNG TY TNHH …): phần loại hình viết thường cho dễ đọc, tên riêng giữ in hoa và in đậm.
+function LegalName({ value }: { value: string }) {
+  const match = /^(CÔNG TY (?:TNHH|CỔ PHẦN|CP)(?: [A-ZÀ-Ỹ]+ THÀNH VIÊN)?)\s+(.+)$/u.exec(value);
+  if (!match) return <strong>{value}</strong>;
+  const kind = match[1].toLocaleLowerCase("vi").replace(/^công ty/, "Công ty").replace(/tnhh/, "TNHH");
+  return <>{kind} <strong>{match[2]}</strong></>;
+}
+
+type ContactItem = { icon: LucideIcon; label: string; value: string; href: string | null };
+
+// Chân trang tông trắng – xanh như toàn website (theo mẫu người dùng duyệt):
+// 1) thanh liên hệ trắng bo tròn, 4 mục ngăn bằng vạch dọc (hotline, email kinh doanh, email hỗ trợ, giờ làm việc — từ Cài đặt);
+// 2) cột thương hiệu (logo, mô tả mặc định, mạng xã hội, nút kho ứng dụng) | vạch dọc | các cột menu chân trang từ CMS,
+//    tiêu đề có biểu tượng và vạch nhấn ngắn;
+// 3) dải cuối một hàng: © năm – đơn vị phát triển | tên pháp lý; bên phải nhãn DMCA.
 export async function SiteFooter({ profile, navigation, externalLinks, tagline }: { profile: Profile; navigation: NavigationItems; externalLinks: ExternalLinks | null; tagline: string | null }) {
   const logo = profile?.logoMediaId ? await getMediaById(profile.logoMediaId) : null;
   const items = navigation.filter((item) => item.isEnabled);
@@ -34,48 +53,46 @@ export async function SiteFooter({ profile, navigation, externalLinks, tagline }
   const socials = socialOrder.filter(([key]) => externalLinks?.[key]);
   const stores = storeOrder.filter(([key]) => externalLinks?.[key]);
   const emails = [profile?.salesEmail, profile?.supportEmail].filter((email, index, list): email is string => Boolean(email) && list.indexOf(email) === index);
-  const tiles: ContactTile[] = [
+  const contacts: ContactItem[] = [
     profile?.hotline ? { icon: Phone, label: "Hotline tư vấn", value: profile.hotline, href: tel(profile.hotline) } : null,
     emails[0] ? { icon: Mail, label: emails.length > 1 ? "Email kinh doanh" : "Email", value: emails[0], href: `mailto:${emails[0]}` } : null,
     emails[1] ? { icon: Headphones, label: "Email hỗ trợ", value: emails[1], href: `mailto:${emails[1]}` } : null,
     profile?.workingHours ? { icon: Clock, label: "Giờ làm việc", value: profile.workingHours, href: null } : null,
-  ].filter((tile) => tile !== null);
+  ].filter((item) => item !== null);
   if (!profile && !groups.length && !stores.length && !socials.length) return null;
   const companyName = profile?.companyName ?? "iOrder";
 
   return <footer className="site-footer">
     <div className="site-footer__frame">
-      {tiles.length ? <ul aria-label="Liên hệ iOrder" className="site-footer__tiles" style={{ "--footer-tiles": tiles.length } as CSSProperties}>{tiles.map(({ icon: Icon, label, value, href }) => <li key={label}>
-        {href ? <a className="site-footer__tile" href={href}><TileBody Icon={Icon} label={label} value={value} /></a> : <div className="site-footer__tile"><TileBody Icon={Icon} label={label} value={value} /></div>}
-      </li>)}</ul> : null}
+      {contacts.length ? <ul aria-label="Liên hệ iOrder" className="site-footer__contacts" style={{ "--footer-contacts": contacts.length } as CSSProperties}>{contacts.map(({ icon: Icon, label, value, href }) => {
+        const body = <><span aria-hidden="true" className="site-footer__contact-icon"><Icon size={22} strokeWidth={1.8} /></span><span className="site-footer__contact-text"><span className="site-footer__contact-label">{label}</span><span className="site-footer__contact-value">{value}</span></span></>;
+        return <li key={label}>{href ? <a className="site-footer__contact" href={href}>{body}</a> : <div className="site-footer__contact">{body}</div>}</li>;
+      })}</ul> : null}
 
       <div className="site-footer__inner" style={{ "--footer-columns": Math.max(groups.length, 1) } as CSSProperties}>
         <section aria-label={`Giới thiệu ${companyName}`} className="site-footer__profile">
-          <Link aria-label={`${companyName} - Trang chủ`} className="site-footer__logo" href="/">{logo ? <Image alt={logo.altText ?? companyName} className="h-9 w-auto" height={72} src={logo.url} width={180} /> : <strong>{companyName}</strong>}</Link>
+          <Link aria-label={`${companyName} - Trang chủ`} className="site-footer__logo" href="/">{logo ? <Image alt={logo.altText ?? companyName} className="h-12 w-auto" height={96} src={logo.url} width={240} /> : <strong>{companyName}</strong>}</Link>
           {tagline ? <p className="site-footer__tagline">{tagline}</p> : null}
           {socials.length ? <ul aria-label="Mạng xã hội" className="site-footer__socials">{socials.map(([key, label, mark]) => <li key={key}><a aria-label={label} href={externalLinks![key]!} rel="noopener noreferrer" target="_blank" title={label}>{mark}</a></li>)}</ul> : null}
-          {stores.length ? <ul aria-label="Tải ứng dụng" className="site-footer__stores">{stores.map(([key, label]) => <li key={key}><a href={externalLinks![key]!} rel="noopener noreferrer" target="_blank">{label}</a></li>)}</ul> : null}
+          {stores.length ? <ul aria-label="Tải ứng dụng" className="site-footer__stores">{stores.map(([key, caption, name, mark]) => <li key={key}><a aria-label={`${caption} ${name}`} href={externalLinks![key]!} rel="noopener noreferrer" target="_blank">{mark}<span><small>{caption}</small>{name}</span></a></li>)}</ul> : null}
         </section>
-        {groups.map((group) => <nav aria-label={group.label} className="site-footer__column" key={group.key}>
-          {group.url && group.url !== "#" ? <Link className="site-footer__heading" href={group.url} rel={group.target === "_blank" ? "noopener noreferrer" : undefined} target={group.target}>{group.label}</Link> : <p className="site-footer__heading">{group.label}</p>}
-          <ul>{descendantsOf(items, group.key).map((item) => <li key={item.key}><Link href={item.url} rel={item.target === "_blank" ? "noopener noreferrer" : undefined} target={item.target}>{item.label}</Link></li>)}</ul>
-        </nav>)}
+        <div className="site-footer__columns">{groups.map((group) => {
+          const Icon = columnIcon(group.url ?? "");
+          const heading = <>{Icon ? <Icon aria-hidden="true" className="site-footer__heading-icon" size={30} strokeWidth={1.6} /> : null}<span>{group.label}</span></>;
+          return <nav aria-label={group.label} className="site-footer__column" key={group.key}>
+            {group.url && group.url !== "#" ? <Link className="site-footer__heading" href={group.url} rel={group.target === "_blank" ? "noopener noreferrer" : undefined} target={group.target}>{heading}</Link> : <p className="site-footer__heading">{heading}</p>}
+            <ul>{descendantsOf(items, group.key).map((item) => <li key={item.key}><Link href={item.url} rel={item.target === "_blank" ? "noopener noreferrer" : undefined} target={item.target}>{item.label}</Link></li>)}</ul>
+          </nav>;
+        })}</div>
       </div>
 
       <div className="site-footer__bottom">
-        <div className="site-footer__company">
-          {profile?.legalName ? <p className="site-footer__legal">{profile.legalName}</p> : null}
-          {profile?.address ? <p>{profile.address}</p> : null}
-        </div>
-        <div className="site-footer__meta">
-          <p>© {new Date().getFullYear()} {companyName} · Phát triển bởi <a className="site-footer__developer" href={developer.href} rel="noopener noreferrer" target="_blank">{developer.label}</a></p>
-          <a className="site-footer__dmca" href={dmcaUrl} rel="noopener noreferrer" target="_blank" title="Trạng thái bảo vệ bản quyền DMCA">DMCA Protected</a>
-        </div>
+        <p className="site-footer__copyright">
+          <span>© {new Date().getFullYear()} {companyName} - Phát triển bởi <a className="site-footer__developer" href={developer.href} rel="noopener noreferrer" target="_blank">{developer.label}</a></span>
+          {profile?.legalName ? <span className="site-footer__legal"><LegalName value={profile.legalName} /></span> : null}
+        </p>
+        <a className="site-footer__dmca" href={dmcaUrl} rel="noopener noreferrer" target="_blank" title="Trạng thái bảo vệ bản quyền DMCA"><ShieldCheck aria-hidden="true" size={20} />DMCA Protected</a>
       </div>
     </div>
   </footer>;
-}
-
-function TileBody({ Icon, label, value }: { Icon: typeof Phone; label: string; value: string }) {
-  return <><span aria-hidden="true" className="site-footer__tile-icon"><Icon size={20} /></span><span className="site-footer__tile-text"><span className="site-footer__tile-label">{label}</span><span className="site-footer__tile-value">{value}</span></span></>;
 }
