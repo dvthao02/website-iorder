@@ -69,11 +69,11 @@ export function SiteHeaderBar({ actions, brand, links, logo }: { actions: Header
   const activeIndex = links.findIndex((link) => isActive(pathname, link));
   const moveBar = useCallback((index: number) => {
     const nav = navRef.current;
-    const link = index >= 0 ? nav?.querySelectorAll<HTMLElement>(".site-nav__list > li > .site-nav__link")[index] : undefined;
-    if (!nav || !link) { setBar((current) => ({ ...current, visible: false, instant: true })); return; }
-    const navBox = nav.getBoundingClientRect(), box = link.getBoundingClientRect(), style = getComputedStyle(link);
-    const padLeft = parseFloat(style.paddingLeft), padRight = parseFloat(style.paddingRight);
-    setBar((current) => ({ left: box.left - navBox.left + padLeft, width: box.width - padLeft - padRight, visible: true, instant: !current.visible }));
+    // Đo đúng phần chữ (.site-nav__label), không tính mũi tên của mục có bảng thả xuống.
+    const label = index >= 0 ? nav?.querySelectorAll<HTMLElement>(".site-nav__list > li > .site-nav__link > .site-nav__label")[index] : undefined;
+    if (!nav || !label) { setBar((current) => ({ ...current, visible: false, instant: true })); return; }
+    const navBox = nav.getBoundingClientRect(), box = label.getBoundingClientRect();
+    setBar((current) => ({ left: box.left - navBox.left, width: box.width, visible: true, instant: !current.visible }));
   }, []);
   useEffect(() => {
     const reset = () => moveBar(activeIndex);
@@ -111,9 +111,9 @@ export function SiteHeaderBar({ actions, brand, links, logo }: { actions: Header
         <ul className="site-nav__list" onBlur={leaveNav} onMouseLeave={() => moveBar(activeIndex)}>{links.map((link, index) => {
           const active = isActive(pathname, link);
           const hover = { onFocus: () => moveBar(index), onMouseEnter: () => moveBar(index) };
-          if (!link.children.length) return <li className="site-nav__item" key={link.key} {...hover}><Link aria-current={matches(pathname, link.url) ? "page" : undefined} className={active ? "site-nav__link site-nav__link--active" : "site-nav__link"} href={link.url} {...external(link)}>{link.label}</Link></li>;
+          if (!link.children.length) return <li className="site-nav__item" key={link.key} {...hover}><Link aria-current={matches(pathname, link.url) ? "page" : undefined} className={active ? "site-nav__link site-nav__link--active" : "site-nav__link"} href={link.url} {...external(link)}><span className="site-nav__label">{link.label}</span></Link></li>;
           return <li className="site-nav__item site-nav__item--branch" key={link.key} {...hover}>
-            <Link aria-haspopup="true" className={active ? "site-nav__link site-nav__link--active" : "site-nav__link"} href={link.url} {...external(link)}>{link.label}<ChevronDown aria-hidden="true" className="site-nav__caret" size={16} /></Link>
+            <Link aria-haspopup="true" className={active ? "site-nav__link site-nav__link--active" : "site-nav__link"} href={link.url} {...external(link)}><span className="site-nav__label">{link.label}</span><ChevronDown aria-hidden="true" className="site-nav__caret" size={16} /></Link>
             <DropdownPanel link={link} pathname={pathname} />
           </li>;
         })}</ul>
