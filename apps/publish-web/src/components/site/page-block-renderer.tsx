@@ -1,11 +1,11 @@
 import Image from "next/image";
-import type { CSSProperties } from "react";
+import { Fragment, type CSSProperties } from "react";
 import Link from "next/link";
 import { resolveBlockFrames, type BlockFrame, type SectionSurface } from "@iorder/core/server/pages/block-layout";
 import type { PageBlock } from "@iorder/core/server/pages/pages.contract";
 import { resolveSettingLinks } from "@iorder/core/server/pages/setting-links";
 import { getMediaById } from "@/lib/backend";
-import { getExternalLinks, getPartners, getTestimonials } from "@/lib/backend";
+import { getExternalLinks, getPartners, getSiteProfile, getTestimonials } from "@/lib/backend";
 import { ButtonLink, Card, CardText, CardTitle, FaqList, FrameSection, IconTile, MoreLink, SectionHeading, TextLink, gridColumns } from "@/components/ui";
 import { BlockIcon } from "./block-icon";
 import { CollectionList } from "./collection-list";
@@ -21,7 +21,13 @@ import { RichContent } from "./rich-content";
 export async function PageBlockRenderer({ blocks, previous = null }: { blocks: PageBlock[]; previous?: SectionSurface | null }) {
   const enabled = resolveSettingLinks(blocks.filter(block => block.isEnabled), await getExternalLinks());
   const frames = resolveBlockFrames(enabled, previous);
-  return <>{await Promise.all(enabled.map(async (block, index) => <Block block={block} first={index === 0} frame={frames[index]} key={`${block.type}-${index}`} />))}</>;
+  // Hai phần liền nhau cùng nền trắng/xanh nhạt (chọn tay trong CMS): một vạch mảnh trong khung nội dung để mắt thấy chỗ chuyển phần,
+  // thay vì bắt mọi phần đổi màu nền xen kẽ.
+  const divider = (index: number) => index > 0 && enabled[index - 1].type !== "hero" && frames[index].tone !== "dark" && frames[index].tone === frames[index - 1].tone;
+  return <>{await Promise.all(enabled.map(async (block, index) => <Fragment key={`${block.type}-${index}`}>
+    {divider(index) ? <div aria-hidden="true" className={frames[index].tone === "tinted" ? "bg-surface-tinted" : "bg-white"}><div className="site-container"><hr className="m-0 border-0 border-t border-line" /></div></div> : null}
+    <Block block={block} first={index === 0} frame={frames[index]} />
+  </Fragment>))}</>;
 }
 
 // Thẻ ảnh chưa có ảnh: mảng xanh thương hiệu nhạt + biểu tượng, cùng một tông cho cả lưới (không xoay màu nhấn để trang khỏi rối).
@@ -37,20 +43,23 @@ async function CardGrid({ items, visual = false, bento = false }: { items: CardI
     const media = item.mediaId ? await getMediaById(item.mediaId) : null;
     return media?.mimeType.startsWith("image/") ? media : null;
   }));
-  // Bố cục "bento": thẻ đầu to bên trái (ảnh nền, chữ phủ lên) chiếm hai hàng, bốn thẻ ảnh nhỏ xếp hai cột bên phải; đúng 5 thẻ mới đủ khít.
+  // Bố cục "bento": thẻ đầu to bên trái chiếm hai hàng (ảnh lớn phía trên, chữ to phía dưới — cùng cấu trúc thẻ nhỏ nhưng nổi bật hơn),
+  // bốn thẻ ảnh nhỏ xếp hai cột bên phải; đúng 5 thẻ mới đủ khít. Ảnh thẻ lớn để nguyên màu (không phủ tối) để mockup sản phẩm rõ.
   if (bento && items.length === 5) {
     const [lead, ...rest] = items;
     const leadPhoto = photos[0];
     const leadBody = <>
-      {leadPhoto ? <Image alt={leadPhoto.altText ?? lead.title} className="object-cover transition duration-700 group-hover:scale-[1.03]" fill sizes="(min-width: 1024px) 50vw, 100vw" src={leadPhoto.url} /> : null}
-      <span aria-hidden="true" className="absolute inset-0 bg-gradient-to-t from-navy via-navy/75 to-navy/30" />
-      <span className="relative mt-auto flex flex-col gap-3 p-6 text-white sm:p-8">
-        <span className="text-h2 leading-tight font-bold tracking-tight text-balance">{lead.title}</span>
-        {lead.description ? <span className="max-w-xl text-body text-white/85">{lead.description}</span> : null}
-        {lead.href ? <span className="mt-1 text-small font-semibold text-white group-hover:underline">Xem chi tiết →</span> : null}
-      </span>
+      <div className={`relative min-h-[14rem] flex-1 overflow-hidden ${leadPhoto ? "bg-brand-50" : photoFallback}`}>
+        {leadPhoto ? <Image alt={leadPhoto.altText ?? lead.title} className="object-cover transition duration-700 group-hover:scale-[1.03]" fill sizes="(min-width: 1024px) 50vw, 100vw" src={leadPhoto.url} />
+          : <span aria-hidden="true" className="absolute inset-0 grid place-items-center">{lead.icon ? <BlockIcon name={lead.icon} size={72} strokeWidth={1.3} /> : null}</span>}
+      </div>
+      <div className="flex flex-col gap-3 border-t border-line p-6 sm:p-8">
+        <h3 className="mb-0 text-h2 leading-tight font-bold tracking-tight text-balance text-ink">{lead.title}</h3>
+        {lead.description ? <span className="max-w-xl text-body text-muted">{lead.description}</span> : null}
+        {lead.href ? <span className="mt-1 text-small font-semibold text-brand-700 group-hover:underline">Xem chi tiết →</span> : null}
+      </div>
     </>;
-    const leadClass = "group relative flex min-h-[24rem] flex-col overflow-hidden rounded-card bg-navy shadow-raised sm:col-span-2 lg:row-span-2 lg:min-h-[34rem]";
+    const leadClass = "group relative flex min-h-[26rem] flex-col overflow-hidden rounded-card border border-line bg-white shadow-card transition hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-raised sm:col-span-2 lg:row-span-2 lg:min-h-[34rem]";
     return <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
       {lead.href ? <Link className={leadClass} href={lead.href}>{leadBody}</Link> : <div className={leadClass}>{leadBody}</div>}
       {rest.map((item, index) => {
@@ -92,6 +101,20 @@ async function CardGrid({ items, visual = false, bento = false }: { items: CardI
         </div>
       </Card>;
     })}
+  </div>;
+}
+
+// Lưới thẻ trên nền tối (ví dụ "Vì sao chọn iOrder"): tiêu đề cột trái, các ý xếp 2 cột bên phải, ngăn bằng vạch mảnh,
+// không đóng khung từng ý; khác hẳn nhịp "tiêu đề giữa + hàng thẻ" của các phần sáng. Điện thoại: một cột.
+function DarkFeatureList({ eyebrow, title, description, items }: { eyebrow: string | null; title: string; description: string | null; items: CardItem[] }) {
+  return <div className="grid gap-10 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-16">
+    <SectionHeading align="left" className="lg:sticky lg:top-28 lg:self-start" dark description={description} eyebrow={eyebrow} title={title} />
+    <ul className="m-0 grid list-none gap-x-10 p-0 sm:grid-cols-2">{items.map((item, index) => <li className="border-t border-white/15 py-7" key={`${item.title}-${index}`}>
+      <span aria-hidden="true" className="mb-5 grid size-11 place-items-center rounded-control bg-white/10 text-brand-200">{item.icon ? <BlockIcon name={item.icon} size={22} strokeWidth={1.8} /> : <span className="text-small font-bold">{String(index + 1).padStart(2, "0")}</span>}</span>
+      <h3 className="mb-0 text-h3 font-bold tracking-tight text-white">{item.title}</h3>
+      {item.description ? <p className="mt-2 mb-0 text-body text-white/70">{item.description}</p> : null}
+      {item.href ? <TextLink className="mt-3 inline-block text-small font-bold text-white hover:underline" href={item.href}>Xem thêm →</TextLink> : null}
+    </li>)}</ul>
   </div>;
 }
 
@@ -137,7 +160,10 @@ async function Block({ block, first, frame }: { block: PageBlock; first: boolean
     </FrameSection>;
     case "features":
     case "industries":
-    case "ecosystem": return <FrameSection frame={frame}>
+    case "ecosystem": if (dark && !block.data.cardStyle?.match(/visual|bento/) && !block.data.items.some(item => item.mediaId)) return <FrameSection frame={frame}>
+      <DarkFeatureList description={block.data.description} eyebrow={block.data.eyebrow} items={block.data.items} title={block.data.title} />
+    </FrameSection>;
+    return <FrameSection frame={frame}>
       <SectionHeading dark={dark} description={block.data.description} eyebrow={block.data.eyebrow} title={block.data.title} />
       <CardGrid bento={block.data.cardStyle === "bento"} items={block.data.items} visual={block.data.cardStyle === "visual"} />
     </FrameSection>;
@@ -194,7 +220,11 @@ async function Block({ block, first, frame }: { block: PageBlock; first: boolean
         <ButtonLink action={block.data.action} variant="light" />
       </div>
     </FrameSection>;
-    case "lead_form": return <FrameSection frame={frame}><LeadForm {...block.data} dark={frame.tone === "dark"} trialUrl={(await getExternalLinks())?.trial ?? null} /></FrameSection>;
+    case "lead_form": {
+      const profile = await getSiteProfile();
+      const contact = { hotline: profile?.hotline ?? null, email: profile?.salesEmail ?? profile?.supportEmail ?? null, workingHours: profile?.workingHours ?? null };
+      return <FrameSection frame={frame}><LeadForm {...block.data} contact={contact} dark={frame.tone === "dark"} trialUrl={(await getExternalLinks())?.trial ?? null} /></FrameSection>;
+    }
     case "rich_text": return <FrameSection frame={frame} width="text">
       {block.data.heading ? <h2 className="mb-6 text-h2 font-bold tracking-tight text-ink">{block.data.heading}</h2> : null}
       {typeof block.data.body === "string" ? <div className="grid gap-5 text-lead text-ink/80">{block.data.body.split("\n").map((paragraph, index) => paragraph ? <p className="mb-0" key={index}>{paragraph}</p> : null)}</div> : <RichContent doc={block.data.body} />}

@@ -41,14 +41,15 @@ export function PricingSection({ data, frame = defaultFrame }: { data: Extract<P
   </FrameSection>;
 }
 
-// Danh sách theo nhóm: mỗi nhóm một thẻ có biểu tượng (màu nhấn xoay vòng), tên, số mục; bên trong là các dòng ngắn kèm biểu tượng.
+// Danh sách theo nhóm: mỗi nhóm một thẻ có biểu tượng, tên, số mục; bên trong là các dòng ngắn kèm biểu tượng.
+// Tiêu đề căn trái (đọc như một phần giới thiệu năng lực, không phải lưới sản phẩm); ô biểu tượng cùng tông thương hiệu.
 export function GroupedListSection({ data, frame }: { data: Extract<PageBlock, { type: "grouped_list" }>["data"]; frame: BlockFrame }) {
   const dark = frame.tone === "dark";
   return <FrameSection frame={frame}>
-    <SectionHeading dark={dark} description={data.description} eyebrow={data.eyebrow} title={data.title} />
-    <div className={`grid items-stretch gap-6 ${gridColumns(data.groups.length)}`}>{data.groups.map((group, index) => <Card as="div" key={`${group.title}-${index}`}>
+    <SectionHeading align="left" dark={dark} description={data.description} eyebrow={data.eyebrow} title={data.title} />
+    <div className={`grid items-stretch gap-6 ${data.groups.length === 2 ? "md:grid-cols-2" : gridColumns(data.groups.length)}`}>{data.groups.map((group, index) => <Card as="div" key={`${group.title}-${index}`}>
       <div className="flex items-center gap-4 border-b border-line pb-5">
-        <IconTile accent={index} size="lg">{group.icon ? <BlockIcon name={group.icon} size={26} strokeWidth={1.8} /> : String(index + 1).padStart(2, "0")}</IconTile>
+        <IconTile size="lg">{group.icon ? <BlockIcon name={group.icon} size={26} strokeWidth={1.8} /> : String(index + 1).padStart(2, "0")}</IconTile>
         <div className="min-w-0 flex-1">
           {data.groupLabel ? <p className="mb-0.5 text-caption font-bold tracking-wider text-muted uppercase">{data.groupLabel}</p> : null}
           <CardTitle>{group.title}</CardTitle>

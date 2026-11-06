@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowRight, ChevronDown, Compass, CodeXml, Menu, Network, Package, ReceiptText, Server, ShieldCheck, ShoppingCart, X, Zap, type LucideIcon } from "lucide-react";
+import { ArrowRight, BookOpen, Building2, ChevronDown, Compass, CodeXml, Menu, MonitorSmartphone, Network, Newspaper, Package, Phone, ReceiptText, Server, ShieldCheck, ShoppingCart, Wrench, X, Zap, type LucideIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 
 export type HeaderLink = { key: string; label: string; url: string; target: "_self" | "_blank"; children: HeaderLink[] };
@@ -27,6 +27,12 @@ const dropdownIcons: { keys: string[]; icon: LucideIcon }[] = [
   { keys: ["ha-tang", "wifi", "camera"], icon: Network },
   { keys: ["data-center", "trung-tam-du-lieu"], icon: Server },
   { keys: ["kiem-soat", "cham-cong"], icon: ShieldCheck },
+  { keys: ["tin-tuc"], icon: Newspaper },
+  { keys: ["huong-dan"], icon: BookOpen },
+  { keys: ["cai-dat"], icon: Wrench },
+  { keys: ["ho-tro-tu-xa"], icon: MonitorSmartphone },
+  { keys: ["gioi-thieu"], icon: Building2 },
+  { keys: ["lien-he"], icon: Phone },
 ];
 const iconFor = (url: string): LucideIcon | null => dropdownIcons.find((entry) => entry.keys.some((key) => url.includes(key)))?.icon ?? null;
 
