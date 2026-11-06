@@ -249,7 +249,7 @@ body:has([data-hero-top="dark"]) .site-header:not(.site-header--scrolled) .brand
 /*
  * Chân trang tông trắng – xanh như toàn website (theo mẫu người dùng duyệt): nền xanh rất nhạt có hai dải sóng trắng mềm,
  * thanh liên hệ trắng bo tròn (4 mục ngăn bằng vạch dọc) → cột thương hiệu | vạch dọc | cột menu (biểu tượng + tiêu đề
- * in hoa + vạch nhấn ngắn) → dải cuối một hàng (© – đơn vị phát triển | tên pháp lý … nhãn DMCA).
+ * in hoa, không vạch nhấn) → dải cuối một hàng (© – đơn vị phát triển | tên pháp lý … nhãn DMCA).
  */
 .site-footer {
   border-top: 1px solid var(--color-line);
@@ -286,8 +286,7 @@ a.site-footer__contact:hover .site-footer__contact-value { color: var(--color-br
 .site-footer__stores span { display: grid; font-size: 1.05rem; font-weight: 600; line-height: 1.05; }
 .site-footer__stores small { font-size: .62rem; font-weight: 500; letter-spacing: .02em; }
 .site-footer__columns { display: grid; grid-template-columns: repeat(var(--footer-columns, 3), minmax(0, 1fr)); gap: 32px clamp(20px, 2.5vw, 40px); }
-.site-footer__heading { position: relative; display: flex; align-items: center; gap: 14px; margin: 0 0 22px; padding-bottom: 14px; color: var(--color-ink); font-size: 1rem; font-weight: 800; letter-spacing: .03em; line-height: 1.3; text-transform: uppercase; }
-.site-footer__heading::after { position: absolute; bottom: 0; left: 0; width: 2.25rem; height: 3px; border-radius: 3px; background: var(--color-brand-600); content: ""; }
+.site-footer__heading { display: flex; align-items: center; gap: 14px; margin: 0 0 22px; color: var(--color-ink); font-size: 1rem; font-weight: 800; letter-spacing: .03em; line-height: 1.3; text-transform: uppercase; }
 .site-footer__heading-icon { flex: 0 0 auto; color: var(--color-brand-600); }
 a.site-footer__heading:hover { color: var(--color-brand-700); }
 .site-footer__column ul { display: grid; gap: 14px; margin: 0; padding: 0; list-style: none; }
