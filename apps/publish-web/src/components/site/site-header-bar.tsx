@@ -36,19 +36,23 @@ const dropdownIcons: { keys: string[]; icon: LucideIcon }[] = [
 ];
 const iconFor = (url: string): LucideIcon | null => dropdownIcons.find((entry) => entry.keys.some((key) => url.includes(key)))?.icon ?? null;
 
-// Bảng thả xuống: nhiều mục (>4) chia 2 cột; mục có biểu tượng thì hiện ô biểu tượng; chân bảng có liên kết "Xem tất cả".
+// Bảng thả xuống: đầu bảng là liên kết mềm tới mục cha (tên mục + "Xem tất cả →"), các mục con nối vào bằng vạch dạng cây
+// để thấy rõ quan hệ cha – con; nhiều mục (>4) chia 2 cột; mục có biểu tượng thì hiện ô biểu tượng.
 function DropdownPanel({ link, pathname }: { link: HeaderLink; pathname: string }) {
   const withIcons = link.children.some((child) => iconFor(child.url));
   const wide = link.children.length > 4;
   return <div className={wide ? "site-nav__dropdown site-nav__dropdown--wide" : "site-nav__dropdown"}>
-    <ul className="site-nav__dropdown-list">{link.children.map((child) => {
+    <Link aria-current={matches(pathname, link.url) ? "page" : undefined} className="site-nav__dropdown-head" href={link.url} {...external(link)}>
+      <span className="site-nav__dropdown-parent">{link.label}</span>
+      <span className="site-nav__dropdown-more">Xem tất cả<ArrowRight aria-hidden="true" size={15} /></span>
+    </Link>
+    <ul className="site-nav__dropdown-list site-nav__dropdown-list--tree">{link.children.map((child) => {
       const Icon = withIcons ? (iconFor(child.url) ?? Package) : null;
       return <li key={child.key}><Link aria-current={matches(pathname, child.url) ? "page" : undefined} className="site-nav__dropdown-link" href={child.url} {...external(child)}>
         {Icon ? <span aria-hidden="true" className="site-nav__dropdown-icon"><Icon size={20} strokeWidth={1.75} /></span> : null}
         <span>{child.label}</span>
       </Link></li>;
     })}</ul>
-    <Link className="site-nav__dropdown-all" href={link.url} {...external(link)}>Xem tất cả {link.label.toLocaleLowerCase("vi")}<ArrowRight aria-hidden="true" size={16} /></Link>
   </div>;
 }
 
@@ -107,10 +111,10 @@ export function SiteHeaderBar({ actions, brand, links, logo }: { actions: Header
         <ul className="site-mobile-menu__list">{links.map((link) => <li key={link.key}>
           {link.children.length ? <>
             <button aria-expanded={expanded === link.key} className={isActive(pathname, link) ? "site-mobile-menu__link site-mobile-menu__link--active" : "site-mobile-menu__link"} onClick={() => setExpanded((current) => current === link.key ? null : link.key)} type="button">{link.label}<ChevronDown aria-hidden="true" className={expanded === link.key ? "rotate-180 transition" : "transition"} size={18} /></button>
-            {expanded === link.key ? <ul className="site-mobile-menu__children">
-              <li><Link className="site-mobile-menu__child" href={link.url} {...external(link)}>Xem tất cả {link.label.toLocaleLowerCase("vi")}</Link></li>
-              {link.children.map((child) => <li key={child.key}><Link className="site-mobile-menu__child" href={child.url} {...external(child)}>{child.label}</Link></li>)}
-            </ul> : null}
+            {expanded === link.key ? <>
+              <Link className="site-mobile-menu__more" href={link.url} {...external(link)}>Xem tất cả {link.label.toLocaleLowerCase("vi")}<ArrowRight aria-hidden="true" size={15} /></Link>
+              <ul className="site-mobile-menu__children">{link.children.map((child) => <li key={child.key}><Link aria-current={matches(pathname, child.url) ? "page" : undefined} className="site-mobile-menu__child" href={child.url} {...external(child)}>{child.label}</Link></li>)}</ul>
+            </> : null}
           </> : <Link className={isActive(pathname, link) ? "site-mobile-menu__link site-mobile-menu__link--active" : "site-mobile-menu__link"} href={link.url} {...external(link)}>{link.label}</Link>}
         </li>)}</ul>
         {actions.length ? <div className="site-mobile-menu__actions">{actions.map((action, index) => <Link className={`button ${index === actions.length - 1 ? "button--primary" : "button--secondary"}`} href={action.url} key={action.key} {...external(action)}>{action.label}</Link>)}</div> : null}
