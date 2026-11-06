@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { BookOpen, Building2, ChevronDown, Compass, CodeXml, Menu, MonitorSmartphone, Network, Newspaper, Package, Phone, ReceiptText, Server, ShieldCheck, ShoppingCart, Wrench, X, Zap, type LucideIcon } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type FocusEvent } from "react";
 
 export type HeaderLink = { key: string; label: string; url: string; target: "_self" | "_blank"; children: HeaderLink[] };
 
@@ -62,6 +62,29 @@ export function SiteHeaderBar({ actions, brand, links, logo }: { actions: Header
   const mobileOpen = openOn === pathname;
   const [expanded, setExpanded] = useState<string | null>(null);
 
+  // Thanh trượt dưới mục menu: nằm dưới mục của trang đang xem, trượt sang mục đang rê chuột/focus, rời menu thì quay về.
+  // Lần hiện đầu tiên (đang ẩn) đặt thẳng vào chỗ, không trượt từ mép trái.
+  const navRef = useRef<HTMLElement>(null);
+  const [bar, setBar] = useState<{ left: number; width: number; visible: boolean; instant: boolean }>({ left: 0, width: 0, visible: false, instant: true });
+  const activeIndex = links.findIndex((link) => isActive(pathname, link));
+  const moveBar = useCallback((index: number) => {
+    const nav = navRef.current;
+    const link = index >= 0 ? nav?.querySelectorAll<HTMLElement>(".site-nav__list > li > .site-nav__link")[index] : undefined;
+    if (!nav || !link) { setBar((current) => ({ ...current, visible: false, instant: true })); return; }
+    const navBox = nav.getBoundingClientRect(), box = link.getBoundingClientRect(), style = getComputedStyle(link);
+    const padLeft = parseFloat(style.paddingLeft), padRight = parseFloat(style.paddingRight);
+    setBar((current) => ({ left: box.left - navBox.left + padLeft, width: box.width - padLeft - padRight, visible: true, instant: !current.visible }));
+  }, []);
+  useEffect(() => {
+    const reset = () => moveBar(activeIndex);
+    reset();
+    // Font web tải xong làm đổi bề rộng chữ: đo lại.
+    void document.fonts?.ready.then(reset);
+    window.addEventListener("resize", reset);
+    return () => window.removeEventListener("resize", reset);
+  }, [activeIndex, moveBar]);
+  const leaveNav = (event: FocusEvent<HTMLUListElement>) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) moveBar(activeIndex); };
+
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
     onScroll();
@@ -84,15 +107,17 @@ export function SiteHeaderBar({ actions, brand, links, logo }: { actions: Header
         {logo ? <Image alt={logo.alt} className="h-[2.375rem] w-auto" height={80} priority src={logo.url} width={200} /> : <><span aria-hidden="true" className="brand__mark">i</span>{brand}</>}
       </Link>
 
-      <nav aria-label="Điều hướng chính" className="site-nav">
-        <ul className="site-nav__list">{links.map((link) => {
+      <nav aria-label="Điều hướng chính" className="site-nav" ref={navRef}>
+        <ul className="site-nav__list" onBlur={leaveNav} onMouseLeave={() => moveBar(activeIndex)}>{links.map((link, index) => {
           const active = isActive(pathname, link);
-          if (!link.children.length) return <li className="site-nav__item" key={link.key}><Link aria-current={matches(pathname, link.url) ? "page" : undefined} className={active ? "site-nav__link site-nav__link--active" : "site-nav__link"} href={link.url} {...external(link)}>{link.label}</Link></li>;
-          return <li className="site-nav__item site-nav__item--branch" key={link.key}>
+          const hover = { onFocus: () => moveBar(index), onMouseEnter: () => moveBar(index) };
+          if (!link.children.length) return <li className="site-nav__item" key={link.key} {...hover}><Link aria-current={matches(pathname, link.url) ? "page" : undefined} className={active ? "site-nav__link site-nav__link--active" : "site-nav__link"} href={link.url} {...external(link)}>{link.label}</Link></li>;
+          return <li className="site-nav__item site-nav__item--branch" key={link.key} {...hover}>
             <Link aria-haspopup="true" className={active ? "site-nav__link site-nav__link--active" : "site-nav__link"} href={link.url} {...external(link)}>{link.label}<ChevronDown aria-hidden="true" className="site-nav__caret" size={16} /></Link>
             <DropdownPanel link={link} pathname={pathname} />
           </li>;
         })}</ul>
+        <span aria-hidden="true" className="site-nav__bar" data-instant={bar.instant} data-visible={bar.visible} style={{ width: bar.width, transform: `translateX(${bar.left}px)` }} />
       </nav>
 
       <div className="site-header__actions">
