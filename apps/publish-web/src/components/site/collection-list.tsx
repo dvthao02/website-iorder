@@ -50,7 +50,7 @@ export async function CollectionList({ data, frame }: { data: CollectionListData
 function ListHeading({ data, dark }: { data: CollectionListData; dark: boolean }) {
   const href = data.limit ? listingPath[data.source] : undefined;
   if (!href) return <SectionHeading dark={dark} description={data.description} eyebrow={data.eyebrow} title={data.title} />;
-  return <div className="mb-10 flex flex-col gap-5 sm:mb-12 md:flex-row md:items-end md:justify-between">
+  return <div className="section-heading mb-10 flex flex-col gap-5 sm:mb-12 md:flex-row md:items-end md:justify-between">
     <SectionHeading align="left" className="" dark={dark} description={data.description} eyebrow={data.eyebrow} title={data.title} />
     <TextLink className={`button shrink-0 self-start md:self-auto ${dark ? "button--outline-light" : "button--secondary"}`} href={href}>Xem tất cả →</TextLink>
   </div>;
@@ -61,7 +61,7 @@ async function renderItems(data: CollectionListData, Card: "h2" | "h3") {
     case "posts": {
       const posts = take((await getPublishedPostSummaries()).filter(post => post.type !== "guide"), data.limit);
       return posts.length ? <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{posts.map(post => <Link className={cardClass} href={`/tin-tuc/${post.slug}`} key={post.id}>
-        {post.cover ? <Image alt={post.cover.altText ?? post.title} className="aspect-[16/9] w-full bg-subtle object-cover transition duration-500 group-hover:scale-[1.02]" height={338} sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw" src={post.cover.url} width={600} /> : null}
+        {post.cover ? <Image alt={post.cover.altText ?? post.title} className="card-media aspect-[16/9] w-full bg-subtle object-cover transition duration-500 group-hover:scale-[1.02]" height={338} sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw" src={post.cover.url} width={600} /> : null}
         <div className={bodyClass}>
           <p className={`mb-3 ${chipClass}`}>{postTypeLabel[post.type]}</p>
           <Card className={`${titleClass} line-clamp-2`}>{post.title}</Card>

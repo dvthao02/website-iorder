@@ -50,7 +50,7 @@ export function SectionHeading({ eyebrow, title, description, align = "center", 
   if (!eyebrow && !title && !description) return null;
   const Heading = level;
   const titleSize = size === "lg" ? "text-display" : size === "sm" ? "text-h3" : "text-h2";
-  return <div className={`${align === "center" ? "mx-auto max-w-3xl text-center" : "max-w-3xl"} ${className}`.trim()}>
+  return <div className={`section-heading ${align === "center" ? "mx-auto max-w-3xl text-center" : "max-w-3xl"} ${className}`.trim()}>
     {eyebrow ? <Eyebrow dark={dark}>{eyebrow}</Eyebrow> : null}
     {title ? <Heading className={`mb-0 font-bold tracking-tight text-balance ${titleSize} ${dark ? "text-white" : "text-ink"}`}>{title}</Heading> : null}
     {description ? <p className={`mt-3 mb-0 text-lead whitespace-pre-line ${dark ? "text-white/80" : "text-muted"}`}>{description}</p> : null}

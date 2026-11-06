@@ -19,7 +19,7 @@ export async function MediaTextSection({ data, frame }: { data: Extract<PageBloc
         <CheckList dark={dark} items={data.bullets} />
         <Actions center={!image} dark={dark} primary={data.primaryAction} secondary={data.secondaryAction} />
       </div>
-      {image ? <div className={imageLeft ? "lg:order-1" : ""}><Image alt={image.altText ?? data.title} className={`h-auto w-full rounded-card ${dark ? "shadow-raised ring-1 ring-white/15" : ""}`.trim()} height={900} sizes="(min-width: 1024px) 45vw, 100vw" src={image.url} width={1200} /></div> : null}
+      {image ? <div className={imageLeft ? "lg:order-1" : ""}><Image alt={image.altText ?? data.title} className={`h-auto w-full rounded-card lg:mx-auto lg:max-h-[62svh] lg:w-auto lg:max-w-full lg:object-contain ${dark ? "shadow-raised ring-1 ring-white/15" : ""}`.trim()} height={900} sizes="(min-width: 1024px) 45vw, 100vw" src={image.url} width={1200} /></div> : null}
     </div>
   </FrameSection>;
 }
@@ -46,8 +46,11 @@ export function PricingSection({ data, frame = defaultFrame }: { data: Extract<P
 export function GroupedListSection({ data, frame }: { data: Extract<PageBlock, { type: "grouped_list" }>["data"]; frame: BlockFrame }) {
   const dark = frame.tone === "dark";
   return <FrameSection frame={frame}>
-    <SectionHeading align="left" dark={dark} description={data.description} eyebrow={data.eyebrow} title={data.title} />
-    <div className={`grid items-stretch gap-6 ${data.groups.length === 2 ? "md:grid-cols-2" : gridColumns(data.groups.length)}`}>{data.groups.map((group, index) => <Card as="div" key={`${group.title}-${index}`}>
+    <div className="section-heading mb-10 grid gap-x-16 gap-y-4 sm:mb-12 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-end">
+      <SectionHeading align="left" className="" dark={dark} eyebrow={data.eyebrow} title={data.title} />
+      {data.description ? <p className={`mb-0 text-lead ${dark ? "text-white/80" : "text-muted"}`}>{data.description}</p> : null}
+    </div>
+    <div className={`grid items-stretch gap-6 ${data.groups.length === 2 ? "md:grid-cols-2" : gridColumns(data.groups.length)}`}>{data.groups.map((group, index) => <Card as="div" className="grouped-card" key={`${group.title}-${index}`}>
       <div className="flex items-center gap-4 border-b border-line pb-5">
         <IconTile size="lg">{group.icon ? <BlockIcon name={group.icon} size={26} strokeWidth={1.8} /> : String(index + 1).padStart(2, "0")}</IconTile>
         <div className="min-w-0 flex-1">
@@ -58,7 +61,7 @@ export function GroupedListSection({ data, frame }: { data: Extract<PageBlock, {
       </div>
       {group.items.length ? <ul className="m-0 mt-2 flex-1 list-none p-0">{group.items.map((item, itemIndex) => {
         const content = <>{item.icon ? <BlockIcon className="shrink-0 text-faint" name={item.icon} size={18} strokeWidth={1.7} /> : <span aria-hidden="true" className="size-[18px] shrink-0" />}<span>{item.label}</span></>;
-        const row = "flex items-center gap-3 border-b border-line py-3 text-body text-ink";
+        const row = "grouped-row flex items-center gap-3 border-b border-line py-3 text-body text-ink";
         return <li key={`${item.label}-${itemIndex}`}>{item.href ? <TextLink className={`${row} transition hover:text-brand-700`} href={item.href}>{content}</TextLink> : <div className={row}>{content}</div>}</li>;
       })}</ul> : <CardText className="mt-4 flex-1">Chưa có mục nào.</CardText>}
       {group.action ? <TextLink className="mt-5 inline-flex items-center gap-2 self-start text-small font-bold text-brand-700 hover:underline" href={group.action.href}><Sparkles aria-hidden="true" size={16} />{group.action.label}</TextLink> : null}

@@ -372,6 +372,23 @@ a.site-footer__heading:hover { color: var(--color-brand-700); }
 /* Menu điện thoại đang mở thì ẩn nút nổi để không che các nút cuối menu. */
 body:has(.site-mobile-menu--open) .floating-contact, body:has(.site-mobile-menu--open) .floating-top { display: none; }
 /*
+ * Mỗi phần một màn hình (trang chủ, `.screen-block` do PageBlockRenderer bọc): trên máy tính đủ cao, phần cao tối thiểu
+ * bằng vùng nhìn dưới header, nội dung căn giữa theo chiều dọc. Đệm trên dưới, khoảng cách dưới tiêu đề, hàng bento,
+ * dòng danh sách nhóm và ảnh thẻ co giãn theo chiều cao màn (svh) để nội dung vừa một màn từ 1280×720 tới 2560×1440.
+ * Điện thoại, máy tính bảng dọc, màn thấp (< 640px cao) giữ nhịp cuộn bình thường.
+ */
+.screen-block { display: contents; }
+@media (min-width: 1024px) and (min-height: 640px) {
+  .screen-block > section { display: flex; flex-direction: column; justify-content: center; min-height: calc(100svh - var(--header-height)); }
+  .screen-block > section > div { width: 100%; padding-block: clamp(2.25rem, 6.5svh, 5.5rem); }
+  .screen-block .section-heading:not(.section-heading .section-heading) { margin-bottom: clamp(1.25rem, 3.6svh, 3rem); }
+  .screen-block .grouped-row { padding-block: clamp(.3rem, .95svh, .75rem); }
+  .screen-block .grouped-card { padding: clamp(1.25rem, 3svh, 1.75rem); }
+  .screen-block img.card-media { aspect-ratio: 16 / 9; max-height: 26svh; }
+}
+@media (min-width: 1024px) { .bento-grid { grid-template-rows: repeat(2, clamp(9rem, 19svh, 15rem)); } }
+
+/*
  * Dải logo chạy ngang (khối Đối tác từ 8 logo): hai bản danh sách nối nhau, trượt đúng một bản (-50%) rồi lặp lại nên không
  * thấy chỗ nối. Hai mép mờ dần. Dừng khi rê chuột hoặc focus vào logo. Thời gian một vòng theo số logo (--marquee-duration).
  * Bật giảm chuyển động: bỏ bản sao, logo xếp thành hàng tĩnh xuống dòng.

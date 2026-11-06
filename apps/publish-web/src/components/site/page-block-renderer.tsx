@@ -18,7 +18,9 @@ import { RichContent } from "./rich-content";
 // (resolveBlockFrames: nền tự xen kẽ, khoảng cách chuẩn); giao diện từng khối dùng component nền @/components/ui.
 // `previous`: nền của phần ngay phía trên khối đầu tiên (ví dụ phần đầu trang danh sách).
 // Nút "theo Cài đặt" (`setting:trial`…) được đổi sang địa chỉ hiện tại trước khi vẽ.
-export async function PageBlockRenderer({ blocks, previous = null }: { blocks: PageBlock[]; previous?: SectionSurface | null }) {
+// `screens` (trang chủ): trên máy tính mỗi phần cao tối thiểu một màn hình, nội dung căn giữa theo chiều dọc (CSS `.screen-block`);
+// dải gọn (khoảng cách "Gọn", ví dụ logo đối tác) và phần đầu trang không áp dụng.
+export async function PageBlockRenderer({ blocks, previous = null, screens = false }: { blocks: PageBlock[]; previous?: SectionSurface | null; screens?: boolean }) {
   const enabled = resolveSettingLinks(blocks.filter(block => block.isEnabled), await getExternalLinks());
   const frames = resolveBlockFrames(enabled, previous);
   // Hai phần liền nhau cùng nền trắng/xanh nhạt (chọn tay trong CMS): một vạch mảnh trong khung nội dung để mắt thấy chỗ chuyển phần,
@@ -26,7 +28,7 @@ export async function PageBlockRenderer({ blocks, previous = null }: { blocks: P
   const divider = (index: number) => index > 0 && enabled[index - 1].type !== "hero" && frames[index].tone !== "dark" && frames[index].tone === frames[index - 1].tone;
   return <>{await Promise.all(enabled.map(async (block, index) => <Fragment key={`${block.type}-${index}`}>
     {divider(index) ? <div aria-hidden="true" className={frames[index].tone === "tinted" ? "bg-surface-tinted" : "bg-white"}><div className="site-container"><hr className="m-0 border-0 border-t border-line" /></div></div> : null}
-    <Block block={block} first={index === 0} frame={frames[index]} />
+    {screens && block.type !== "hero" && frames[index].spacing !== "sm" ? <div className="screen-block"><Block block={block} first={index === 0} frame={frames[index]} /></div> : <Block block={block} first={index === 0} frame={frames[index]} />}
   </Fragment>))}</>;
 }
 
@@ -43,36 +45,38 @@ async function CardGrid({ items, visual = false, bento = false }: { items: CardI
     const media = item.mediaId ? await getMediaById(item.mediaId) : null;
     return media?.mimeType.startsWith("image/") ? media : null;
   }));
+  // Máy tính: 3 cột (thẻ lớn ~36%, mỗi thẻ nhỏ ~32% — đủ rộng để chữ thẻ nhỏ không bị ép).
   // Bố cục "bento": thẻ đầu to bên trái chiếm hai hàng (ảnh lớn phía trên, chữ to phía dưới — cùng cấu trúc thẻ nhỏ nhưng nổi bật hơn),
   // bốn thẻ ảnh nhỏ xếp hai cột bên phải; đúng 5 thẻ mới đủ khít. Ảnh thẻ lớn để nguyên màu (không phủ tối) để mockup sản phẩm rõ.
   if (bento && items.length === 5) {
     const [lead, ...rest] = items;
     const leadPhoto = photos[0];
     const leadBody = <>
-      <div className={`relative min-h-[14rem] flex-1 overflow-hidden ${leadPhoto ? "bg-brand-50" : photoFallback}`}>
+      <div className={`relative min-h-[14rem] flex-1 overflow-hidden lg:min-h-0 ${leadPhoto ? "bg-brand-50" : photoFallback}`}>
         {leadPhoto ? <Image alt={leadPhoto.altText ?? lead.title} className="object-cover transition duration-700 group-hover:scale-[1.03]" fill sizes="(min-width: 1024px) 50vw, 100vw" src={leadPhoto.url} />
           : <span aria-hidden="true" className="absolute inset-0 grid place-items-center">{lead.icon ? <BlockIcon name={lead.icon} size={72} strokeWidth={1.3} /> : null}</span>}
       </div>
-      <div className="flex flex-col gap-3 border-t border-line p-6 sm:p-8">
+      <div className="flex flex-col gap-3 border-t border-line p-6 lg:gap-2 lg:p-7">
         <h3 className="mb-0 text-h2 leading-tight font-bold tracking-tight text-balance text-ink">{lead.title}</h3>
         {lead.description ? <span className="max-w-xl text-body text-muted">{lead.description}</span> : null}
         {lead.href ? <span className="mt-1 text-small font-semibold text-brand-700 group-hover:underline">Xem chi tiết →</span> : null}
       </div>
     </>;
-    const leadClass = "group relative flex min-h-[26rem] flex-col overflow-hidden rounded-card border border-line bg-white shadow-card transition hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-raised sm:col-span-2 lg:row-span-2 lg:min-h-[34rem]";
-    return <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+    const leadClass = "group relative flex min-h-[26rem] flex-col overflow-hidden rounded-card border border-line bg-white shadow-card transition hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-raised sm:col-span-2 lg:col-span-1 lg:row-span-2 lg:min-h-0";
+    // Máy tính: hai hàng cao theo chiều cao màn (globals.css .bento-grid) để cả lưới vừa một màn hình ở mọi cỡ.
+    return <div className="bento-grid grid gap-5 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)_minmax(0,1fr)]">
       {lead.href ? <Link className={leadClass} href={lead.href}>{leadBody}</Link> : <div className={leadClass}>{leadBody}</div>}
       {rest.map((item, index) => {
         const photo = photos[index + 1];
-        return <Card flush href={item.href} key={`${item.title}-${index}`}>
-          <div className={`relative w-full overflow-hidden bg-subtle ${photo ? "aspect-[16/9]" : "aspect-[16/5] sm:aspect-[16/9]"}`}>
-            {photo ? <Image alt={photo.altText ?? item.title} className="object-cover transition duration-500 group-hover:scale-[1.03]" fill sizes="(min-width: 1024px) 25vw, 50vw" src={photo.url} />
-              : <span aria-hidden="true" className={`absolute inset-0 grid place-items-center ${photoFallback}`}>{item.icon ? <BlockIcon name={item.icon} size={48} strokeWidth={1.4} /> : null}</span>}
+        return <Card className="lg:flex-row" flush href={item.href} key={`${item.title}-${index}`}>
+          <div className={`relative w-full overflow-hidden bg-subtle lg:aspect-auto lg:w-[28%] lg:shrink-0 xl:w-[36%] ${photo ? "aspect-[16/9]" : "aspect-[16/5] sm:aspect-[16/9]"}`}>
+            {photo ? <Image alt={photo.altText ?? item.title} className="object-cover transition duration-500 group-hover:scale-[1.03]" fill sizes="(min-width: 1024px) 12vw, 50vw" src={photo.url} />
+              : <span aria-hidden="true" className={`absolute inset-0 grid place-items-center ${photoFallback}`}>{item.icon ? <BlockIcon name={item.icon} size={40} strokeWidth={1.4} /> : null}</span>}
           </div>
-          <div className="flex flex-1 flex-col p-5">
-            <CardTitle>{item.title}</CardTitle>
-            {item.description ? <CardText className="mt-2 line-clamp-3 text-small!">{item.description}</CardText> : null}
-            {item.href ? <MoreLink /> : null}
+          <div className="flex min-w-0 flex-1 flex-col p-5 lg:py-4">
+            <CardTitle className="lg:text-body! xl:text-lead!">{item.title}</CardTitle>
+            {item.description ? <CardText className="mt-2 line-clamp-3 shrink-0 text-small! lg:mt-1 lg:line-clamp-2">{item.description}</CardText> : null}
+            {item.href ? <span className="mt-auto pt-5 text-small font-semibold text-brand-700 group-hover:underline lg:pt-2">Xem thêm →</span> : null}
           </div>
         </Card>;
       })}
@@ -164,7 +168,13 @@ async function Block({ block, first, frame }: { block: PageBlock; first: boolean
       <DarkFeatureList description={block.data.description} eyebrow={block.data.eyebrow} items={block.data.items} title={block.data.title} />
     </FrameSection>;
     return <FrameSection frame={frame}>
-      <SectionHeading dark={dark} description={block.data.description} eyebrow={block.data.eyebrow} title={block.data.title} />
+      {block.data.cardStyle === "bento" && block.data.items.length === 5
+        // Bento: tiêu đề trái, mô tả phải (thấp hơn tiêu đề căn giữa hai dòng + mô tả hai dòng) để cả phần vừa một màn hình.
+        ? <div className="section-heading mb-10 grid gap-x-16 gap-y-4 sm:mb-12 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-end">
+          <SectionHeading align="left" className="" dark={dark} eyebrow={block.data.eyebrow} title={block.data.title} />
+          {block.data.description ? <p className={`mb-0 text-lead ${dark ? "text-white/80" : "text-muted"}`}>{block.data.description}</p> : null}
+        </div>
+        : <SectionHeading dark={dark} description={block.data.description} eyebrow={block.data.eyebrow} title={block.data.title} />}
       <CardGrid bento={block.data.cardStyle === "bento"} items={block.data.items} visual={block.data.cardStyle === "visual"} />
     </FrameSection>;
     case "process": return <FrameSection frame={frame}>
