@@ -28,6 +28,7 @@ export const blockThumbnails: Record<string, ReactNode> = {
   faq: <Frame>{bar(35, 8, 50, 5, 0.9)}{[0, 1, 2, 3].map((index) => <g key={index}><rect height="9" rx="2" stroke="var(--cms-border-strong)" width="90" x="15" y={19 + index * 12} />{bar(19, 22 + index * 12, 40)}<text fill={media} fontSize="8" x="98" y={26 + index * 12}>+</text></g>)}</Frame>,
   rich_text: <Frame>{bar(25, 12, 50, 5, 0.9)}{[0, 1, 2, 3, 4, 5].map((index) => bar(25, 24 + index * 7, index === 5 ? 40 : 70))}</Frame>,
   image: <Frame>{box(10, 10, 100, 44, 0.3)}{bar(40, 59, 40)}</Frame>,
+  video: <Frame>{bar(40, 7, 40, 4, 0.9)}<rect fill={text} height="44" opacity=".85" rx="4" width="78" x="21" y="15" /><rect fill="#e62117" height="14" rx="4" width="20" x="50" y="30" /><path d="M57.5 33.5v7l6-3.5z" fill="#fff" />{bar(45, 64, 30)}</Frame>,
 };
 
 export type BlockLibraryItem<Value extends string> = { value: Value; label: string; description: string; group: string; disabledReason?: string };

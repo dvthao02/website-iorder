@@ -5,10 +5,12 @@ import { plainTextToRichDocument, richPlainText } from "@iorder/core/server/shar
 import { ArrowDown, ArrowUp, ChevronRight, Eye, EyeOff, GripVertical, Trash2 } from "lucide-react";
 import { useId, useRef, useState, type ReactNode } from "react";
 
-import { blockSpacingSchema, blockToneSchema, collectionSources, heroToneOf, type BlockAppearance, type BlockSpacing, type BlockTone, type CollectionSource, type HeroTone, type PageBlock } from "@iorder/core/server/pages/pages.contract";
-import { blockAnchor, blockSupportsDarkTone } from "@iorder/core/server/pages/block-layout";
+import { collectionSources, heroToneOf, type CollectionSource, type HeroTone, type PageBlock } from "@iorder/core/server/pages/pages.contract";
+import { isDarkColor } from "@iorder/core/server/pages/block-layout";
+import { youtubeEmbedUrl, youtubeVideoId } from "@iorder/core/server/shared/youtube";
 import { settingLinkHref, settingLinkKey, settingLinkOptions, type SettingLinkKey } from "@iorder/core/server/pages/setting-links";
 
+import { BlockAppearanceFields } from "./block-appearance-fields";
 import { MediaPicker } from "./media-picker";
 import { useAdminConfirm } from "./ui/admin-confirm-dialog";
 import { AdminStatusBadge } from "./ui/admin-feedback";
@@ -42,12 +44,13 @@ const blockOptions: ReadonlyArray<{ value: BlockType; label: string; description
   { value: "faq", label: "Câu hỏi thường gặp", description: "Danh sách câu hỏi và trả lời.", group: "Chuyển đổi" },
   { value: "rich_text", label: "Đoạn văn bản", description: "Tiêu đề và nội dung chữ tự do.", group: "Văn bản & hình ảnh" },
   { value: "image", label: "Hình ảnh", description: "Một ảnh từ thư viện media, kèm chú thích.", group: "Văn bản & hình ảnh" },
+  { value: "video", label: "Video YouTube", description: "Dán link YouTube, video nhúng khung 16:9 kèm tiêu đề và chú thích. Trong bài viết dùng nút ▶ trên thanh soạn thảo.", group: "Văn bản & hình ảnh" },
   { value: "featured_posts", label: "Bài viết nổi bật (cũ)", description: "", group: "", legacy: true },
   { value: "download_list", label: "Danh sách tải về (cũ)", description: "", group: "", legacy: true },
 ];
 
 // Trang danh sách (tin tức, thiết bị…) chỉ cần khối phục vụ việc đọc danh sách; khối giới thiệu kiểu trang chủ để ở trang thường.
-const listingBlockTypes: ReadonlySet<BlockType> = new Set(["collection_list", "rich_text", "image", "stats", "faq", "cta", "lead_form", "testimonials", "partners"]);
+const listingBlockTypes: ReadonlySet<BlockType> = new Set(["collection_list", "rich_text", "image", "video", "stats", "faq", "cta", "lead_form", "testimonials", "partners"]);
 
 function blockLabel(type: BlockType) {
   return blockOptions.find((option) => option.value === type)?.label ?? type;
@@ -60,6 +63,7 @@ function blockSummary(block: PageBlock) {
     case "stats": return block.data.title ?? `${block.data.items.length} số liệu`;
     case "rich_text": return block.data.heading ?? (typeof block.data.body === "string" ? block.data.body : richPlainText(block.data.body)).slice(0, 80);
     case "image": return block.data.alt ?? block.data.caption ?? (block.data.mediaId ? "Đã chọn ảnh" : "Chưa chọn ảnh");
+    case "video": return block.data.title ?? block.data.caption ?? (youtubeVideoId(block.data.url) ? block.data.url : "Chưa có link video");
     case "collection_list": return [collectionSources.find((source) => source.value === block.data.source)?.label, block.data.title].filter(Boolean).join(" · ");
     case "lead_form": return block.data.title;
     case "cta": return block.data.title;
@@ -86,6 +90,7 @@ function newBlock(type: BlockType): PageBlock {
     case "lead_form": return { type, isEnabled: true, data: { title: "Nhận tư vấn", description: null, submitLabel: "Gửi yêu cầu", needOptions: [] } };
     case "rich_text": return { type, isEnabled: true, data: { heading: null, body: { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "Nội dung mới" }] }] } } };
     case "image": return { type, isEnabled: true, data: { mediaId: "", alt: null, caption: null } };
+    case "video": return { type, isEnabled: true, data: { eyebrow: null, title: null, description: null, url: "", caption: null } };
     case "download_list": return { type, isEnabled: true, data: { eyebrow: null, title: "Tài liệu tải về" } };
     case "media_text": return { type, isEnabled: true, data: { layout: "image_right", tone: "light", eyebrow: null, title: "Tiêu đề mới", description: null, bullets: [], mediaId: null, primaryAction: null, secondaryAction: null } };
     case "pricing": return { type, isEnabled: true, data: { eyebrow: null, title: "Bảng giá", description: null, note: null, plans: [{ name: "Cơ bản", price: "Liên hệ", period: null, description: null, features: ["Tính năng 1"], action: { label: "Đăng ký", href: "/lien-he" }, highlighted: false, badge: null }] } };
@@ -145,7 +150,8 @@ const cardStyleOptions: ReadonlyArray<LayoutOption<CardStyle>> = [
 function CardStyleField({ block, onChange }: { block: CardBlock; onChange: (block: PageBlock) => void }) {
   const style = block.data.cardStyle ?? "compact";
   const count = block.data.items.length;
-  const dark = block.appearance?.tone === "dark";
+  // Nền "Tối" hoặc màu tự chọn đủ tối (website dùng chữ trắng) cùng một cách vẽ.
+  const dark = block.appearance?.tone === "dark" || (block.appearance?.tone === "custom" && Boolean(block.appearance.backgroundColor && isDarkColor(block.appearance.backgroundColor)));
   return <>
     <LayoutPicker label="Kiểu thẻ" name={`card-style-${useId()}`} onChange={cardStyle => onChange({ ...block, data: { ...block.data, cardStyle } })} options={cardStyleOptions} value={style} />
     {style === "bento" && count !== 5 ? <p className="admin-help admin-text-warning">Kiểu này cần đúng 5 thẻ (đang có {count}); website sẽ vẽ như “Thẻ ảnh” cho tới khi đủ 5.</p> : null}
@@ -332,7 +338,6 @@ function PricingFields({ block, onChange }: { block: PricingBlock; onChange: (bl
 type GroupedListBlock = Extract<PageBlock, { type: "grouped_list" }>;
 type GroupedListGroup = GroupedListBlock["data"]["groups"][number];
 const maxGroupedListGroups = 6;
-const defaultAppearance: BlockAppearance = { anchor: null, tone: "auto", spacing: "auto" };
 const maxGroupedListItems = 30;
 
 function GroupedListFields({ block, onChange }: { block: GroupedListBlock; onChange: (block: PageBlock) => void }) {
@@ -379,36 +384,22 @@ export function withoutEmptyGroupedListItems(blocks: PageBlock[]): PageBlock[] {
   return blocks.map(block => block.type === "grouped_list" ? { ...block, data: { ...block.data, groups: block.data.groups.map(group => ({ ...group, items: group.items.filter(item => item.label.trim()) })) } } : block);
 }
 
-// Vỏ chung của mọi khối (trừ phần đầu trang): nền, khoảng cách, mã neo. "Tự động" để website giữ nhịp đều:
-// nền xen kẽ trắng / xanh nhạt với phần ngay trước, khoảng cách chuẩn theo loại khối.
-const toneLabels: Record<BlockTone, string> = { auto: "Tự động (xen kẽ với phần trước)", white: "Trắng", tinted: "Xanh nhạt", dark: "Tối (chữ trắng)" };
-const spacingLabels: Record<BlockSpacing, string> = { auto: "Tự động", sm: "Gọn", md: "Vừa", lg: "Rộng" };
+type VideoBlock = Extract<PageBlock, { type: "video" }>;
 
-function withAnchor(block: PageBlock, anchor: string | null): PageBlock {
-  const appearance = { ...defaultAppearance, ...block.appearance, anchor };
-  // Trường neo cũ của "Kêu gọi hành động" và "Danh sách nội dung" chuyển hẳn sang vỏ chung.
-  if (block.type === "cta") return { ...block, appearance, data: { ...block.data, id: null } };
-  if (block.type === "collection_list") return { ...block, appearance, data: { ...block.data, anchor: null } };
-  return { ...block, appearance };
-}
-
-function AppearanceFields({ block, onChange }: { block: PageBlock; onChange: (block: PageBlock) => void }) {
-  const appearance = { ...defaultAppearance, ...block.appearance };
-  // "Ảnh + chữ" cũ chọn nền xanh nhạt trong ô riêng: hiện đúng lựa chọn đó, đổi nền thì bỏ ô cũ.
-  const tone = appearance.tone === "auto" && block.type === "media_text" && block.data.tone === "tinted" ? "tinted" : appearance.tone;
-  const tones = blockToneSchema.options.filter((value) => value !== "dark" || blockSupportsDarkTone(block.type));
-  function setTone(next: BlockTone) {
-    const updated = { ...block, appearance: { ...appearance, tone: next } } as PageBlock;
-    onChange(updated.type === "media_text" ? { ...updated, data: { ...updated.data, tone: "light" } } : updated);
-  }
-  return <Section title="Nền, khoảng cách & mã neo">
-    <div className="admin-form-grid">
-      <label className="admin-field">Nền<select className="admin-input" onChange={(event) => setTone(event.target.value as BlockTone)} value={tone}>{tones.map((value) => <option key={value} value={value}>{toneLabels[value]}</option>)}</select></label>
-      <label className="admin-field">Khoảng cách trên dưới<select className="admin-input" onChange={(event) => onChange({ ...block, appearance: { ...appearance, spacing: event.target.value as BlockSpacing } })} value={appearance.spacing}>{blockSpacingSchema.options.map((value) => <option key={value} value={value}>{spacingLabels[value]}</option>)}</select></label>
-    </div>
-    <NullableField label="Mã neo (tùy chọn, ví dụ bang-gia để liên kết tới #bang-gia)" value={blockAnchor(block)} onChange={(anchor) => onChange(withAnchor(block, anchor === null ? null : anchor.trim().toLowerCase()))} />
-    <p className="admin-help">Để “Tự động” thì website tự xen kẽ nền trắng / xanh nhạt. Chọn tay cùng một nền cho hai phần liền nhau thì website thêm vạch ngăn mảnh. Nên dùng nền “Tối” cho tối đa một hai phần mỗi trang để làm điểm nhấn.</p>
-  </Section>;
+// Khối video: dán link YouTube, xem trước ngay trong CMS bằng khung phát thật.
+function VideoFields({ block, onChange }: { block: VideoBlock; onChange: (block: PageBlock) => void }) {
+  const set = (patch: Partial<VideoBlock["data"]>) => onChange({ ...block, data: { ...block.data, ...patch } });
+  const videoId = youtubeVideoId(block.data.url);
+  return <>
+    <label className="admin-field">Link video YouTube<input inputMode="url" onChange={event => set({ url: event.target.value })} placeholder="https://www.youtube.com/watch?v=… hoặc https://youtu.be/…" value={block.data.url} /></label>
+    {block.data.url.trim() && !videoId ? <p className="admin-help admin-text-warning">Link chưa đúng dạng YouTube. Mở video trên YouTube, bấm Chia sẻ rồi sao chép link.</p> : null}
+    {videoId ? <div className="admin-video-preview"><iframe allow="encrypted-media; picture-in-picture; fullscreen" allowFullScreen loading="lazy" referrerPolicy="strict-origin-when-cross-origin" src={youtubeEmbedUrl(videoId)} title="Xem trước video" /></div> : <p className="admin-help">Dán link để xem trước video ngay tại đây. Nhận link xem (watch), link rút gọn youtu.be, Shorts và video trực tiếp.</p>}
+    <NullableField label="Dòng giới thiệu" value={block.data.eyebrow} onChange={eyebrow => set({ eyebrow })} />
+    <NullableField label="Tiêu đề (tùy chọn)" value={block.data.title} onChange={title => set({ title })} />
+    <NullableField label="Mô tả" multiline value={block.data.description} onChange={description => set({ description })} />
+    <NullableField label="Chú thích dưới video" value={block.data.caption} onChange={caption => set({ caption })} />
+    <p className="admin-help">Video nhúng ở chế độ bảo mật nâng cao của YouTube (không đặt cookie cho tới khi người xem bấm phát). Thu nhỏ video bằng “Độ rộng nội dung” trong mục Giao diện khối.</p>
+  </>;
 }
 
 function BlockFields({ block, onChange, disabled, onUploadingChange }: { block: PageBlock; onChange: (block: PageBlock) => void; disabled?: boolean; onUploadingChange: (pending: boolean) => void }) {
@@ -438,6 +429,7 @@ function BlockFields({ block, onChange, disabled, onUploadingChange }: { block: 
       <Field label="Số mục tối đa (để trống: hiển thị tất cả)" min={1} type="number" value={block.data.limit === null ? "" : String(block.data.limit)} onChange={next => onChange({ ...block, data: { ...block.data, limit: next === "" ? null : Math.max(1, Math.min(100, Number(next) || 1)) } })} />
       <p className="admin-help">{block.data.limit ? "Có giới hạn số mục: tiêu đề căn trái, bên phải có nút “Xem tất cả →” sang trang tổng hợp của nguồn này." : "Hiển thị tất cả: tiêu đề căn giữa, không có nút “Xem tất cả” (dùng cho trang danh sách)."}</p>
     </>;
+    case "video": return <VideoFields block={block} onChange={onChange} />;
     case "download_list": return <><NullableField label="Dòng giới thiệu" value={block.data.eyebrow} onChange={eyebrow => onChange({ ...block, data: { ...block.data, eyebrow } })} /><Field label="Tiêu đề" value={block.data.title} onChange={title => onChange({ ...block, data: { ...block.data, title } })} /></>;
   }
 }
@@ -520,7 +512,7 @@ export function PageBlocksEditor({ blocks, onChange, disabled, onUploadingChange
               <button aria-label={`Xóa ${blockLabel(block.type)}`} className="admin-content-actions__button admin-content-actions__delete" disabled={disabled || pinned} onClick={() => void remove(index)} title="Xóa thành phần" type="button"><Trash2 aria-hidden="true" /></button>
             </div>
           </div>
-          {open ? <div className="admin-block__body"><BlockFields block={block} disabled={disabled} onUploadingChange={pending => reportUploading(index, pending)} onChange={next => update(index, next)} />{block.type === "hero" ? null : <AppearanceFields block={block} onChange={next => update(index, next)} />}</div> : null}
+          {open ? <div className="admin-block__body"><BlockFields block={block} disabled={disabled} onUploadingChange={pending => reportUploading(index, pending)} onChange={next => update(index, next)} />{block.type === "hero" ? null : <BlockAppearanceFields block={block} disabled={disabled} onChange={next => update(index, next)} onUploadingChange={pending => reportUploading(-(index + 1), pending)} />}</div> : null}
         </li>;
       })}
     </ol>

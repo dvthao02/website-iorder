@@ -123,7 +123,8 @@ export async function collectMediaUsage(mediaId: string): Promise<MediaUsage[]> 
   const [pageRows, postRows, offeringRows, groupRows, equipmentRows, partnerRows, testimonialRows, profileRows, downloadRows, publishingRows] = await Promise.all([
     getDb().select({ id: pageBlocks.id, label: pages.title }).from(pageBlocks).innerJoin(pages, eq(pageBlocks.pageId, pages.id))
       // Mã tệp có thể nằm ở bất kỳ đâu trong dữ liệu khối (ảnh minh họa, slide của phần đầu trang…); UUID là duy nhất nên dò chuỗi là đủ.
-      .where(and(isNull(pages.deletedAt), sql<boolean>`position(${mediaId} in ${pageBlocks.data}::text) > 0`)),
+      // Ảnh nền của khối nằm ở vỏ chung (appearance), nên dò cả hai cột.
+      .where(and(isNull(pages.deletedAt), sql<boolean>`position(${mediaId} in (${pageBlocks.data}::text || coalesce(${pageBlocks.appearance}::text, ''))) > 0`)),
     getDb().select({ id: posts.id, label: posts.title }).from(posts).where(and(eq(posts.coverMediaId, mediaId), isNull(posts.deletedAt))),
     getDb().select({ id: offerings.id, label: offerings.title }).from(offerings).where(and(eq(offerings.coverMediaId, mediaId), isNull(offerings.deletedAt))),
     getDb().select({ id: equipmentGroups.id, label: equipmentGroups.name }).from(equipmentGroups).where(and(eq(equipmentGroups.coverMediaId, mediaId), isNull(equipmentGroups.deletedAt))),

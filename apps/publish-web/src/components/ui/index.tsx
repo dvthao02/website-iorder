@@ -1,7 +1,8 @@
+import Image from "next/image";
 import Link from "next/link";
 import { Check, CircleCheck } from "lucide-react";
-import type { ReactNode } from "react";
-import type { BlockFrame } from "@iorder/core/server/pages/block-layout";
+import type { CSSProperties, ReactNode } from "react";
+import type { BlockBackground, BlockFrame } from "@iorder/core/server/pages/block-layout";
 
 /*
  * Bộ component nền của website. Mọi khối trang ghép từ các viên gạch này, nên giao diện
@@ -27,14 +28,29 @@ const spacing = { sm: "py-10 sm:py-14", md: "py-14 sm:py-20", lg: "py-20 sm:py-2
 export type SectionTone = keyof typeof tones;
 export type SectionSpace = keyof typeof spacing;
 
+// Màu lớp phủ trên ảnh nền khi khối không chọn màu riêng: đúng màu nền của sắc thái đó.
+const overlayColors = { white: "#ffffff", tinted: "var(--color-surface-tinted)", dark: "var(--color-navy)", plain: "#ffffff" } as const;
+
 // Một phần trang: nền + khoảng cách trên dưới + khung ngang. Cao theo nội dung (chỉ phần đầu trang chiếm cả màn hình).
-export function Section({ children, tone = "plain", space = "md", width = "default", id, label, className = "" }: { children: ReactNode; tone?: SectionTone; space?: SectionSpace; width?: "default" | "narrow" | "text"; id?: string | null; label?: string; className?: string }) {
-  return <section aria-label={label} className={`${tones[tone]} ${className}`.trim()} data-reveal="" id={id ?? undefined}><Container className={spacing[space]} width={width}>{children}</Container></section>;
+// `background`: màu riêng (thay nền của sắc thái, giữ màu chữ) và/hoặc ảnh nền phủ lớp màu `overlay` % để chữ đọc được.
+// `contentWidth`: % bề ngang khung nội dung (từ màn máy tính bảng; điện thoại luôn rộng hết khung).
+export function Section({ children, tone = "plain", space = "md", width = "default", id, label, className = "", background, contentWidth }: { children: ReactNode; tone?: SectionTone; space?: SectionSpace; width?: "default" | "narrow" | "text"; id?: string | null; label?: string; className?: string; background?: BlockBackground | null; contentWidth?: number | null }) {
+  const color = background?.color ?? null;
+  const image = background?.imageUrl ?? null;
+  const surface = color ? (tone === "dark" ? "text-white" : "") : tones[tone];
+  const body = contentWidth && contentWidth < 100 ? <div className="block-width" style={{ "--block-width": `${contentWidth}%` } as CSSProperties}>{children}</div> : children;
+  return <section aria-label={label} className={`${surface} ${image ? "relative isolate overflow-hidden" : ""} ${className}`.replace(/\s+/g, " ").trim()} data-reveal="" id={id ?? undefined} style={color ? { backgroundColor: color } : undefined}>
+    {image ? <>
+      <Image alt="" className="-z-20 object-cover" fill sizes="100vw" src={image} />
+      <span aria-hidden="true" className="absolute inset-0 -z-10" style={{ background: color ?? overlayColors[tone], opacity: (background?.overlay ?? 80) / 100 }} />
+    </> : null}
+    <Container className={spacing[space]} width={width}>{body}</Container>
+  </section>;
 }
 
-// Phần trang của một khối: nền, khoảng cách, mã neo lấy từ vỏ chung (resolveBlockFrames).
+// Phần trang của một khối: nền, khoảng cách, mã neo, độ rộng lấy từ vỏ chung (resolveBlockFrames).
 export function FrameSection({ frame, children, width, label, className }: { frame: BlockFrame; children: ReactNode; width?: "default" | "narrow" | "text"; label?: string; className?: string }) {
-  return <Section className={className} id={frame.anchor} label={label} space={frame.spacing} tone={frame.tone} width={width}>{children}</Section>;
+  return <Section background={frame.background} className={className} contentWidth={frame.width} id={frame.anchor} label={label} space={frame.spacing} tone={frame.tone} width={width}>{children}</Section>;
 }
 // Khối dùng ngoài trang ghép khối (ví dụ bảng giá trên trang sản phẩm) dùng khung mặc định này.
 export const defaultFrame: BlockFrame = { tone: "white", spacing: "md", anchor: null };

@@ -4,12 +4,13 @@ import { EditorContent, useEditor, type Editor } from "@tiptap/react";
 import { Placeholder } from "@tiptap/extensions";
 import {
   Bold, Columns3, FileUp, Heading2, Heading3, Heading4, ImagePlus, Italic, LayoutTemplate, Link2, List, ListOrdered,
-  Minus, Pilcrow, Quote, Redo2, RemoveFormatting, Rows3, Strikethrough, Table as TableIcon,
+  Minus, Pilcrow, Quote, Redo2, RemoveFormatting, Rows3, SquarePlay, Strikethrough, Table as TableIcon,
   Trash2, Underline, Undo2, Unlink, Wallpaper,
 } from "lucide-react";
 import { useRef, useState, type ReactNode } from "react";
 
 import type { BannerHeight, BannerOverlay, ImageAlign, RichDocument } from "@iorder/core/server/shared/rich-text";
+import { youtubeVideoId, youtubeWatchUrl } from "@iorder/core/server/shared/youtube";
 import { useAdminConfirm } from "../ui/admin-confirm-dialog";
 import { useAdminToast } from "../ui/admin-feedback";
 import { imageWraps } from "./image-view";
@@ -22,6 +23,7 @@ function ToolButton({ label, active, disabled, onClick, children }: { label: str
 }
 
 const widthOptions = [25, 33, 50, 75, 100].map((value) => ({ value: String(value), label: value === 100 ? "Toàn khổ" : `${value}%` }));
+const videoWidthOptions = [50, 60, 75, 90, 100].map((value) => ({ value: String(value), label: value === 100 ? "Toàn khổ" : `${value}%` }));
 const overlayOptions: { value: BannerOverlay; label: string }[] = [{ value: "dark", label: "Tối" }, { value: "light", label: "Sáng" }, { value: "none", label: "Không" }];
 const heightOptions: { value: BannerHeight; label: string }[] = [{ value: "short", label: "Thấp" }, { value: "medium", label: "Vừa" }, { value: "tall", label: "Cao" }];
 
@@ -51,6 +53,8 @@ export function RichTextEditor({ value, onChange, onImportTitle, placeholder = "
   const { show } = useAdminToast();
   const { confirm } = useAdminConfirm();
   const [linkDraft, setLinkDraft] = useState<string | null>(null);
+  // Ô dán link YouTube: chèn video mới, hoặc đổi video đang chọn.
+  const [videoDraft, setVideoDraft] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const imageInput = useRef<HTMLInputElement>(null);
   const bannerInput = useRef<HTMLInputElement>(null);
@@ -74,7 +78,7 @@ export function RichTextEditor({ value, onChange, onImportTitle, placeholder = "
     bold: editor.isActive("bold"), italic: editor.isActive("italic"), underline: editor.isActive("underline"), strike: editor.isActive("strike"),
     bullet: editor.isActive("bulletList"), ordered: editor.isActive("orderedList"), quote: editor.isActive("blockquote"),
     link: editor.isActive("link"), table: editor.isActive("table"),
-    image: editor.isActive("image"), banner: editor.isActive("imageBanner"),
+    image: editor.isActive("image"), banner: editor.isActive("imageBanner"), video: editor.isActive("youtube"),
     canUndo: editor.can().undo(), canRedo: editor.can().redo(),
     words: editor.getText().split(/\s+/).filter(Boolean).length,
   };
@@ -84,6 +88,8 @@ export function RichTextEditor({ value, onChange, onImportTitle, placeholder = "
   // Ô nhập mô tả/chú thích giữ focus, nên cập nhật thuộc tính ảnh mà không kéo focus về editor.
   const setImageAttrs = (attrs: Record<string, unknown>, focus = true) => (focus ? chain() : editor.chain()).updateAttributes("image", attrs).run();
   const setBannerAttrs = (attrs: Record<string, unknown>) => chain().updateAttributes("imageBanner", attrs).run();
+  const videoAttrs = state.video ? editor.getAttributes("youtube") as { videoId: string; caption: string | null; width: number } : null;
+  const setVideoAttrs = (attrs: Record<string, unknown>, focus = true) => (focus ? chain() : editor.chain()).updateAttributes("youtube", attrs).run();
   const locked = disabled || busy !== null;
 
   function applyLink() {
@@ -93,6 +99,15 @@ export function RichTextEditor({ value, onChange, onImportTitle, placeholder = "
     else if (!/^(https?:\/\/|mailto:|tel:|\/(?!\/)|#)/i.test(href)) { show("Liên kết phải bắt đầu bằng https://, mailto:, tel: hoặc / (trang trong website).", "warning"); return; }
     else chain().extendMarkRange("link").setLink({ href }).run();
     setLinkDraft(null);
+  }
+
+  function applyVideo() {
+    if (!editor || videoDraft === null) return;
+    const videoId = youtubeVideoId(videoDraft);
+    if (!videoId) { show("Link chưa đúng dạng YouTube. Mở video trên YouTube, bấm Chia sẻ rồi sao chép link (ví dụ https://youtu.be/…).", "warning"); return; }
+    if (editor.isActive("youtube")) chain().updateAttributes("youtube", { videoId }).run();
+    else chain().insertContent({ type: "youtube", attrs: { videoId } }).run();
+    setVideoDraft(null);
   }
 
   async function insertImage(file: File | undefined) {
@@ -181,6 +196,7 @@ export function RichTextEditor({ value, onChange, onImportTitle, placeholder = "
       <ToolButton disabled={locked} label="Đường kẻ ngang" onClick={() => chain().setHorizontalRule().run()}><Minus size={16} /></ToolButton>
       <ToolButton disabled={locked} label="Chèn ảnh (tải lên Thư viện media)" onClick={() => imageInput.current?.click()}><ImagePlus size={16} /></ToolButton>
       <ToolButton active={state.banner} disabled={locked} label="Khối ảnh nền (chữ đè lên ảnh)" onClick={() => bannerInput.current?.click()}><Wallpaper size={16} /></ToolButton>
+      <ToolButton active={state.video} disabled={locked} label="Chèn video YouTube (dán link)" onClick={() => setVideoDraft(videoAttrs ? youtubeWatchUrl(videoAttrs.videoId) : "")}><SquarePlay size={16} /></ToolButton>
       <ToolButton active={state.table} disabled={locked} label="Chèn bảng 3×3" onClick={() => chain().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}><TableIcon size={16} /></ToolButton>
       {state.table ? <>
         <ToolButton disabled={locked} label="Thêm hàng bên dưới" onClick={() => chain().addRowAfter().run()}><Rows3 size={16} /></ToolButton>
@@ -199,6 +215,18 @@ export function RichTextEditor({ value, onChange, onImportTitle, placeholder = "
       <input aria-label="Địa chỉ liên kết" autoFocus onChange={(event) => setLinkDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); applyLink(); } if (event.key === "Escape") setLinkDraft(null); }} placeholder="https://… hoặc /trang-trong-website" value={linkDraft} />
       <button className="admin-button admin-button--primary admin-button--sm" onClick={applyLink} type="button">Áp dụng</button>
       <button className="admin-button admin-button--ghost admin-button--sm" onClick={() => setLinkDraft(null)} type="button">Hủy</button>
+    </div> : null}
+    {videoDraft !== null ? <div className="admin-rte__linkbar">
+      <input aria-label="Link video YouTube" autoFocus onChange={(event) => setVideoDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); applyVideo(); } if (event.key === "Escape") setVideoDraft(null); }} placeholder="Dán link YouTube: https://www.youtube.com/watch?v=… hoặc https://youtu.be/…" value={videoDraft} />
+      <button className="admin-button admin-button--primary admin-button--sm" onClick={applyVideo} type="button">{state.video ? "Đổi video" : "Chèn video"}</button>
+      <button className="admin-button admin-button--ghost admin-button--sm" onClick={() => setVideoDraft(null)} type="button">Hủy</button>
+    </div> : null}
+    {videoAttrs ? <div aria-label="Tùy chỉnh video" className="admin-rte__contextbar" role="group">
+      <Segmented disabled={locked} label={`Rộng ${videoAttrs.width ?? 100}%`} onChange={(value) => setVideoAttrs({ width: Number(value) })} options={videoWidthOptions} value={String(videoAttrs.width ?? 100)} />
+      <label className="admin-rte__field">Chú thích<input disabled={locked} maxLength={500} onChange={(event) => setVideoAttrs({ caption: event.target.value || null }, false)} placeholder="Hiện dưới video (không bắt buộc)" value={videoAttrs.caption ?? ""} /></label>
+      <a className="admin-button admin-button--ghost admin-button--sm" href={youtubeWatchUrl(videoAttrs.videoId)} rel="noopener noreferrer" target="_blank">Xem trên YouTube</a>
+      <button className="admin-button admin-button--ghost admin-button--sm" disabled={locked} onClick={() => setVideoDraft(youtubeWatchUrl(videoAttrs.videoId))} type="button"><SquarePlay size={14} />Đổi link</button>
+      <button className="admin-button admin-button--ghost admin-button--sm admin-rte__danger" disabled={locked} onClick={() => chain().deleteSelection().run()} type="button"><Trash2 size={14} />Xóa video</button>
     </div> : null}
     {imageAttrs ? <div aria-label="Tùy chỉnh ảnh" className="admin-rte__contextbar" role="group">
       <Segmented disabled={locked} label={`Rộng ${imageAttrs.width ?? 100}%`} onChange={(value) => setImageAttrs({ width: Number(value), ...(value === "100" ? { align: "center" } : {}) })} options={widthOptions} value={String(imageAttrs.width ?? 100)} />

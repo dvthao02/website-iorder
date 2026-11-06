@@ -1,7 +1,9 @@
 import Image from "@tiptap/extension-image";
+import type { DOMOutputSpec } from "@tiptap/pm/model";
 import { mergeAttributes, Node, ReactNodeViewRenderer } from "@tiptap/react";
 
-import { imageWidthLimits, type BannerHeight, type BannerOverlay, type ImageAlign } from "@iorder/core/server/shared/rich-text";
+import { imageWidthLimits, videoWidthLimits, type BannerHeight, type BannerOverlay, type ImageAlign } from "@iorder/core/server/shared/rich-text";
+import { isYoutubeVideoId, youtubeThumbnailUrl, youtubeVideoId } from "@iorder/core/server/shared/youtube";
 import { ImageView } from "./image-view";
 
 const legacyWidths: Record<string, number> = { small: 33, medium: 50, large: 75, full: 100 };
@@ -31,6 +33,47 @@ export const SizedImage = Image.extend({
     return ReactNodeViewRenderer(ImageView);
   },
 }).configure({ allowBase64: false });
+
+const clampVideoWidth = (value: unknown) => Math.min(videoWidthLimits.max, Math.max(videoWidthLimits.min, Math.round(Number(value) || 100)));
+
+// Video YouTube trong bài: một khối nguyên (không gõ chữ bên trong). Trình soạn hiện ảnh xem trước của video
+// (iframe trong vùng soạn thảo sẽ "nuốt" cú bấm nên không chọn được khối); website nhúng khung phát thật.
+// Dán HTML có iframe YouTube (từ trang khác) cũng thành khối video.
+export const YouTubeVideo = Node.create({
+  name: "youtube",
+  group: "block",
+  atom: true,
+  draggable: true,
+  selectable: true,
+  addAttributes() {
+    return {
+      videoId: { default: null, parseHTML: (element) => element.getAttribute("data-video-id"), renderHTML: () => ({}) },
+      caption: { default: null, parseHTML: (element) => element.getAttribute("data-caption") || null, renderHTML: () => ({}) },
+      width: { default: 100, parseHTML: (element) => clampVideoWidth(element.getAttribute("data-width")), renderHTML: () => ({}) },
+    };
+  },
+  parseHTML() {
+    return [
+      { tag: "div[data-youtube]", getAttrs: (element) => isYoutubeVideoId(element.getAttribute("data-video-id")) ? null : false },
+      { tag: "iframe[src]", getAttrs: (element) => { const videoId = youtubeVideoId(element.getAttribute("src") ?? ""); return videoId ? { videoId } : false; } },
+    ];
+  },
+  renderHTML({ node, HTMLAttributes }) {
+    const { videoId, caption, width } = node.attrs as { videoId: string; caption: string | null; width: number };
+    const children: DOMOutputSpec[] = [
+      ["span", { class: "admin-rte-video__frame" }, ["img", { alt: "", draggable: "false", src: youtubeThumbnailUrl(videoId) }], ["span", { "aria-hidden": "true", class: "admin-rte-video__play" }]],
+    ];
+    if (caption) children.push(["span", { class: "admin-rte-video__caption" }, caption]);
+    return ["div", mergeAttributes(HTMLAttributes, {
+      "data-youtube": "",
+      "data-video-id": videoId,
+      "data-caption": caption ?? "",
+      "data-width": width,
+      class: "admin-rte-video",
+      style: `--video-width: ${clampVideoWidth(width)}%`,
+    }), ...children];
+  },
+});
 
 // Khối ảnh nền: ảnh phủ kín bề ngang, bên trong là tiêu đề/đoạn văn đè lên ảnh.
 export const ImageBanner = Node.create({

@@ -36,3 +36,14 @@ test("Mã neo lấy từ vỏ chung trước, rồi trường cũ", () => {
   assert.equal(blockAnchor(block({ type: "collection_list", isEnabled: true, data: { source: "posts", eyebrow: null, title: null, description: null, limit: null, anchor: "tin" }, appearance: { anchor: "moi" } })), "moi");
   assert.equal(pageBlockInputSchema.safeParse({ type: "faq", isEnabled: true, data: { eyebrow: null, title: "A", items: [{ question: "Q", answer: "A" }] }, appearance: { anchor: "Có dấu" } }).success, false);
 });
+
+test("Màu nền tự chọn: màu tối thì chữ trắng, khối không hợp nền tối về xanh nhạt; ảnh nền và độ rộng đi theo khung", () => {
+  const text = (appearance: unknown) => block({ type: "rich_text", isEnabled: true, data: { heading: null, body: "Nội dung" }, appearance });
+  const [darkFaq, lightFaq, darkText] = resolveBlockFrames([faq({ tone: "custom", backgroundColor: "#0a2a57" }), faq({ tone: "custom", backgroundColor: "#fff7ed", width: 70 }), text({ tone: "custom", backgroundColor: "#0a2a57" })]);
+  assert.deepEqual([darkFaq.tone, darkFaq.background?.color], ["dark", "#0a2a57"]);
+  assert.deepEqual([lightFaq.tone, lightFaq.background?.color, lightFaq.width], ["white", "#fff7ed", 70]);
+  assert.deepEqual([darkText.tone, darkText.background], ["tinted", null]);
+  const photo = resolveBlockFrames([faq({ tone: "tinted", backgroundMediaId: "22222222-2222-4222-8222-222222222222", backgroundOverlay: 60 })])[0];
+  assert.deepEqual(photo.background, { color: null, mediaId: "22222222-2222-4222-8222-222222222222", overlay: 60 });
+  assert.equal(resolveBlockFrames([faq({ tone: "custom" })])[0].background, null, "chưa chọn màu thì như Tự động");
+});

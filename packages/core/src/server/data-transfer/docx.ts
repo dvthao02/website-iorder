@@ -1,5 +1,6 @@
 import { zipFiles } from "../shared/xlsx";
 import type { RichDocument, RichMark, RichNode } from "../shared/rich-text";
+import { youtubeWatchUrl } from "../shared/youtube";
 
 // Dựng file Word (.docx) từ nội dung bài viết, không thêm thư viện: .docx là zip chứa vài file XML (WordprocessingML).
 // Quy ước để nhập lại được (mammoth): tiêu đề bài là Heading 1, H2–H4 của bài là Heading 2–4, trích dẫn dùng style "Quote".
@@ -128,6 +129,12 @@ function blocks(context: Context, nodes: RichNode[] | undefined, options: { styl
         return imageParagraph(context, node.attrs.src, node.attrs.alt, node.attrs.width, node.attrs.align);
       case "imageBanner":
         return imageParagraph(context, node.attrs.src, null, 100, "center") + blocks(context, node.content, options);
+      // Word không phát được video nhúng: ghi một dòng liên kết tới video, căn giữa như khung video trên website.
+      case "youtube": {
+        const href = youtubeWatchUrl(node.attrs.videoId);
+        const label = `▶ Video YouTube: ${node.attrs.caption ?? href}`;
+        return paragraph(inlineContent(context, [{ type: "text", text: label, marks: [{ type: "link", attrs: { href, target: "_blank" } }] }], inline), '<w:jc w:val="center"/>');
+      }
       default:
         return "";
     }

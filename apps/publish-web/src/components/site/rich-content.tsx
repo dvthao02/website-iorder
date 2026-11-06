@@ -1,4 +1,6 @@
 import Image from "next/image";
+
+import { YouTubeFrame } from "./youtube-frame";
 import type { CSSProperties, ReactNode } from "react";
 
 import {
@@ -73,6 +75,11 @@ function RichNodeView({ node, path, headingId }: { node: RichNode; path: string;
         {children(node.content, path)}
       </section>;
     }
+    // Video YouTube: khung 16:9 căn giữa, rộng theo % khung bài (điện thoại rộng hết khung).
+    case "youtube": return <figure className="clear-both mx-auto grid w-full gap-2 md:w-[var(--video-width)]" style={{ "--video-width": `${node.attrs.width ?? 100}%` } as CSSProperties}>
+      <YouTubeFrame className="rounded-xl" title={node.attrs.caption ?? "Video YouTube"} videoId={node.attrs.videoId} />
+      {node.attrs.caption ? <figcaption className="text-center text-sm text-slate-500">{node.attrs.caption}</figcaption> : null}
+    </figure>;
     case "table": return <div className="clear-both overflow-x-auto rounded-xl border border-slate-200"><table className="w-full border-collapse text-left text-base"><tbody>{children(node.content, path)}</tbody></table></div>;
     case "tableRow": return <tr className="border-b border-slate-200 last:border-0">{children(node.content, path)}</tr>;
     case "tableHeader": return <th className="bg-slate-50 px-4 py-3 align-top font-bold text-slate-900 [&>p]:m-0" colSpan={node.attrs.colspan} rowSpan={node.attrs.rowspan}>{children(node.content, path)}</th>;

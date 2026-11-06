@@ -71,3 +71,9 @@ test("ảnh có độ rộng %/căn lề; khối ảnh nền chỉ chứa chữ"
     doc({ type: "imageBanner", attrs: { src: "/media/a.jpg" }, content: [{ type: "table", content: [] }] }),
   ]) assert.equal(richDocumentSchema.safeParse(bad).success, false);
 });
+
+test("Video YouTube trong bài: giữ mã video, chú thích và độ rộng; mã sai bị từ chối", () => {
+  const result = sanitizeRichDocument(doc({ type: "youtube", attrs: { videoId: "dQw4w9WgXcQ", caption: "  Hướng dẫn  ", width: 5, extra: "x" } }));
+  assert.deepEqual(result.content, [{ type: "youtube", attrs: { videoId: "dQw4w9WgXcQ", caption: "Hướng dẫn", width: 40 } }]);
+  assert.throws(() => sanitizeRichDocument(doc({ type: "youtube", attrs: { videoId: "javascript:x" } })), /YouTube/);
+});

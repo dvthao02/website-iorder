@@ -3,6 +3,7 @@ import { richDocumentSchema } from "../shared/rich-text";
 import { adminListQuerySchema } from "../shared/admin-list.contract";
 import { pricingDataSchema } from "../shared/pricing.contract";
 import { blockIconSchema } from "../shared/block-icons";
+import { youtubeVideoId } from "../shared/youtube";
 import type { CmsModuleKey, CmsPermissionCode } from "../auth/permissions";
 
 // `kind`: "custom" = trang admin tự tạo, "system" = trang có sẵn của website (route thuộc code).
@@ -87,18 +88,37 @@ export const collectionListDataSchema = z.object({
 }).strict();
 export type CollectionListData = z.infer<typeof collectionListDataSchema>;
 
-// Vỏ chung của mọi khối (lưu ở cột page_blocks.appearance): mã neo để liên kết #neo, nền và khoảng cách.
+// Vỏ chung của mọi khối (lưu ở cột page_blocks.appearance): mã neo để liên kết #neo, nền, khoảng cách, độ rộng.
 // "auto" = website tự quyết theo quy luật chung (xem block-layout.ts): nền xen kẽ trắng / xanh nhạt, khoảng cách vừa.
-export const blockToneSchema = z.enum(["auto", "white", "tinted", "dark"]);
+// "custom" = màu nền tự chọn (backgroundColor); website tự chọn chữ trắng hay chữ đậm theo độ sáng của màu.
+export const blockToneSchema = z.enum(["auto", "white", "tinted", "dark", "custom"]);
 export const blockSpacingSchema = z.enum(["auto", "sm", "md", "lg"]);
+// Độ rộng phần nội dung: % khung chuẩn của khối (null = mặc định). Điện thoại luôn rộng hết khung.
+export const blockWidthLimits = { min: 40, max: 100 } as const;
+export const blockOverlayLimits = { min: 0, max: 95 } as const;
+const hexColorSchema = z.string().trim().regex(/^#[0-9a-fA-F]{6}$/, "Màu nền phải là mã màu dạng #RRGGBB.").transform((value) => value.toLowerCase());
 export const blockAppearanceSchema = z.object({
   anchor: z.string().trim().max(60).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).nullable().default(null),
   tone: blockToneSchema.default("auto"),
   spacing: blockSpacingSchema.default("auto"),
+  width: z.number().int().min(blockWidthLimits.min).max(blockWidthLimits.max).nullable().default(null),
+  backgroundColor: hexColorSchema.nullable().default(null),
+  // Ảnh nền từ Thư viện media, phủ một lớp màu nền của khối (backgroundOverlay % độ đậm) để chữ luôn đọc được.
+  backgroundMediaId: z.string().uuid().nullable().default(null),
+  backgroundOverlay: z.number().int().min(blockOverlayLimits.min).max(blockOverlayLimits.max).default(80),
 }).strict();
 export type BlockAppearance = z.infer<typeof blockAppearanceSchema>;
 export type BlockTone = z.infer<typeof blockToneSchema>;
 export type BlockSpacing = z.infer<typeof blockSpacingSchema>;
+
+export const videoBlockDataSchema = z.object({
+  eyebrow: z.string().trim().max(160).nullable(),
+  title: z.string().trim().max(220).nullable(),
+  description: z.string().trim().max(2_000).nullable(),
+  url: z.string().trim().min(1, "Nhập link video YouTube.").max(500).refine((value) => youtubeVideoId(value) !== null, "Link YouTube không hợp lệ (ví dụ https://www.youtube.com/watch?v=… hoặc https://youtu.be/…)."),
+  caption: z.string().trim().max(500).nullable(),
+}).strict();
+export type VideoBlockData = z.infer<typeof videoBlockDataSchema>;
 
 const actionSchema = z.object({ label: z.string().trim().min(1).max(120), href: z.string().trim().min(1).max(1000) }).strict();
 // Phần đầu trang có nhiều kiểu bố cục; CMS cho chọn bằng hình minh họa, website vẽ theo kiểu đã chọn.
@@ -179,6 +199,8 @@ export const pageBlockInputSchema = z.discriminatedUnion("type", [
   // body: chữ thuần (khối cũ) hoặc tài liệu soạn thảo kiểu Word (xem shared/rich-text).
   z.object({ type: z.literal("rich_text"), data: z.object({ heading: z.string().trim().max(220).nullable(), body: z.union([z.string().trim().min(1).max(50_000), richDocumentSchema]) }).strict(), isEnabled: z.boolean(), appearance: blockAppearanceSchema.optional() }).strict(),
   z.object({ type: z.literal("image"), data: z.object({ mediaId: z.string().uuid(), alt: z.string().trim().max(500).nullable(), caption: z.string().trim().max(2_000).nullable() }).strict(), isEnabled: z.boolean(), appearance: blockAppearanceSchema.optional() }).strict(),
+  // Video YouTube: lưu link người vận hành dán (website đọc mã video và nhúng khung 16:9).
+  z.object({ type: z.literal("video"), data: videoBlockDataSchema, isEnabled: z.boolean(), appearance: blockAppearanceSchema.optional() }).strict(),
   z.object({ type: z.literal("collection_list"), data: collectionListDataSchema, isEnabled: z.boolean(), appearance: blockAppearanceSchema.optional() }).strict(),
   z.object({ type: z.literal("download_list"), data: z.object({ eyebrow: z.string().trim().max(160).nullable(), title: z.string().trim().min(1).max(220) }).strict(), isEnabled: z.boolean(), appearance: blockAppearanceSchema.optional() }).strict(),
   // Ảnh + chữ hai cột: giới thiệu một tính năng/lợi ích kèm ảnh chụp màn hình; xếp nhiều khối xen kẽ trái/phải.

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { resolveBlockFrames, type BlockFrame, type SectionSurface } from "@iorder/core/server/pages/block-layout";
 import type { PageBlock } from "@iorder/core/server/pages/pages.contract";
 import { resolveSettingLinks } from "@iorder/core/server/pages/setting-links";
+import { youtubeVideoId } from "@iorder/core/server/shared/youtube";
 import { getMediaById } from "@/lib/backend";
 import { getExternalLinks, getPartners, getSiteProfile, getTestimonials } from "@/lib/backend";
 import { ButtonLink, Card, CardText, CardTitle, FaqList, FrameSection, IconTile, MoreLink, SectionHeading, TextLink, gridColumns } from "@/components/ui";
@@ -13,6 +14,7 @@ import { HeroSection } from "./hero-section";
 import { GroupedListSection, MediaTextSection, PricingSection } from "./section-blocks";
 import { LeadForm } from "./lead-form";
 import { RichContent } from "./rich-content";
+import { YouTubeFrame } from "./youtube-frame";
 
 // Vẽ các khối trang theo thứ tự CMS. Nền, khoảng cách và mã neo của mọi khối đi qua một quy luật chung
 // (resolveBlockFrames: nền tự xen kẽ, khoảng cách chuẩn); giao diện từng khối dùng component nền @/components/ui.
@@ -22,10 +24,16 @@ import { RichContent } from "./rich-content";
 // dải gọn (khoảng cách "Gọn", ví dụ logo đối tác) và phần đầu trang không áp dụng.
 export async function PageBlockRenderer({ blocks, previous = null, screens = false }: { blocks: PageBlock[]; previous?: SectionSurface | null; screens?: boolean }) {
   const enabled = resolveSettingLinks(blocks.filter(block => block.isEnabled), await getExternalLinks());
-  const frames = resolveBlockFrames(enabled, previous);
+  // Ảnh nền chọn trong vỏ chung: đổi mã tệp sang địa chỉ ảnh (tệp đã xóa hoặc không phải ảnh thì bỏ ảnh nền).
+  const frames = await Promise.all(resolveBlockFrames(enabled, previous).map(async (frame) => {
+    if (!frame.background?.mediaId) return frame;
+    const media = await getMediaById(frame.background.mediaId);
+    return { ...frame, background: { ...frame.background, imageUrl: media?.mimeType.startsWith("image/") ? media.url : null } };
+  }));
   // Hai phần liền nhau cùng nền trắng/xanh nhạt (chọn tay trong CMS): một vạch mảnh trong khung nội dung để mắt thấy chỗ chuyển phần,
-  // thay vì bắt mọi phần đổi màu nền xen kẽ.
-  const divider = (index: number) => index > 0 && enabled[index - 1].type !== "hero" && frames[index].tone !== "dark" && frames[index].tone === frames[index - 1].tone;
+  // thay vì bắt mọi phần đổi màu nền xen kẽ. Phần có màu hoặc ảnh nền riêng đã tự tách khỏi phần bên cạnh.
+  const custom = (index: number) => Boolean(frames[index].background?.color || frames[index].background?.imageUrl);
+  const divider = (index: number) => index > 0 && enabled[index - 1].type !== "hero" && frames[index].tone !== "dark" && frames[index].tone === frames[index - 1].tone && !custom(index) && !custom(index - 1);
   return <>{await Promise.all(enabled.map(async (block, index) => <Fragment key={`${block.type}-${index}`}>
     {divider(index) ? <div aria-hidden="true" className={frames[index].tone === "tinted" ? "bg-surface-tinted" : "bg-white"}><div className="site-container"><hr className="m-0 border-0 border-t border-line" /></div></div> : null}
     {screens && block.type !== "hero" && frames[index].spacing !== "sm" ? <div className="screen-block"><Block block={block} first={index === 0} frame={frames[index]} /></div> : <Block block={block} first={index === 0} frame={frames[index]} />}
@@ -245,6 +253,18 @@ async function Block({ block, first, frame }: { block: PageBlock; first: boolean
         <Image alt={block.data.alt ?? media.altText ?? ""} className="h-auto w-full rounded-card border border-line" height={800} sizes="(min-width: 1152px) 92vw, 100vw" src={media.url} width={1200} />
         {block.data.caption ? <figcaption className="mt-3 text-center text-small text-muted">{block.data.caption}</figcaption> : null}
       </figure></FrameSection> : null;
+    }
+    // Video YouTube 16:9 giữa khung (tối đa ~64rem); trên máy tính thu nhỏ theo chiều cao màn hình để cả phần vừa một màn.
+    case "video": {
+      const videoId = youtubeVideoId(block.data.url);
+      if (!videoId) return null;
+      return <FrameSection frame={frame}>
+        <SectionHeading dark={dark} description={block.data.description} eyebrow={block.data.eyebrow} title={block.data.title} />
+        <figure className="m-0 mx-auto w-full max-w-5xl lg:max-w-[min(64rem,calc((100svh-16rem)*16/9))]">
+          <YouTubeFrame className={`rounded-card shadow-raised ${dark ? "ring-1 ring-white/15" : "ring-1 ring-line"}`} title={block.data.title ?? block.data.caption ?? "Video YouTube"} videoId={videoId} />
+          {block.data.caption ? <figcaption className={`mt-3 text-center text-small ${dark ? "text-white/70" : "text-muted"}`}>{block.data.caption}</figcaption> : null}
+        </figure>
+      </FrameSection>;
     }
     // featured_posts/download_list are kept for stored pages; both render as a collection_list.
     case "collection_list": return <CollectionList data={block.data} frame={frame} />;

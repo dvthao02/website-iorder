@@ -98,6 +98,9 @@ html { font-size: clamp(16px, calc(16px + (100vw - 1440px) * 0.0033), 24px); }
 :root { --float-reserve: 0px; --site-width: min(calc(var(--container-max) + 2 * var(--gutter)), calc(100% - 2 * var(--float-reserve))); }
 @media (min-width: 1025px) { :root { --float-reserve: max(0px, calc(var(--float-edge) + var(--float-size) + var(--float-gap) - var(--gutter))); } }
 .site-container { width: 100%; max-width: var(--site-width); margin-inline: auto; padding-inline: var(--gutter); }
+/* Độ rộng nội dung chọn trong CMS (% khung của khối), căn giữa; điện thoại luôn rộng hết khung để chữ không bị ép. */
+.block-width { width: 100%; margin-inline: auto; }
+@media (min-width: 768px) { .block-width { width: var(--block-width, 100%); } }
 
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }

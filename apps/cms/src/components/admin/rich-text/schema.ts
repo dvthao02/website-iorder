@@ -4,7 +4,7 @@ import { TableKit } from "@tiptap/extension-table";
 
 import type { RichDocument } from "@iorder/core/server/shared/rich-text";
 import { adminApiError, readAdminJson } from "@/lib/admin-api";
-import { ImageBanner, SizedImage } from "./extensions";
+import { ImageBanner, SizedImage, YouTubeVideo } from "./extensions";
 
 // Một bộ extension cho trình soạn thảo và cho nhập file hàng loạt, để HTML từ Word được hiểu y như khi dán vào trình soạn.
 export const richTextExtensions = [
@@ -14,6 +14,7 @@ export const richTextExtensions = [
   }),
   SizedImage,
   ImageBanner,
+  YouTubeVideo,
   TableKit.configure({ table: { resizable: false } }),
 ];
 

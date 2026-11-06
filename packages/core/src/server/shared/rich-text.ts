@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { isYoutubeVideoId } from "./youtube";
+
 // Nội dung soạn thảo kiểu Word (JSON của ProseMirror/Tiptap). Máy chủ không tin dữ liệu gửi lên:
 // chỉ giữ loại khối/định dạng/thuộc tính trong danh sách trắng, mọi thứ khác bị từ chối.
 // Website render từ JSON này bằng React (không dùng HTML thô), nên không có đường chèn script.
@@ -18,6 +20,7 @@ export type RichNode =
   | { type: "codeBlock"; content?: RichNode[] }
   | { type: "image"; attrs: { src: string; alt: string | null; title: string | null; width: number; align: ImageAlign } }
   | { type: "imageBanner"; attrs: { src: string; overlay: BannerOverlay; height: BannerHeight }; content?: RichNode[] }
+  | { type: "youtube"; attrs: { videoId: string; caption: string | null; width: number } }
   | { type: "horizontalRule" | "hardBreak" };
 
 export type RichDocument = { type: "doc"; content: RichNode[] };
@@ -25,6 +28,8 @@ export type RichDocument = { type: "doc"; content: RichNode[] };
 // Ảnh trong bài: độ rộng tính theo % khung bài (không theo pixel) để CMS và website khớp nhau.
 // Căn: center = "trên và dưới" (chữ không chạy quanh), left/right = chữ bao quanh như Word.
 export const imageWidthLimits = { min: 10, max: 100 } as const;
+// Video YouTube trong bài: khung 16:9 căn giữa, rộng theo % khung bài (nhỏ quá thì khó xem nên tối thiểu 40%).
+export const videoWidthLimits = { min: 40, max: 100 } as const;
 const legacyImageWidths: Record<string, number> = { small: 33, medium: 50, large: 75, full: 100 };
 export const imageAligns = ["center", "left", "right"] as const;
 export const bannerOverlays = ["dark", "light", "none"] as const;
@@ -110,6 +115,11 @@ export function sanitizeRichDocument(input: unknown): RichDocument {
       if (!mediaSrc.test(src)) throw new RichTextError("Ảnh nền phải nằm trong Thư viện media.");
       return { type, attrs: { src, overlay: pick(bannerOverlays, attrs.overlay, "dark"), height: pick(bannerHeights, attrs.height, "medium") }, content: children(true) };
     }
+    if (type === "youtube") {
+      const attrs = record(item.attrs ?? {});
+      if (!isYoutubeVideoId(attrs.videoId)) throw new RichTextError("Video trong nội dung phải là link YouTube hợp lệ.");
+      return { type, attrs: { videoId: attrs.videoId, caption: cleanText(attrs.caption, 500), width: clampInt(attrs.width, videoWidthLimits.min, videoWidthLimits.max, 100) } };
+    }
     if (type === "horizontalRule" || type === "hardBreak") return { type };
     if (typeof type === "string" && containers.has(type)) return { type, content: children() } as RichNode;
     throw new RichTextError(`Thành phần "${String(type)}" chưa được hỗ trợ trong nội dung.`);
@@ -118,7 +128,7 @@ export function sanitizeRichDocument(input: unknown): RichDocument {
   const doc = record(input);
   if (doc.type !== "doc" || !Array.isArray(doc.content)) throw new RichTextError("Nội dung không đúng định dạng.");
   const content = doc.content.map((child) => node(child, 1));
-  if (state.text === 0 && !content.some((child) => child.type === "image" || child.type === "imageBanner")) throw new RichTextError("Nội dung bài viết đang trống.");
+  if (state.text === 0 && !content.some((child) => child.type === "image" || child.type === "imageBanner" || child.type === "youtube")) throw new RichTextError("Nội dung bài viết đang trống.");
   return { type: "doc", content };
 }
 

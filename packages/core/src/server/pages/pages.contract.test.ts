@@ -114,3 +114,23 @@ test("Lưới thẻ: ảnh thẻ và kiểu thẻ là tùy chọn, dữ liệu c
   assert.ok(pageBlockInputSchema.safeParse(block({ cardStyle: "bento" })).success, "kiểu thẻ lớn nổi bật (bento)");
   assert.equal(pageBlockInputSchema.safeParse(block({ cardStyle: "to" })).success, false);
 });
+
+test("Khối video YouTube: bắt buộc link YouTube hợp lệ, các chữ khác tùy chọn", () => {
+  const video = (url: string) => ({ type: "video", isEnabled: true, data: { eyebrow: null, title: null, description: null, url, caption: null } });
+  assert.ok(pageBlockInputSchema.safeParse(video("https://youtu.be/dQw4w9WgXcQ")).success);
+  assert.equal(pageBlockInputSchema.safeParse(video("")).success, false);
+  assert.equal(pageBlockInputSchema.safeParse(video("https://vimeo.com/1")).success, false);
+});
+
+test("Giao diện khối: dữ liệu cũ nhận mặc định; màu, ảnh nền, độ rộng được kiểm tra", () => {
+  const faq = (appearance: unknown) => pageBlockInputSchema.safeParse({ type: "faq", isEnabled: true, data: { eyebrow: null, title: "Hỏi đáp", items: [{ question: "Q", answer: "A" }] }, appearance });
+  const old = faq({ anchor: null, tone: "white", spacing: "auto" });
+  assert.ok(old.success);
+  assert.deepEqual(old.data.appearance, { anchor: null, tone: "white", spacing: "auto", width: null, backgroundColor: null, backgroundMediaId: null, backgroundOverlay: 80 });
+  const custom = faq({ tone: "custom", backgroundColor: "#0A2A57", backgroundMediaId: "22222222-2222-4222-8222-222222222222", backgroundOverlay: 60, width: 80 });
+  assert.ok(custom.success);
+  assert.equal(custom.data.appearance?.backgroundColor, "#0a2a57");
+  assert.equal(faq({ backgroundColor: "blue" }).success, false);
+  assert.equal(faq({ width: 30 }).success, false);
+  assert.equal(faq({ backgroundOverlay: 100 }).success, false);
+});
