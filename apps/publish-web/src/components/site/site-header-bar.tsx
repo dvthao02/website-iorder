@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowRight, BookOpen, Building2, ChevronDown, Compass, CodeXml, Menu, MonitorSmartphone, Network, Newspaper, Package, Phone, ReceiptText, Server, ShieldCheck, ShoppingCart, Wrench, X, Zap, type LucideIcon } from "lucide-react";
+import { BookOpen, Building2, ChevronDown, Compass, CodeXml, Menu, MonitorSmartphone, Network, Newspaper, Package, Phone, ReceiptText, Server, ShieldCheck, ShoppingCart, Wrench, X, Zap, type LucideIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 
 export type HeaderLink = { key: string; label: string; url: string; target: "_self" | "_blank"; children: HeaderLink[] };
@@ -36,16 +36,12 @@ const dropdownIcons: { keys: string[]; icon: LucideIcon }[] = [
 ];
 const iconFor = (url: string): LucideIcon | null => dropdownIcons.find((entry) => entry.keys.some((key) => url.includes(key)))?.icon ?? null;
 
-// Bảng thả xuống: đầu bảng là liên kết mềm tới mục cha (tên mục + "Xem tất cả →"), các mục con nối vào bằng vạch dạng cây
-// để thấy rõ quan hệ cha – con; nhiều mục (>4) chia 2 cột; mục có biểu tượng thì hiện ô biểu tượng.
+// Bảng thả xuống: chỉ các mục con (mục cha đã là liên kết trên menu ngang, bấm vào là sang trang tổng hợp), nối về
+// mục cha bằng vạch dạng cây; nhiều mục (>4) chia 2 cột; mục có biểu tượng thì hiện ô biểu tượng.
 function DropdownPanel({ link, pathname }: { link: HeaderLink; pathname: string }) {
   const withIcons = link.children.some((child) => iconFor(child.url));
   const wide = link.children.length > 4;
   return <div className={wide ? "site-nav__dropdown site-nav__dropdown--wide" : "site-nav__dropdown"}>
-    <Link aria-current={matches(pathname, link.url) ? "page" : undefined} className="site-nav__dropdown-head" href={link.url} {...external(link)}>
-      <span className="site-nav__dropdown-parent">{link.label}</span>
-      <span className="site-nav__dropdown-more">Xem tất cả<ArrowRight aria-hidden="true" size={15} /></span>
-    </Link>
     <ul className="site-nav__dropdown-list site-nav__dropdown-list--tree">{link.children.map((child) => {
       const Icon = withIcons ? (iconFor(child.url) ?? Package) : null;
       return <li key={child.key}><Link aria-current={matches(pathname, child.url) ? "page" : undefined} className="site-nav__dropdown-link" href={child.url} {...external(child)}>
@@ -110,11 +106,11 @@ export function SiteHeaderBar({ actions, brand, links, logo }: { actions: Header
       <nav aria-label="Điều hướng chính trên điện thoại">
         <ul className="site-mobile-menu__list">{links.map((link) => <li key={link.key}>
           {link.children.length ? <>
-            <button aria-expanded={expanded === link.key} className={isActive(pathname, link) ? "site-mobile-menu__link site-mobile-menu__link--active" : "site-mobile-menu__link"} onClick={() => setExpanded((current) => current === link.key ? null : link.key)} type="button">{link.label}<ChevronDown aria-hidden="true" className={expanded === link.key ? "rotate-180 transition" : "transition"} size={18} /></button>
-            {expanded === link.key ? <>
-              <Link className="site-mobile-menu__more" href={link.url} {...external(link)}>Xem tất cả {link.label.toLocaleLowerCase("vi")}<ArrowRight aria-hidden="true" size={15} /></Link>
-              <ul className="site-mobile-menu__children">{link.children.map((child) => <li key={child.key}><Link aria-current={matches(pathname, child.url) ? "page" : undefined} className="site-mobile-menu__child" href={child.url} {...external(child)}>{child.label}</Link></li>)}</ul>
-            </> : null}
+            <div className="site-mobile-menu__row">
+              <Link aria-current={matches(pathname, link.url) ? "page" : undefined} className={isActive(pathname, link) ? "site-mobile-menu__link site-mobile-menu__link--active" : "site-mobile-menu__link"} href={link.url} {...external(link)}>{link.label}</Link>
+              <button aria-controls={`site-mobile-sub-${link.key}`} aria-expanded={expanded === link.key} aria-label={`${expanded === link.key ? "Đóng" : "Mở"} mục con của ${link.label}`} className="site-mobile-menu__toggle" onClick={() => setExpanded((current) => current === link.key ? null : link.key)} type="button"><ChevronDown aria-hidden="true" className={expanded === link.key ? "rotate-180 transition" : "transition"} size={18} /></button>
+            </div>
+            {expanded === link.key ? <ul className="site-mobile-menu__children" id={`site-mobile-sub-${link.key}`}>{link.children.map((child) => <li key={child.key}><Link aria-current={matches(pathname, child.url) ? "page" : undefined} className="site-mobile-menu__child" href={child.url} {...external(child)}>{child.label}</Link></li>)}</ul> : null}
           </> : <Link className={isActive(pathname, link) ? "site-mobile-menu__link site-mobile-menu__link--active" : "site-mobile-menu__link"} href={link.url} {...external(link)}>{link.label}</Link>}
         </li>)}</ul>
         {actions.length ? <div className="site-mobile-menu__actions">{actions.map((action, index) => <Link className={`button ${index === actions.length - 1 ? "button--primary" : "button--secondary"}`} href={action.url} key={action.key} {...external(action)}>{action.label}</Link>)}</div> : null}
