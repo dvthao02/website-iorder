@@ -69,7 +69,7 @@ export default async function OfferingDetailPage({ params }: OfferingDetailPageP
         >
           <ChipList items={offering.content.tags.map(tag => ({ key: tag, text: tag }))} label="Chủ đề liên quan" />
         </DetailHero>
-        <OfferingContent content={offering.content} />
+        <OfferingContent closing={{ title: offering.title, hotline: profile?.hotline ?? null }} content={offering.content} />
       </main>
     </>
   );
