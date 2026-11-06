@@ -85,8 +85,9 @@ export async function HeroSection({ data, first }: { data: HeroData; first: bool
   if (data.layout === "centered") {
     const frame = "h-auto w-full rounded-3xl border border-line shadow-xl shadow-slate-900/10";
     const sizes = "(min-width: 1024px) 70vw, 100vw";
-    return <section className={`screen-hero border-b border-line ${sectionTone}`} {...heroTop(first, "light")}>
-      <div className={`${container} py-12 sm:py-16 lg:pt-10 lg:pb-24`}>
+    // Không có ảnh (ví dụ trang Liên hệ): chỉ cao theo nội dung, không chiếm trọn một màn hình để nội dung chính hiện ngay.
+    return <section className={`${image ? "screen-hero" : ""} border-b border-line ${sectionTone}`} {...heroTop(first, "light")}>
+      <div className={`${container} py-12 sm:py-16 ${image ? "lg:pt-10 lg:pb-24" : "lg:py-20"}`}>
         <HeroText center data={data} first={first} />
         {many ? <HeroImages className="mx-auto mt-12 max-w-5xl" imageClassName={frame} images={images} priority={first} sizes={sizes} variant="inline" />
           : image ? <Image alt={image.alt} className={`mx-auto mt-12 max-w-5xl ${frame}`} height={800} priority={first} sizes={sizes} src={image.url} width={1400} /> : null}
@@ -97,8 +98,8 @@ export async function HeroSection({ data, first }: { data: HeroData; first: bool
   // Chữ – ảnh hai cột (mặc định) hoặc đảo chiều.
   const reverse = data.layout === "split_reverse";
   const splitSizes = "(min-width: 1024px) 50vw, 100vw";
-  return <section className={`screen-hero relative overflow-hidden border-b border-line ${sectionTone}`} {...heroTop(first, "light")}>
-    <div className={`${container} grid items-center gap-12 py-12 sm:py-16 lg:pt-10 lg:pb-24 ${image ? (reverse ? "lg:grid-cols-[1fr_1.05fr]" : "lg:grid-cols-[1.05fr_1fr]") : ""}`}>
+  return <section className={`${image ? "screen-hero" : ""} relative overflow-hidden border-b border-line ${sectionTone}`} {...heroTop(first, "light")}>
+    <div className={`${container} grid items-center gap-12 py-12 sm:py-16 ${image ? `lg:pt-10 lg:pb-24 ${reverse ? "lg:grid-cols-[1fr_1.05fr]" : "lg:grid-cols-[1.05fr_1fr]"}` : "lg:py-20"}`}>
       <div className={`${image ? "" : "max-w-3xl"} ${reverse ? "lg:order-2" : ""}`}><HeroText data={data} first={first} /></div>
       {many ? <HeroImages className={reverse ? "lg:order-1" : ""} images={images} priority={first} sizes={splitSizes} variant="inline" />
         : image ? <Image alt={image.alt} className={`h-auto w-full ${reverse ? "lg:order-1" : ""}`} height={800} priority={first} sizes={splitSizes} src={image.url} width={1200} /> : null}

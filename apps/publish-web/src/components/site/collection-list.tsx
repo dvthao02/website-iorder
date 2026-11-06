@@ -56,6 +56,23 @@ function ListHeading({ data, dark }: { data: CollectionListData; dark: boolean }
   </div>;
 }
 
+type EquipmentItem = Awaited<ReturnType<typeof getEquipment>>[number];
+// Thẻ thiết bị: dùng ở danh sách thiết bị và phần "Thiết bị khác" của trang chi tiết thiết bị.
+export function EquipmentCard({ item, Heading = "h3" }: { item: EquipmentItem; Heading?: "h2" | "h3" }) {
+  return <Link className={cardClass} href={`/thiet-bi/${item.slug}`}>
+    {item.coverUrl ? <Image alt={item.coverAlt ?? item.name} className="aspect-[4/3] w-full border-b border-line bg-subtle object-contain p-5 transition duration-500 group-hover:scale-[1.02]" height={450} sizes="(min-width: 1280px) 25vw, (min-width: 640px) 50vw, 100vw" src={item.coverUrl} width={600} /> : null}
+    <div className={bodyClass}>
+      <p className={`mb-3 ${chipClass}`}>{item.groupName}</p>
+      <Heading className={`${titleClass} line-clamp-2`}>{item.name}</Heading>
+      {item.summary ? <p className={`${textClass} line-clamp-2`}>{item.summary}</p> : null}
+      <div className="mt-auto flex flex-col gap-1 pt-5">
+        <p className="mb-0 text-h3 font-bold text-brand-700">{priceFormatter.format(item.priceVnd)}</p>
+        <span className="text-small font-semibold text-brand-700 group-hover:underline">Xem chi tiết →</span>
+      </div>
+    </div>
+  </Link>;
+}
+
 async function renderItems(data: CollectionListData, Card: "h2" | "h3") {
   switch (data.source) {
     case "posts": {
@@ -96,18 +113,7 @@ async function renderItems(data: CollectionListData, Card: "h2" | "h3") {
     case "equipment": {
       const equipment = take(await getEquipment(true), data.limit);
       // Ảnh thiết bị cùng khung 4:3 nền nhạt sát mép thẻ, ảnh nằm gọn bên trong (ảnh nền trong suốt vẫn đều nhau); 4 cột trên màn rộng.
-      return equipment.length ? <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">{equipment.map(item => <Link className={cardClass} href={`/thiet-bi/${item.slug}`} key={item.id}>
-        {item.coverUrl ? <Image alt={item.coverAlt ?? item.name} className="aspect-[4/3] w-full border-b border-line bg-subtle object-contain p-5 transition duration-500 group-hover:scale-[1.02]" height={450} sizes="(min-width: 1280px) 25vw, (min-width: 640px) 50vw, 100vw" src={item.coverUrl} width={600} /> : null}
-        <div className={bodyClass}>
-          <p className={`mb-3 ${chipClass}`}>{item.groupName}</p>
-          <Card className={`${titleClass} line-clamp-2`}>{item.name}</Card>
-          {item.summary ? <p className={`${textClass} line-clamp-2`}>{item.summary}</p> : null}
-          <div className="mt-auto flex flex-col gap-1 pt-5">
-            <p className="mb-0 text-h3 font-bold text-brand-700">{priceFormatter.format(item.priceVnd)}</p>
-            <span className="text-small font-semibold text-brand-700 group-hover:underline">Xem chi tiết →</span>
-          </div>
-        </div>
-      </Link>)}</div> : null;
+      return equipment.length ? <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">{equipment.map(item => <EquipmentCard Heading={Card} item={item} key={item.id} />)}</div> : null;
     }
     case "software":
     case "solution":

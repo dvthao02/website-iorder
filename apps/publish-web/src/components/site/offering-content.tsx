@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { ArrowRight, Check, Phone } from "lucide-react";
+import { ArrowRight, Check } from "lucide-react";
 import type { OfferingContent } from "@iorder/core/server/offerings/offering-content.contract";
 import { resolveSettingLinks } from "@iorder/core/server/pages/setting-links";
 import { getExternalLinks } from "@/lib/backend";
-import { ButtonLink, FaqList, Section, SectionHeading, gridColumns } from "@/components/ui";
+import { FaqList, Section, SectionHeading, gridColumns } from "@/components/ui";
+import { ConsultBand } from "./consult-band";
 import { PricingSection } from "./section-blocks";
 
 type Closing = { title: string; hotline: string | null };
@@ -61,17 +62,6 @@ export async function OfferingContent({ content, closing = null }: { content: Of
     </Section> : null}
 
     {/* Dải tư vấn cuối trang: người đọc hết trang có lối đi tiếp ngay (tư vấn hoặc gọi), hotline lấy từ Cài đặt. */}
-    {closing ? <Section space="sm" tone="dark">
-      <div className="flex flex-col gap-8 md:flex-row md:items-center md:justify-between">
-        <div className="max-w-2xl">
-          <h2 className="mb-0 text-h2 font-bold tracking-tight text-balance text-white">Bắt đầu với {closing.title}</h2>
-          <p className="mt-3 mb-0 text-lead text-white/75">Để lại thông tin hoặc gọi trực tiếp — iOrder khảo sát nhu cầu và đề xuất phương án phù hợp với mô hình của bạn.</p>
-        </div>
-        <div className="flex flex-wrap gap-3">
-          <ButtonLink action={{ label: "Nhận tư vấn miễn phí", href: "/lien-he" }} variant="light" />
-          {closing.hotline ? <a className="button button--outline-light" href={`tel:${closing.hotline.replace(/[^\d+]/g, "")}`}><Phone aria-hidden="true" size={18} />{closing.hotline}</a> : null}
-        </div>
-      </div>
-    </Section> : null}
+    {closing ? <ConsultBand description="Để lại thông tin hoặc gọi trực tiếp — iOrder khảo sát nhu cầu và đề xuất phương án phù hợp với mô hình của bạn." hotline={closing.hotline} title={`Bắt đầu với ${closing.title}`} /> : null}
   </>;
 }
