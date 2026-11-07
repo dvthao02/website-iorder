@@ -4,17 +4,14 @@ import { notFound, permanentRedirect } from "next/navigation";
 import { ChevronRight, Phone } from "lucide-react";
 
 import { suggestSeoDescription } from "@iorder/core/server/shared/seo";
-import { ArticleToc } from "@/components/site/article-toc";
 import { ConsultBand } from "@/components/site/consult-band";
 import { JsonLd } from "@/components/site/json-ld";
-import { NewsGrid } from "@/components/site/news";
 import { PostContent } from "@/components/site/post-content";
 import { ShareLinks } from "@/components/site/share-links";
 import { SiteHeader } from "@/components/site/site-header";
 import { SiteLink as Link } from "@/components/site/site-link";
-import { Container } from "@/components/ui";
 import { articleOutline } from "@/lib/article-outline";
-import { getExternalLinks, getPublishedOfferingSummaries, getPublishedPostBySlug, getPublishingConfig, getSiteProfile } from "@/lib/backend";
+import { getPublishedPostBySlug, getPublishingConfig, getSiteProfile } from "@/lib/backend";
 import { getNewsIndex, newsLabel, newsPostPath, newsTopicPath, readingMinutes, relatedNews } from "@/lib/news";
 import { contentMetadata } from "@/lib/page-metadata";
 import { articleJsonLd, breadcrumbJsonLd } from "@/lib/structured-data";
@@ -33,23 +30,26 @@ export async function generateMetadata({ params }: NewsDetailPageProps, parent: 
 const dateFormatter = new Intl.DateTimeFormat("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
 const tel = (phone: string) => `tel:${phone.replace(/[^\d+]/g, "")}`;
 
-// Bài viết kiểu trang tin: cột bài (đường dẫn, tiêu đề, chủ đề · ngày · thời gian đọc, đoạn mở đầu, chia sẻ, ảnh lớn dưới
-// tiêu đề, nội dung có mục lục đầu bài, ô hỏi tư vấn, chủ đề & thẻ, chia sẻ) + cột bên bám theo khi cuộn (mục lục, giới thiệu
-// phần mềm nổi bật lấy từ CMS › Sản phẩm, bài viết mới nhất) → bài viết liên quan → dải tư vấn.
+// Bài viết kiểu trang tin, theo thứ tự đọc: Nội dung (đường dẫn, tiêu đề, chủ đề · ngày · thời gian đọc, đoạn mở đầu, chia sẻ,
+// ảnh bìa, mục lục đầu bài, nội dung, ô hỏi tư vấn, chủ đề & thẻ, chia sẻ) → Bài viết liên quan (danh sách có ảnh và tóm tắt,
+// ngay dưới bài) → cột bên: Bài viết mới nhất (đánh số) và Chủ đề (số bài) — bám theo khi cuộn trên máy tính, nằm dưới bài
+// trên điện thoại → dải tư vấn. Không còn thẻ quảng cáo/mục lục ở cột bên.
 export default async function NewsDetailPage({ params }: NewsDetailPageProps) {
   const { slug } = await params;
   const post = await getPublishedPostBySlug(slug);
   if (!post) notFound();
   // Bài hướng dẫn có trang riêng; tránh trùng nội dung dưới hai URL.
   if (post.type === "guide") permanentRedirect(`/ho-tro/huong-dan/${post.slug}`);
-  const [config, profile, index, software, links] = await Promise.all([getPublishingConfig(), getSiteProfile(), getNewsIndex(), getPublishedOfferingSummaries("software").catch(() => []), getExternalLinks().catch(() => null)]);
+  const [config, profile, index] = await Promise.all([getPublishingConfig(), getSiteProfile(), getNewsIndex()]);
   const site = config.siteUrl;
   const path = `/tin-tuc/${post.slug}`;
-  const { document, toc } = articleOutline(post.content, post.title);
+  const { document } = articleOutline(post.content, post.title);
   const topic = post.categories[0] ?? null;
-  const related = relatedNews(index.posts, post);
-  const latest = index.posts.filter((item) => item.id !== post.id).slice(0, 4);
-  const product = software.find((item) => item.isFeatured) ?? software[0] ?? null;
+  const related = relatedNews(index.posts, post, 4);
+  // Mới nhất: không lặp bài đang đọc và bài đã có ở "liên quan"; ít bài thì cho lặp để cột bên không trống.
+  const others = index.posts.filter((item) => item.id !== post.id);
+  const fresh = others.filter((item) => !related.includes(item));
+  const latest = (fresh.length >= 3 ? fresh : others).slice(0, 5);
   const crumbs = [{ name: "Trang chủ", path: "/" }, { name: "Tin tức", path: "/tin-tuc" }, ...(topic ? [{ name: topic.name, path: newsTopicPath(topic.slug) }] : []), { name: post.title, path }];
 
   return <>
@@ -70,7 +70,7 @@ export default async function NewsDetailPage({ params }: NewsDetailPageProps) {
           {post.excerpt ? <p className="article-lead">{post.excerpt}</p> : null}
           <ShareLinks />
           {post.cover ? <Image alt={post.cover.altText ?? post.title} className="article-cover" height={630} priority sizes="(min-width: 1024px) 760px, 100vw" src={post.cover.url} width={1200} /> : null}
-          <div className="article-body"><PostContent document={document} tocClassName={toc.length >= 2 ? "lg:hidden" : ""} /></div>
+          <div className="article-body"><PostContent document={document} tocClassName="" /></div>
           {/* Lời mời tư vấn ngay cuối nội dung, trước phần chủ đề & chia sẻ. */}
           <aside aria-label="Tư vấn miễn phí" className="article-cta">
             <div>
@@ -89,36 +89,38 @@ export default async function NewsDetailPage({ params }: NewsDetailPageProps) {
             </p> : null}
             <ShareLinks />
           </div>
-        </article>
-
-        <aside aria-label="Thông tin thêm" className="article-aside"><div className="article-aside__sticky">
-          {toc.length >= 2 ? <ArticleToc entries={toc} /> : null}
-          {product ? <section aria-label="Phần mềm iOrder" className="aside-card">
-            {product.cover ? <Image alt={product.cover.altText ?? product.title} className="aside-card__image" height={160} sizes="300px" src={product.cover.url} width={300} /> : null}
-            <p className="m-0 font-bold text-ink">{product.title}</p>
-            {product.summary ? <p className="mt-1 mb-0 line-clamp-3 text-small text-muted">{product.summary}</p> : null}
-            <div className="mt-4 grid gap-2">
-              {links?.trial ? <a className="button button--primary w-full" href={links.trial} rel="noopener noreferrer" target="_blank">Dùng thử miễn phí</a> : null}
-              <Link className="button button--secondary w-full" href={`/phan-mem/${product.slug}`}>Xem chi tiết</Link>
-            </div>
-          </section> : null}
-          {latest.length ? <section aria-labelledby="bai-moi-nhat" className="aside-card">
-            <h2 className="mb-3 text-[1rem] font-bold text-ink" id="bai-moi-nhat">Bài viết mới nhất</h2>
-            <ul className="news-side">{latest.map((item) => <li key={item.id}><Link className="news-side__item news-side__item--compact group" href={newsPostPath(item)}>
-              {item.cover ? <Image alt="" className="news-side__image" height={56} sizes="88px" src={item.cover.url} width={88} /> : <span aria-hidden="true" className="news-side__image" />}
+          {/* Bài viết liên quan: ngay dưới bài, dạng danh sách (ảnh, chủ đề · ngày, tiêu đề, tóm tắt). */}
+          {related.length ? <section aria-labelledby="bai-lien-quan" className="article-related">
+            <h2 className="article-section-title" id="bai-lien-quan">Bài viết liên quan</h2>
+            <ul className="news-list">{related.map((item) => <li key={item.id}><Link className="news-list__item group" href={newsPostPath(item)}>
+              {item.cover ? <Image alt="" className="news-list__image" height={120} sizes="(min-width: 640px) 200px, 112px" src={item.cover.url} width={200} /> : <span aria-hidden="true" className="news-list__image" />}
               <span className="min-w-0">
-                <span className="news-meta"><span className="news-meta__topic">{newsLabel(item)}</span></span>
-                <span className="news-side__title">{item.title}</span>
+                <span className="news-meta"><span className="news-meta__topic">{newsLabel(item)}</span><span>{dateFormatter.format(item.publishedAt ?? item.createdAt)}</span></span>
+                <span className="news-list__title">{item.title}</span>
+                {item.excerpt ? <span className="news-list__excerpt">{item.excerpt}</span> : null}
               </span>
             </Link></li>)}</ul>
+          </section> : null}
+        </article>
+
+        <aside aria-label="Bài viết khác" className="article-aside"><div className="article-aside__sticky">
+          {latest.length ? <section aria-labelledby="bai-moi-nhat">
+            <h2 className="article-section-title" id="bai-moi-nhat">Bài viết mới nhất</h2>
+            <ol className="news-ranked">{latest.map((item, position) => <li key={item.id}><Link className="news-ranked__item group" href={newsPostPath(item)}>
+              <span aria-hidden="true" className="news-ranked__number">{String(position + 1).padStart(2, "0")}</span>
+              <span className="min-w-0">
+                <span className="news-ranked__title">{item.title}</span>
+                <span className="news-meta"><span>{dateFormatter.format(item.publishedAt ?? item.createdAt)}</span></span>
+              </span>
+            </Link></li>)}</ol>
+          </section> : null}
+          {index.topics.length ? <section aria-labelledby="chu-de">
+            <h2 className="article-section-title" id="chu-de">Chủ đề</h2>
+            <ul className="news-topic-list">{index.topics.map((item) => <li key={item.slug}><Link aria-current={item.slug === topic?.slug ? "true" : undefined} href={newsTopicPath(item.slug)}><span>{item.name}</span><span className="news-topics__count">{item.count}</span></Link></li>)}</ul>
           </section> : null}
         </div></aside>
       </div>
 
-      {related.length ? <section aria-labelledby="bai-lien-quan" className="news-section border-t border-line"><Container>
-        <h2 className="mb-6 text-h3 font-bold tracking-tight text-ink" id="bai-lien-quan">Bài viết liên quan</h2>
-        <NewsGrid posts={related} />
-      </Container></section> : null}
       <ConsultBand actionLabel="Đăng ký tư vấn" description="Đội ngũ iOrder tư vấn phần mềm, thiết bị và cách vận hành phù hợp với cửa hàng của bạn — miễn phí." hotline={profile?.hotline ?? null} title="Muốn áp dụng cho cửa hàng của bạn?" />
     </main>
   </>;
