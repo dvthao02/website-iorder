@@ -10,8 +10,12 @@ test("Trung tâm hỗ trợ: các kênh hỗ trợ, tìm không dấu, Enter m�
   await expect(page.locator("link[rel=canonical]")).toHaveAttribute("href", /\/ho-tro$/);
   await expect(page.locator(".support-channel").filter({ hasText: "Gửi yêu cầu hỗ trợ" })).toHaveAttribute("href", "/lien-he");
 
-  const guides = page.locator(".support-step");
+  // "Làm quen với iOrder": thẻ trượt có Bước n, tên bài, Xem bài viết.
+  const guides = page.locator(".support-guide");
   test.skip(await guides.count() === 0, "Chưa có bài hướng dẫn được xuất bản");
+  await expect(guides.first()).toContainText("Bước 1");
+  await expect(guides.first()).toContainText("Xem bài viết");
+  await expect(page.getByRole("button", { name: "Xem các bước trước" })).toBeDisabled();
   const first = (await guides.first().locator(".text-lead").textContent())!.trim();
   // Gõ không dấu, chữ thường: vẫn ra đúng bài.
   const folded = first.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").replace(/Đ/g, "D").toLowerCase();
