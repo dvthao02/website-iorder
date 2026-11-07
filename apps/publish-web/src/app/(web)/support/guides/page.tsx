@@ -45,7 +45,7 @@ export default async function SupportGuidesPage() {
                   <Icon aria-hidden="true" className="guide-card__icon" size={20} strokeWidth={1.7} />
                   <span className="min-w-0 flex-1">
                     <span className="guide-card__title block font-semibold text-ink group-hover:text-brand-700">{item.title}</span>
-                    {description ? <span className="mt-1 line-clamp-2 block text-small text-muted">{description}</span> : null}
+                    {description ? <span className="mt-1 line-clamp-2 text-small text-muted">{description}</span> : null}
                   </span>
                   <ChevronRight aria-hidden="true" className="shrink-0 text-faint transition group-hover:translate-x-0.5 group-hover:text-brand-600" size={18} />
                 </Link></li>;

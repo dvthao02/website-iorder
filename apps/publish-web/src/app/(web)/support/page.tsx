@@ -1,10 +1,10 @@
 import type { Metadata, ResolvingMetadata } from "next";
-import { BookOpen, ChevronRight, CircleHelp, Download, Headset, MessageSquareText, MonitorPlay, Phone, type LucideIcon } from "lucide-react";
+import { ChevronRight, CircleHelp, Download, Headset, MessageSquareText, MonitorPlay, Phone, type LucideIcon } from "lucide-react";
 
 import { BreadcrumbJsonLd } from "@/components/site/page-hero";
 import { SiteHeader } from "@/components/site/site-header";
 import { SiteLink as Link } from "@/components/site/site-link";
-import { SupportQuickStart, type QuickStartGroup } from "@/components/site/support-quickstart";
+import { iconFor } from "@/components/site/guide-icons";
 import { SupportSearch, type SupportSearchItem } from "@/components/site/support-search";
 import { Container, FaqList, SectionHeading } from "@/components/ui";
 import { getEnabledSupportDownloads, getPublishedPage, getPublishedPostSummaries, getSiteProfile } from "@/lib/backend";
@@ -24,7 +24,7 @@ type Channel = { href: string; title: string; text: string; meta?: string; icon:
 // Trung tâm hỗ trợ (/ho-tro): một nơi để tìm mọi kênh hỗ trợ. Toàn bộ nội dung lấy từ CMS — bài hướng dẫn, tệp cài đặt,
 // câu hỏi của trang "Câu hỏi thường gặp", trang Video / Hỗ trợ từ xa (chỉ hiện khi đã xuất bản), hotline, email,
 // giờ làm việc trong Cài đặt — nên thêm/ẩn nội dung ở CMS là trang tự đổi theo, không cần sửa code.
-// Bố cục: phần đầu căn giữa (tìm nhanh + liên hệ nhanh) → "Làm quen với iOrder" (thẻ trượt theo nhóm) → các kênh hỗ trợ
+// Bố cục: phần đầu gọn (tên trang, ô tìm, một dòng hotline) → "Hướng dẫn theo tính năng" (lưới thẻ) → các kênh hỗ trợ
 // → tải phần mềm & driver → câu hỏi thường gặp → dải liên hệ.
 export default async function SupportCenterPage() {
   const [guides, downloads, faqPage, videosPage, remotePage, profile] = await Promise.all([
@@ -34,17 +34,9 @@ export default async function SupportCenterPage() {
   const faqs = (faqPage?.blocks ?? []).flatMap((block) => block.isEnabled && block.type === "faq" ? block.data.items : []);
 
   const guideDescriptions = await Promise.all(guides.map(guideDescription));
-  const guideItems = guides.map((guide, index) => ({ href: `/ho-tro/huong-dan/${guide.slug}`, title: guide.title, description: guideDescriptions[index], cover: guide.cover ? { url: guide.cover.url, alt: guide.cover.altText } : null, category: guide.categories[0]?.name ?? null, categories: guide.categories.map((category) => category.name) }));
-  // Nhóm theo chuyên mục: "Tất cả" + từng chuyên mục có bài (chỉ hiện thanh chọn khi có từ hai nhóm).
-  const categoryNames = [...new Set(guideItems.flatMap((item) => item.categories))];
-  const quickStartGroups: QuickStartGroup[] = guideItems.length ? [
-    { key: "tat-ca", label: "Tất cả", items: guideItems },
-    ...categoryNames.map((name) => ({ key: name, label: name, items: guideItems.filter((item) => item.categories.includes(name)) })),
-  ] : [];
+  const guideItems = guides.map((guide, index) => ({ href: `/ho-tro/huong-dan/${guide.slug}`, title: guide.title, description: guideDescriptions[index], categories: guide.categories.map((category) => category.name) }));
 
   const channels: Channel[] = [
-    // "Hướng dẫn sử dụng" chỉ là kênh riêng khi chưa có mục "Làm quen" (đã liệt kê bài và link Tất cả bài hướng dẫn).
-    guides.length && !quickStartGroups.length ? { href: "/ho-tro/huong-dan", title: "Hướng dẫn sử dụng", text: "Từng bước thiết lập, bán hàng, kho, báo cáo và kết ca.", meta: `${guides.length} bài`, icon: BookOpen } : null,
     downloads.length ? { href: "/ho-tro/cai-dat", title: "Hỗ trợ cài đặt", text: "Tải phần mềm, driver máy in, máy quét và công cụ cài đặt.", meta: `${downloads.length} tệp`, icon: Download } : null,
     videosPage ? { href: "/ho-tro/video", title: videosPage.title, text: "Xem thao tác trực quan qua video ngắn.", icon: MonitorPlay } : null,
     faqPage ? { href: "/ho-tro/faq", title: faqPage.title, text: "Câu trả lời nhanh cho các thắc mắc hay gặp.", meta: faqs.length ? `${faqs.length} câu hỏi` : undefined, icon: CircleHelp } : null,
@@ -62,24 +54,41 @@ export default async function SupportCenterPage() {
     <SiteHeader />
     <BreadcrumbJsonLd crumbs={[{ name: "Hỗ trợ", path: "/ho-tro" }]} />
     <main id="noi-dung">
-      {/* Phần đầu gọn: một câu hỏi + ô tìm + một dòng gọi trực tiếp. Liên hệ đầy đủ (email, Zalo, gửi yêu cầu) nằm ở
+      {/* Phần đầu gọn: tên trang + ô tìm + một dòng gọi trực tiếp. Liên hệ đầy đủ (email, Zalo, gửi yêu cầu) nằm ở
           "Chọn cách nhận hỗ trợ" và dải cuối trang nên không lặp lại ở đây. */}
       <header className="support-hero">
         <Container className="flex flex-col items-center py-12 text-center sm:py-16">
-          <h1 className="mb-0 text-[2rem] leading-[1.15] font-bold tracking-tight text-balance text-ink sm:text-[2.5rem]">Chúng tôi có thể giúp gì cho bạn?</h1>
-          <div className="mt-7 w-full max-w-2xl text-left"><SupportSearch items={searchItems} suggestions={[]} /></div>
+          <h1 className="mb-0 text-[2rem] leading-[1.15] font-bold tracking-tight text-balance text-ink sm:text-[2.5rem]">Trung tâm hỗ trợ iOrder</h1>
+          <p className="mt-3 mb-0 text-lead text-muted">Tìm hướng dẫn, tải driver hoặc gặp đội kỹ thuật.</p>
+          <div className="mt-6 w-full max-w-2xl text-left"><SupportSearch items={searchItems} suggestions={[]} /></div>
           {profile?.hotline ? <p className="mt-5 mb-0 text-small text-muted">Cần người hỗ trợ trực tiếp? Gọi <a className="font-semibold text-ink hover:text-brand-700 hover:underline" href={tel(profile.hotline)}>{profile.hotline}</a>{profile.workingHours ? ` (${profile.workingHours})` : ""}</p> : null}
         </Container>
       </header>
 
-      {quickStartGroups.length ? <section aria-label="Làm quen với iOrder" className="bg-white"><Container className="py-12 sm:py-16">
-        <SectionHeading description={`${guideItems.length} bài hướng dẫn theo từng bước để vận hành cửa hàng cùng iOrder ngay từ ngày đầu.`} eyebrow="Bắt đầu nhanh" title="Làm quen với iOrder" />
-        <SupportQuickStart groups={quickStartGroups} />
-        <p className="mt-8 mb-0 text-center text-small text-muted">Xem thêm: <Link className="font-semibold text-brand-700 hover:underline" href="/ho-tro/huong-dan">Tất cả bài hướng dẫn →</Link></p>
+      {/* Hướng dẫn theo tính năng: lưới thẻ gọn (biểu tượng, tên, mô tả ngắn) cùng kiểu trang Hướng dẫn sử dụng; tối đa 8 bài,
+          còn lại xem ở trang tổng hợp. */}
+      {guideItems.length ? <section aria-labelledby="huong-dan-tinh-nang" className="bg-white"><Container className="py-12 sm:py-16">
+        <div className="mb-6 flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
+          <div>
+            <h2 className="mb-0 text-h2 font-bold tracking-tight text-ink" id="huong-dan-tinh-nang">Hướng dẫn theo tính năng</h2>
+            <p className="mt-2 mb-0 text-body text-muted">Cách dùng từng phần của iOrder: bán hàng, hóa đơn, kho, kết ca, báo cáo…</p>
+          </div>
+          <Link className="text-small font-semibold text-brand-700 hover:underline" href="/ho-tro/huong-dan">Tất cả {guideItems.length} bài hướng dẫn →</Link>
+        </div>
+        <ul className="m-0 grid list-none gap-3 p-0 sm:grid-cols-2 lg:grid-cols-4">{guideItems.slice(0, 8).map((item) => {
+          const Icon = iconFor(item.title);
+          return <li key={item.href}><Link className="guide-card group" href={item.href}>
+            <Icon aria-hidden="true" className="guide-card__icon" size={20} strokeWidth={1.7} />
+            <span className="min-w-0 flex-1">
+              <span className="guide-card__title block font-semibold text-ink group-hover:text-brand-700">{item.title}</span>
+              {item.description ? <span className="mt-1 line-clamp-2 text-small text-muted">{item.description}</span> : null}
+            </span>
+          </Link></li>;
+        })}</ul>
       </Container></section> : null}
 
       <section aria-label="Các kênh hỗ trợ" className="bg-surface-tinted"><Container className="py-12 sm:py-16">
-        <SectionHeading className="mb-8" description="Chọn kênh phù hợp, đội ngũ kỹ thuật iOrder luôn sẵn sàng đồng hành." eyebrow="Kênh hỗ trợ" title="Chọn cách nhận hỗ trợ" />
+        <SectionHeading align="left" className="mb-6" description="Chọn kênh phù hợp, đội ngũ kỹ thuật iOrder luôn sẵn sàng đồng hành." title="Chọn cách nhận hỗ trợ" />
         {/* Số cột theo số kênh để hàng cuối không lẻ một thẻ: 4 kênh → 2 cột, 5–6 kênh → 3 cột. */}
         <ul className={`m-0 grid list-none gap-4 p-0 sm:grid-cols-2 ${channels.length === 4 || channels.length === 2 ? "" : "lg:grid-cols-3"}`}>{channels.map(({ href, title, text, meta, icon: Icon }) => <li key={href}>
           <Link className="support-channel group" href={href}>
@@ -95,10 +104,10 @@ export default async function SupportCenterPage() {
 
       {downloads.length ? <section className="bg-white"><Container className="grid gap-8 py-12 sm:py-16 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:items-center lg:gap-12">
         <div>
-          <SectionHeading align="left" className="mb-0" description="Phần mềm, driver và công cụ cần cho máy bán hàng, máy in, máy quét." eyebrow="Hỗ trợ cài đặt" title="Tải phần mềm & driver" />
+          <SectionHeading align="left" className="mb-0" description="Phần mềm, driver và công cụ cần cho máy bán hàng, máy in, máy quét." title="Tải phần mềm & driver" />
           <Link className="mt-5 inline-flex items-center gap-1.5 font-semibold text-brand-700 hover:underline" href="/ho-tro/cai-dat">{downloads.length > 4 ? `Xem tất cả ${downloads.length} tệp` : "Xem hướng dẫn cài đặt"} <ChevronRight aria-hidden="true" size={16} /></Link>
         </div>
-        <ul className="m-0 grid list-none gap-3 p-0">{downloads.slice(0, 4).map((download) => <li className="flex items-center gap-4 rounded-card border border-line bg-white p-5 shadow-card" key={download.id}>
+        <ul className="m-0 grid list-none gap-3 p-0">{downloads.slice(0, 4).map((download) => <li className="flex items-center gap-4 rounded-lg border border-line bg-white p-4" key={download.id}>
           <span aria-hidden="true" className="support-channel__icon"><Download size={22} /></span>
           <span className="min-w-0 flex-1"><span className="block font-bold text-ink">{download.title}</span>{download.description || download.meta ? <span className="mt-0.5 block truncate text-small text-muted">{download.description ?? download.meta}</span> : null}</span>
           <a className="button button--primary shrink-0" download href={download.downloadUrl}>Tải xuống</a>
@@ -106,7 +115,7 @@ export default async function SupportCenterPage() {
       </Container></section> : null}
 
       {faqs.length ? <section className="bg-surface-tinted"><Container className="py-12 sm:py-16" width="narrow">
-        <SectionHeading eyebrow="Câu hỏi thường gặp" title="Thắc mắc hay gặp" />
+        <SectionHeading align="left" className="mb-6" title="Câu hỏi thường gặp" />
         <FaqList items={faqs.slice(0, 6)} />
         {faqs.length > 6 ? <p className="mt-6 mb-0 text-center"><Link className="font-semibold text-brand-700 hover:underline" href="/ho-tro/faq">Xem tất cả {faqs.length} câu hỏi →</Link></p> : null}
       </Container></section> : null}
