@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { Fragment, type CSSProperties } from "react";
-import { CircleCheck, ShieldCheck } from "lucide-react";
+import { Check, ShieldCheck } from "lucide-react";
 import type { BlockFrame } from "@iorder/core/server/pages/block-layout";
 import { heroToneOf, type HeroTone, type PageBlock } from "@iorder/core/server/pages/pages.contract";
 import { getMediaById } from "@/lib/backend";
@@ -56,8 +56,8 @@ function HeroText({ data, first, dark = false, center = false, headingAs }: { da
     {data.eyebrow ? <Eyebrow dark={dark}>{data.eyebrow}</Eyebrow> : null}
     <Heading className={`mb-0 text-4xl leading-[1.12] font-bold tracking-tight text-balance sm:text-5xl lg:text-[clamp(2.25rem,5.4svh,5rem)] ${dark ? "text-white" : "text-ink"}`}>{data.title}</Heading>
     {data.description ? <p className={`mt-6 text-lg leading-8 sm:text-xl ${dark ? "text-white/90" : "text-muted"}`}>{data.description}</p> : null}
-    {data.highlights.length ? <ul className={`hero-highlights mt-8 grid gap-4 sm:grid-cols-3 ${center ? "text-left" : ""}`}>{data.highlights.map((item, index) => <li className="flex items-start gap-3" key={`${item.title}-${index}`}>
-      <span className={`grid size-10 shrink-0 place-items-center rounded-full ${dark ? "bg-white/15 text-white" : "bg-brand-50 text-brand-700"}`}><CircleCheck aria-hidden="true" size={20} /></span>
+    {data.highlights.length ? <ul className={`hero-highlights mt-8 grid gap-4 sm:grid-cols-3 ${center ? "text-left" : ""}`}>{data.highlights.map((item, index) => <li className="flex items-start gap-2.5" key={`${item.title}-${index}`}>
+      <Check aria-hidden="true" className={`mt-1 shrink-0 ${dark ? "text-white" : "text-brand-600"}`} size={18} strokeWidth={2.5} />
       <span><strong className={`block ${dark ? "text-white" : "text-ink"}`}>{item.title}</strong>{item.note ? <span className={`block text-sm ${dark ? "text-white/75" : "text-muted"}`}>{item.note}</span> : null}</span>
     </li>)}</ul> : null}
     <Actions center={center} dark={dark} primary={data.primaryAction} secondary={data.secondaryAction} />
@@ -77,9 +77,9 @@ function heroTop(first: boolean, tone: "light" | "dark", flush = false) {
 // chữ chiếm cả bề ngang nên lớp phủ sáng đều, từ màn hình lớn mới nhạt dần sang phải.
 // `top`: khi phần đầu trang nằm dưới header trong suốt, phủ thêm dải sáng từ mép trên mờ dần xuống để menu dễ đọc.
 const backgroundTones: Record<HeroTone, { section: string; overlay: string; top: string | null }> = {
-  dark: { section: "bg-gradient-to-br from-brand-700 to-brand-950", overlay: "bg-gradient-to-r from-slate-950/75 via-slate-950/45 to-slate-950/10", top: null },
-  light: { section: "bg-white", overlay: "bg-white/85 lg:bg-transparent lg:bg-gradient-to-r lg:from-white/95 lg:via-white/80 lg:to-white/20", top: "bg-gradient-to-b from-white via-white/85 to-transparent" },
-  tinted: { section: "bg-brand-50", overlay: "bg-brand-50/85 lg:bg-transparent lg:bg-gradient-to-r lg:from-brand-50/95 lg:via-brand-50/80 lg:to-brand-50/20", top: "bg-gradient-to-b from-brand-50 via-brand-50/85 to-transparent" },
+  dark: { section: "bg-navy", overlay: "bg-slate-950/70 lg:bg-transparent lg:bg-gradient-to-r lg:from-slate-950/85 lg:from-30% lg:via-slate-950/60 lg:to-slate-950/15", top: null },
+  light: { section: "bg-white", overlay: "bg-white/92 lg:bg-transparent lg:bg-gradient-to-r lg:from-white lg:from-30% lg:via-white/85 lg:to-white/25", top: "bg-gradient-to-b from-white via-white/85 to-transparent" },
+  tinted: { section: "bg-brand-50", overlay: "bg-brand-50/92 lg:bg-transparent lg:bg-gradient-to-r lg:from-brand-50 lg:from-30% lg:via-brand-50/85 lg:to-brand-50/25", top: "bg-gradient-to-b from-brand-50 via-brand-50/85 to-transparent" },
 };
 
 export async function HeroSection({ data, first, frame }: { data: HeroData; first: boolean; frame?: BlockFrame | null }) {
@@ -93,7 +93,7 @@ export async function HeroSection({ data, first, frame }: { data: HeroData; firs
       <HeroSlider priority={first} slides={slides} />
     </section>;
     // Chưa có ảnh: vẫn hiện tiêu đề trên nền màu thay vì khoảng trống.
-    return <section className="screen-hero border-b border-line bg-gradient-to-br from-brand-700 to-brand-950" {...heroTop(first, "dark")}><div className={`${container} py-20 sm:py-28 lg:pt-10 lg:pb-24`}><HeroText center dark data={data} first={first} /></div></section>;
+    return <section className="screen-hero border-b border-line bg-navy" {...heroTop(first, "dark")}><div className={`${container} py-20 sm:py-28 lg:pt-10 lg:pb-24`}><HeroText center dark data={data} first={first} /></div></section>;
   }
 
   if (data.panels?.length) return <PanelHero data={data} first={first} skin={skin} />;
@@ -115,9 +115,9 @@ export async function HeroSection({ data, first, frame }: { data: HeroData; firs
     </section>;
   }
 
-  const sectionTone = tone === "light" ? "bg-white" : "bg-gradient-to-b from-brand-50/70 to-white";
+  const sectionTone = tone === "light" ? "bg-white" : "bg-brand-50";
   if (data.layout === "centered") {
-    const frame = "h-auto w-full rounded-3xl border border-line shadow-xl shadow-slate-900/10";
+    const frame = "h-auto w-full rounded-xl border border-line";
     const sizes = "(min-width: 1024px) 70vw, 100vw";
     // Không có ảnh (ví dụ trang Liên hệ): chỉ cao theo nội dung, không chiếm trọn một màn hình để nội dung chính hiện ngay.
     const surface = skinSection(skin, sectionTone);
@@ -125,8 +125,8 @@ export async function HeroSection({ data, first, frame }: { data: HeroData; firs
       <SkinLayers skin={skin} tone={tone} />
       <div {...box(skin, `py-12 sm:py-16 ${image ? "lg:pt-10 lg:pb-24" : "lg:py-20"}`)}>
         <HeroText center dark={skin.dark} data={data} first={first} />
-        {many ? <HeroImages className="mx-auto mt-12 max-w-5xl" imageClassName={frame} images={images} priority={first} sizes={sizes} variant="inline" />
-          : image ? <Image alt={image.alt} className={`mx-auto mt-12 max-w-5xl ${frame}`} height={800} priority={first} sizes={sizes} src={image.url} width={1400} /> : null}
+        {many ? <HeroImages className="mx-auto mt-10 max-w-4xl" imageClassName={frame} images={images} priority={first} sizes={sizes} variant="inline" />
+          : image ? <Image alt={image.alt} className={`mx-auto mt-10 max-w-4xl ${frame}`} height={800} priority={first} sizes={sizes} src={image.url} width={1400} /> : null}
       </div>
     </section>;
   }
@@ -170,13 +170,13 @@ async function PanelHero({ data, first, skin }: { data: HeroData; first: boolean
     </section>;
   }
 
-  const sectionTone = tone === "light" ? "bg-white" : "bg-gradient-to-b from-brand-50/70 to-white";
+  const sectionTone = tone === "light" ? "bg-white" : "bg-brand-50";
   if (data.layout === "centered") {
     const panels = entries.map((entry, index) => {
       const image = images[index];
       return <div key={index}>
         <HeroText center dark={skin.dark} data={entry.text} first={first} headingAs={headingAs(index)} />
-        {image ? <Image alt={image.altText ?? ""} className="mx-auto mt-12 h-auto w-full max-w-5xl rounded-3xl border border-line shadow-xl shadow-slate-900/10" height={800} priority={first && index === 0} sizes="(min-width: 1024px) 70vw, 100vw" src={image.url} width={1400} /> : null}
+        {image ? <Image alt={image.altText ?? ""} className="mx-auto mt-10 h-auto w-full max-w-4xl rounded-xl border border-line" height={800} priority={first && index === 0} sizes="(min-width: 1024px) 70vw, 100vw" src={image.url} width={1400} /> : null}
       </div>;
     });
     const surface = skinSection(skin, sectionTone);

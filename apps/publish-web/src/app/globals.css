@@ -536,11 +536,10 @@ a.site-footer__heading:hover { color: var(--color-brand-700); }
   /* Đầu trang + header = đúng một màn hình (100svh) ở mọi cỡ màn từ 1024px; nội dung căn giữa theo chiều dọc, nội dung cao hơn thì phần đầu trang tự dài ra. */
   .screen-hero { display: flex; flex-direction: column; justify-content: center; min-height: calc(100svh - var(--header-height)); }
   .screen-hero[data-hero-top] { min-height: 100svh; }
-  /* Màn thấp (≤800px): hàng điểm nổi bật luôn hiện (không ẩn) nhưng gọn lại — sát mô tả hơn, ô dấu ✓ nhỏ hơn — để đầu trang
+  /* Màn thấp (≤800px): hàng điểm nổi bật luôn hiện (không ẩn) nhưng gọn lại — sát mô tả hơn, — để đầu trang
    * vẫn vừa một màn hình; tiêu đề đã co theo chiều cao (clamp theo svh trong HeroText). */
   @media (max-height: 800px) {
     .hero-highlights { margin-top: 1.25rem; gap: .75rem; }
-    .hero-highlights > li > span:first-child { width: 2rem; height: 2rem; }
     .hero-highlights + div { margin-top: 1.5rem; }
   }
   /* `section` để thắng chiều cao mặc định của .hero-slider khai báo phía dưới. */
@@ -549,10 +548,10 @@ a.site-footer__heading:hover { color: var(--color-brand-700); }
 }
 
 /* Phần đầu trang kiểu "Trượt nhiều ảnh". */
-.hero-slider { position: relative; overflow: hidden; height: clamp(360px, 46vw, 760px); background: var(--color-ink); }
+.hero-slider { position: relative; overflow: hidden; height: clamp(460px, 46vw, 760px); background: var(--color-navy); }
 .hero-slider__slide { position: absolute; inset: 0; opacity: 0; visibility: hidden; transition: opacity 600ms ease, visibility 0s linear 600ms; }
 .hero-slider__slide--active { opacity: 1; visibility: visible; transition: opacity 600ms ease; }
-.hero-slider__overlay { position: absolute; inset: 0; display: flex; align-items: center; background: linear-gradient(90deg, rgb(2 6 23 / .65), rgb(2 6 23 / .2) 60%, transparent); }
+.hero-slider__overlay { position: absolute; inset: 0; display: flex; align-items: center; padding-bottom: 32px; background: linear-gradient(90deg, rgb(2 6 23 / .8) 30%, rgb(2 6 23 / .45) 65%, rgb(2 6 23 / .15)); }
 .hero-slider__arrow { position: absolute; top: 50%; z-index: 2; display: grid; width: 48px; height: 48px; place-items: center; border-radius: 999px; background: rgb(255 255 255 / .85); color: var(--color-ink); transform: translateY(-50%); transition: background 160ms ease; }
 .hero-slider__arrow:hover { background: white; }
 .hero-slider__arrow--prev { left: 16px; }
@@ -560,7 +559,15 @@ a.site-footer__heading:hover { color: var(--color-brand-700); }
 .hero-slider__dots { position: absolute; bottom: 18px; left: 50%; z-index: 2; display: flex; gap: 8px; transform: translateX(-50%); }
 .hero-slider__dot { width: 10px; height: 10px; border-radius: 999px; background: rgb(255 255 255 / .55); transition: width 200ms ease, background 200ms ease; }
 .hero-slider__dot--active { width: 28px; background: white; }
-@media (max-width: 640px) { .hero-slider__arrow { width: 38px; height: 38px; } .hero-slider__arrow--prev { left: 8px; } .hero-slider__arrow--next { right: 8px; } }
+@media (max-width: 640px) {
+  .hero-slider { height: 580px; }
+  .hero-slider__overlay { align-items: flex-end; padding-bottom: 72px; background: rgb(2 6 23 / .62); }
+  [data-hero-flush] .hero-slider__overlay { padding-top: var(--header-height); }
+  .hero-slider__arrow { top: auto; bottom: 8px; width: 38px; height: 38px; transform: none; }
+  .hero-slider__arrow--prev { left: 16px; }
+  .hero-slider__arrow--next { right: 16px; }
+  .hero-slider__dots { bottom: 22px; }
+}
 @media (prefers-reduced-motion: reduce) { .hero-slider__slide, .hero-slider__slide--active { transition: none; } }
 /* Phần đầu trang có nhiều khối nội dung: các khối chồng trong một ô lưới, khối đang xem trượt vào, khối cũ trượt ra trái. */
 .hero-rotator__stack { display: grid; }

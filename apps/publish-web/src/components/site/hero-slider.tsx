@@ -31,7 +31,7 @@ export function HeroSlider({ slides, priority }: { slides: HeroSlide[]; priority
       {slide.title || slide.description || slide.action ? <div className="hero-slider__overlay"><div className="site-container">
         <div className="max-w-2xl">
           {slide.title ? <p className="mb-0 text-3xl leading-tight font-bold tracking-tight text-white sm:text-5xl">{slide.title}</p> : null}
-          {slide.description ? <p className="mt-4 text-lg leading-8 text-white/90">{slide.description}</p> : null}
+          {slide.description ? <p className="mt-4 text-base leading-7 text-white/90 sm:text-lg sm:leading-8">{slide.description}</p> : null}
           {slide.action ? <div className="mt-6"><ButtonLink action={slide.action} tabIndex={index === active ? 0 : -1} /></div> : null}
         </div>
       </div></div> : null}
