@@ -21,6 +21,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   if (!siteUrl) return [];
   const [pages, posts, equipment, taxonomy, ...offeringLists] = await Promise.all([getPublishedPageSummaries(), getPublishedPostSummaries(), getEquipment(true), getTaxonomy(), ...Object.keys(catalogByType).map(type => getPublishedOfferingSummaries(type))]);
   return [
+    // Trung tâm hỗ trợ: trang tổng hợp dựng từ dữ liệu CMS (không phải một Trang riêng).
+    { url: url("/ho-tro", siteUrl) },
     ...pages.flatMap(page => { const path = pagePath(page.slug); return path ? [{ url: url(path, siteUrl), lastModified: page.updatedAt }] : []; }),
     ...posts.map(post => ({ url: url(post.type === "guide" ? `/ho-tro/huong-dan/${post.slug}` : `/tin-tuc/${post.slug}`, siteUrl), lastModified: post.publishedAt ?? post.createdAt })),
     ...equipment.map(item => ({ url: url(`/thiet-bi/${item.slug}`, siteUrl), lastModified: item.updatedAt })),

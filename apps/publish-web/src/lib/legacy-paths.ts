@@ -7,6 +7,7 @@ export const routeFolders: ReadonlyArray<readonly [publicPath: string, folder: s
   ["/ho-tro/faq", "/support/faq"],
   ["/ho-tro/video", "/support/videos"],
   ["/ho-tro-tu-xa", "/support/remote"],
+  ["/ho-tro", "/support"],
   ["/tin-tuc/chuyen-muc", "/news/category"],
   ["/tin-tuc/the", "/news/tag"],
   ["/tin-tuc", "/news"],

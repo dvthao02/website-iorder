@@ -36,6 +36,6 @@ test("Mỗi URL tiếng Việt có hai rewrite (chính nó và đường dẫn c
 });
 
 test("Nhận ra URL đi qua rewrites() để tắt tải trước (kèm query, neo, đường dẫn con)", () => {
-  for (const href of ["/tin-tuc", "/tin-tuc/bai-viet-mau", "/tin-tuc?trang=2", "/thiet-bi#bang-gia", "/ho-tro/huong-dan/cai-dat-may-in", "/lien-he", "/trang/uu-dai"]) assert.equal(isRewrittenPath(href), true, href);
+  for (const href of ["/tin-tuc", "/tin-tuc/bai-viet-mau", "/tin-tuc?trang=2", "/thiet-bi#bang-gia", "/ho-tro/huong-dan/cai-dat-may-in", "/lien-he", "/trang/uu-dai", "/ho-tro"]) assert.equal(isRewrittenPath(href), true, href);
   for (const href of ["/", "/phan-mem", "/phan-mem/iorder", "/tin-tucx", "https://iorder.vn/tin-tuc", "//cdn.example.com/tin-tuc", "#lien-he", "mailto:a@b.vn"]) assert.equal(isRewrittenPath(href), false, href);
 });
