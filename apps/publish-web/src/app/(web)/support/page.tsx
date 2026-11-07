@@ -1,14 +1,14 @@
 import type { Metadata, ResolvingMetadata } from "next";
 import { BookOpen, ChevronRight, CircleHelp, Clock, Download, Headset, Mail, MessageSquareText, MonitorPlay, Phone, type LucideIcon } from "lucide-react";
 
-import { suggestSeoDescription } from "@iorder/core/server/shared/seo";
 import { BreadcrumbJsonLd } from "@/components/site/page-hero";
 import { SiteHeader } from "@/components/site/site-header";
 import { SiteLink as Link } from "@/components/site/site-link";
 import { SupportQuickStart, type QuickStartGroup } from "@/components/site/support-quickstart";
 import { SupportSearch, type SupportSearchItem } from "@/components/site/support-search";
 import { Container, FaqList, SectionHeading } from "@/components/ui";
-import { getEnabledSupportDownloads, getExternalLinks, getPublishedPage, getPublishedPostBySlug, getPublishedPostSummaries, getSiteProfile } from "@/lib/backend";
+import { getEnabledSupportDownloads, getExternalLinks, getPublishedPage, getPublishedPostSummaries, getSiteProfile } from "@/lib/backend";
+import { guideDescription } from "@/lib/guides";
 import { contentMetadata } from "@/lib/page-metadata";
 
 export const revalidate = 0;
@@ -34,8 +34,7 @@ export default async function SupportCenterPage() {
   const faqs = (faqPage?.blocks ?? []).flatMap((block) => block.isEnabled && block.type === "faq" ? block.data.items : []);
   const supportEmail = profile?.supportEmail ?? profile?.salesEmail ?? null;
 
-  // Mô tả ngắn cho thẻ hướng dẫn: tóm tắt của bài; chưa có thì đoạn văn đầu của nội dung (bài nhập từ Word thường để trống tóm tắt).
-  const guideDescriptions = await Promise.all(guides.map(async (guide) => guide.excerpt ?? (await getPublishedPostBySlug(guide.slug).then((post) => post ? suggestSeoDescription(null, post.content) : null).catch(() => null))));
+  const guideDescriptions = await Promise.all(guides.map(guideDescription));
   const guideItems = guides.map((guide, index) => ({ href: `/ho-tro/huong-dan/${guide.slug}`, title: guide.title, description: guideDescriptions[index], cover: guide.cover ? { url: guide.cover.url, alt: guide.cover.altText } : null, category: guide.categories[0]?.name ?? null, categories: guide.categories.map((category) => category.name) }));
   // Nhóm theo chuyên mục: "Tất cả" + từng chuyên mục có bài (chỉ hiện thanh chọn khi có từ hai nhóm).
   const categoryNames = [...new Set(guideItems.flatMap((item) => item.categories))];

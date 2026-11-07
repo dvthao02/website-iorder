@@ -3,8 +3,9 @@ import { contentMetadata } from "@/lib/page-metadata";
 import { notFound, permanentRedirect } from "next/navigation";
 
 import { ChipList, DetailHero } from "@/components/site/detail-hero";
+import { ArticleToc } from "@/components/site/article-toc";
 import { PostContent } from "@/components/site/post-content";
-import { Container } from "@/components/ui";
+import { articleOutline } from "@/lib/article-outline";
 import { SiteHeader } from "@/components/site/site-header";
 import { getPublishedPostBySlug, getPublishingConfig, getSiteProfile } from "@/lib/backend";
 import { JsonLd } from "@/components/site/json-ld";
@@ -48,6 +49,7 @@ export default async function NewsDetailPage({ params }: NewsDetailPageProps) {
   if (post.type === "guide") permanentRedirect(`/ho-tro/huong-dan/${post.slug}`);
   const [config, profile] = await Promise.all([getPublishingConfig(), getSiteProfile()]);
   const site = config.siteUrl;
+  const { document, toc } = articleOutline(post.content, post.title);
 
   return (
     <>
@@ -60,7 +62,11 @@ export default async function NewsDetailPage({ params }: NewsDetailPageProps) {
             {post.publishedAt ? <p className="mt-5 mb-0 text-sm text-muted">Đăng ngày {dateFormatter.format(post.publishedAt)}</p> : null}
             <ChipList items={[...post.categories.map(category => ({ key: `c-${category.id}`, text: category.name, href: `/tin-tuc/chuyen-muc/${category.slug}` })), ...post.tags.map(tag => ({ key: `t-${tag.id}`, text: `#${tag.name}`, href: `/tin-tuc/the/${tag.slug}` }))]} label="Chuyên mục và thẻ của bài viết" />
           </DetailHero>
-          <Container className="py-12 sm:py-16" width="text"><PostContent document={post.content} /></Container>
+          {/* Màn rộng: nội dung + mục lục bám theo bên phải; màn hẹp: mục lục nằm đầu bài. */}
+          <div className="site-container py-12 sm:py-16"><div className="article-layout">
+            <div className="min-w-0"><PostContent document={document} tocClassName={toc.length >= 2 ? "xl:hidden" : ""} /></div>
+            {toc.length >= 2 ? <aside className="article-layout__toc"><div className="guide-docs__sticky"><ArticleToc entries={toc} /></div></aside> : null}
+          </div></div>
         </article>
       </main>
     </>

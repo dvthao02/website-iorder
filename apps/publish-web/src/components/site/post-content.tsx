@@ -1,9 +1,10 @@
 import type { PostContentDocument } from "@iorder/core/server/posts/posts.contract";
 import { RichContent, RichTableOfContents } from "./rich-content";
 
-export function PostContent({ document }: { document: PostContentDocument }) {
+// `tocClassName`: trang có mục lục cột phải thì ẩn mục lục đầu bài ở màn rộng (ví dụ "xl:hidden").
+export function PostContent({ document, tocClassName = "" }: { document: PostContentDocument; tocClassName?: string }) {
   // Bài soạn bằng trình soạn mới: mục lục tự động + nội dung định dạng.
-  if (document.version === 2) return <><RichTableOfContents doc={document.doc} /><RichContent doc={document.doc} /></>;
+  if (document.version === 2) return <><RichTableOfContents className={tocClassName} doc={document.doc} /><RichContent doc={document.doc} /></>;
   return (
     <div className="grid gap-7 text-lg leading-8 text-slate-700">
       {document.blocks.map((block, index) => {

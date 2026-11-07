@@ -88,10 +88,10 @@ function RichNodeView({ node, path, headingId }: { node: RichNode; path: string;
 }
 
 /** Mục lục từ tiêu đề H2/H3; chỉ hiện khi bài có từ 2 mục trở lên. */
-export function RichTableOfContents({ doc }: { doc: RichDocument }) {
+export function RichTableOfContents({ doc, className = "" }: { doc: RichDocument; className?: string }) {
   const entries = richTableOfContents(doc);
   if (entries.length < 2) return null;
-  return <nav aria-label="Mục lục bài viết" className="mb-10 rounded-2xl border border-slate-200 bg-slate-50 p-5 text-base">
+  return <nav aria-label="Mục lục bài viết" className={`mb-10 rounded-2xl border border-slate-200 bg-slate-50 p-5 text-base ${className}`}>
     <p className="mb-3 text-sm font-bold uppercase tracking-[0.14em] text-slate-500">Nội dung bài viết</p>
     <ol className="grid gap-2">{entries.map((entry) => <li className={entry.level === 3 ? "pl-5 text-slate-600" : "font-semibold text-slate-800"} key={entry.id}><a className="hover:text-brand-700 hover:underline" href={`#${entry.id}`}>{entry.text}</a></li>)}</ol>
   </nav>;

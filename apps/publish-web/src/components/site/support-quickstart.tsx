@@ -1,23 +1,15 @@
 "use client";
 
 import Image from "next/image";
-import { ArrowRight, BookOpen, ChartColumn, ChevronLeft, ChevronRight, CreditCard, LayoutGrid, Package, Printer, ReceiptText, ShoppingCart, UserCog, Users, Utensils, Wallet, type LucideIcon } from "lucide-react";
+import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 
 import { SiteLink as Link } from "./site-link";
-import { fold } from "./support-search";
+import { iconFor } from "./guide-icons";
 
 export type QuickStartItem = { href: string; title: string; description: string | null; category: string | null; cover: { url: string; alt: string | null } | null };
 export type QuickStartGroup = { key: string; label: string; items: QuickStartItem[] };
 
-// Biểu tượng của ảnh minh họa theo chức năng nhắc trong tên bài (so khớp không dấu); không khớp thì dùng quyển sách.
-const iconRules: [RegExp, LucideIcon][] = [
-  [/ban hang|thu ngan|pos\b/, ShoppingCart], [/bao cao|thong ke|doanh thu/, ChartColumn], [/hoa don|chung tu/, ReceiptText],
-  [/ket ca|giao ca|\bquy\b|thu chi/, Wallet], [/\bkho\b|ton kho|nhap hang|hang hoa/, Package], [/khach hang|thanh vien|tich diem/, Users],
-  [/may in|may quet|driver|thiet bi|cai dat/, Printer], [/thuc don|mon an|san pham/, Utensils], [/nhan vien|phan quyen|tai khoan/, UserCog],
-  [/thanh toan|\bqr\b|quet ma/, CreditCard], [/so do|ban an|phong|khu vuc/, LayoutGrid],
-];
-const iconFor = (title: string) => iconRules.find(([pattern]) => pattern.test(fold(title)))?.[1] ?? BookOpen;
 // Màu nhấn xoay vòng theo thứ tự bước (token --color-accent-*), để dãy thẻ không đơn điệu một màu.
 const tones = ["blue", "green", "violet", "amber", "rose"] as const;
 

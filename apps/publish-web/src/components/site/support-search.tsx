@@ -4,12 +4,11 @@ import { useRouter } from "next/navigation";
 import { ArrowRight, Search, X } from "lucide-react";
 import { useId, useState } from "react";
 
+import { fold } from "@/lib/fold";
 import { SiteLink as Link } from "./site-link";
 
 export type SupportSearchItem = { title: string; href: string; kind: string; text?: string | null };
 
-// So khớp không dấu, không phân biệt hoa thường: gõ "in hoa don" vẫn ra "In hóa đơn".
-export const fold = (value: string) => value.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/g, "d").replace(/Đ/g, "D").toLowerCase();
 
 /**
  * Ô tìm nhanh của Trung tâm hỗ trợ: lọc ngay trên trình duyệt trong hướng dẫn, tệp cài đặt và câu hỏi thường gặp

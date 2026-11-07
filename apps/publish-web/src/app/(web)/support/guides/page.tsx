@@ -1,15 +1,60 @@
 import type { Metadata, ResolvingMetadata } from "next";
+import { ChevronRight } from "lucide-react";
 
-import { ListingPageView } from "@/components/site/listing-page-view";
+import { headingId } from "@iorder/core/server/shared/rich-text";
+import { GuideDocsLayout } from "@/components/site/guide-docs";
+import { iconFor } from "@/components/site/guide-icons";
+import { PageBlockRenderer } from "@/components/site/page-block-renderer";
+import { PageHero } from "@/components/site/page-hero";
 import { SiteHeader } from "@/components/site/site-header";
+import { SiteLink as Link } from "@/components/site/site-link";
+import { SupportSearch } from "@/components/site/support-search";
+import { getGuideIndex, guideDescription } from "@/lib/guides";
 import { getListingPageContent, listingPageMetadata } from "@/lib/listing-page";
 
 export const revalidate = 0;
 
 export async function generateMetadata(_: unknown, parent: ResolvingMetadata): Promise<Metadata> { return listingPageMetadata(await getListingPageContent("listing-guides"), "/ho-tro/huong-dan", parent); }
 
+// Trang tổng hợp hướng dẫn trong khung tài liệu: phần đầu (tiêu đề, mô tả từ CMS + ô tìm bài không dấu), danh mục nhóm
+// bên trái, giữa là từng nhóm với thẻ bài (biểu tượng, tên, mô tả ngắn). Khối "Danh sách nội dung" nguồn Hướng dẫn của
+// trang được thay bằng phần này; các khối khác (CTA, hỏi đáp…) vẫn hiện bên dưới theo thứ tự CMS.
 export default async function SupportGuidesPage() {
-  const content = await getListingPageContent("listing-guides");
-  if (!content) return <><SiteHeader /><main id="noi-dung" className="mx-auto max-w-4xl p-6">Nội dung trang hướng dẫn đang chờ được cấu hình trong CMS.</main></>;
-  return <ListingPageView content={content} crumb={{ name: "Hướng dẫn sử dụng", path: "/ho-tro/huong-dan" }} />;
+  const [content, index] = await Promise.all([getListingPageContent("listing-guides"), getGuideIndex()]);
+  const header = content?.header ?? { eyebrow: null, title: "Hướng dẫn sử dụng", description: null };
+  const descriptions = new Map(await Promise.all(index.entries.map(async (entry) => [entry.href, await guideDescription(entry.summary)] as const)));
+  const otherBlocks = (content?.blocks ?? []).filter((block) => !(block.type === "collection_list" && block.data.source === "guides"));
+  const searchItems = index.entries.map((entry) => ({ title: entry.title, href: entry.href, kind: entry.category ?? "Hướng dẫn", text: descriptions.get(entry.href) ?? null }));
+
+  return <>
+    <SiteHeader />
+    <main id="noi-dung">
+      <PageHero crumbs={[{ name: "Hỗ trợ", path: "/ho-tro" }, { name: "Hướng dẫn sử dụng", path: "/ho-tro/huong-dan" }]} description={header.description} eyebrow={header.eyebrow} title={header.title}>
+        {searchItems.length ? <div className="mt-6 max-w-2xl"><SupportSearch items={searchItems} suggestions={[]} /></div> : null}
+      </PageHero>
+      {index.groups.length ? <GuideDocsLayout groups={index.groups}>
+        <div className="grid gap-10">
+          {index.groups.map((group) => {
+            const id = `nhom-${headingId(group.label)}`;
+            return <section aria-labelledby={id} key={group.key}>
+              <h2 className="mb-4 flex items-center gap-2 text-h3 font-bold tracking-tight text-ink" id={id}>{group.label}<span className="guide-nav__count">{group.items.length} bài</span></h2>
+              <ul className="m-0 grid list-none gap-3 p-0 md:grid-cols-2">{group.items.map((item) => {
+                const Icon = iconFor(item.title);
+                const description = descriptions.get(item.href);
+                return <li key={item.href}><Link className="guide-card group" href={item.href}>
+                  <span aria-hidden="true" className="guide-card__icon"><Icon size={22} strokeWidth={1.8} /></span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block font-bold text-ink group-hover:text-brand-700">{item.title}</span>
+                    {description ? <span className="mt-1 line-clamp-2 block text-small text-muted">{description}</span> : null}
+                  </span>
+                  <ChevronRight aria-hidden="true" className="shrink-0 text-faint transition group-hover:translate-x-0.5 group-hover:text-brand-600" size={18} />
+                </Link></li>;
+              })}</ul>
+            </section>;
+          })}
+        </div>
+      </GuideDocsLayout> : <p className="site-container py-12 text-muted">Chưa có bài viết hướng dẫn nào được xuất bản.</p>}
+      {otherBlocks.length ? <PageBlockRenderer blocks={otherBlocks} previous="tinted" /> : null}
+    </main>
+  </>;
 }
