@@ -233,8 +233,8 @@ body:has([data-hero-top="dark"]) .site-header:not(.site-header--scrolled) .site-
 body:has([data-hero-top="dark"]) .site-header:not(.site-header--scrolled) .brand img { filter: brightness(0) invert(1); }
 .site-header__inner { display: flex; align-items: center; gap: clamp(16px, 2vw, 40px); width: 100%; max-width: var(--site-width); height: var(--header-height); margin: 0 auto; padding: 0 var(--gutter); }
 /* Header thấp lại khi cuộn (xem chú thích .site-header--scrolled phía trên); đặt sau .site-header__inner để thắng chiều cao gốc. */
-/* Chỉ khi menu ngang đang hiện (từ 1140px): màn hẹp hơn dùng nút ☰, bảng menu điện thoại đặt theo --header-height nên header không đổi cao. */
-@media (min-width: 1140px) {
+/* Chỉ khi menu ngang đang hiện (từ 1200px): màn hẹp hơn dùng nút ☰, bảng menu điện thoại đặt theo --header-height nên header không đổi cao. */
+@media (min-width: 1200px) {
   .site-header { --header-shrink: 0px; margin-bottom: var(--header-shrink); transition: box-shadow 200ms ease, background 200ms ease, border-color 200ms ease, margin 220ms ease; }
   .site-header--scrolled { --header-shrink: .75rem; }
   .site-header__inner { height: calc(var(--header-height) - var(--header-shrink)); transition: height 220ms ease; }
@@ -300,8 +300,9 @@ body:has([data-hero-top="dark"]) .site-header:not(.site-header--scrolled) .brand
 /* Menu điện thoại: nút ☰ và bảng toàn chiều ngang dưới đầu trang. */
 .site-menu-toggle { display: none; width: 44px; height: 44px; place-items: center; border: 1px solid var(--color-line); border-radius: 12px; background: white; color: var(--color-ink); }
 .site-mobile-menu { display: none; }
-/* Ngưỡng 1139px: đo với menu hiện tại (5 nhóm + 2 nút), từ 1140px logo – menu – nút cách nhau ≥ 30px. */
-@media (max-width: 1139px) {
+/* Ngưỡng 1199px: đo với menu hiện tại (6 mục: Sản phẩm, Giải pháp, Thiết bị, Tin tức, Hỗ trợ, Công ty + 2 nút),
+ * từ 1200px logo – menu – nút cách nhau ≥ 30px. Thêm mục menu trong CMS thì đo lại. */
+@media (max-width: 1199px) {
   .site-nav { display: none; }
   .site-menu-toggle { display: grid; }
   .site-mobile-menu--open { position: fixed; inset: var(--header-height) 0 0; z-index: 39; display: block; overflow-y: auto; border-top: 1px solid var(--color-line); background: white; padding: 12px 20px 32px; }
