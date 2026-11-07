@@ -81,7 +81,7 @@ function ensureUniqueNavigationPaths(groups: NavigationGroup[]) {
 const navigationGroups = ensureUniqueNavigationPaths([
   // Thứ tự theo tần suất dùng: việc nội dung hằng ngày ở trên, quản trị hệ thống rồi cài đặt ở dưới cùng.
   // Mọi loại nội dung chung một nhóm: cấu trúc website (đường dẫn, menu) do admin đặt trong CMS nên sidebar không tách theo nó.
-  { id: "overview", label: "Tổng quan", icon: LayoutDashboard, items: [{ href: "/admin", label: "Tổng quan", icon: Home }, { href: "/admin/analytics", label: "Thống kê truy cập", icon: BarChart3, permission: "dashboard.view" }] },
+  { id: "overview", label: "Tổng quan", icon: LayoutDashboard, items: [{ href: "/admin", label: "Tổng quan", icon: Home }, { href: "/admin/analytics", label: "Thống kê truy cập", icon: BarChart3, permission: "dashboard.view" }, { href: "/admin/seo/publish-check", label: "Kiểm tra xuất bản", icon: ClipboardCheck, permission: "settings.view" }] },
   {
     id: "content",
     label: "Nội dung",
@@ -113,7 +113,6 @@ const navigationGroups = ensureUniqueNavigationPaths([
     items: [
       { href: "/admin/menu", label: "Menu & Điều hướng", icon: Menu, permission: "navigation.view" },
       { href: "/admin/redirects", label: "Chuyển hướng URL", icon: ArrowRightLeft, permission: "redirects.view" },
-      { href: "/admin/seo/publish-check", label: "Kiểm tra xuất bản", icon: ClipboardCheck, permission: "settings.view" },
     ],
   },
   {
