@@ -226,13 +226,27 @@ html { font-size: clamp(16px, calc(16px + (100vw - 1440px) * 0.0033), 24px); }
 .sliding-rail__bar[data-visible="false"] { opacity: 0; }
 .sliding-rail__bar[data-instant="true"] { transition: opacity 150ms ease; }
 @media (prefers-reduced-motion: reduce) { .sliding-rail__bar { transition: none; } }
-/* Bài viết (tin tức): cột nội dung rộng như cũ, màn rộng có thêm mục lục bám theo bên phải. */
-.article-layout { display: grid; max-width: 48rem; margin-inline: auto; }
-.article-layout__toc { display: none; }
-@media (min-width: 1280px) {
-  .article-layout:has(> .article-layout__toc) { max-width: none; grid-template-columns: minmax(0, 48rem) 15rem; justify-content: center; gap: 64px; }
-  .article-layout__toc { display: block; }
-}
+/* Bài viết (tin tức), kiểu trang tin: cột bài tối đa 760px + cột bên 300px (từ 1024px) bám theo khi cuộn. */
+.article-page { display: grid; gap: 40px; padding-top: 28px; padding-bottom: 56px; }
+@media (min-width: 1024px) { .article-page { grid-template-columns: minmax(0, 760px) 300px; justify-content: space-between; gap: 56px; padding-top: 36px; padding-bottom: 72px; } }
+.article-main { min-width: 0; }
+.article-title { margin: 18px 0 0; color: var(--color-ink); font-size: clamp(1.75rem, 1.25rem + 1.6vw, 2.5rem); font-weight: 700; line-height: 1.2; letter-spacing: -.015em; text-wrap: balance; }
+.article-meta { margin-top: 14px; font-size: .9rem; }
+.article-lead { margin: 18px 0 0; color: #475467; font-size: 1.15rem; line-height: 1.65; }
+.article-main > .share-links { margin-top: 20px; }
+.article-cover { width: 100%; height: auto; margin-top: 24px; border: 1px solid var(--color-line); border-radius: var(--radius-card); background: var(--color-subtle); }
+.article-body { margin-top: 32px; }
+.article-cta { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; margin-top: 40px; border: 1px solid var(--color-line); border-radius: 10px; background: #f7f9fc; padding: 18px 20px; }
+.article-foot { display: grid; gap: 16px; margin-top: 28px; border-top: 1px solid var(--color-line); padding-top: 20px; }
+.article-tag { color: var(--color-muted); font-weight: 500; }
+.article-tag:hover { color: var(--color-brand-700); text-decoration: underline; }
+.article-aside { display: none; }
+@media (min-width: 1024px) { .article-aside { display: block; } }
+.article-aside__sticky { position: sticky; top: calc(var(--header-height) + 24px); display: grid; gap: 20px; max-height: calc(100svh - var(--header-height) - 48px); overflow-y: auto; scrollbar-width: thin; }
+.aside-card { border: 1px solid var(--color-line); border-radius: 10px; background: white; padding: 18px; }
+.aside-card__image { width: 100%; height: auto; margin-bottom: 14px; border-radius: 8px; background: var(--color-subtle); }
+.news-side__item--compact { grid-template-columns: 88px minmax(0, 1fr); gap: 12px; padding: 12px 0; }
+.news-side__item--compact .news-side__image { width: 88px; height: 56px; }
 
 /* Lưới chọn thiết bị (trang Thiết bị): thẻ gọn ảnh – tên – giá – bảo hành; thẻ đang chọn viền xanh, khung chi tiết
  * mở ngay dưới hàng với mũi nhọn chỉ lên thẻ (vị trí mũi nhọn: --notch-left, tính theo cột trong equipment-explorer.tsx). */
