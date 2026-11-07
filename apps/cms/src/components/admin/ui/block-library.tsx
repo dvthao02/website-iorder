@@ -26,7 +26,7 @@ export const blockThumbnails: Record<string, ReactNode> = {
   cta: <Frame><rect fill={text} height="34" opacity=".85" rx="5" width="100" x="10" y="19" /><rect fill="#fff" height="5" rx="2" width="44" x="18" y="30" /><rect fill="#fff" height="3" opacity=".6" rx="1.5" width="34" x="18" y="39" /><rect fill="#fff" height="8" rx="4" width="22" x="80" y="31" /></Frame>,
   lead_form: <Frame>{bar(30, 10, 60, 5, 0.9)}{[0, 1].map((index) => <rect height="8" key={index} rx="2" stroke="var(--cms-border-strong)" width="60" x="30" y={22 + index * 12} />)}<rect fill={media} height="8" rx="4" width="30" x="45" y="50" /></Frame>,
   faq: <Frame>{bar(35, 8, 50, 5, 0.9)}{[0, 1, 2, 3].map((index) => <g key={index}><rect height="9" rx="2" stroke="var(--cms-border-strong)" width="90" x="15" y={19 + index * 12} />{bar(19, 22 + index * 12, 40)}<text fill={media} fontSize="8" x="98" y={26 + index * 12}>+</text></g>)}</Frame>,
-  rich_text: <Frame>{bar(25, 12, 50, 5, 0.9)}{[0, 1, 2, 3, 4, 5].map((index) => bar(25, 24 + index * 7, index === 5 ? 40 : 70))}</Frame>,
+  rich_text: <Frame>{bar(25, 12, 50, 5, 0.9)}{[0, 1, 2, 3, 4, 5].map((index) => <g key={index}>{bar(25, 24 + index * 7, index === 5 ? 40 : 70)}</g>)}</Frame>,
   image: <Frame>{box(10, 10, 100, 44, 0.3)}{bar(40, 59, 40)}</Frame>,
   video: <Frame>{bar(40, 7, 40, 4, 0.9)}<rect fill={text} height="44" opacity=".85" rx="4" width="78" x="21" y="15" /><rect fill="#e62117" height="14" rx="4" width="20" x="50" y="30" /><path d="M57.5 33.5v7l6-3.5z" fill="#fff" />{bar(45, 64, 30)}</Frame>,
 };
