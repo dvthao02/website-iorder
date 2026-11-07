@@ -141,6 +141,15 @@ export async function updateAdminPost(id: string, input: unknown, editorId: stri
   return adminPostSchema.parse(withoutTaxonomy(post));
 }
 
+/** Đổi chuyên mục của bài (giữ nguyên mọi nội dung khác), có kiểm phiên bản và ghi lịch sử như khi lưu từ trình soạn. */
+export async function changeAdminPostCategories(id: string, categoryIds: string[], editorId: string, expectedVersion: number) {
+  const current = await findAdminPostById(id);
+  if (!current) return undefined;
+  assertContentVersion(current.draftVersion, expectedVersion);
+  const values = Object.fromEntries(Object.keys(adminPostInputSchema.shape).map(key => [key, Reflect.get(current, key)]));
+  return updateAdminPost(id, { ...values, categoryIds: [...new Set(categoryIds)] }, editorId, "Chuyển nhóm (chuyên mục) bài viết", expectedVersion);
+}
+
 export async function changeAdminPostState(id: string, action: ContentStateAction, editorId: string, expectedVersion: number) {
   contentStateRequestSchema.parse({ action, expectedVersion });
   const current = await findAdminPostById(id);

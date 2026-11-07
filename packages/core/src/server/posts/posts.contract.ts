@@ -104,8 +104,14 @@ export const adminPostListItemSchema = z.object({
   draftVersion: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER), updatedAt: z.date(),
   // Ảnh bìa để hiện ô thu nhỏ trong bảng (như Shopify/Payload); null khi chưa có ảnh.
   coverUrl: z.string().nullable(),
+  // Chuyên mục (với hướng dẫn: nhóm trên website), theo thứ tự sắp xếp của chuyên mục.
+  categories: z.array(z.object({ id: z.string().uuid(), name: z.string() }).strict()).default([]),
 }).strict();
 export type AdminPostListItem = z.infer<typeof adminPostListItemSchema>;
+/** Bài hướng dẫn chưa gắn chuyên mục nằm ở nhóm này (CMS và website dùng cùng nhãn). */
+export const uncategorizedGuideGroup = "Hướng dẫn chung";
+/** Chuyển bài sang chuyên mục khác (thao tác hàng loạt "Chuyển vào nhóm"); mảng rỗng = bỏ chuyên mục. */
+export const postCategoriesRequestSchema = z.object({ categoryIds: z.array(z.string().uuid()).max(20), expectedVersion: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER) }).strict();
 export type AdminPostInput = z.infer<typeof adminPostInputSchema>;
 
 /** Đổi nội dung bài (v1 hoặc v2) sang tài liệu soạn thảo: dùng khi mở bài cũ trong trình soạn mới. */

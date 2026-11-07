@@ -6,7 +6,8 @@ import { z } from "zod";
 import { getRequestAdministrator } from "@iorder/core/server/auth/request-administrator";
 import { hasDatabaseErrorCode } from "@iorder/core/server/shared/database-error";
 import { contentDeleteRequestSchema, contentStateRequestSchema, contentUpdateRequestSchema, ContentVersionConflictError } from "@iorder/core/server/shared/content-version";
-import { changeAdminPostState, deleteArchivedAdminPost, getAdminPostById, updateAdminPost } from "@iorder/core/server/posts/posts.service";
+import { changeAdminPostCategories, changeAdminPostState, deleteArchivedAdminPost, getAdminPostById, updateAdminPost } from "@iorder/core/server/posts/posts.service";
+import { postCategoriesRequestSchema } from "@iorder/core/server/posts/posts.contract";
 import { denyPublishUnless, requestedStatusOf } from "@/lib/admin-access";
 import { logger } from "@iorder/core/server/shared/logger";
 import { withRequestContext } from "@/lib/request-context";
@@ -21,6 +22,7 @@ function phanHoiLoi(ma: string, thongBao: string, trangThai: number) {
 
 function lamMoiNoiDungBaiViet(slug: string) {
   revalidatePath("/tin-tuc");
+  revalidatePath("/ho-tro");
   revalidatePath("/ho-tro/huong-dan");
   revalidatePath(`/tin-tuc/${slug}`);
   revalidatePath(`/ho-tro/huong-dan/${slug}`);
@@ -61,6 +63,17 @@ async function handlePATCH(request: Request, { params }: PostRouteProps) {
       if (denied) return denied;
       const post = await changeAdminPostState(id, action, administrator.userId, expectedVersion);
       if (!post) return phanHoiLoi("NOT_FOUND", "Không tìm thấy bài viết cần cập nhật.", 404);
+      lamMoiNoiDungBaiViet(post.slug);
+      return NextResponse.json({ post });
+    }
+    // Chuyển nhóm hàng loạt: chỉ gửi { categoryIds, expectedVersion }. Bài đang hiển thị trên website thì cần quyền xuất bản.
+    const move = postCategoriesRequestSchema.safeParse(body);
+    if (move.success) {
+      const currentStatus = (await getAdminPostById(id))?.status;
+      const denied = denyPublishUnless(administrator, "posts.publish", { requestedStatus: currentStatus, currentStatus });
+      if (denied) return denied;
+      const post = await changeAdminPostCategories(id, move.data.categoryIds, administrator.userId, move.data.expectedVersion);
+      if (!post) return phanHoiLoi("NOT_FOUND", "Không tìm thấy bài viết cần chuyển nhóm.", 404);
       lamMoiNoiDungBaiViet(post.slug);
       return NextResponse.json({ post });
     }

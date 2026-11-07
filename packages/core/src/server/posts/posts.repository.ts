@@ -193,7 +193,12 @@ export async function listAdminPostSummariesPage(query: PostListQuery, database 
       .from(posts).leftJoin(mediaAssets, and(eq(mediaAssets.id, posts.coverMediaId), isNull(mediaAssets.deletedAt)))
       .where(condition).orderBy(...postListOrder(query)).limit(query.pageSize).offset((query.page - 1) * query.pageSize);
     const [totals] = await tx.select({ total: count() }).from(posts).where(condition);
-    return toAdminListPage(rows, query, totals?.total ?? 0);
+    // Chuyên mục của các dòng trong trang (một truy vấn), theo thứ tự sắp xếp của chuyên mục.
+    const links = rows.length ? await tx.select({ postId: postCategories.postId, id: categories.id, name: categories.name })
+      .from(postCategories).innerJoin(categories, eq(categories.id, postCategories.categoryId))
+      .where(inArray(postCategories.postId, rows.map((row) => row.id))).orderBy(asc(categories.sortOrder), asc(categories.name)) : [];
+    const withCategories = rows.map((row) => ({ ...row, categories: links.filter((link) => link.postId === row.id).map(({ id, name }) => ({ id, name })) }));
+    return toAdminListPage(withCategories, query, totals?.total ?? 0);
   }, { isolationLevel: "repeatable read", accessMode: "read only" });
 }
 
