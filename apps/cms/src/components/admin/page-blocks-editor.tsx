@@ -2,11 +2,11 @@
 import { RichTextEditor } from "./rich-text/rich-text-editor";
 import { plainTextToRichDocument, richPlainText } from "@iorder/core/server/shared/rich-text";
 
-import { ArrowDown, ArrowUp, ChevronRight, Eye, EyeOff, GripVertical, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronRight, CopyPlus, Eye, EyeOff, GripVertical, Trash2 } from "lucide-react";
 import { useId, useRef, useState, type ReactNode } from "react";
 
 import { collectionSources, heroToneOf, type CollectionSource, type HeroTone, type PageBlock } from "@iorder/core/server/pages/pages.contract";
-import { isDarkColor } from "@iorder/core/server/pages/block-layout";
+import { blockAnchor, isDarkColor } from "@iorder/core/server/pages/block-layout";
 import { youtubeEmbedUrl, youtubeVideoId } from "@iorder/core/server/shared/youtube";
 import { settingLinkHref, settingLinkKey, settingLinkOptions, type SettingLinkKey } from "@iorder/core/server/pages/setting-links";
 
@@ -72,6 +72,29 @@ function blockSummary(block: PageBlock) {
     case "ecosystem": return [cardStyleOptions.find(option => option.value === (block.data.cardStyle ?? "compact"))?.label, block.data.title].filter(Boolean).join(" · ");
     default: return "title" in block.data ? block.data.title ?? "" : "";
   }
+}
+
+// Nhãn nhỏ trên dòng khối đang gập: những gì đã chỉnh ở Giao diện khối (để "Tự động" thì không hiện gì).
+const toneTags: Partial<Record<string, string>> = { white: "Nền trắng", tinted: "Nền xanh nhạt", dark: "Nền tối" };
+function appearanceTags(block: PageBlock) {
+  const appearance = block.appearance;
+  const tags: { label: string; color?: string }[] = [];
+  if (appearance?.tone === "custom" && appearance.backgroundColor) tags.push({ label: "Màu riêng", color: appearance.backgroundColor });
+  else if (appearance?.tone && toneTags[appearance.tone] && block.type !== "hero") tags.push({ label: toneTags[appearance.tone]! });
+  if (appearance?.backgroundMediaId) tags.push({ label: "Ảnh nền" });
+  if (appearance?.width) tags.push({ label: `Rộng ${appearance.width}%` });
+  const anchor = blockAnchor(block);
+  if (anchor) tags.push({ label: `#${anchor}` });
+  return tags;
+}
+
+// Bản sao của một khối để nhân bản: bỏ mã neo (neo phải là duy nhất trên trang).
+function duplicateBlock(block: PageBlock): PageBlock {
+  const copy = structuredClone(block);
+  if (copy.appearance) copy.appearance = { ...copy.appearance, anchor: null };
+  if (copy.type === "cta") copy.data = { ...copy.data, id: null };
+  if (copy.type === "collection_list") copy.data = { ...copy.data, anchor: null };
+  return copy;
 }
 
 function newBlock(type: BlockType): PageBlock {
@@ -504,6 +527,11 @@ export function PageBlocksEditor({ blocks, onChange, disabled, onUploadingChange
     onChange(blocks.filter((_, itemIndex) => itemIndex !== index));
     setOpenIndex((current) => current === null || current === index ? null : current > index ? current - 1 : current);
   }
+  function duplicate(index: number) {
+    if (uploads.current.size) return;
+    onChange([...blocks.slice(0, index + 1), duplicateBlock(blocks[index]), ...blocks.slice(index + 1)]);
+    setOpenIndex(index + 1);
+  }
   function add(type: BlockType) {
     if (uploads.current.size) return;
     const next = type === "hero" ? [newBlock(type), ...blocks] : [...blocks, newBlock(type)];
@@ -525,6 +553,7 @@ export function PageBlocksEditor({ blocks, onChange, disabled, onUploadingChange
               <span className="admin-block__index">{index + 1}</span>
               <strong>{blockLabel(block.type)}</strong>
               <span className="admin-block__summary">{blockSummary(block)}</span>
+              {appearanceTags(block).map((tag) => <span className="admin-block__tag" key={tag.label}>{tag.color ? <i aria-hidden="true" style={{ background: tag.color }} /> : null}{tag.label}</span>)}
               {pinned ? <small>Cố định đầu trang</small> : null}
               {!block.isEnabled ? <AdminStatusBadge>Đang ẩn</AdminStatusBadge> : null}
             </button>
@@ -532,6 +561,7 @@ export function PageBlocksEditor({ blocks, onChange, disabled, onUploadingChange
               <button aria-label={`Đưa ${blockLabel(block.type)} lên`} className="admin-content-actions__button" disabled={disabled || pinned || index === 0 || lockedAbove} onClick={() => move(index, -1)} title="Đưa lên" type="button"><ArrowUp aria-hidden="true" /></button>
               <button aria-label={`Đưa ${blockLabel(block.type)} xuống`} className="admin-content-actions__button" disabled={disabled || pinned || index === blocks.length - 1} onClick={() => move(index, 1)} title="Đưa xuống" type="button"><ArrowDown aria-hidden="true" /></button>
               <button aria-label={block.isEnabled ? `Ẩn ${blockLabel(block.type)}` : `Hiện ${blockLabel(block.type)}`} aria-pressed={!block.isEnabled} className="admin-content-actions__button" disabled={disabled || pinned} onClick={() => update(index, { ...block, isEnabled: !block.isEnabled })} title={block.isEnabled ? "Ẩn khỏi website" : "Hiện trên website"} type="button">{block.isEnabled ? <Eye aria-hidden="true" /> : <EyeOff aria-hidden="true" />}</button>
+              <button aria-label={`Nhân bản ${blockLabel(block.type)}`} className="admin-content-actions__button" disabled={disabled || block.type === "hero"} onClick={() => duplicate(index)} title={block.type === "hero" ? "Mỗi trang chỉ có một phần đầu trang" : "Nhân bản (chèn bản sao ngay dưới)"} type="button"><CopyPlus aria-hidden="true" /></button>
               <button aria-label={`Xóa ${blockLabel(block.type)}`} className="admin-content-actions__button admin-content-actions__delete" disabled={disabled || pinned} onClick={() => void remove(index)} title="Xóa thành phần" type="button"><Trash2 aria-hidden="true" /></button>
             </div>
           </div>

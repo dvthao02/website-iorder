@@ -669,6 +669,9 @@
   .admin-rte-video__caption { color: var(--cms-muted); font-size: var(--cms-text-sm); text-align: center; }
   .admin-rte__content .tiptap .admin-rte-video.ProseMirror-selectednode .admin-rte-video__frame { outline: 2px solid var(--cms-primary); outline-offset: 2px; }
   /* Khối video: khung phát thật để người vận hành xem đúng video trước khi lưu. */
+  /* Nhãn giao diện trên dòng khối (Màu riêng, Ảnh nền, Rộng 80%, #neo). */
+  .admin-block__tag { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 5px; border: 1px solid var(--cms-border); border-radius: 999px; background: var(--cms-subtle); padding: 1px 8px; color: var(--cms-muted); font-size: var(--cms-text-xs); font-weight: 500; white-space: nowrap; }
+  .admin-block__tag i { width: 10px; height: 10px; border: 1px solid var(--cms-border-strong); border-radius: 999px; }
   .admin-video-preview { overflow: hidden; max-width: 560px; aspect-ratio: 16 / 9; border-radius: var(--cms-radius-card); background: #0f172a; }
   .admin-video-preview iframe { display: block; width: 100%; height: 100%; border: 0; }
   /* Giao diện khối: điều khiển bên trái, ô xem trước bám theo bên phải (màn hẹp xếp xuống dưới). */
