@@ -4,7 +4,6 @@ import { notFound, permanentRedirect } from "next/navigation";
 import { ChevronRight, Phone } from "lucide-react";
 
 import { suggestSeoDescription } from "@iorder/core/server/shared/seo";
-import { ConsultBand } from "@/components/site/consult-band";
 import { JsonLd } from "@/components/site/json-ld";
 import { PostContent } from "@/components/site/post-content";
 import { ShareLinks } from "@/components/site/share-links";
@@ -33,7 +32,7 @@ const tel = (phone: string) => `tel:${phone.replace(/[^\d+]/g, "")}`;
 // Bài viết kiểu trang tin, theo thứ tự đọc: Nội dung (đường dẫn, tiêu đề, chủ đề · ngày · thời gian đọc, đoạn mở đầu, chia sẻ,
 // ảnh bìa, mục lục đầu bài, nội dung, ô hỏi tư vấn, chủ đề & thẻ, chia sẻ) → Bài viết liên quan (danh sách có ảnh và tóm tắt,
 // ngay dưới bài) → cột bên: Bài viết mới nhất (đánh số) và Chủ đề (số bài) — bám theo khi cuộn trên máy tính, nằm dưới bài
-// trên điện thoại → dải tư vấn. Không còn thẻ quảng cáo/mục lục ở cột bên.
+// trên điện thoại. Lời mời tư vấn chỉ một lần (ô cuối bài), không thêm dải tư vấn; không thẻ quảng cáo/mục lục ở cột bên.
 export default async function NewsDetailPage({ params }: NewsDetailPageProps) {
   const { slug } = await params;
   const post = await getPublishedPostBySlug(slug);
@@ -49,7 +48,7 @@ export default async function NewsDetailPage({ params }: NewsDetailPageProps) {
   // Mới nhất: không lặp bài đang đọc và bài đã có ở "liên quan"; ít bài thì cho lặp để cột bên không trống.
   const others = index.posts.filter((item) => item.id !== post.id);
   const fresh = others.filter((item) => !related.includes(item));
-  const latest = (fresh.length >= 3 ? fresh : others).slice(0, 5);
+  const latest = (fresh.length >= 3 ? fresh : others).slice(0, 4);
   const crumbs = [{ name: "Trang chủ", path: "/" }, { name: "Tin tức", path: "/tin-tuc" }, ...(topic ? [{ name: topic.name, path: newsTopicPath(topic.slug) }] : []), { name: post.title, path }];
 
   return <>
@@ -121,7 +120,6 @@ export default async function NewsDetailPage({ params }: NewsDetailPageProps) {
         </div></aside>
       </div>
 
-      <ConsultBand actionLabel="Đăng ký tư vấn" description="Đội ngũ iOrder tư vấn phần mềm, thiết bị và cách vận hành phù hợp với cửa hàng của bạn — miễn phí." hotline={profile?.hotline ?? null} title="Muốn áp dụng cho cửa hàng của bạn?" />
     </main>
   </>;
 }

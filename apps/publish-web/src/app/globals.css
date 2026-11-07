@@ -228,7 +228,8 @@ html { font-size: clamp(16px, calc(16px + (100vw - 1440px) * 0.0033), 24px); }
 @media (prefers-reduced-motion: reduce) { .sliding-rail__bar { transition: none; } }
 /* Bài viết (tin tức), kiểu trang tin: cột bài tối đa 760px + cột bên 300px (từ 1024px) bám theo khi cuộn. */
 .article-page { display: grid; gap: 40px; padding-top: 28px; padding-bottom: 56px; }
-@media (min-width: 1024px) { .article-page { grid-template-columns: minmax(0, 760px) 300px; justify-content: space-between; gap: 56px; padding-top: 36px; padding-bottom: 72px; } }
+/* Cột bài + cột bên căn giữa với khoảng cách cố định (không đẩy hai cột ra hai mép). */
+@media (min-width: 1024px) { .article-page { grid-template-columns: minmax(0, 760px) 300px; justify-content: center; gap: 64px; padding-top: 36px; padding-bottom: 72px; } }
 .article-main { min-width: 0; }
 .article-title { margin: 18px 0 0; color: var(--color-ink); font-size: clamp(1.75rem, 1.25rem + 1.6vw, 2.5rem); font-weight: 700; line-height: 1.2; letter-spacing: -.015em; text-wrap: balance; }
 .article-meta { margin-top: 14px; font-size: .9rem; }
@@ -245,8 +246,9 @@ html { font-size: clamp(16px, calc(16px + (100vw - 1440px) * 0.0033), 24px); }
 .article-aside__sticky { display: grid; gap: 36px; }
 @media (min-width: 1024px) {
   .article-aside { border-top: 0; padding-top: 0; }
-  .article-aside__sticky { position: sticky; top: calc(var(--header-height) + 24px); max-height: calc(100svh - var(--header-height) - 48px); overflow-y: auto; scrollbar-width: thin; }
 }
+/* Bám theo khi cuộn chỉ khi màn đủ cao để thấy trọn cột bên (không cuộn riêng, không bị cắt). */
+@media (min-width: 1024px) and (min-height: 800px) { .article-aside__sticky { position: sticky; top: calc(var(--header-height) + 24px); } }
 .article-section-title { margin: 0 0 6px; border-bottom: 2px solid var(--color-ink); padding-bottom: 10px; color: var(--color-ink); font-size: 1.05rem; font-weight: 700; }
 /* Bài viết liên quan: danh sách ngay dưới bài (ảnh, chủ đề · ngày, tiêu đề, tóm tắt), ngăn bằng đường kẻ. */
 .article-related { margin-top: 48px; }
