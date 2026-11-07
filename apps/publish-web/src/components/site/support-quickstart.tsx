@@ -1,18 +1,30 @@
 "use client";
 
 import Image from "next/image";
-import { ArrowRight, BookOpen, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowRight, BookOpen, ChartColumn, ChevronLeft, ChevronRight, CreditCard, LayoutGrid, Package, Printer, ReceiptText, ShoppingCart, UserCog, Users, Utensils, Wallet, type LucideIcon } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 
 import { SiteLink as Link } from "./site-link";
+import { fold } from "./support-search";
 
-export type QuickStartItem = { href: string; title: string; description: string | null; cover: { url: string; alt: string | null } | null };
+export type QuickStartItem = { href: string; title: string; description: string | null; category: string | null; cover: { url: string; alt: string | null } | null };
 export type QuickStartGroup = { key: string; label: string; items: QuickStartItem[] };
+
+// Biểu tượng của ảnh minh họa theo chức năng nhắc trong tên bài (so khớp không dấu); không khớp thì dùng quyển sách.
+const iconRules: [RegExp, LucideIcon][] = [
+  [/ban hang|thu ngan|pos\b/, ShoppingCart], [/bao cao|thong ke|doanh thu/, ChartColumn], [/hoa don|chung tu/, ReceiptText],
+  [/ket ca|giao ca|\bquy\b|thu chi/, Wallet], [/\bkho\b|ton kho|nhap hang|hang hoa/, Package], [/khach hang|thanh vien|tich diem/, Users],
+  [/may in|may quet|driver|thiet bi|cai dat/, Printer], [/thuc don|mon an|san pham/, Utensils], [/nhan vien|phan quyen|tai khoan/, UserCog],
+  [/thanh toan|\bqr\b|quet ma/, CreditCard], [/so do|ban an|phong|khu vuc/, LayoutGrid],
+];
+const iconFor = (title: string) => iconRules.find(([pattern]) => pattern.test(fold(title)))?.[1] ?? BookOpen;
+// Màu nhấn xoay vòng theo thứ tự bước (token --color-accent-*), để dãy thẻ không đơn điệu một màu.
+const tones = ["blue", "green", "violet", "amber", "rose"] as const;
 
 /**
  * "Làm quen với iOrder": các bài hướng dẫn theo thứ tự thành thẻ trượt ngang (ảnh, Bước n, tên bài, mô tả, Xem bài viết).
- * Có từ hai nhóm (chuyên mục) thì hiện thanh chọn nhóm. Nút ‹ › cuộn từng thẻ, tự mờ khi đã ở đầu/cuối;
- * trên điện thoại vuốt ngang. Bài chưa có ảnh bìa dùng ảnh minh họa màu thương hiệu kèm số bước.
+ * Có từ hai nhóm (chuyên mục) thì hiện thanh chọn nhóm. Nút ‹ › nổi hai bên dãy thẻ, tự ẩn khi đã ở đầu/cuối, mép còn thẻ
+ * thì mờ dần; trên điện thoại vuốt ngang. Bài chưa có ảnh bìa dùng ảnh minh họa: biểu tượng chức năng, chuyên mục, số bước.
  */
 export function SupportQuickStart({ groups }: { groups: QuickStartGroup[] }) {
   const [active, setActive] = useState(groups[0]?.key ?? "");
@@ -49,27 +61,32 @@ export function SupportQuickStart({ groups }: { groups: QuickStartGroup[] }) {
         {entry.label}<span className="support-tab__count">{entry.items.length}</span>
       </button>)}
     </div> : null}
-    <div aria-labelledby={groups.length > 1 ? `${tabsId}-${group.key}` : undefined} className="relative" id={`${tabsId}-panel`} role={groups.length > 1 ? "tabpanel" : undefined}>
-      <div className="mb-4 flex justify-end gap-2">
-        <button aria-label="Xem các bước trước" className="support-arrow" disabled={edges.start} onClick={() => scroll(-1)} type="button"><ChevronLeft aria-hidden="true" size={20} /></button>
-        <button aria-label="Xem các bước tiếp theo" className="support-arrow" disabled={edges.end} onClick={() => scroll(1)} type="button"><ChevronRight aria-hidden="true" size={20} /></button>
-      </div>
-      <ul className="support-track" onScroll={measure} ref={track}>
-        {group.items.map((item, index) => <li key={item.href}>
-          <Link className="support-guide group" href={item.href}>
-            <span className="support-guide__media">
-              {item.cover ? <Image alt={item.cover.alt ?? item.title} className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]" height={338} sizes="(min-width: 1024px) 24rem, 80vw" src={item.cover.url} width={600} />
-                : <span aria-hidden="true" className="support-guide__art"><BookOpen size={30} strokeWidth={1.6} /><strong>{String(index + 1).padStart(2, "0")}</strong><span className="line-clamp-2">{item.title}</span></span>}
-            </span>
-            <span className="flex flex-1 flex-col p-5">
-              <span className="text-caption font-bold tracking-wide text-brand-600 uppercase">Bước {index + 1}</span>
-              <span className="mt-1 text-lead leading-snug font-bold text-ink group-hover:text-brand-700">{item.title}</span>
-              {item.description ? <span className="mt-2 line-clamp-3 text-small text-muted">{item.description}</span> : null}
-              <span className="mt-auto inline-flex items-center gap-1.5 pt-4 text-small font-semibold text-brand-700">Xem bài viết <ArrowRight aria-hidden="true" size={16} /></span>
-            </span>
-          </Link>
-        </li>)}
+    <div aria-labelledby={groups.length > 1 ? `${tabsId}-${group.key}` : undefined} className="support-carousel" id={`${tabsId}-panel`} role={groups.length > 1 ? "tabpanel" : undefined}>
+      <button aria-label="Xem các bước trước" className="support-arrow support-arrow--prev" disabled={edges.start} onClick={() => scroll(-1)} type="button"><ChevronLeft aria-hidden="true" size={22} /></button>
+      <ul className="support-track" data-fade-end={edges.end ? undefined : ""} data-fade-start={edges.start ? undefined : ""} onScroll={measure} ref={track}>
+        {group.items.map((item, index) => {
+          const Icon = iconFor(item.title);
+          return <li key={item.href}>
+            <Link className="support-guide group" href={item.href}>
+              <span className="support-guide__media">
+                {item.cover ? <Image alt={item.cover.alt ?? item.title} className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]" height={338} sizes="(min-width: 1024px) 24rem, 80vw" src={item.cover.url} width={600} />
+                  : <span aria-hidden="true" className="support-guide__art" data-tone={tones[index % tones.length]}>
+                    {item.category ? <span className="support-guide__tag">{item.category}</span> : null}
+                    <span className="support-guide__icon"><Icon size={36} strokeWidth={1.6} /></span>
+                    <strong>{String(index + 1).padStart(2, "0")}</strong>
+                  </span>}
+              </span>
+              <span className="flex flex-1 flex-col p-5">
+                <span className="text-caption font-bold tracking-wide text-brand-600 uppercase">Bước {index + 1}</span>
+                <span className="mt-1 text-lead leading-snug font-bold text-ink group-hover:text-brand-700">{item.title}</span>
+                {item.description ? <span className="mt-2 line-clamp-3 text-small text-muted">{item.description}</span> : null}
+                <span className="mt-auto inline-flex items-center gap-1.5 pt-4 text-small font-semibold text-brand-700">Xem bài viết <ArrowRight aria-hidden="true" className="transition group-hover:translate-x-0.5" size={16} /></span>
+              </span>
+            </Link>
+          </li>;
+        })}
       </ul>
+      <button aria-label="Xem các bước tiếp theo" className="support-arrow support-arrow--next" disabled={edges.end} onClick={() => scroll(1)} type="button"><ChevronRight aria-hidden="true" size={22} /></button>
     </div>
   </div>;
 }

@@ -9,7 +9,7 @@ import { SiteLink as Link } from "./site-link";
 export type SupportSearchItem = { title: string; href: string; kind: string; text?: string | null };
 
 // So khớp không dấu, không phân biệt hoa thường: gõ "in hoa don" vẫn ra "In hóa đơn".
-const fold = (value: string) => value.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/g, "d").replace(/Đ/g, "D").toLowerCase();
+export const fold = (value: string) => value.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/g, "d").replace(/Đ/g, "D").toLowerCase();
 
 /**
  * Ô tìm nhanh của Trung tâm hỗ trợ: lọc ngay trên trình duyệt trong hướng dẫn, tệp cài đặt và câu hỏi thường gặp
@@ -49,7 +49,7 @@ export function SupportSearch({ items, suggestions }: { items: SupportSearchItem
         </li>)}</ul> : <p className="m-0 px-5 py-4 text-body text-muted">Chưa tìm thấy nội dung phù hợp. Thử từ khóa khác, hoặc gọi hotline để được hỗ trợ trực tiếp.</p>}
       </div> : null}
     </div>
-    {suggestions.length ? <div className="mt-4 flex flex-wrap items-center gap-2 text-small">
+    {suggestions.length ? <div className="mt-4 flex flex-wrap items-center justify-center gap-2 text-small">
       <span className="text-muted">Tìm nhiều:</span>
       {suggestions.map((suggestion) => <button className="support-search__chip" key={suggestion} onClick={() => setQuery(suggestion)} type="button">{suggestion}</button>)}
     </div> : null}

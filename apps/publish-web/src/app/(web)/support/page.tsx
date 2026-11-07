@@ -36,7 +36,7 @@ export default async function SupportCenterPage() {
 
   // Mô tả ngắn cho thẻ hướng dẫn: tóm tắt của bài; chưa có thì đoạn văn đầu của nội dung (bài nhập từ Word thường để trống tóm tắt).
   const guideDescriptions = await Promise.all(guides.map(async (guide) => guide.excerpt ?? (await getPublishedPostBySlug(guide.slug).then((post) => post ? suggestSeoDescription(null, post.content) : null).catch(() => null))));
-  const guideItems = guides.map((guide, index) => ({ href: `/ho-tro/huong-dan/${guide.slug}`, title: guide.title, description: guideDescriptions[index], cover: guide.cover ? { url: guide.cover.url, alt: guide.cover.altText } : null, categories: guide.categories.map((category) => category.name) }));
+  const guideItems = guides.map((guide, index) => ({ href: `/ho-tro/huong-dan/${guide.slug}`, title: guide.title, description: guideDescriptions[index], cover: guide.cover ? { url: guide.cover.url, alt: guide.cover.altText } : null, category: guide.categories[0]?.name ?? null, categories: guide.categories.map((category) => category.name) }));
   // Nhóm theo chuyên mục: "Tất cả" + từng chuyên mục có bài (chỉ hiện thanh chọn khi có từ hai nhóm).
   const categoryNames = [...new Set(guideItems.flatMap((item) => item.categories))];
   const quickStartGroups: QuickStartGroup[] = guideItems.length ? [
@@ -45,7 +45,8 @@ export default async function SupportCenterPage() {
   ] : [];
 
   const channels: Channel[] = [
-    guides.length ? { href: "/ho-tro/huong-dan", title: "Hướng dẫn sử dụng", text: "Từng bước thiết lập, bán hàng, kho, báo cáo và kết ca.", meta: `${guides.length} bài`, icon: BookOpen } : null,
+    // "Hướng dẫn sử dụng" chỉ là kênh riêng khi chưa có mục "Làm quen" (đã liệt kê bài và link Tất cả bài hướng dẫn).
+    guides.length && !quickStartGroups.length ? { href: "/ho-tro/huong-dan", title: "Hướng dẫn sử dụng", text: "Từng bước thiết lập, bán hàng, kho, báo cáo và kết ca.", meta: `${guides.length} bài`, icon: BookOpen } : null,
     downloads.length ? { href: "/ho-tro/cai-dat", title: "Hỗ trợ cài đặt", text: "Tải phần mềm, driver máy in, máy quét và công cụ cài đặt.", meta: `${downloads.length} tệp`, icon: Download } : null,
     videosPage ? { href: "/ho-tro/video", title: videosPage.title, text: "Xem thao tác trực quan qua video ngắn.", icon: MonitorPlay } : null,
     faqPage ? { href: "/ho-tro/faq", title: faqPage.title, text: "Câu trả lời nhanh cho các thắc mắc hay gặp.", meta: faqs.length ? `${faqs.length} câu hỏi` : undefined, icon: CircleHelp } : null,
@@ -91,7 +92,7 @@ export default async function SupportCenterPage() {
       </Container></section> : null}
 
       <section aria-label="Các kênh hỗ trợ" className="bg-surface-tinted"><Container className="py-12 sm:py-16">
-        <SectionHeading align="left" className="mb-8" title="Chọn cách nhận hỗ trợ" />
+        <SectionHeading className="mb-8" description="Chọn kênh phù hợp, đội ngũ kỹ thuật iOrder luôn sẵn sàng đồng hành." eyebrow="Kênh hỗ trợ" title="Chọn cách nhận hỗ trợ" />
         {/* Số cột theo số kênh để hàng cuối không lẻ một thẻ: 4 kênh → 2 cột, 5–6 kênh → 3 cột. */}
         <ul className={`m-0 grid list-none gap-4 p-0 sm:grid-cols-2 ${channels.length === 4 || channels.length === 2 ? "" : "lg:grid-cols-3"}`}>{channels.map(({ href, title, text, meta, icon: Icon }) => <li key={href}>
           <Link className="support-channel group" href={href}>
@@ -105,14 +106,16 @@ export default async function SupportCenterPage() {
         </li>)}</ul>
       </Container></section>
 
-      {downloads.length ? <section className="bg-white"><Container className="py-12 sm:py-16">
-        <SectionHeading align="left" className="mb-8" description="Phần mềm, driver và công cụ cần cho máy bán hàng, máy in, máy quét." eyebrow="Hỗ trợ cài đặt" title="Tải phần mềm & driver" />
-        <ul className="m-0 grid list-none gap-4 p-0 md:grid-cols-2">{downloads.slice(0, 4).map((download) => <li className="flex items-center gap-4 rounded-card border border-line bg-white p-5 shadow-card" key={download.id}>
+      {downloads.length ? <section className="bg-white"><Container className="grid gap-8 py-12 sm:py-16 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:items-center lg:gap-12">
+        <div>
+          <SectionHeading align="left" className="mb-0" description="Phần mềm, driver và công cụ cần cho máy bán hàng, máy in, máy quét." eyebrow="Hỗ trợ cài đặt" title="Tải phần mềm & driver" />
+          <Link className="mt-5 inline-flex items-center gap-1.5 font-semibold text-brand-700 hover:underline" href="/ho-tro/cai-dat">{downloads.length > 4 ? `Xem tất cả ${downloads.length} tệp` : "Xem hướng dẫn cài đặt"} <ChevronRight aria-hidden="true" size={16} /></Link>
+        </div>
+        <ul className="m-0 grid list-none gap-3 p-0">{downloads.slice(0, 4).map((download) => <li className="flex items-center gap-4 rounded-card border border-line bg-white p-5 shadow-card" key={download.id}>
           <span aria-hidden="true" className="support-channel__icon"><Download size={22} /></span>
           <span className="min-w-0 flex-1"><span className="block font-bold text-ink">{download.title}</span>{download.description || download.meta ? <span className="mt-0.5 block truncate text-small text-muted">{download.description ?? download.meta}</span> : null}</span>
           <a className="button button--primary shrink-0" download href={download.downloadUrl}>Tải xuống</a>
         </li>)}</ul>
-        {downloads.length > 4 ? <Link className="mt-6 inline-block font-semibold text-brand-700 hover:underline" href="/ho-tro/cai-dat">Xem tất cả {downloads.length} tệp →</Link> : null}
       </Container></section> : null}
 
       {faqs.length ? <section className="bg-surface-tinted"><Container className="py-12 sm:py-16" width="narrow">
