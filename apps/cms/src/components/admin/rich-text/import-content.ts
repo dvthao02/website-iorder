@@ -2,6 +2,8 @@
 // Kết quả là HTML đã gom ảnh về Thư viện media; Tiptap đọc HTML này theo schema của nó
 // (thẻ lạ bị bỏ), và máy chủ còn kiểm tra lại khi lưu.
 
+import { outlineHeadingLevel } from "@iorder/core/server/shared/rich-text";
+
 export type ImportResult = { html: string; title: string | null; warnings: string[] };
 export type UploadImage = (file: File) => Promise<string>;
 
@@ -95,6 +97,19 @@ export async function normalizeImportedHtml(html: string, uploadImage: UploadIma
   firstH1?.remove();
   document.querySelectorAll("h1").forEach((element) => { const heading = document.createElement("h2"); heading.innerHTML = element.innerHTML; element.replaceWith(heading); });
   document.querySelectorAll("h5, h6").forEach((element) => { const heading = document.createElement("h4"); heading.innerHTML = element.innerHTML; element.replaceWith(heading); });
+  // File Word không dùng kiểu Heading (chỉ in đậm "I. Giới thiệu", "1. Mở ca", "Bước 2: …"): các dòng đó thành H2/H3
+  // để bài có mục lục. File đã có tiêu đề thì giữ nguyên.
+  let promoted = 0;
+  if (!document.querySelector("h2, h3, h4")) document.querySelectorAll("p").forEach((paragraph) => {
+    const allBold = [...paragraph.childNodes].every((node) => (node.nodeType === Node.TEXT_NODE && !node.textContent?.trim()) || node.nodeName === "STRONG" || node.nodeName === "B");
+    const level = allBold && paragraph.textContent ? outlineHeadingLevel(paragraph.textContent) : null;
+    if (!level) return;
+    const heading = document.createElement(`h${level}`);
+    heading.textContent = paragraph.textContent!.replace(/\s+/g, " ").trim();
+    paragraph.replaceWith(heading);
+    promoted++;
+  });
+  if (promoted) warnings.push(`Đã chuyển ${promoted} dòng in đậm đánh số (I., 1., Bước…) thành tiêu đề để bài có mục lục.`);
 
   let uploaded = 0, dropped = 0, unsupported = 0;
   for (const [position, image] of [...document.querySelectorAll("img")].entries()) {

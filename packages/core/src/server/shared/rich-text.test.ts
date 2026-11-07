@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { richDocumentSchema, richFirstParagraph, richPlainText, richTableOfContents, sanitizeRichDocument } from "./rich-text";
+import { outlineHeadingLevel, promoteOutlineHeadings, richDocumentSchema, richFirstParagraph, richPlainText, richTableOfContents, sanitizeRichDocument, type RichDocument } from "./rich-text";
 
 const doc = (...content: unknown[]) => ({ type: "doc", content });
 const p = (text: string, marks?: unknown[]) => ({ type: "paragraph", content: [{ type: "text", text, ...(marks ? { marks } : {}) }] });
@@ -76,4 +76,27 @@ test("Video YouTube trong bài: giữ mã video, chú thích và độ rộng; m
   const result = sanitizeRichDocument(doc({ type: "youtube", attrs: { videoId: "dQw4w9WgXcQ", caption: "  Hướng dẫn  ", width: 5, extra: "x" } }));
   assert.deepEqual(result.content, [{ type: "youtube", attrs: { videoId: "dQw4w9WgXcQ", caption: "Hướng dẫn", width: 40 } }]);
   assert.throws(() => sanitizeRichDocument(doc({ type: "youtube", attrs: { videoId: "javascript:x" } })), /YouTube/);
+});
+
+test("Đề mục đánh số: La Mã → H2, số/Bước → H3; câu, nhãn có dấu hai chấm và dòng thường thì không", () => {
+  assert.equal(outlineHeadingLevel("I. Giới thiệu chung"), 2);
+  assert.equal(outlineHeadingLevel("IV) Báo cáo"), 2);
+  assert.equal(outlineHeadingLevel("1. Mở ca"), 3);
+  assert.equal(outlineHeadingLevel("2.1. Thêm món"), 3);
+  assert.equal(outlineHeadingLevel("Bước 2: Chọn món (2)"), 3);
+  assert.equal(outlineHeadingLevel("Các đặc điểm nổi bật gồm:"), null);
+  assert.equal(outlineHeadingLevel("1. Nhấn nút Lưu để hoàn tất."), null);
+  assert.equal(outlineHeadingLevel("Bán hàng"), null);
+  assert.equal(outlineHeadingLevel("Ivan đến cửa hàng"), null);
+});
+
+test("Bài nhập từ Word không có tiêu đề: đoạn in đậm đánh số thành H2/H3 để có mục lục; bài đã có tiêu đề giữ nguyên", () => {
+  const bold = [{ type: "bold" }];
+  const imported = doc(p("Bán hàng", bold), p("I. Giới thiệu chung", bold), p("Màn hình bán hàng."), p("Bước 1: Chọn món", bold), p("1. Mở ca"), p("Các bước gồm:", bold)) as RichDocument;
+  const promoted = promoteOutlineHeadings(imported);
+  assert.deepEqual(promoted.content.map((node) => node.type === "heading" ? `h${node.attrs.level}` : node.type), ["paragraph", "h2", "paragraph", "h3", "paragraph", "paragraph"]);
+  assert.deepEqual(promoted.content[1], { type: "heading", attrs: { level: 2 }, content: [{ type: "text", text: "I. Giới thiệu chung" }] });
+  assert.deepEqual(richTableOfContents(promoted).map((entry) => entry.text), ["I. Giới thiệu chung", "Bước 1: Chọn món"]);
+  const authored = doc({ type: "heading", attrs: { level: 2 }, content: [{ type: "text", text: "Tổng quan" }] }, p("I. Giới thiệu", bold)) as RichDocument;
+  assert.equal(promoteOutlineHeadings(authored), authored);
 });

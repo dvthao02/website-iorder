@@ -179,6 +179,35 @@ export function richTableOfContents(doc: RichDocument | null | undefined) {
   });
 }
 
+// Bài nhập từ Word hay dùng đoạn in đậm đánh số thay cho kiểu Heading: "I. Giới thiệu chung", "1. Mở ca", "Bước 2: Chọn món".
+/** Cấp tiêu đề suy từ cách đánh số của một dòng: số La Mã → H2; số (1., 1.2.) hoặc "Bước n:" → H3; không giống đề mục → null.
+ * Dòng quá dài hoặc kết thúc bằng dấu câu (":", ".", …) là câu/nhãn, không phải đề mục. */
+export function outlineHeadingLevel(text: string): 2 | 3 | null {
+  const value = text.replace(/\s+/g, " ").trim();
+  if (value.length < 4 || value.length > 120 || /[:;,.!?]$/.test(value)) return null;
+  if (/^[IVXL]{1,5}[.)]\s+\S/.test(value)) return 2;
+  if (/^(?:\d{1,2}(?:\.\d{1,2})*[.)]|Bước\s+\d{1,2}\s*[:.)–-])\s*\S/iu.test(value)) return 3;
+  return null;
+}
+
+/** Bài chưa có tiêu đề nào (thường nhập từ Word): đoạn chỉ gồm chữ in đậm và đánh số như đề mục thành H2/H3,
+ * để bài có mục lục và neo. Bài đã có tiêu đề thì giữ nguyên (người soạn đã tự chọn). Dữ liệu lưu không đổi. */
+export function promoteOutlineHeadings(doc: RichDocument): RichDocument {
+  if (doc.content.some((node) => node.type === "heading")) return doc;
+  let changed = false;
+  const content = doc.content.map((node): RichNode => {
+    if (node.type !== "paragraph" || !node.content?.length) return node;
+    const texts = node.content.filter((child): child is Extract<RichNode, { type: "text" }> => child.type === "text");
+    if (!texts.length || texts.length !== node.content.length || texts.some((child) => !child.marks?.some((mark) => mark.type === "bold"))) return node;
+    const level = outlineHeadingLevel(texts.map((child) => child.text).join(""));
+    if (!level) return node;
+    changed = true;
+    // Tiêu đề vốn đậm: bỏ dấu đậm, giữ các định dạng khác (nghiêng, liên kết…).
+    return { type: "heading", attrs: { level }, content: texts.map(({ text, marks }) => { const rest = (marks ?? []).filter((mark) => mark.type !== "bold"); return rest.length ? { type: "text", text, marks: rest } : { type: "text", text }; }) };
+  });
+  return changed ? { ...doc, content } : doc;
+}
+
 /** Chữ thuần cũ (đoạn cách nhau bằng dòng trống) → tài liệu soạn thảo, dùng khi mở nội dung cũ trong trình soạn mới. */
 export function plainTextToRichDocument(text: string): RichDocument {
   const paragraphs = text.split(/\n{2,}/).map((part) => part.trim()).filter(Boolean);
