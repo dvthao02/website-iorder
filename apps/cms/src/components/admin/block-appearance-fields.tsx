@@ -66,7 +66,7 @@ export function ColorField({ value, onChange, disabled, allowNone = false, compa
       {allowNone ? <button aria-checked={value === null} aria-label="Mặc định" className="admin-swatch admin-swatch--none" disabled={disabled} onClick={() => choose(null)} role="radio" title="Mặc định (không màu riêng)" type="button" /> : null}
       {colorSwatches.map((swatch) => <button aria-checked={value === swatch.value} aria-label={swatch.label} className="admin-swatch" disabled={disabled} key={swatch.value} onClick={() => choose(swatch.value)} role="radio" style={{ background: swatch.value }} title={swatch.label} type="button" />)}
     </div>
-    <div className="admin-appearance__picker">
+    <div className="admin-block-look__picker">
       <input aria-label={`${label}: chọn màu khác`} disabled={disabled} onChange={(event) => set(event.target.value.toLowerCase())} type="color" value={value ?? "#ffffff"} />
       {pick ? <button aria-label="Hút màu trên màn hình" className="admin-eyedropper" disabled={disabled} onClick={async () => { const color = await pick(); if (color) set(color); }} title="Hút màu: bấm rồi chọn một điểm bất kỳ trên màn hình (logo, ảnh…)" type="button"><Pipette aria-hidden="true" size={16} /></button> : null}
       <input aria-label={`${label}: mã màu`} className="admin-input" disabled={disabled} maxLength={7} onBlur={() => setDraft(null)} onChange={(event) => {
@@ -166,14 +166,14 @@ export function AppearanceEditor({ value, onChange, disabled, onUploadingChange,
   const showTone = options.toneSelect !== false;
   const showWidth = options.width !== false;
 
-  return <div className="admin-appearance">
-    <div className="admin-appearance__controls">
+  return <div className="admin-block-look">
+    <div className="admin-block-look__controls">
       {showTone || options.spacing !== false ? <div className="admin-form-grid">
         {showTone ? <label className="admin-field">Nền<select className="admin-input" disabled={disabled} onChange={(event) => setTone(event.target.value as BlockTone)} value={tone}>{tones.map((value) => <option key={value} value={value}>{value === "auto" && options.autoLabel ? options.autoLabel : toneLabels[value]}</option>)}</select></label> : null}
         {options.spacing !== false ? <label className="admin-field">Khoảng cách trên dưới<select className="admin-input" disabled={disabled} onChange={(event) => onChange({ spacing: event.target.value as BlockSpacing })} value={appearance.spacing}>{blockSpacingSchema.options.map((value) => <option key={value} value={value}>{spacingLabels[value]}</option>)}</select></label> : null}
       </div> : null}
 
-      {color && showTone ? <div className="admin-appearance__colors">
+      {color && showTone ? <div className="admin-block-look__colors">
         <ColorPicker disabled={disabled} label="Màu nền tự chọn" onChange={(next) => onChange({ backgroundColor: next ?? colorSwatches[1].value })} value={color} />
         <p className={darkFallback ? "admin-help admin-text-warning" : "admin-help"}>{darkFallback
           ? "Phần này có nhiều chữ hoặc ô nhập, đặt trên nền tối sẽ khó đọc nên website dùng nền xanh nhạt. Chọn màu sáng hơn để giữ màu riêng."
@@ -190,7 +190,7 @@ export function AppearanceEditor({ value, onChange, disabled, onUploadingChange,
 
       {showWidth ? <div className="admin-field">
         <span>Độ rộng nội dung: <strong>{appearance.width ? `${width}%` : "Mặc định (100%)"}</strong></span>
-        <div className="admin-appearance__width">
+        <div className="admin-block-look__width">
           <input aria-label="Độ rộng nội dung (%)" className="admin-range" disabled={disabled} max={blockWidthLimits.max} min={blockWidthLimits.min} onChange={(event) => setWidth(Number(event.target.value))} step={5} type="range" value={width} />
           <div aria-label="Độ rộng có sẵn" className="admin-chips" role="group">{widthPresets.map((value) => <button aria-pressed={width === value} className={width === value ? "admin-chip admin-chip--active" : "admin-chip"} disabled={disabled} key={value} onClick={() => setWidth(value)} type="button">{value === 100 ? "Mặc định" : `${value}%`}</button>)}</div>
         </div>
@@ -199,17 +199,17 @@ export function AppearanceEditor({ value, onChange, disabled, onUploadingChange,
       {extra}
     </div>
 
-    <figure className="admin-appearance__preview">
-      <div aria-hidden="true" className="admin-appearance__surface" style={{ backgroundColor: previewColor, color: previewDark ? "#ffffff" : "#0d1b33" }}>
+    <figure className="admin-block-look__preview">
+      <div aria-hidden="true" className="admin-block-look__surface" style={{ backgroundColor: previewColor, color: previewDark ? "#ffffff" : "#0d1b33" }}>
         {imageUrl ? <>
           {/* eslint-disable-next-line @next/next/no-img-element -- ảnh xem trước trong CMS, không cần tối ưu */}
-          <img alt="" className="admin-appearance__image" src={imageUrl} />
-          <span className="admin-appearance__overlay" style={{ background: previewColor, opacity: appearance.backgroundOverlay / 100 }} />
+          <img alt="" className="admin-block-look__image" src={imageUrl} />
+          <span className="admin-block-look__overlay" style={{ background: previewColor, opacity: appearance.backgroundOverlay / 100 }} />
         </> : null}
-        <span className="admin-appearance__content" style={{ width: `${showWidth ? width : 100}%` }}>
+        <span className="admin-block-look__content" style={{ width: `${showWidth ? width : 100}%` }}>
           <strong>Tiêu đề phần</strong>
           <span>Chữ mô tả hiển thị trên nền này.</span>
-          <span className="admin-appearance__cards"><i /><i /><i /></span>
+          <span className="admin-block-look__cards"><i /><i /><i /></span>
         </span>
       </div>
       <figcaption className="admin-help">{tone === "auto" && !options.autoPreview ? "Xem trước nền trắng; “Tự động” thì website chọn trắng hoặc xanh nhạt khác phần ngay trước." : "Xem trước nền, màu chữ và độ rộng trên máy tính."}</figcaption>
