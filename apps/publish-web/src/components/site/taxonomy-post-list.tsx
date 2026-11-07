@@ -1,8 +1,12 @@
-import { SiteLink as Link } from "@/components/site/site-link";
 import type { PublicPostSummary } from "@iorder/core/server/posts/posts.contract";
+import { Container } from "@/components/ui";
+import { PostCard } from "./collection-list";
 
-const postTypeLabel = { announcement: "Thông báo", case_study: "Câu chuyện khách hàng", guide: "Hướng dẫn", news: "Tin tức", promotion: "Khuyến mãi" } as const;
-
+// Bài viết của một chuyên mục / thẻ: lưới thẻ bài như trang Tin tức (ảnh, loại bài, tiêu đề, tóm tắt, ngày).
 export function TaxonomyPostList({ posts }: { posts: PublicPostSummary[] }) {
-  return posts.length ? <section className="mt-10 grid gap-4">{posts.map(post => <Link className="rounded-xl border border-slate-200 bg-white p-5 hover:border-brand-300" href={post.type === "guide" ? `/ho-tro/huong-dan/${post.slug}` : `/tin-tuc/${post.slug}`} key={post.id}><p className="text-sm font-bold text-brand-700">{postTypeLabel[post.type]}</p><h2 className="mt-2 text-xl font-bold">{post.title}</h2>{post.excerpt ? <p className="mt-2 text-slate-600">{post.excerpt}</p> : null}</Link>)}</section> : <p className="mt-10 rounded-xl border border-dashed p-6 text-slate-600">Chưa có bài viết được xuất bản trong mục này.</p>;
+  return <section aria-label="Bài viết" className="bg-surface-tinted"><Container className="py-10 sm:py-14">
+    {posts.length
+      ? <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{posts.map(post => <PostCard Heading="h2" key={post.id} post={post} />)}</div>
+      : <p className="m-0 rounded-card border border-dashed border-line bg-white p-8 text-body text-muted">Chưa có bài viết được xuất bản trong mục này.</p>}
+  </Container></section>;
 }

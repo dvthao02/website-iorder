@@ -11,6 +11,13 @@ type ContentMetadataInput = {
   type?: "website" | "article";
 };
 
+// Tiêu đề trên Google/tab trình duyệt luôn có tên thương hiệu: thêm " | iOrder" khi tiêu đề chưa có chữ iOrder
+// (trang danh sách, trang tĩnh trước đây thiếu; trang đã tự thêm thì giữ nguyên, không lặp).
+const brand = "iOrder";
+export function withBrand(title: string) {
+  return title.toLocaleLowerCase("vi").includes(brand.toLocaleLowerCase("vi")) ? title : `${title} | ${brand}`;
+}
+
 // Metadata của một trang nội dung: canonical trỏ về chính trang (hoặc canonical CMS) và
 // Open Graph riêng. Metadata được merge nông, nên openGraph ở đây thay toàn bộ openGraph của
 // layout: lấy ảnh và tên site mặc định từ `parent` để không mất khi trang không có ảnh riêng.
@@ -19,12 +26,13 @@ export async function contentMetadata(input: ContentMetadataInput, parent: Resol
   // Không có metadataBase (chưa cấu hình URL website) thì đường dẫn tương đối không có nghĩa.
   const url = input.canonicalUrl ?? (inherited.metadataBase ? input.path : undefined);
   const description = input.description ?? undefined;
+  const title = withBrand(input.title);
   return {
-    title: input.title,
+    title,
     description,
     alternates: url ? { canonical: url } : undefined,
     openGraph: {
-      title: input.title,
+      title,
       description,
       url,
       type: input.type ?? "website",

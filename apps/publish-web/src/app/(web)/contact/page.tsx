@@ -1,9 +1,5 @@
 import type { ResolvingMetadata } from "next";
-import { cmsStaticMetadata } from "@/components/site/cms-static-page";
-import { notFound } from "next/navigation";
-import { SiteHeader } from "@/components/site/site-header";
-import { PageBlockRenderer } from "@/components/site/page-block-renderer";
-import { getPublishedPage } from "@/lib/backend";
+import { CmsStaticPage, cmsStaticMetadata } from "@/components/site/cms-static-page";
 export const revalidate = 0;
 export async function generateMetadata(_: unknown, parent: ResolvingMetadata) { return cmsStaticMetadata("contact", parent); }
-export default async function ContactPage() { const page = await getPublishedPage("contact"); if (!page) notFound(); return <><SiteHeader /><main id="noi-dung"><PageBlockRenderer blocks={page.blocks} /></main></>; }
+export default function ContactPage() { return <CmsStaticPage slug="contact" />; }

@@ -4,6 +4,8 @@ import { richFirstParagraph, richPlainText, type RichDocument } from "./rich-tex
 
 export const seoTitleLimit = 60;
 export const seoDescriptionLimit = 155;
+// Đoạn văn đủ dài để làm mô tả (ngắn hơn là dòng nhãn/tiêu đề phụ).
+const leadParagraphMinLength = 60;
 
 function collapse(text: string) {
   return text.replace(/\s+/g, " ").trim();
@@ -43,7 +45,9 @@ export function suggestSeoTitle(title: string) {
 /** Mô tả: ưu tiên tóm tắt, sau đó đoạn văn đầu tiên; null khi không có chữ nào. */
 export function suggestSeoDescription(excerpt: string | null | undefined, content?: PostLikeContent | null) {
   const rich = richOf(content);
-  const firstParagraph = rich ? richFirstParagraph(rich) : content && "blocks" in content ? content.blocks.find((block) => block.type === "paragraph" && collapse(block.text ?? ""))?.text : undefined;
+  // Bài nhập từ Word thường mở đầu bằng vài dòng nhãn ngắn ("Bán hàng", "Hướng dẫn sử dụng"): ưu tiên đoạn văn thật đầu tiên.
+  const paragraphs = content && "blocks" in content ? content.blocks.filter((block) => block.type === "paragraph").map((block) => collapse(block.text ?? "")) : [];
+  const firstParagraph = rich ? richFirstParagraph(rich, leadParagraphMinLength) ?? richFirstParagraph(rich) : paragraphs.find((text) => text.length >= leadParagraphMinLength) ?? paragraphs.find(Boolean);
   const source = collapse(excerpt ?? "") || collapse(firstParagraph ?? "") || contentPlainText(content);
   return source ? truncateAtWord(source, seoDescriptionLimit) : null;
 }

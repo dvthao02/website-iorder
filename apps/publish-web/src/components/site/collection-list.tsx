@@ -1,4 +1,6 @@
 import Image from "next/image";
+import { BookOpen } from "lucide-react";
+import type { PublicPostSummary } from "@iorder/core/server/posts/posts.contract";
 import { SiteLink as Link } from "@/components/site/site-link";
 
 import type { BlockFrame } from "@iorder/core/server/pages/block-layout";
@@ -57,6 +59,19 @@ function ListHeading({ data, dark }: { data: CollectionListData; dark: boolean }
   </div>;
 }
 
+// Thẻ bài viết (ảnh, loại bài, tiêu đề, tóm tắt, ngày): danh sách bài viết, trang chuyên mục và trang thẻ.
+export function PostCard({ post, Heading = "h3" }: { post: PublicPostSummary; Heading?: "h2" | "h3" }) {
+  return <Link className={cardClass} href={post.type === "guide" ? `/ho-tro/huong-dan/${post.slug}` : `/tin-tuc/${post.slug}`}>
+    {post.cover ? <Image alt={post.cover.altText ?? post.title} className="card-media aspect-[16/9] w-full bg-subtle object-cover transition duration-500 group-hover:scale-[1.02]" height={338} sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw" src={post.cover.url} width={600} /> : null}
+    <div className={bodyClass}>
+      <p className={`mb-3 ${chipClass}`}>{postTypeLabel[post.type]}</p>
+      <Heading className={`${titleClass} line-clamp-2`}>{post.title}</Heading>
+      {post.excerpt ? <p className={`${textClass} line-clamp-2`}>{post.excerpt}</p> : null}
+      <p className={metaClass}>{dateFormatter.format(post.publishedAt ?? post.createdAt)}</p>
+    </div>
+  </Link>;
+}
+
 type EquipmentItem = Awaited<ReturnType<typeof getEquipment>>[number];
 // Thẻ thiết bị: dùng ở danh sách thiết bị và phần "Thiết bị khác" của trang chi tiết thiết bị.
 export function EquipmentCard({ item, Heading = "h3" }: { item: EquipmentItem; Heading?: "h2" | "h3" }) {
@@ -78,25 +93,19 @@ async function renderItems(data: CollectionListData, Card: "h2" | "h3", dark: bo
   switch (data.source) {
     case "posts": {
       const posts = take((await getPublishedPostSummaries()).filter(post => post.type !== "guide"), data.limit);
-      return posts.length ? <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{posts.map(post => <Link className={cardClass} href={`/tin-tuc/${post.slug}`} key={post.id}>
-        {post.cover ? <Image alt={post.cover.altText ?? post.title} className="card-media aspect-[16/9] w-full bg-subtle object-cover transition duration-500 group-hover:scale-[1.02]" height={338} sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw" src={post.cover.url} width={600} /> : null}
-        <div className={bodyClass}>
-          <p className={`mb-3 ${chipClass}`}>{postTypeLabel[post.type]}</p>
-          <Card className={`${titleClass} line-clamp-2`}>{post.title}</Card>
-          {post.excerpt ? <p className={`${textClass} line-clamp-2`}>{post.excerpt}</p> : null}
-          <p className={metaClass}>{dateFormatter.format(post.publishedAt ?? post.createdAt)}</p>
-        </div>
-      </Link>)}</div> : null;
+      return posts.length ? <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{posts.map(post => <PostCard Heading={Card} key={post.id} post={post} />)}</div> : null;
     }
     case "guides": {
       const guides = take(await getPublishedPostSummaries("guide"), data.limit);
-      return guides.length ? <div className="grid gap-5 sm:grid-cols-2">{guides.map(guide => <Link className={cardClass} href={`/ho-tro/huong-dan/${guide.slug}`} key={guide.id}>
-        <div className={bodyClass}>
-          <p className={`mb-3 ${chipClass}`}>{guide.categories[0]?.name ?? "Hướng dẫn iOrder"}</p>
-          <Card className={titleClass}>{guide.title}</Card>
-          {guide.excerpt ? <p className={textClass}>{guide.excerpt}</p> : null}
-          <p className={metaClass}>{dateFormatter.format(guide.publishedAt ?? guide.createdAt)}</p>
-        </div>
+      // Thẻ gọn dạng hàng (biểu tượng sách, tiêu đề, tóm tắt, ngày), 3 cột trên máy tính: bài hướng dẫn thường không có ảnh bìa.
+      return guides.length ? <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{guides.map(guide => <Link className="group flex h-full items-start gap-4 rounded-card border border-line bg-white p-5 shadow-card transition hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-raised" href={`/ho-tro/huong-dan/${guide.slug}`} key={guide.id}>
+        <span aria-hidden="true" className="grid size-11 shrink-0 place-items-center rounded-control bg-brand-50 text-brand-600 transition group-hover:bg-brand-600 group-hover:text-white"><BookOpen size={20} /></span>
+        <span className="flex min-w-0 flex-1 flex-col">
+          {guide.categories[0] ? <span className={`mb-1.5 ${chipClass}`}>{guide.categories[0].name}</span> : null}
+          <Card className="mb-0 text-lead leading-snug font-bold tracking-tight text-ink group-hover:text-brand-700">{guide.title}</Card>
+          {guide.excerpt ? <span className="mt-1 line-clamp-2 text-small text-muted">{guide.excerpt}</span> : null}
+          <span className="mt-2 text-caption text-faint">Cập nhật {dateFormatter.format(guide.publishedAt ?? guide.createdAt)}</span>
+        </span>
       </Link>)}</div> : null;
     }
     case "downloads": {

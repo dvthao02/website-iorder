@@ -18,7 +18,7 @@ type SupportGuideDetailPageProps = { params: Promise<{ slug: string }> };
 export async function generateMetadata({ params }: SupportGuideDetailPageProps, parent: ResolvingMetadata): Promise<Metadata> {
   const post = await getPublishedPostBySlug((await params).slug);
   return post?.type === "guide"
-    ? contentMetadata({ title: `${post.seoTitle ?? post.title} | iOrder`, description: post.seoDescription ?? suggestSeoDescription(post.excerpt, post.content), path: `/ho-tro/huong-dan/${post.slug}`, canonicalUrl: post.canonicalUrl, image: post.cover ? { url: post.cover.url, alt: post.cover.altText } : null, type: "article" }, parent)
+    ? contentMetadata({ title: post.seoTitle ?? (/hướng dẫn/i.test(post.title) ? post.title : `${post.title} | Hướng dẫn iOrder`), description: post.seoDescription ?? suggestSeoDescription(post.excerpt, post.content), path: `/ho-tro/huong-dan/${post.slug}`, canonicalUrl: post.canonicalUrl, image: post.cover ? { url: post.cover.url, alt: post.cover.altText } : null, type: "article" }, parent)
     : { title: "Không tìm thấy hướng dẫn | iOrder" };
 }
 

@@ -155,9 +155,9 @@ export function richPlainText(doc: RichDocument | null | undefined) {
   return parts.join("").replace(/\s+/g, " ").trim();
 }
 
-/** Đoạn văn đầu tiên có chữ (dùng làm mô tả mặc định). */
-export function richFirstParagraph(doc: RichDocument | null | undefined) {
-  const paragraph = doc?.content.find((child) => child.type === "paragraph" && richPlainText({ type: "doc", content: [child] }));
+/** Đoạn văn đầu tiên có chữ (dùng làm mô tả mặc định); `minLength`: bỏ qua đoạn ngắn hơn (dòng nhãn như "Hướng dẫn sử dụng"). */
+export function richFirstParagraph(doc: RichDocument | null | undefined, minLength = 1) {
+  const paragraph = doc?.content.find((child) => child.type === "paragraph" && richPlainText({ type: "doc", content: [child] }).length >= minLength);
   return paragraph ? richPlainText({ type: "doc", content: [paragraph] }) : null;
 }
 

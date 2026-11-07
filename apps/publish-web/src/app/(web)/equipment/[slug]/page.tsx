@@ -16,7 +16,7 @@ const priceFormatter = new Intl.NumberFormat("vi-VN", { style: "currency", curre
 export async function generateMetadata({ params }: Props, parent: ResolvingMetadata) {
   const { slug } = await params;
   const item = (await getEquipment(true)).find(row => row.slug === slug);
-  return item ? contentMetadata({ title: `${item.seoTitle || item.name} | iOrder`, description: item.seoDescription || item.summary, path: `/thiet-bi/${item.slug}`, canonicalUrl: item.canonicalUrl, image: item.coverUrl ? { url: item.coverUrl, alt: item.coverAlt } : null }, parent) : { title: "Không tìm thấy thiết bị | iOrder" };
+  return item ? contentMetadata({ title: item.seoTitle || `${item.name} | Thiết bị bán hàng iOrder`, description: item.seoDescription || item.summary, path: `/thiet-bi/${item.slug}`, canonicalUrl: item.canonicalUrl, image: item.coverUrl ? { url: item.coverUrl, alt: item.coverAlt } : null }, parent) : { title: "Không tìm thấy thiết bị | iOrder" };
 }
 // Trang chi tiết thiết bị: phần đầu một màn hình (ảnh trong khung, giá, bảo hành, nút liên hệ) → thông số kỹ thuật theo nhóm
 // → thiết bị khác (ưu tiên cùng nhóm, tối đa 4) → dải tư vấn chọn thiết bị (hotline từ Cài đặt).
