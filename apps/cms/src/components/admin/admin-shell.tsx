@@ -88,6 +88,7 @@ const navigationGroups = ensureUniqueNavigationPaths([
     icon: FileText,
     items: [
       { href: "/admin/homepage", label: "Trang chủ", icon: LayoutTemplate, permission: "pages.view" },
+      { href: "/admin/pages", label: "Trang tự tạo", icon: PanelsTopLeft, matchesChildRoutes: true, permission: "pages.view" },
       { href: "/admin/news", label: "Bài viết & Tin tức", icon: Newspaper, matchesChildRoutes: true, permission: "posts.view", subPages: [{ href: "/admin/taxonomy", label: "Chuyên mục & Thẻ" }], fallback: { href: "/admin/taxonomy", label: "Chuyên mục & Thẻ", permission: "taxonomy.view" } },
       { href: "/admin/products", label: "Sản phẩm & Dịch vụ", icon: Package, matchesChildRoutes: true, permission: "offerings.view", subPages: [{ href: "/admin/solutions" }, { href: "/admin/services" }] },
       { href: "/admin/equipment", label: "Thiết bị", icon: Laptop, matchesChildRoutes: true, permission: "equipment.view" },
@@ -111,7 +112,6 @@ const navigationGroups = ensureUniqueNavigationPaths([
     icon: FolderTree,
     items: [
       { href: "/admin/menu", label: "Menu & Điều hướng", icon: Menu, permission: "navigation.view" },
-      { href: "/admin/pages", label: "Trang tự tạo", icon: PanelsTopLeft, matchesChildRoutes: true, permission: "pages.view" },
       { href: "/admin/redirects", label: "Chuyển hướng URL", icon: ArrowRightLeft, permission: "redirects.view" },
       { href: "/admin/seo/publish-check", label: "Kiểm tra xuất bản", icon: ClipboardCheck, permission: "settings.view" },
     ],
