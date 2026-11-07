@@ -277,8 +277,8 @@ html { scroll-padding-top: calc(var(--header-height) + 1rem); }
 @media (max-width: 640px) { :root { --header-height: 4.25rem; } }
 .site-header { position: sticky; top: 0; z-index: 40; border-bottom: 1px solid rgb(226 232 240 / .92); background: rgb(255 255 255 / .98); transition: box-shadow 200ms ease, background 200ms ease, border-color 200ms ease; }
 .site-header--scrolled { box-shadow: 0 12px 30px rgb(15 23 42 / .08); }
-/* Cuộn xuống: nền trắng mờ kính (nội dung chạy ngầm phía dưới thấy lờ mờ). Từ 1024px header thấp lại 12px; margin-bottom
- * giữ nguyên chỗ trong luồng trang (phần tử sticky vẫn chiếm chỗ cũ) nên nội dung bên dưới không bị giật khi đổi. */
+/* Cuộn xuống: nền trắng mờ kính (nội dung chạy ngầm phía dưới thấy lờ mờ) và bóng nhẹ; header giữ nguyên chiều cao, logo giữ nguyên cỡ
+ * (không thu gọn/chuyển động khi cuộn). */
 @supports (backdrop-filter: blur(1px)) { .site-header--scrolled { background: rgb(255 255 255 / .84); backdrop-filter: blur(14px) saturate(1.6); } }
 body:has([data-hero-top]) .site-header:not(.site-header--scrolled) { border-bottom-color: transparent; background: transparent; }
 /* +1px: viền dưới của header (trong suốt khi ở đầu trang) cũng chiếm chỗ. */
@@ -289,16 +289,7 @@ body:has([data-hero-top="dark"]) .site-header:not(.site-header--scrolled) .site-
 body:has([data-hero-top="dark"]) .site-header:not(.site-header--scrolled) .site-nav__link:hover { color: rgb(255 255 255 / .8); }
 body:has([data-hero-top="dark"]) .site-header:not(.site-header--scrolled) .brand img { filter: brightness(0) invert(1); }
 .site-header__inner { display: flex; align-items: center; gap: clamp(16px, 2vw, 40px); width: 100%; max-width: var(--site-width); height: var(--header-height); margin: 0 auto; padding: 0 var(--gutter); }
-/* Header thấp lại khi cuộn (xem chú thích .site-header--scrolled phía trên); đặt sau .site-header__inner để thắng chiều cao gốc. */
-/* Chỉ khi menu ngang đang hiện (từ 1200px): màn hẹp hơn dùng nút ☰, bảng menu điện thoại đặt theo --header-height nên header không đổi cao. */
-@media (min-width: 1200px) {
-  .site-header { --header-shrink: 0px; margin-bottom: var(--header-shrink); transition: box-shadow 200ms ease, background 200ms ease, border-color 200ms ease, margin 220ms ease; }
-  .site-header--scrolled { --header-shrink: .75rem; }
-  .site-header__inner { height: calc(var(--header-height) - var(--header-shrink)); transition: height 220ms ease; }
-  .site-header .brand img { transition: scale 220ms ease; transform-origin: left center; }
-  .site-header--scrolled .brand img { scale: .92; }
-}
-@media (prefers-reduced-motion: reduce) { .site-header, .site-header__inner, .site-header .brand img { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .site-header { transition: none; } }
 .site-header__actions { display: flex; flex-shrink: 0; align-items: center; gap: .625rem; margin-left: auto; }
 .brand { display: inline-flex; flex-shrink: 0; align-items: center; gap: 8px; font-size: 1.25rem; font-weight: 800; letter-spacing: -.04em; }
 .brand__mark { display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 9px; background: var(--color-brand-600); color: white; font: italic 1.5rem Georgia, serif; }
