@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { SiteLink as Link } from "@/components/site/site-link";
-import { Check, CircleCheck } from "lucide-react";
+import { Check } from "lucide-react";
 import type { CSSProperties, ReactNode } from "react";
 import type { BlockBackground, BlockFrame } from "@iorder/core/server/pages/block-layout";
 import { isDarkColor } from "@iorder/core/server/shared/color";
@@ -24,7 +24,7 @@ export function Container({ children, width = "default", className = "" }: { chi
   return <div className={`${base} ${className}`.trim()}>{children}</div>;
 }
 
-const tones = { white: "bg-white", tinted: "bg-surface-tinted", dark: "bg-navy bg-[radial-gradient(ellipse_70%_60%_at_100%_0%,rgb(21_112_224/.32),transparent),radial-gradient(ellipse_50%_50%_at_0%_100%,rgb(47_134_246/.16),transparent)] text-white", plain: "" } as const;
+const tones = { white: "bg-white", tinted: "bg-surface-tinted", dark: "bg-navy text-white", plain: "" } as const;
 const spacing = { sm: "py-10 sm:py-14", md: "py-14 sm:py-20", lg: "py-20 sm:py-28" } as const;
 export type SectionTone = keyof typeof tones;
 export type SectionSpace = keyof typeof spacing;
@@ -58,7 +58,7 @@ export const defaultFrame: BlockFrame = { tone: "white", spacing: "md", anchor: 
 
 // Dòng giới thiệu nhỏ phía trên tiêu đề: nhãn bo tròn nền nhạt, dấu ✓ thương hiệu iOrder.
 export function Eyebrow({ children, dark = false }: { children: ReactNode; dark?: boolean }) {
-  return <p className={`mb-4 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-small font-semibold ${dark ? "bg-white/12 text-white" : "bg-brand-50 text-brand-700"}`}><CircleCheck aria-hidden="true" size={16} />{children}</p>;
+  return <p className={`mb-3 text-small font-semibold ${dark ? "text-white/75" : "text-brand-700"}`}>{children}</p>;
 }
 
 // Phần đầu của mỗi khối: dòng giới thiệu, tiêu đề, mô tả. Mặc định căn giữa như các website phần mềm
@@ -133,7 +133,7 @@ const cardBase = "group relative flex h-full flex-col rounded-card border bg-whi
 export function Card({ children, href, highlighted = false, flush = false, className = "", as = "article", background = null }: { children: ReactNode; href?: string | null; highlighted?: boolean; flush?: boolean; className?: string; as?: "article" | "li" | "figure" | "div"; background?: string | null }) {
   const look = `${cardBase} ${flush ? "overflow-hidden" : "p-6 sm:p-7"} ${highlighted ? "border-brand-500 shadow-raised ring-1 ring-brand-500" : "border-line shadow-card"} ${background && isDarkColor(background) ? "card-on-dark" : ""} ${className}`.replace(/\s+/g, " ").trim();
   const style = background ? { backgroundColor: background } : undefined;
-  const interactive = `${look} hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-raised`;
+  const interactive = `${look} hover:border-brand-300`;
   if (href) return isExternal(href) ? <a className={interactive} href={href} rel="noopener noreferrer" style={style} target="_blank">{children}</a> : <Link className={interactive} href={href} style={style}>{children}</Link>;
   const Tag = as;
   return <Tag className={look} style={style}>{children}</Tag>;

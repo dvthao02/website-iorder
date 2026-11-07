@@ -35,7 +35,7 @@ export async function PageHero({ crumbs, eyebrow, title, description, children }
         </ol>
       </nav>
       <div className="mt-5 max-w-3xl sm:mt-6">
-        {eyebrow ? <p className="mb-3 inline-flex w-fit items-center rounded-full bg-brand-50 px-3 py-1 text-small font-semibold text-brand-700">{eyebrow}</p> : null}
+        {eyebrow ? <p className="mb-2 text-small font-semibold text-brand-700">{eyebrow}</p> : null}
         <h1 className="mb-0 text-[2rem] leading-[1.15] font-bold tracking-tight text-balance text-ink sm:text-[2.5rem] xl:text-[2.75rem]">{title}</h1>
         {description ? <p className="mt-3 mb-0 text-lead whitespace-pre-line text-muted">{description}</p> : null}
       </div>

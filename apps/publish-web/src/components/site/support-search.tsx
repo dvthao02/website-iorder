@@ -32,7 +32,7 @@ export function SupportSearch({ items, suggestions }: { items: SupportSearchItem
       <label className="sr-only" htmlFor={`${resultsId}-input`}>Tìm trong trung tâm hỗ trợ</label>
       <div className="support-search__box">
         <Search aria-hidden="true" className="shrink-0 text-muted" size={22} />
-        <input aria-controls={resultsId} autoComplete="off" className="support-search__input" id={`${resultsId}-input`} onChange={(event) => setQuery(event.target.value)} placeholder="Tìm hướng dẫn: kết ca, in hóa đơn, kho hàng…" type="search" value={query} />
+        <input aria-controls={resultsId} autoComplete="off" className="support-search__input" id={`${resultsId}-input`} onChange={(event) => setQuery(event.target.value)} placeholder="Ví dụ: kết ca, in hóa đơn…" type="search" value={query} />
         {query ? <button aria-label="Xóa từ khóa" className="support-search__clear" onClick={() => setQuery("")} type="button"><X aria-hidden="true" size={18} /></button> : null}
       </div>
     </form>

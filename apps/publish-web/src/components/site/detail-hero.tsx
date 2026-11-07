@@ -22,11 +22,11 @@ export function DetailHero({ back, label, title, summary, image, imageStyle = "c
   fill?: boolean;
   children?: ReactNode;
 }) {
-  return <section className={`${fill ? "screen-hero" : ""} relative overflow-hidden border-b border-line bg-gradient-to-b from-brand-50/70 to-white`} data-hero-top="light">
+  return <section className={`${fill ? "screen-hero" : ""} relative overflow-hidden border-b border-line bg-[#f7f9fc]`} data-hero-top="light">
     <div className={`site-container grid items-center gap-10 py-10 sm:py-14 ${fill ? "lg:pt-0 lg:pb-28" : ""} ${image ? "lg:grid-cols-[1.05fr_1fr] lg:gap-14" : ""}`}>
       <div className={image ? "" : "max-w-3xl"}>
         <Link className="mb-6 inline-flex items-center gap-1.5 text-sm font-semibold text-muted transition hover:text-brand-700" href={back.href}><ArrowLeft aria-hidden="true" size={16} />{back.label}</Link>
-        {label ? <p className="mb-4 flex w-fit items-center rounded-full bg-brand-50 px-3 py-1 text-sm font-semibold text-brand-700">{label}</p> : null}
+        {label ? <p className="mb-3 text-small font-semibold text-brand-700">{label}</p> : null}
         <h1 className="mb-0 text-[2.25rem] leading-[1.12] font-bold tracking-tight text-balance text-ink sm:text-5xl">{title}</h1>
         {summary ? <p className="mt-5 text-lg leading-8 text-muted sm:text-xl">{summary}</p> : null}
         {children}

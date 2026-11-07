@@ -30,7 +30,7 @@
   /* Xanh navy đậm cho phần nền tối (số liệu, kêu gọi hành động). */
   --color-navy: #0a2a57;
   /* Nền xanh rất nhạt của phần trang xen kẽ với nền trắng; nền trung tính (số đếm, ô trống); chữ/biểu tượng phụ. */
-  --color-surface-tinted: #f1f7fe;
+  --color-surface-tinted: #f6f8fb;
   --color-subtle: #eef2f7;
   --color-faint: #8a99ad;
 
@@ -71,11 +71,11 @@
   --text-caption: 0.75rem;
   --text-caption--line-height: 1.4;
 
-  /* Bo góc và bóng kiểu website phần mềm bán hàng (KiotViet): thẻ bo lớn, viền mảnh, bóng loang rất nhẹ. */
-  --radius-card: 1.25rem;
-  --radius-control: 0.875rem;
-  --shadow-card: 0 1px 2px rgb(10 42 87 / .05), 0 4px 32px rgb(10 42 87 / .06);
-  --shadow-raised: 0 4px 12px rgb(10 42 87 / .06), 0 16px 56px rgb(10 42 87 / .12);
+  /* Bo góc vừa, viền mảnh làm chính; bóng chỉ còn một vệt rất mảnh (thẻ) và nhẹ khi nổi (bảng thả xuống, kết quả tìm). */
+  --radius-card: 0.75rem;
+  --radius-control: 0.625rem;
+  --shadow-card: 0 1px 2px rgb(10 42 87 / .05);
+  --shadow-raised: 0 8px 20px -10px rgb(10 42 87 / .2);
   --shadow-brand: 0 6px 16px rgb(21 112 224 / .22);
 }
 
@@ -107,7 +107,7 @@ html { font-size: clamp(16px, calc(16px + (100vw - 1440px) * 0.0033), 24px); }
 .block-width { width: 100%; margin-inline: auto; }
 @media (min-width: 768px) { .block-width { width: var(--block-width, 100%); } }
 /* Phần đầu trang danh sách: dải nền xanh rất nhạt chuyển dần sang trắng, một vệt sáng thương hiệu mờ ở góc phải, viền dưới mảnh. */
-.listing-hero { border-bottom: 1px solid var(--color-line); background: radial-gradient(60% 120% at 100% 0%, rgb(21 112 224 / .08), transparent 60%), linear-gradient(180deg, var(--color-surface-tinted) 0%, white 100%); }
+.listing-hero { border-bottom: 1px solid var(--color-line); background: #f7f9fc; }
 
 /* Trung tâm hỗ trợ (/ho-tro): ô tìm nhanh lớn, thẻ liên hệ, thẻ kênh hỗ trợ, các bước bắt đầu, dải liên hệ cuối trang. */
 .support-search { position: relative; max-width: 44rem; }
@@ -129,7 +129,7 @@ html { font-size: clamp(16px, calc(16px + (100vw - 1440px) * 0.0033), 24px); }
 .support-channel:hover { border-color: var(--color-brand-400); }
 .support-channel__icon { display: grid; flex-shrink: 0; place-items: center; color: var(--color-brand-600); }
 
-.support-band { background: radial-gradient(60% 120% at 100% 0%, rgb(47 134 246 / .3), transparent 60%), linear-gradient(135deg, var(--color-brand-700), var(--color-navy)); }
+.support-band { background: var(--color-navy); }
 
 /* Khung tài liệu hướng dẫn (/ho-tro/huong-dan…), kiểu trang tài liệu thường gặp: nền trắng, không thẻ nổi/bóng.
    Danh mục bên trái ngăn bằng một đường kẻ, bài ở giữa, mục lục chữ thường bên phải; hai cột bên bám theo khi cuộn.
@@ -199,7 +199,7 @@ html { font-size: clamp(16px, calc(16px + (100vw - 1440px) * 0.0033), 24px); }
 /* Lưới chọn thiết bị (trang Thiết bị): thẻ gọn ảnh – tên – giá – bảo hành; thẻ đang chọn viền xanh, khung chi tiết
  * mở ngay dưới hàng với mũi nhọn chỉ lên thẻ (vị trí mũi nhọn: --notch-left, tính theo cột trong equipment-explorer.tsx). */
 .equipment-tile { display: flex; height: 100%; flex-direction: column; align-items: center; gap: 6px; border: 1px solid transparent; border-radius: var(--radius-card); background: transparent; padding: 18px 14px 20px; text-align: center; transition: border-color 160ms ease, background 160ms ease, box-shadow 160ms ease, transform 160ms ease; }
-.equipment-tile:hover { border-color: var(--color-line); background: white; box-shadow: var(--shadow-card); transform: translateY(-2px); }
+.equipment-tile:hover { border-color: var(--color-line); background: white; }
 .equipment-tile:focus-visible { outline: 3px solid rgb(21 112 224 / .35); outline-offset: 2px; }
 .equipment-tile--active, .equipment-tile--active:hover { border-color: var(--color-brand-500); background: white; box-shadow: 0 0 0 1px var(--color-brand-500), var(--shadow-card); transform: none; }
 .equipment-tile__media { display: block; width: 100%; height: clamp(120px, 12vw, 180px); margin-bottom: 8px; transition: transform 300ms ease; }
