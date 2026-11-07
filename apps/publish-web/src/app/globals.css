@@ -106,6 +106,9 @@ html { font-size: clamp(16px, calc(16px + (100vw - 1440px) * 0.0033), 24px); }
 /* Độ rộng nội dung chọn trong CMS (% khung của khối), căn giữa; điện thoại luôn rộng hết khung để chữ không bị ép. */
 .block-width { width: 100%; margin-inline: auto; }
 @media (min-width: 768px) { .block-width { width: var(--block-width, 100%); } }
+/* Phần đầu trang danh sách: dải nền xanh rất nhạt chuyển dần sang trắng, một vệt sáng thương hiệu mờ ở góc phải, viền dưới mảnh. */
+.listing-hero { border-bottom: 1px solid var(--color-line); background: radial-gradient(60% 120% at 100% 0%, rgb(21 112 224 / .08), transparent 60%), linear-gradient(180deg, var(--color-surface-tinted) 0%, white 100%); }
+
 /* Lưới chọn thiết bị (trang Thiết bị): thẻ gọn ảnh – tên – giá – bảo hành; thẻ đang chọn viền xanh, khung chi tiết
  * mở ngay dưới hàng với mũi nhọn chỉ lên thẻ (vị trí mũi nhọn: --notch-left, tính theo cột trong equipment-explorer.tsx). */
 .equipment-tile { display: flex; height: 100%; flex-direction: column; align-items: center; gap: 6px; border: 1px solid transparent; border-radius: var(--radius-card); background: transparent; padding: 18px 14px 20px; text-align: center; transition: border-color 160ms ease, background 160ms ease, box-shadow 160ms ease, transform 160ms ease; }

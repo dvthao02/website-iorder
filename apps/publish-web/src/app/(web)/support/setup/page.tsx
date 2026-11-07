@@ -11,5 +11,5 @@ export async function generateMetadata(_: unknown, parent: ResolvingMetadata): P
 export default async function SupportInstallationPage() {
   const content = await getListingPageContent("listing-support");
   if (!content) return <><SiteHeader /><main id="noi-dung" className="mx-auto max-w-4xl p-6">Nội dung trang hỗ trợ đang chờ được cấu hình trong CMS.</main></>;
-  return <ListingPageView content={content} />;
+  return <ListingPageView content={content} crumb={{ name: "Hỗ trợ cài đặt", path: "/ho-tro/cai-dat" }} />;
 }

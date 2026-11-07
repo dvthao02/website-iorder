@@ -11,6 +11,8 @@ type OfferingListPageProps = {
 };
 
 const listingSlugByPath = { "dich-vu": "listing-service", "giai-phap": "listing-solution", "phan-mem": "listing-software" } as const;
+// Tên ngắn trên đường dẫn (breadcrumb) của từng trang danh sách.
+const crumbNames = { "dich-vu": "Dịch vụ", "giai-phap": "Giải pháp", "phan-mem": "Phần mềm" } as const;
 
 function getCatalogListing(catalog: string) {
   const slug = listingSlugByPath[catalog as keyof typeof listingSlugByPath];
@@ -27,5 +29,5 @@ export default async function OfferingListPage({ params }: OfferingListPageProps
   const { catalog } = await params;
   const content = await getCatalogListing(catalog);
   if (!content) notFound();
-  return <ListingPageView content={content} />;
+  return <ListingPageView content={content} crumb={{ name: crumbNames[catalog as keyof typeof crumbNames] ?? content.header.title, path: `/${catalog}` }} />;
 }
