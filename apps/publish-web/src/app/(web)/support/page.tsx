@@ -1,5 +1,5 @@
 import type { Metadata, ResolvingMetadata } from "next";
-import { BookOpen, ChevronRight, CircleHelp, Clock, Download, Headset, Mail, MessageSquareText, MonitorPlay, Phone, type LucideIcon } from "lucide-react";
+import { BookOpen, ChevronRight, CircleHelp, Download, Headset, MessageSquareText, MonitorPlay, Phone, type LucideIcon } from "lucide-react";
 
 import { BreadcrumbJsonLd } from "@/components/site/page-hero";
 import { SiteHeader } from "@/components/site/site-header";
@@ -7,7 +7,7 @@ import { SiteLink as Link } from "@/components/site/site-link";
 import { SupportQuickStart, type QuickStartGroup } from "@/components/site/support-quickstart";
 import { SupportSearch, type SupportSearchItem } from "@/components/site/support-search";
 import { Container, FaqList, SectionHeading } from "@/components/ui";
-import { getEnabledSupportDownloads, getExternalLinks, getPublishedPage, getPublishedPostSummaries, getSiteProfile } from "@/lib/backend";
+import { getEnabledSupportDownloads, getPublishedPage, getPublishedPostSummaries, getSiteProfile } from "@/lib/backend";
 import { guideDescription } from "@/lib/guides";
 import { contentMetadata } from "@/lib/page-metadata";
 
@@ -27,12 +27,11 @@ type Channel = { href: string; title: string; text: string; meta?: string; icon:
 // Bố cục: phần đầu căn giữa (tìm nhanh + liên hệ nhanh) → "Làm quen với iOrder" (thẻ trượt theo nhóm) → các kênh hỗ trợ
 // → tải phần mềm & driver → câu hỏi thường gặp → dải liên hệ.
 export default async function SupportCenterPage() {
-  const [guides, downloads, faqPage, videosPage, remotePage, profile, links] = await Promise.all([
+  const [guides, downloads, faqPage, videosPage, remotePage, profile] = await Promise.all([
     getPublishedPostSummaries("guide"), getEnabledSupportDownloads(), getPublishedPage("support-faq"), getPublishedPage("support-videos"),
-    getPublishedPage("remote-support"), getSiteProfile(), getExternalLinks(),
+    getPublishedPage("remote-support"), getSiteProfile(),
   ]);
   const faqs = (faqPage?.blocks ?? []).flatMap((block) => block.isEnabled && block.type === "faq" ? block.data.items : []);
-  const supportEmail = profile?.supportEmail ?? profile?.salesEmail ?? null;
 
   const guideDescriptions = await Promise.all(guides.map(guideDescription));
   const guideItems = guides.map((guide, index) => ({ href: `/ho-tro/huong-dan/${guide.slug}`, title: guide.title, description: guideDescriptions[index], cover: guide.cover ? { url: guide.cover.url, alt: guide.cover.altText } : null, category: guide.categories[0]?.name ?? null, categories: guide.categories.map((category) => category.name) }));
@@ -58,29 +57,18 @@ export default async function SupportCenterPage() {
     ...downloads.map((download) => ({ title: download.title, href: "/ho-tro/cai-dat", kind: "Tệp cài đặt", text: download.description })),
     ...faqs.map((faq) => ({ title: faq.question, href: "/ho-tro/faq", kind: "Câu hỏi", text: faq.answer })),
   ];
-  // Gợi ý nhanh: tên các bài hướng dẫn ngắn (thường là tên chức năng: Bán hàng, Kết ca…).
-  const suggestions = guides.map((guide) => guide.title).filter((title) => title.length <= 18).slice(0, 5);
 
   return <>
     <SiteHeader />
     <BreadcrumbJsonLd crumbs={[{ name: "Hỗ trợ", path: "/ho-tro" }]} />
     <main id="noi-dung">
+      {/* Phần đầu gọn: một câu hỏi + ô tìm + một dòng gọi trực tiếp. Liên hệ đầy đủ (email, Zalo, gửi yêu cầu) nằm ở
+          "Chọn cách nhận hỗ trợ" và dải cuối trang nên không lặp lại ở đây. */}
       <header className="support-hero">
-        <Container className="flex flex-col items-center py-10 text-center sm:py-14">
-          <nav aria-label="Đường dẫn"><ol className="m-0 flex list-none items-center gap-1.5 p-0 text-small text-muted">
-            <li><Link className="transition hover:text-brand-700" href="/">Trang chủ</Link></li>
-            <li className="flex items-center gap-1.5"><ChevronRight aria-hidden="true" size={14} /><span aria-current="page" className="font-semibold text-ink">Hỗ trợ</span></li>
-          </ol></nav>
-          <p className="mt-6 mb-0 inline-flex items-center rounded-full bg-brand-50 px-3 py-1 text-small font-semibold text-brand-700">Trung tâm hỗ trợ iOrder</p>
-          <h1 className="mt-3 mb-0 text-[2rem] leading-[1.15] font-bold tracking-tight text-balance text-ink sm:text-[2.5rem] xl:text-[2.75rem]">Chúng tôi có thể giúp gì cho bạn?</h1>
-          <p className="mt-3 mb-7 max-w-2xl text-lead text-muted">{description}</p>
-          <div className="w-full max-w-2xl text-left"><SupportSearch items={searchItems} suggestions={suggestions} /></div>
-          {profile?.hotline || supportEmail || profile?.workingHours ? <ul aria-label="Liên hệ hỗ trợ nhanh" className="support-hero__contacts">
-            {profile?.hotline ? <li><a href={tel(profile.hotline)}><Phone aria-hidden="true" size={16} /><strong>{profile.hotline}</strong></a></li> : null}
-            {profile?.workingHours ? <li><Clock aria-hidden="true" size={16} />{profile.workingHours}</li> : null}
-            {supportEmail ? <li><a href={`mailto:${supportEmail}`}><Mail aria-hidden="true" size={16} />{supportEmail}</a></li> : null}
-            {links?.zalo ? <li><a href={links.zalo} rel="noopener noreferrer" target="_blank"><MessageSquareText aria-hidden="true" size={16} />Chat Zalo</a></li> : null}
-          </ul> : null}
+        <Container className="flex flex-col items-center py-12 text-center sm:py-16">
+          <h1 className="mb-0 text-[2rem] leading-[1.15] font-bold tracking-tight text-balance text-ink sm:text-[2.5rem]">Chúng tôi có thể giúp gì cho bạn?</h1>
+          <div className="mt-7 w-full max-w-2xl text-left"><SupportSearch items={searchItems} suggestions={[]} /></div>
+          {profile?.hotline ? <p className="mt-5 mb-0 text-small text-muted">Cần người hỗ trợ trực tiếp? Gọi <a className="font-semibold text-ink hover:text-brand-700 hover:underline" href={tel(profile.hotline)}>{profile.hotline}</a>{profile.workingHours ? ` (${profile.workingHours})` : ""}</p> : null}
         </Container>
       </header>
 

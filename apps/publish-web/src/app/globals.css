@@ -123,14 +123,8 @@ html { font-size: clamp(16px, calc(16px + (100vw - 1440px) * 0.0033), 24px); }
 .support-search__kind { flex-shrink: 0; border-radius: 999px; background: var(--color-brand-50); padding: 2px 10px; color: var(--color-brand-700); font-size: .78rem; font-weight: 600; }
 .support-search__chip { min-height: 32px; border: 1px solid var(--color-line); border-radius: 999px; background: white; padding: 0 12px; color: var(--color-ink); font-weight: 500; transition: border-color 150ms ease, color 150ms ease; }
 .support-search__chip:hover { border-color: var(--color-brand-300); color: var(--color-brand-700); }
-/* Phần đầu căn giữa: nền xanh nhạt có hai vệt sáng mờ, dòng liên hệ nhanh dạng chip dưới ô tìm. */
-.support-hero { border-bottom: 1px solid var(--color-line); background: radial-gradient(45% 80% at 10% 0%, rgb(21 112 224 / .1), transparent 70%), radial-gradient(40% 70% at 95% 20%, rgb(124 58 237 / .07), transparent 70%), linear-gradient(180deg, var(--color-surface-tinted) 0%, white 100%); }
-.support-hero__contacts { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 10px; margin: 26px 0 0; padding: 0; list-style: none; }
-.support-hero__contacts > li, .support-hero__contacts a { display: inline-flex; align-items: center; gap: 8px; }
-.support-hero__contacts > li { border: 1px solid var(--color-line); border-radius: 999px; background: rgb(255 255 255 / .8); padding: 7px 14px; color: var(--color-muted); font-size: .92rem; }
-.support-hero__contacts svg { color: var(--color-brand-600); }
-.support-hero__contacts strong { color: var(--color-ink); }
-.support-hero__contacts a:hover { color: var(--color-brand-700); }
+/* Phần đầu trang Hỗ trợ: nền phẳng xám rất nhạt, viền dưới mảnh. */
+.support-hero { border-bottom: 1px solid var(--color-line); background: #f7f9fc; }
 /* Thanh chọn nhóm hướng dẫn (tab) và thẻ trượt "Làm quen". */
 .support-tabs { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: -8px 0 28px; }
 .support-tab { display: inline-flex; min-height: 42px; align-items: center; gap: 8px; border: 1px solid var(--color-line); border-radius: 999px; background: white; padding: 0 16px; color: var(--color-ink); font-weight: 600; transition: border-color 150ms ease, background 150ms ease, color 150ms ease; }
