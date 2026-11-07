@@ -9,7 +9,7 @@ import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNod
 import { getFixedWebsitePage, isListingPageSlug, pagePermissionCodes, type AdminPage, type PageBlock } from "@iorder/core/server/pages/pages.contract";
 import { listingChildPages, listingPageModuleHref } from "@/lib/listing-pages";
 
-import { PageBlocksEditor, withoutEmptyGroupedListItems, withoutEmptyHeroSlides } from "./page-blocks-editor";
+import { PageBlocksEditor, blockLabel, blockSummary, withoutEmptyGroupedListItems, withoutEmptyHeroSlides } from "./page-blocks-editor";
 import { PublishedPreviewLink } from "./published-preview-link";
 import { RevisionHistory } from "./revision-history";
 import { AdminEditorActions } from "./ui/admin-editor-actions";
@@ -52,6 +52,13 @@ export function PageEditorDetail({ page }: { page?: AdminPage }) {
   }, []);
   const processing = busy || isUploading || isRestoring;
   const [message, setMessage] = useState("");
+  // Thành phần đang mở: giữ ở đây để thẻ "Bố cục trang" (cột phải) mở và nhảy tới đúng thành phần.
+  const [openBlock, setOpenBlock] = useState<number | null>(() => (form.blocks as PageBlock[]).length ? 0 : null);
+  const jumpToBlock = (index: number) => {
+    setOpenBlock(index);
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    requestAnimationFrame(() => document.getElementById(`page-block-${index}`)?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" }));
+  };
   const { isDirty, markSaved, getSavedValue } = useUnsavedChanges(form, serverForm);
   useEffect(() => {
     if (isDirty) pageDrafts.write(draftKey, serverBaseline, form);
@@ -139,7 +146,7 @@ export function PageEditorDetail({ page }: { page?: AdminPage }) {
             {page?.status === "published" && form.status === "published" ? <small className="admin-help">Trang đang hiển thị: khi lưu với đường dẫn mới, đường dẫn cũ tự chuyển hướng (301) sang đường dẫn mới.</small> : page?.status === "published" ? <small className="admin-help admin-text-warning">Sau lần lưu này nội dung chưa hiện ngay trên website nên đổi đường dẫn sẽ không tạo chuyển hướng từ đường dẫn cũ.</small> : <small className="admin-help">Chỉ dùng chữ thường không dấu, số và dấu gạch ngang.</small>}
           </div> : <p className="admin-post-editor__slug-line"><span className="admin-help">Đường dẫn:</span> <span className="admin-post-editor__path">{publicPath}</span><button className="admin-post-editor__link" onClick={() => setEditingSlug(true)} type="button">Sửa</button>{!slugTouched ? <span className="admin-help"> · tự tạo theo tên</span> : null}</p>}
         </section>}
-        <EditorCard title="Thành phần trang" description={listingSlug ? "Phần đầu trang luôn ở trên cùng. Các thành phần còn lại hiển thị theo thứ tự; “Danh sách nội dung” là nơi hiện bài viết, sản phẩm… Nếu trang không có danh sách nào, website tự thêm danh sách mặc định ở cuối." : "Bấm vào một thành phần để sửa; dùng mũi tên để đổi thứ tự, biểu tượng mắt để ẩn/hiện."}><PageBlocksEditor blocks={form.blocks as PageBlock[]} disabled={processing} listing={Boolean(listingSlug)} onUploadingChange={handleUploadingChange} onChange={blocks => set("blocks", blocks)} /></EditorCard>
+        <EditorCard title="Thành phần trang" description={listingSlug ? "Phần đầu trang luôn ở trên cùng. Các thành phần còn lại hiển thị theo thứ tự; “Danh sách nội dung” là nơi hiện bài viết, sản phẩm… Nếu trang không có danh sách nào, website tự thêm danh sách mặc định ở cuối." : "Bấm vào một thành phần để sửa; dùng mũi tên để đổi thứ tự, biểu tượng mắt để ẩn/hiện."}><PageBlocksEditor blocks={form.blocks as PageBlock[]} disabled={processing} listing={Boolean(listingSlug)} onChange={blocks => set("blocks", blocks)} onOpenIndexChange={setOpenBlock} onUploadingChange={handleUploadingChange} openIndex={openBlock} /></EditorCard>
         {listingSlug && listingChildPages[listingSlug].length ? <EditorCard title="Trang con" description="Các trang chi tiết không sửa ở đây: mỗi trang lấy nội dung từ mục quản lý tương ứng."><div className="admin-check-list">{listingChildPages[listingSlug].map((child) => <Link href={child.href} key={child.path}><span aria-hidden="true" /><span><strong>{child.label} <code>{child.path}</code></strong><small>{child.source}</small></span><span className="admin-link">Mở</span></Link>)}</div></EditorCard> : null}
         <details className="admin-post-editor__panel">
           <summary><span><strong>Google &amp; chia sẻ mạng xã hội</strong><small>Tiêu đề và mô tả khi trang hiện trên Google, Facebook, Zalo.</small></span><AdminStatusBadge tone={seoPassed === seoResults.length ? "success" : "warning"}>SEO {seoPassed}/{seoResults.length} đạt</AdminStatusBadge></summary>
@@ -162,6 +169,7 @@ export function PageEditorDetail({ page }: { page?: AdminPage }) {
           <ContentStatusChoice canPublish={canPublish} noun="trang" onChange={status => set("status", status)} savedStatus={page?.status} value={form.status} />
           {form.status === "scheduled" ? <label className="admin-field">Thời điểm đăng<input className="admin-input" onChange={event => set("scheduledAt", event.target.value)} required type="datetime-local" value={form.scheduledAt} /></label> : null}
         </section>
+        {(form.blocks as PageBlock[]).length > 1 ? <PageOutline blocks={form.blocks as PageBlock[]} onSelect={jumpToBlock} openIndex={openBlock} /> : null}
         <section className="admin-content-section">
           <header><h3>Loại trang</h3></header>
           <p><AdminStatusBadge tone="neutral">{pageType}</AdminStatusBadge></p>
@@ -176,6 +184,20 @@ export function PageEditorDetail({ page }: { page?: AdminPage }) {
       }}>Bỏ thay đổi</AdminButton> : null}<AdminButton disabled={processing || !isDirty} permission={page ? pagePermissionCodes(page.slug, "update") : "pages.create"} title="Phím tắt: Ctrl+S" type="submit">{busy ? "Đang lưu…" : submitText}</AdminButton></AdminEditorActions>
     </form>
   </AdminDetailPanel>;
+}
+
+/** Thẻ "Bố cục trang" (cột phải, bám theo khi cuộn): thứ tự thành phần, bấm để mở và nhảy tới; thành phần đang ẩn có nhãn. */
+function PageOutline({ blocks, openIndex, onSelect }: { blocks: PageBlock[]; openIndex: number | null; onSelect: (index: number) => void }) {
+  return <section aria-label="Bố cục trang" className="admin-content-section">
+    <header className="admin-post-editor__card-head"><h3>Bố cục trang</h3><span className="admin-help">{blocks.length} thành phần</span></header>
+    <ol className="admin-page-outline">{blocks.map((block, index) => <li key={`${block.type}-${index}`}>
+      <button aria-current={openIndex === index ? "true" : undefined} className="admin-page-outline__item" onClick={() => onSelect(index)} title={blockSummary(block)} type="button">
+        <span className="admin-page-outline__index">{index + 1}</span>
+        <span className="admin-page-outline__label">{blockLabel(block.type)}<small>{blockSummary(block)}</small></span>
+        {block.isEnabled ? null : <span className="admin-page-outline__hidden">Ẩn</span>}
+      </button>
+    </li>)}</ol>
+  </section>;
 }
 
 function EditorCard({ title, description, children }: { title: string; description: string; children: ReactNode }) { return <section className="admin-content-section"><header><h3>{title}</h3><p>{description}</p></header>{children}</section>; }

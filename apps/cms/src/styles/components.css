@@ -510,6 +510,17 @@
   @media (min-width: 1280px) { .admin-post-editor { grid-template-columns: minmax(0, 1fr) 320px; } }
   .admin-post-editor__main,
   .admin-post-editor__side { display: grid; min-width: 0; align-content: start; gap: var(--cms-block-gap); }
+  /* Cột phải bám theo khi cuộn form dài (Xuất bản, Bố cục trang luôn trong tầm mắt). */
+  @media (min-width: 1280px) { .admin-post-editor__side { position: sticky; top: 0; max-height: calc(100dvh - 180px); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; } }
+  .admin-page-outline { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; }
+  .admin-page-outline__item { display: flex; width: 100%; align-items: center; gap: 10px; border: 0; border-radius: 8px; background: none; padding: 7px 8px; color: var(--cms-text); text-align: left; cursor: pointer; }
+  .admin-page-outline__item:hover { background: var(--cms-hover); }
+  .admin-page-outline__item[aria-current="true"] { background: var(--cms-primary-soft); color: var(--cms-primary); }
+  .admin-page-outline__index { display: grid; width: 22px; height: 22px; flex-shrink: 0; place-items: center; border-radius: 6px; background: var(--cms-hover); color: var(--cms-muted); font-size: 12px; font-weight: 600; }
+  .admin-page-outline__item[aria-current="true"] .admin-page-outline__index { background: var(--cms-primary); color: white; }
+  .admin-page-outline__label { display: grid; min-width: 0; flex: 1; font-size: var(--cms-text-sm); font-weight: 600; }
+  .admin-page-outline__label small { overflow: hidden; color: var(--cms-muted); font-size: 12px; font-weight: 400; text-overflow: ellipsis; white-space: nowrap; }
+  .admin-page-outline__hidden { flex-shrink: 0; border-radius: 999px; background: var(--cms-hover); padding: 1px 8px; color: var(--cms-muted); font-size: 11px; }
   .admin-post-editor__writing { gap: 8px; }
   .admin-post-editor__title-field { display: block; }
   .admin-post-editor .admin-post-editor__title { width: 100%; height: auto; border: 0; border-radius: 0; background: transparent; padding: 2px 0 6px; box-shadow: none; color: var(--cms-text); font-size: 26px; font-weight: 700; line-height: 1.3; outline: 0; }
@@ -943,6 +954,14 @@
   .admin-block--open { background: var(--cms-subtle); }
   .admin-block--open .admin-block__head { border-bottom: 1px solid var(--cms-border); background: var(--cms-card); }
   .admin-block__body { display: grid; gap: 12px; padding: var(--cms-card-padding); }
+  /* Tab trong thành phần đang mở: Nội dung | Bố cục & ảnh | Giao diện — form ngắn lại, mỗi lúc một nhóm. */
+  .admin-block-tabs { display: flex; flex-wrap: wrap; gap: 4px; margin: -4px 0 4px; border-bottom: 1px solid var(--cms-border); }
+  .admin-block-tabs__tab { margin-bottom: -1px; border: 0; border-bottom: 2px solid transparent; background: none; padding: 8px 12px; color: var(--cms-muted); font-size: var(--cms-text-sm); font-weight: 600; cursor: pointer; }
+  .admin-block-tabs__tab:hover:not(:disabled) { color: var(--cms-text); }
+  .admin-block-tabs__tab[aria-selected="true"] { border-bottom-color: var(--cms-primary); color: var(--cms-primary); }
+  .admin-block-tabs__tab:disabled { cursor: not-allowed; opacity: .5; }
+  .admin-block-tabs__panel { display: grid; gap: 12px; min-width: 0; }
+  .admin-block { scroll-margin-top: 16px; }
   /* Nhóm trường trong khối: phẳng (tiêu đề + đường kẻ), không lồng thêm khung. */
   .admin-block-group { display: grid; gap: 10px; min-width: 0; margin: 0; border: 0; border-top: 1px solid var(--cms-border); padding: 12px 0 0; }
   .admin-block-group > legend { float: left; width: 100%; margin-bottom: 2px; padding: 0; color: var(--cms-text); font-size: var(--cms-text-sm); font-weight: 600; }

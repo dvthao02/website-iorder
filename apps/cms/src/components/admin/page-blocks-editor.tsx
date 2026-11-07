@@ -52,12 +52,12 @@ const blockOptions: ReadonlyArray<{ value: BlockType; label: string; description
 // Trang danh sách (tin tức, thiết bị…) chỉ cần khối phục vụ việc đọc danh sách; khối giới thiệu kiểu trang chủ để ở trang thường.
 const listingBlockTypes: ReadonlySet<BlockType> = new Set(["collection_list", "rich_text", "image", "video", "stats", "faq", "cta", "lead_form", "testimonials", "partners"]);
 
-function blockLabel(type: BlockType) {
+export function blockLabel(type: BlockType) {
   return blockOptions.find((option) => option.value === type)?.label ?? type;
 }
 
 // Dòng tóm tắt khi khối đang gập, để nhìn được cả trang mà không mở từng khối.
-function blockSummary(block: PageBlock) {
+export function blockSummary(block: PageBlock) {
   switch (block.type) {
     case "hero": return `${heroLayoutOptions.find((option) => option.value === block.data.layout)?.label ?? ""} · ${block.data.title}`;
     case "stats": return block.data.title ?? `${block.data.items.length} số liệu`;
@@ -296,14 +296,21 @@ function HeroPanelsFields({ data, set, disabled, onUploadingChange }: { data: He
   </Section>;
 }
 
-function HeroFields({ block, onChange, disabled, onUploadingChange }: { block: HeroBlock; onChange: (block: PageBlock) => void; disabled?: boolean; onUploadingChange: (pending: boolean) => void }) {
+function HeroFields({ block, onChange, disabled, onUploadingChange, part }: { block: HeroBlock; onChange: (block: PageBlock) => void; disabled?: boolean; onUploadingChange: (pending: boolean) => void; part: "content" | "media" }) {
   const data = block.data;
   const set = (patch: Partial<HeroBlock["data"]>) => onChange({ ...block, data: { ...data, ...patch } });
   const slider = data.layout === "slider";
-  const slides = data.slides;
-  const setSlide = (index: number, patch: Partial<HeroBlock["data"]["slides"][number]>) => set({ slides: slides.map((slide, slideIndex) => slideIndex === index ? { ...slide, ...patch } : slide) });
+  const layoutName = `hero-layout-${useId()}`;
+  if (part === "media") return <>
+    <LayoutPicker label="Kiểu bố cục" name={layoutName} onChange={layout => set({ layout })} options={heroLayoutOptions} value={data.layout} />
+    {slider ? null : <>
+      <HeroImagesFields data={data} disabled={disabled} onUploadingChange={onUploadingChange} set={set} />
+      <HeroPanelsFields data={data} disabled={disabled} onUploadingChange={onUploadingChange} set={set} />
+    </>}
+    {slider ? <HeroSlidesFields data={data} disabled={disabled} onUploadingChange={onUploadingChange} set={set} /> : null}
+  </>;
   return <>
-    <LayoutPicker label="Kiểu bố cục" name={`hero-layout-${useId()}`} onChange={layout => set({ layout })} options={heroLayoutOptions} value={data.layout} />
+    {slider ? <p className="admin-help">Kiểu “Trượt nhiều ảnh”: chữ và nút của từng ảnh sửa ở tab “Bố cục &amp; ảnh”.</p> : null}
     <NullableField label="Dòng giới thiệu" value={data.eyebrow} onChange={eyebrow => set({ eyebrow })} />
     <Field label={slider ? "Tiêu đề (cho Google; trên website chỉ hiện chữ của từng ảnh)" : "Tiêu đề"} value={data.title} onChange={title => set({ title })} />
     {slider ? null : <>
@@ -312,11 +319,16 @@ function HeroFields({ block, onChange, disabled, onUploadingChange }: { block: H
       <ActionFields title="Nút chính" value={data.primaryAction} onChange={primaryAction => set({ primaryAction })} />
       <ActionFields title="Nút phụ" value={data.secondaryAction} onChange={secondaryAction => set({ secondaryAction })} />
       <NullableField label="Dòng ghi chú dưới nút (ví dụ: Dùng thử miễn phí 15 ngày)" value={data.footnote} onChange={footnote => set({ footnote })} />
-      <HeroImagesFields data={data} disabled={disabled} onUploadingChange={onUploadingChange} set={set} />
-      <HeroPanelsFields data={data} disabled={disabled} onUploadingChange={onUploadingChange} set={set} />
-      <HeroToneField block={block} disabled={disabled} onChange={onChange} />
     </>}
-    {slider ? <Section title={`Các ảnh trượt (${slides.length}/8)`}>
+  </>;
+}
+
+// Các ảnh trượt của phần đầu trang kiểu "Trượt nhiều ảnh" (tab Bố cục & ảnh).
+function HeroSlidesFields({ data, set, disabled, onUploadingChange }: { data: HeroBlock["data"]; set: (patch: Partial<HeroBlock["data"]>) => void; disabled?: boolean; onUploadingChange: (pending: boolean) => void }) {
+  const slides = data.slides;
+  const setSlide = (index: number, patch: Partial<HeroBlock["data"]["slides"][number]>) => set({ slides: slides.map((slide, slideIndex) => slideIndex === index ? { ...slide, ...patch } : slide) });
+  return <>
+    {<Section title={`Các ảnh trượt (${slides.length}/8)`}>
       {slides.length === 0 ? <p className="admin-help admin-text-warning">Chưa có ảnh nào: website sẽ hiện tiêu đề trên nền màu.</p> : null}
       {slides.map((slide, index) => <div className="admin-block-item" key={index}>
         <MediaPicker disabled={disabled} hint="Ảnh ngang, rộng từ 1920px. Ảnh banner đã có chữ thì để trống các ô chữ bên dưới." label={`Ảnh ${index + 1}`} onUploadingChange={onUploadingChange} preview value={slide.mediaId || null} onChange={mediaId => setSlide(index, { mediaId: mediaId ?? "" })} />
@@ -326,7 +338,7 @@ function HeroFields({ block, onChange, disabled, onUploadingChange }: { block: H
         <ListButtons index={index} length={slides.length} onMove={direction => set({ slides: changePosition(slides, index, direction) })} onDelete={() => set({ slides: slides.filter((_, slideIndex) => slideIndex !== index) })} />
       </div>)}
       {slides.length < 8 ? <button type="button" onClick={() => set({ slides: [...slides, { mediaId: "", title: null, description: null, action: null }] })}>Thêm ảnh trượt</button> : null}
-    </Section> : null}
+    </Section>}
   </>;
 }
 
@@ -450,7 +462,7 @@ function VideoFields({ block, onChange }: { block: VideoBlock; onChange: (block:
 
 function BlockFields({ block, onChange, disabled, onUploadingChange }: { block: PageBlock; onChange: (block: PageBlock) => void; disabled?: boolean; onUploadingChange: (pending: boolean) => void }) {
   switch (block.type) {
-    case "hero": return <HeroFields block={block} disabled={disabled} onChange={onChange} onUploadingChange={onUploadingChange} />;
+    case "hero": return <HeroFields block={block} disabled={disabled} onChange={onChange} onUploadingChange={onUploadingChange} part="content" />;
     case "media_text": return <MediaTextFields block={block} disabled={disabled} onChange={onChange} onUploadingChange={onUploadingChange} />;
     case "pricing": return <PricingFields block={block} onChange={onChange} />;
     case "grouped_list": return <GroupedListFields block={block} onChange={onChange} />;
@@ -487,19 +499,53 @@ type PageBlocksEditorProps = {
   onUploadingChange?: (pending: boolean) => void;
   /** Trang danh sách: phần đầu trang cố định ở vị trí đầu, chỉ thêm được khối phục vụ danh sách. */
   listing?: boolean;
+  /** Thành phần đang mở do màn cha giữ (để thẻ "Bố cục trang" mở/nhảy tới); bỏ trống thì tự giữ. */
+  openIndex?: number | null;
+  onOpenIndexChange?: (index: number | null) => void;
 };
 
-export function PageBlocksEditor({ blocks, onChange, disabled, onUploadingChange, listing = false }: PageBlocksEditorProps) {
-  const uploads = useRef(new Set<number>());
+type BlockTab = "content" | "media" | "appearance";
+/**
+ * Thân thành phần đang mở, chia tab cho form ngắn lại: Nội dung | (phần đầu trang) Bố cục & ảnh | Giao diện.
+ * Tab chưa mở không nằm trong form (không bị chặn lưu bởi ô ẩn). Đang tải ảnh thì khóa đổi tab để không mất upload dở.
+ */
+function BlockBody({ block, disabled, onChange, onUploadingChange }: { block: PageBlock; disabled?: boolean; onChange: (block: PageBlock) => void; onUploadingChange: (key: string, pending: boolean) => void }) {
+  const [tab, setTab] = useState<BlockTab>("content");
+  const [uploading, setUploading] = useState(0);
+  const id = useId();
+  const hero = block.type === "hero" ? block : null;
+  const tabs: Array<[BlockTab, string]> = hero ? [["content", "Nội dung"], ["media", "Bố cục & ảnh"], ["appearance", "Giao diện"]] : [["content", "Nội dung"], ["appearance", "Giao diện"]];
+  const track = (key: string) => (pending: boolean) => { setUploading((count) => Math.max(0, count + (pending ? 1 : -1))); onUploadingChange(key, pending); };
+  return <div className="admin-block__body">
+    <div aria-label="Nhóm thiết lập của thành phần" className="admin-block-tabs" role="tablist">{tabs.map(([key, label]) => <button aria-controls={`${id}-panel`} aria-selected={tab === key} className="admin-block-tabs__tab" disabled={Boolean(uploading) && tab !== key} id={`${id}-${key}`} key={key} onClick={() => setTab(key)} role="tab" title={uploading && tab !== key ? "Đang tải ảnh, đợi xong rồi chuyển tab" : undefined} type="button">{label}</button>)}</div>
+    <div aria-labelledby={`${id}-${tab}`} className="admin-block-tabs__panel" id={`${id}-panel`} role="tabpanel">
+      {tab === "content" ? <BlockFields block={block} disabled={disabled} onUploadingChange={track("content")} onChange={onChange} /> : null}
+      {tab === "media" && hero ? <HeroFields block={hero} disabled={disabled} onChange={onChange} onUploadingChange={track("media")} part="media" /> : null}
+      {tab === "appearance" ? <>
+        {hero ? <HeroToneField block={hero} disabled={disabled} onChange={onChange} /> : null}
+        <BlockAppearanceFields block={block} disabled={disabled} onChange={onChange} onUploadingChange={track("appearance")} />
+      </> : null}
+    </div>
+  </div>;
+}
+
+export function PageBlocksEditor({ blocks, onChange, disabled, onUploadingChange, listing = false, openIndex: openIndexProp, onOpenIndexChange }: PageBlocksEditorProps) {
+  const uploads = useRef(new Set<string>());
   const { confirm } = useAdminConfirm();
-  const [openIndex, setOpenIndex] = useState<number | null>(blocks.length ? 0 : null);
+  const [internalOpen, setInternalOpen] = useState<number | null>(blocks.length ? 0 : null);
+  const controlled = openIndexProp !== undefined;
+  const openIndex = controlled ? openIndexProp : internalOpen;
+  const setOpenIndex = (next: number | null | ((current: number | null) => number | null)) => {
+    const value = typeof next === "function" ? next(openIndex) : next;
+    if (controlled) onOpenIndexChange?.(value); else setInternalOpen(value);
+  };
   const pinnedHero = listing && blocks[0]?.type === "hero";
   const hasHero = blocks.some((block) => block.type === "hero");
   const libraryItems = blockOptions.filter((option) => !option.legacy && option.group && (!listing || option.value === "hero" || listingBlockTypes.has(option.value))).map((option) => ({ value: option.value, label: option.label, description: option.description, group: option.group, disabledReason: option.value === "hero" && hasHero ? "Trang đã có phần đầu trang." : undefined }));
 
-  function reportUploading(index: number, pending: boolean) {
-    if (pending) uploads.current.add(index);
-    else uploads.current.delete(index);
+  function reportUploading(key: string, pending: boolean) {
+    if (pending) uploads.current.add(key);
+    else uploads.current.delete(key);
     onUploadingChange?.(uploads.current.size > 0);
   }
   function update(index: number, block: PageBlock) { onChange(blocks.map((item, itemIndex) => itemIndex === index ? block : item)); }
@@ -545,7 +591,7 @@ export function PageBlocksEditor({ blocks, onChange, disabled, onUploadingChange
         const pinned = pinnedHero && index === 0;
         const open = openIndex === index;
         const lockedAbove = pinnedHero && index === 1;
-        return <li className={open ? "admin-block admin-block--open" : "admin-block"} key={`${block.type}-${index}`} {...drag.itemProps(index)}>
+        return <li className={open ? "admin-block admin-block--open" : "admin-block"} id={`page-block-${index}`} key={`${block.type}-${index}`} {...drag.itemProps(index)}>
           <div className="admin-block__head">
             {pinned ? <span className="admin-drag-handle admin-drag-handle--disabled" /> : <span aria-hidden="true" className="admin-drag-handle" {...drag.handleProps(index)}><GripVertical size={15} /></span>}
             <button aria-expanded={open} className="admin-block__toggle" onClick={() => setOpenIndex(open ? null : index)} type="button">
@@ -565,7 +611,7 @@ export function PageBlocksEditor({ blocks, onChange, disabled, onUploadingChange
               <button aria-label={`Xóa ${blockLabel(block.type)}`} className="admin-content-actions__button admin-content-actions__delete" disabled={disabled || pinned} onClick={() => void remove(index)} title="Xóa thành phần" type="button"><Trash2 aria-hidden="true" /></button>
             </div>
           </div>
-          {open ? <div className="admin-block__body"><BlockFields block={block} disabled={disabled} onUploadingChange={pending => reportUploading(index, pending)} onChange={next => update(index, next)} /><BlockAppearanceFields block={block} disabled={disabled} onChange={next => update(index, next)} onUploadingChange={pending => reportUploading(-(index + 1), pending)} /></div> : null}
+          {open ? <BlockBody block={block} disabled={disabled} onChange={next => update(index, next)} onUploadingChange={(key, pending) => reportUploading(`${index}:${key}`, pending)} /> : null}
         </li>;
       })}
     </ol>
