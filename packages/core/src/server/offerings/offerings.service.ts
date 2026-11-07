@@ -2,6 +2,7 @@ import {
   adminOfferingInputSchema,
   adminOfferingSchema,
   adminOfferingListItemSchema,
+  offeringCardFieldsSchema,
   offeringSlugSchema,
   publicOfferingDetailSchema,
   publicOfferingSummarySchema,
@@ -47,7 +48,11 @@ export async function getPublishedOfferingSummaries(type: string) {
   const parsedType = publicOfferingTypeSchema.parse(type);
   const rows = await listPublishedOfferings(parsedType);
 
-  return rows.map((row) => publicOfferingSummarySchema.parse(serializeOffering(row)));
+  return rows.map(({ content, ...row }) => {
+    // Nội dung cũ thiếu/sai trường thì thẻ chỉ không hiện phần đó, danh sách vẫn hiện.
+    const card = offeringCardFieldsSchema.safeParse(content);
+    return publicOfferingSummarySchema.parse({ ...serializeOffering(row), category: card.data?.category ?? null, metrics: card.data?.metrics ?? [] });
+  });
 }
 
 export async function getPublishedOfferingBySlug(type: string, slug: string, previewId?: string) {

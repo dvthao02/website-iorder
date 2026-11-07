@@ -22,6 +22,7 @@ export async function listPublishedOfferings(type: PublicOfferingType) {
       title: offerings.title,
       slug: offerings.slug,
       summary: offerings.summary,
+      content: offerings.content,
       icon: offerings.icon,
       isFeatured: offerings.isFeatured,
       sortOrder: offerings.sortOrder,

@@ -36,7 +36,8 @@ export const offeringContentSchema = z
   })
   .strict();
 
-export const publicOfferingSummarySchema = z
+// Trường chung của bản tóm tắt và bản chi tiết.
+const publicOfferingBaseSchema = z
   .object({
     id: z.string().uuid(),
     type: publicOfferingTypeSchema,
@@ -58,7 +59,17 @@ export const publicOfferingSummarySchema = z
   })
   .strict();
 
-export const publicOfferingDetailSchema = publicOfferingSummarySchema
+// Thẻ danh sách (/phan-mem, /giai-phap, /dich-vu, khối Danh sách nội dung) còn hiện chuyên mục và số liệu nổi bật,
+// lấy từ nội dung chi tiết (CMS › Sản phẩm) nên không cần nhập lại.
+export const offeringCardFieldsSchema = z.object({ category: offeringContentSchema.shape.category, metrics: offeringContentSchema.shape.metrics }).partial();
+export const publicOfferingSummarySchema = publicOfferingBaseSchema
+  .extend({
+    category: z.string().nullable(),
+    metrics: z.array(z.string()),
+  })
+  .strict();
+
+export const publicOfferingDetailSchema = publicOfferingBaseSchema
   .extend({
     content: offeringContentSchema,
     seoTitle: z.string().nullable(),
