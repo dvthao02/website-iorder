@@ -10,13 +10,13 @@ test("Trung tâm hỗ trợ: các kênh hỗ trợ, tìm không dấu, Enter m�
   await expect(page.locator("link[rel=canonical]")).toHaveAttribute("href", /\/ho-tro$/);
   await expect(page.locator(".support-channel").filter({ hasText: "Gửi yêu cầu hỗ trợ" })).toHaveAttribute("href", "/lien-he");
 
-  // "Làm quen với iOrder": thẻ trượt có Bước n, tên bài, Xem bài viết.
-  const guides = page.locator(".support-guide");
+  // "Hướng dẫn theo tính năng": lưới thẻ dẫn tới bài hướng dẫn, có link tới trang tổng hợp.
+  const section = page.getByRole("region", { name: "Hướng dẫn theo tính năng" });
+  const guides = section.locator(".guide-card");
   test.skip(await guides.count() === 0, "Chưa có bài hướng dẫn được xuất bản");
-  await expect(guides.first()).toContainText("Bước 1");
-  await expect(guides.first()).toContainText("Xem bài viết");
-  await expect(page.getByRole("button", { name: "Xem các bước trước" })).toBeDisabled();
-  const first = (await guides.first().locator(".text-lead").textContent())!.trim();
+  await expect(guides.first()).toHaveAttribute("href", /\/ho-tro\/huong-dan\/.+/);
+  await expect(section.getByRole("link", { name: /Tất cả \d+ bài hướng dẫn/ })).toHaveAttribute("href", "/ho-tro/huong-dan");
+  const first = (await guides.first().locator(".guide-card__title").textContent())!.trim();
   // Gõ không dấu, chữ thường: vẫn ra đúng bài.
   const folded = first.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").replace(/Đ/g, "D").toLowerCase();
   await page.getByRole("searchbox").fill(folded);
