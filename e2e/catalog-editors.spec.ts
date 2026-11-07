@@ -99,7 +99,7 @@ test("Thiết bị: nhóm thông số, giá hiển thị, lưu nháp rồi mở 
     await page.getByLabel("Giá trị thông số 2 của nhóm 1").fill("2.4/5 GHz");
 
     await page.getByRole("button", { name: "Lưu nháp" }).click();
-    await expect(page).toHaveURL(/\/admin\/thiet-bi\/[0-9a-f-]{36}$/);
+    await expect(page).toHaveURL(/\/admin\/equipment\/[0-9a-f-]{36}$/);
     itemId = page.url().split("/").pop();
 
     const saved = await (await page.request.get(`/api/admin/equipment/${itemId}`)).json() as { equipment: { priceVnd: number; groupId: string; specificationGroups: unknown } };

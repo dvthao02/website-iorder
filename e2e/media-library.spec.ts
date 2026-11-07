@@ -107,7 +107,9 @@ test("Thư viện media: tải nhiều tệp, lọc ảnh thiếu mô tả, xem 
     await page.getByLabel("Chọn tất cả trên trang").check();
     const bulk = page.getByRole("region", { name: "Thao tác với các dòng đã chọn" });
     await expect(bulk.getByText("Đã chọn 2")).toBeVisible();
-    await bulk.getByRole("button", { name: "Xóa tệp đã chọn" }).click();
+    // Thao tác hàng loạt nằm trong menu "Thao tác" (cùng kiểu với bảng danh sách).
+    await bulk.getByLabel("Chọn thao tác cho các dòng đã chọn").click();
+    await bulk.getByRole("menuitem", { name: /^Xóa tệp đã chọn/ }).click();
     await page.getByRole("alertdialog").getByRole("button", { name: "Xóa" }).click();
     await expect(page.locator(".admin-toast").filter({ hasText: "Đã xóa 2 tệp." })).toBeVisible();
     await expect(tiles).toHaveCount(0);

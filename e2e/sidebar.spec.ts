@@ -62,7 +62,9 @@ test("Trang chủ trên sidebar, Trang tự tạo, Sửa nội dung từ Menu", 
 
   await sidebar.getByRole("link", { name: "Trang chủ" }).click();
   await expect(page).toHaveURL(/\/admin\/homepage$/);
-  await expect(page.getByLabel("Tên trang")).toHaveValue("Trang chủ");
+  // Trang hệ thống: tên cố định nằm ở thanh tiêu đề (không có ô "Tên trang" để sửa).
+  await expect(page.locator(".admin-detail-panel__header")).toContainText("Trang chủ");
+  await expect(page.getByLabel("Tên trang")).toHaveCount(0);
   await expect(sidebar.getByRole("link", { name: "Trang chủ" })).toHaveAttribute("aria-current", "page");
 
   await sidebar.getByRole("link", { name: "Trang tự tạo" }).click();

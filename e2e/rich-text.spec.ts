@@ -103,7 +103,7 @@ test("Rời trang khi chưa lưu: hỏi bằng hộp của CMS (không dùng h�
   const dialog = page.getByRole("alertdialog", { name: "Rời màn hình khi chưa lưu?" });
   await expect(dialog).toBeVisible();
   await dialog.getByRole("button", { name: "Ở lại" }).click();
-  await expect(page).toHaveURL(/\/admin\/tin-tuc\/moi$/);
+  await expect(page).toHaveURL(/\/admin\/news\/new$/);
   await expect(page.getByLabel("Tiêu đề", { exact: true })).toHaveValue("Bản nháp chưa lưu");
 
   await sidebarLink.click();

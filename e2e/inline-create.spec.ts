@@ -26,7 +26,7 @@ test("Tạo chuyên mục và thẻ ngay trong editor bài viết", async ({ pag
     created.push({ kind: "tags", name: tagName });
     await expect(page.getByRole("checkbox", { name: tagName })).toBeChecked();
     // Tạo phân loại không được gửi form bài viết đang soạn.
-    await expect(page).toHaveURL(/\/admin\/tin-tuc\/moi$/);
+    await expect(page).toHaveURL(/\/admin\/news\/new$/);
   } finally {
     const response = await page.request.get("/api/admin/taxonomy");
     const { taxonomy } = await response.json() as { taxonomy: Record<"categories" | "tags", Array<{ id: string; name: string }>> };
@@ -48,7 +48,7 @@ test("Tạo nhóm thiết bị ngay trong form thêm thiết bị", async ({ pag
     await page.getByLabel("Tên nhóm thiết bị mới").press("Enter");
     const select = page.getByRole("combobox", { name: "Nhóm thiết bị" });
     await expect(select.locator("option:checked")).toHaveText(groupName);
-    await expect(page).toHaveURL(/\/admin\/thiet-bi\/moi$/);
+    await expect(page).toHaveURL(/\/admin\/equipment\/new$/);
   } finally {
     // Dọn mọi nhóm kiểm thử (kể cả nhóm sót lại từ lần chạy hỏng trước).
     const { equipmentGroups } = await (await page.request.get("/api/admin/equipment?groupsOnly=1")).json() as { equipmentGroups: Array<{ id: string; name: string }> };

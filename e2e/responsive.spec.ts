@@ -7,7 +7,7 @@ test("Trang Vai trò dùng được trên mobile", async ({ page }) => {
   await loginAsAdmin(page);
   await page.goto("/admin/roles");
   await page.getByRole("button", { name: "Tạo vai trò" }).click();
-  await expect(page.getByRole("checkbox", { name: "Xem — Bài viết & hướng dẫn" })).toBeVisible();
+  await expect(page.getByRole("checkbox", { name: "Xem — Bài viết, tin tức & hướng dẫn" })).toBeVisible();
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(overflow).toBeLessThanOrEqual(1);
 });

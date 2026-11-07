@@ -12,8 +12,8 @@ test("Máy tính: menu thả xuống, chân trang, liên hệ nổi, lên đầu
   await expect(branch.locator(".site-nav__dropdown")).toBeVisible();
 
   const footer = page.locator("footer.site-footer");
-  await expect(footer.getByRole("region", { name: "Thông tin liên hệ" })).toBeVisible();
-  await expect(footer.locator(".site-footer__bottom")).toContainText(`© ${new Date().getFullYear()} Sản phẩm phát triển bởi iOrder.vn`);
+  await expect(footer.getByRole("list", { name: "Liên hệ iOrder" })).toBeVisible();
+  await expect(footer.locator(".site-footer__bottom")).toContainText(new RegExp(`© ${new Date().getFullYear()} .+ - Phát triển bởi iOrder\\.vn`));
   await expect(footer.getByRole("link", { name: "DMCA Protected" })).toHaveAttribute("href", "https://www.dmca.com/Protection/Status.aspx?ID=55ed00a2-083d-43ee-ac48-18341d415669&refurl=https://iorder.vn/");
 
   // Nút lên đầu trang chỉ hiện khi đã cuộn.

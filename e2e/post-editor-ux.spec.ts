@@ -23,7 +23,7 @@ test("Soạn bài: tiêu đề và nội dung ở màn đầu, đường dẫn t
   await editor.click();
   await page.keyboard.press("Control+s");
   await expect(title).toBeFocused();
-  await expect(page).toHaveURL(/\/admin\/tin-tuc\/moi$/);
+  await expect(page).toHaveURL(/\/admin\/news\/new$/);
 
   await title.fill("Bài thử bố cục mới");
   await expect(page.locator(".admin-post-editor__path")).toHaveText("/tin-tuc/bai-thu-bo-cuc-moi");
@@ -99,7 +99,7 @@ test("Lưu nháp rồi mở lại: định dạng, bảng, danh sách, ảnh gi�
     await expect(frame).toHaveAttribute("data-width", "50");
 
     await page.getByRole("button", { name: "Lưu nháp", exact: true }).click();
-    await expect(page).toHaveURL(/\/admin\/tin-tuc\/[0-9a-f-]{36}$/);
+    await expect(page).toHaveURL(/\/admin\/news\/[0-9a-f-]{36}$/);
     postId = page.url().split("/").pop();
     const first = await (await page.request.get(`/api/admin/posts/${postId}`)).json() as { post: { content: unknown; draftVersion: number } };
 

@@ -15,15 +15,15 @@ test.describe("CMS", () => {
     await expect(page.getByRole("heading", { name: "Vai trò & quyền" })).toBeVisible();
     await page.getByRole("button", { name: "Tạo vai trò" }).click();
 
-    const publish = page.getByRole("checkbox", { name: "Xuất bản — Bài viết & hướng dẫn" });
-    const view = page.getByRole("checkbox", { name: "Xem — Bài viết & hướng dẫn" });
-    const moduleBox = page.getByRole("checkbox", { name: "Chọn tất cả quyền của Bài viết & hướng dẫn" });
+    const publish = page.getByRole("checkbox", { name: "Xuất bản — Bài viết, tin tức & hướng dẫn" });
+    const view = page.getByRole("checkbox", { name: "Xem — Bài viết, tin tức & hướng dẫn" });
+    const moduleBox = page.getByRole("checkbox", { name: "Chọn tất cả quyền của Bài viết, tin tức & hướng dẫn" });
     await publish.check();
     await expect(view).toBeChecked();
     expect(await moduleBox.evaluate((input: HTMLInputElement) => input.indeterminate)).toBe(true);
 
     await moduleBox.check();
-    await expect(page.getByRole("checkbox", { name: "Xóa — Bài viết & hướng dẫn" })).toBeChecked();
+    await expect(page.getByRole("checkbox", { name: "Xóa — Bài viết, tin tức & hướng dẫn" })).toBeChecked();
     expect(await moduleBox.evaluate((input: HTMLInputElement) => input.indeterminate)).toBe(false);
 
     await view.uncheck();

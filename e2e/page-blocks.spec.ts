@@ -62,7 +62,7 @@ test("Các khối trang hiển thị có bố cục: phần đầu có ảnh và
   await site.close();
 });
 
-test("Trình sửa trang chỉ có một thanh cuộn; trường ảnh của phần đầu trang không lồng khung", async ({ page }) => {
+test("Trình sửa trang chỉ có một thanh cuộn; ảnh của phần đầu trang không lồng hai khung", async ({ page }) => {
   await page.setViewportSize({ width: 1600, height: 900 });
   await loginAsAdmin(page);
   const pages = await (await page.request.get("/api/admin/pages?query=home&pageSize=25")).json() as { result: { items: Array<{ id: string; slug: string }> } };
@@ -73,10 +73,17 @@ test("Trình sửa trang chỉ có một thanh cuộn; trường ảnh của ph�
   if (!(await hero.evaluate((element) => element.classList.contains("admin-block--open")))) await hero.locator(".admin-block__toggle").click();
   // Trang chủ có thể đang dùng kiểu khác (ví dụ trượt ảnh): chọn kiểu chữ – ảnh trên form (không lưu) để có ô ảnh minh họa.
   await hero.getByRole("group", { name: "Kiểu bố cục" }).getByText("Chữ trái, ảnh phải").click();
-  const picker = hero.locator(".media-picker");
-  await expect(picker.getByRole("heading", { name: "Ảnh bên phải (tùy chọn)" })).toBeVisible();
-  // Bộ chọn ảnh nằm trực tiếp trong khối, không bọc thêm khung nhóm.
-  expect(await picker.evaluate((element) => element.closest(".admin-block-group") === null)).toBe(true);
+  // Ảnh của phần đầu trang nằm trong một nhóm "Ảnh bên phải (tùy chọn) (n/…)", mỗi ảnh một bộ chọn "Ảnh 1", "Ảnh 2"…
+  const images = hero.locator(".admin-block-group").filter({ has: page.locator("legend", { hasText: "Ảnh bên phải (tùy chọn)" }) }).first();
+  await expect(images).toBeVisible();
+  const picker = images.locator(".media-picker").first();
+  await expect(picker.getByRole("heading", { name: "Ảnh 1" })).toBeVisible();
+  // Bộ chọn ảnh nằm thẳng trong nhóm ảnh, không lồng thêm khung nhóm thứ hai.
+  expect(await picker.evaluate((element) => {
+    let groups = 0;
+    for (let parent = element.parentElement; parent && !parent.classList.contains("admin-block"); parent = parent.parentElement) if (parent.classList.contains("admin-block-group")) groups++;
+    return groups;
+  })).toBe(1);
   await hero.screenshot({ path: "test-results/page-editor-hero.png" });
 
   // Chỉ phần thân cuộn, nằm gọn giữa thanh tiêu đề và thanh lưu (thanh cuộn không chui dưới hai thanh).
