@@ -54,3 +54,17 @@ test("Điện thoại: nút ☰ mở menu toàn màn hình, nhóm gập/mở, kh
   await page.keyboard.press("Escape");
   await expect(menu).toBeHidden();
 });
+
+test("Bàn phím: Tab đầu tiên là \"Bỏ qua tới nội dung chính\", mọi trang có đúng một vùng nội dung chính", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  for (const path of ["/", "/lien-he", "/tin-tuc"]) {
+    await page.goto(`${webUrl}${path}`);
+    await expect(page.locator("main#noi-dung")).toHaveCount(1);
+  }
+  await page.keyboard.press("Tab");
+  await expect(page.getByRole("link", { name: "Bỏ qua tới nội dung chính" })).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/#noi-dung$/);
+  // Liên kết chân trang đủ vùng bấm (tối thiểu 24px).
+  expect(await page.evaluate(() => [...document.querySelectorAll(".site-footer__column ul a")].filter((link) => link.getBoundingClientRect().height < 24).length)).toBe(0);
+});

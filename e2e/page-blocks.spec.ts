@@ -120,3 +120,24 @@ test("Cuộn bài dài: thanh công cụ soạn thảo dính sát dưới thanh 
   }));
   expect(Math.abs(position.toolbar - position.header)).toBeLessThanOrEqual(1);
 });
+
+test("Danh sách khối: nhãn giao diện trên dòng gập, Nhân bản chèn bản sao ngay dưới (không lưu)", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await loginAsAdmin(page);
+  await page.goto("/admin/homepage");
+  const blocks = page.locator(".admin-block");
+  await expect(blocks.first()).toBeVisible();
+  const count = await blocks.count();
+  test.skip(count < 2, "Trang chủ cần ít nhất hai khối");
+  // Phần đầu trang không nhân bản được (mỗi trang một phần đầu trang).
+  await expect(blocks.first().getByRole("button", { name: /^Nhân bản/ })).toBeDisabled();
+  const source = blocks.nth(1);
+  const label = await source.locator(".admin-block__toggle > strong").textContent();
+  await source.getByRole("button", { name: /^Nhân bản/ }).click();
+  await expect(blocks).toHaveCount(count + 1);
+  await expect(blocks.nth(2)).toHaveClass(/admin-block--open/);
+  await expect(blocks.nth(2).locator(".admin-block__toggle > strong")).toHaveText(label!);
+  // Bản sao bỏ mã neo để neo trên trang không trùng.
+  await expect(blocks.nth(2).locator(".admin-block__tag", { hasText: /^#/ })).toHaveCount(0);
+  await expect(page.getByText("Có thay đổi chưa lưu")).toBeVisible();
+});
