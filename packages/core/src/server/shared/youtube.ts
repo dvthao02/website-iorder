@@ -28,6 +28,22 @@ export function youtubeVideoId(input: string): string | null {
   return isYoutubeVideoId(id) ? id : null;
 }
 
+/**
+ * Một dòng chỉ gồm link YouTube → mã video (để tự đổi thành khối video khi nhập file Word/Markdown hoặc khi dán).
+ * Nhận khi: cả dòng là một link YouTube; hoặc cả dòng là đúng một liên kết (chữ bất kỳ) trỏ tới YouTube.
+ * Dòng có chữ khác ngoài link thì giữ nguyên là đoạn văn.
+ */
+export function youtubeLineVideoId(text: string, links: ReadonlyArray<{ href: string; text: string }> = []): string | null {
+  const line = text.replace(/\s+/g, " ").trim();
+  if (!line) return null;
+  if (!/\s/.test(line)) {
+    const direct = youtubeVideoId(line);
+    if (direct) return direct;
+  }
+  if (links.length === 1 && links[0].text.replace(/\s+/g, " ").trim() === line) return youtubeVideoId(links[0].href);
+  return null;
+}
+
 export const youtubeEmbedUrl = (videoId: string) => `https://www.youtube-nocookie.com/embed/${videoId}?rel=0`;
 export const youtubeWatchUrl = (videoId: string) => `https://www.youtube.com/watch?v=${videoId}`;
 export const youtubeThumbnailUrl = (videoId: string) => `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
