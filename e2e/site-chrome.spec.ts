@@ -68,3 +68,23 @@ test("Bàn phím: Tab đầu tiên là \"Bỏ qua tới nội dung chính\", m�
   // Liên kết chân trang đủ vùng bấm (tối thiểu 24px).
   expect(await page.evaluate(() => [...document.querySelectorAll(".site-footer__column ul a")].filter((link) => link.getBoundingClientRect().height < 24).length)).toBe(0);
 });
+
+test("Liên kết tới URL qua rewrites() (/tin-tuc, /thiet-bi…) không bị tải trước lặp lại; bấm vẫn chuyển trang", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const prefetches = new Map<string, number>();
+  page.on("request", (request) => {
+    if (!request.headers()["next-router-prefetch"]) return;
+    const path = new URL(request.url()).pathname;
+    prefetches.set(path, (prefetches.get(path) ?? 0) + 1);
+  });
+  await page.goto(`${webUrl}/lien-he`);
+  await page.waitForTimeout(4000);
+  // Trước khi sửa: mỗi URL bị rewrite tải trước ~10 lần/giây không dừng.
+  for (const [path, count] of prefetches) expect(count, path).toBeLessThanOrEqual(2);
+  const nav = page.getByRole("navigation", { name: "Điều hướng chính" });
+  const equipment = nav.getByRole("link", { name: "Thiết bị", exact: true });
+  test.skip(await equipment.count() === 0, "Menu chưa có mục Thiết bị");
+  await equipment.click();
+  await expect(page).toHaveURL(/\/thiet-bi$/);
+  await expect(page.locator("main#noi-dung h1")).toBeVisible();
+});
