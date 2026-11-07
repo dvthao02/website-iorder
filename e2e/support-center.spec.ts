@@ -33,7 +33,7 @@ test("Hướng dẫn: danh mục bên trái, bài đang xem được tô, mục 
   const cards = page.locator(".guide-card");
   test.skip(await cards.count() === 0, "Chưa có bài hướng dẫn được xuất bản");
   await expect(page.getByRole("navigation", { name: "Danh mục hướng dẫn" })).toBeVisible();
-  const title = (await cards.first().locator(".font-bold").textContent())!.trim();
+  const title = (await cards.first().locator(".guide-card__title").textContent())!.trim();
   await cards.first().click();
   await expect(page).toHaveURL(/\/ho-tro\/huong-dan\/.+/);
   await expect(page.locator("h1")).toHaveText(title);
