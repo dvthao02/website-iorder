@@ -3,8 +3,8 @@
 import Image from "next/image";
 import { SiteLink as Link } from "@/components/site/site-link";
 import { usePathname } from "next/navigation";
-import { BookOpen, Building2, ChevronDown, Compass, CodeXml, Menu, MonitorSmartphone, Network, Newspaper, Package, Phone, ReceiptText, Server, ShieldCheck, ShoppingCart, Wrench, X, Zap, type LucideIcon } from "lucide-react";
-import { useCallback, useEffect, useRef, useState, type FocusEvent } from "react";
+import { ChevronDown, Menu, X } from "lucide-react";
+import { useCallback, useEffect, useRef, useState, type FocusEvent, type KeyboardEvent as ReactKeyboardEvent } from "react";
 
 export type HeaderLink = { key: string; label: string; url: string; target: "_self" | "_blank"; children: HeaderLink[] };
 
@@ -16,39 +16,13 @@ function matches(pathname: string, url: string) {
 }
 const isActive = (pathname: string, link: HeaderLink): boolean => matches(pathname, link.url) || link.children.some((child) => isActive(pathname, child));
 
-// Biểu tượng cho mục con của menu: chọn theo đường dẫn (slug ổn định, không đổi khi sửa nhãn). Mục không khớp thì không có biểu tượng;
-// bảng chỉ hiện ô biểu tượng khi có ít nhất một mục khớp (menu Hỗ trợ, Tin tức… giữ dạng chữ).
-const dropdownIcons: { keys: string[]; icon: LucideIcon }[] = [
-  { keys: ["ban-hang"], icon: ShoppingCart },
-  { keys: ["tram-sac"], icon: Zap },
-  { keys: ["hoa-don", "chu-ky-so"], icon: ReceiptText },
-  { keys: ["chuyen-doi-so", "tu-van"], icon: Compass },
-  { keys: ["phat-trien-phan-mem", "theo-yeu-cau"], icon: CodeXml },
-  { keys: ["ha-tang", "wifi", "camera"], icon: Network },
-  { keys: ["data-center", "trung-tam-du-lieu"], icon: Server },
-  { keys: ["kiem-soat", "cham-cong"], icon: ShieldCheck },
-  { keys: ["tin-tuc"], icon: Newspaper },
-  { keys: ["huong-dan"], icon: BookOpen },
-  { keys: ["cai-dat"], icon: Wrench },
-  { keys: ["ho-tro-tu-xa"], icon: MonitorSmartphone },
-  { keys: ["gioi-thieu"], icon: Building2 },
-  { keys: ["lien-he"], icon: Phone },
-];
-const iconFor = (url: string): LucideIcon | null => dropdownIcons.find((entry) => entry.keys.some((key) => url.includes(key)))?.icon ?? null;
-
-// Bảng thả xuống: chỉ các mục con (mục cha đã là liên kết trên menu ngang, bấm vào là sang trang tổng hợp), nối về
-// mục cha bằng vạch dạng cây; nhiều mục (>4) chia 2 cột; mục có biểu tượng thì hiện ô biểu tượng.
+// Bảng thả xuống: chỉ các mục con (mục cha đã là liên kết trên menu ngang, bấm vào là sang trang tổng hợp), dạng danh sách
+// chữ gọn; nhiều mục (>4) chia 2 cột.
 function DropdownPanel({ link, pathname }: { link: HeaderLink; pathname: string }) {
-  const withIcons = link.children.some((child) => iconFor(child.url));
-  const wide = link.children.length > 4;
-  return <div className={wide ? "site-nav__dropdown site-nav__dropdown--wide" : "site-nav__dropdown"}>
-    <ul className="site-nav__dropdown-list site-nav__dropdown-list--tree">{link.children.map((child) => {
-      const Icon = withIcons ? (iconFor(child.url) ?? Package) : null;
-      return <li key={child.key}><Link aria-current={matches(pathname, child.url) ? "page" : undefined} className="site-nav__dropdown-link" href={child.url} {...external(child)}>
-        {Icon ? <span aria-hidden="true" className="site-nav__dropdown-icon"><Icon size={20} strokeWidth={1.75} /></span> : null}
-        <span>{child.label}</span>
-      </Link></li>;
-    })}</ul>
+  return <div className={link.children.length > 4 ? "site-nav__dropdown site-nav__dropdown--wide" : "site-nav__dropdown"}>
+    <ul className="site-nav__dropdown-list">{link.children.map((child) => <li key={child.key}>
+      <Link aria-current={matches(pathname, child.url) ? "page" : undefined} className="site-nav__dropdown-link" href={child.url} {...external(child)}>{child.label}</Link>
+    </li>)}</ul>
   </div>;
 }
 
@@ -85,6 +59,22 @@ export function SiteHeaderBar({ actions, brand, links, logo }: { actions: Header
   }, [activeIndex, moveBar]);
   const leaveNav = (event: FocusEvent<HTMLUListElement>) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) moveBar(activeIndex); };
 
+  // Bảng thả xuống: chỉ một bảng mở tại một thời điểm (trước đây mở theo :hover HOẶC :focus-within nên bấm một mục rồi rê
+  // sang mục khác thì hai bảng chồng lên nhau). Rê chuột/Tab vào mục cha thì mở, rời ra đóng sau một nhịp ngắn (để kịp đưa
+  // chuột xuống bảng), Esc đóng và trả focus về mục cha; chuyển trang là tự đóng (gắn với đường dẫn lúc mở).
+  const [dropdown, setDropdown] = useState<{ key: string; path: string } | null>(null);
+  const openKey = dropdown?.path === pathname ? dropdown.key : null;
+  const closeTimer = useRef<number | undefined>(undefined);
+  const openDropdown = (key: string) => { window.clearTimeout(closeTimer.current); setDropdown({ key, path: pathname }); };
+  const closeDropdownSoon = (key: string) => { window.clearTimeout(closeTimer.current); closeTimer.current = window.setTimeout(() => setDropdown((current) => current?.key === key ? null : current), 140); };
+  useEffect(() => () => window.clearTimeout(closeTimer.current), []);
+  const closeOnEscape = (event: ReactKeyboardEvent<HTMLLIElement>) => {
+    if (event.key !== "Escape") return;
+    setDropdown(null);
+    event.currentTarget.querySelector<HTMLElement>(".site-nav__link")?.focus();
+  };
+  const leaveBranch = (key: string) => (event: FocusEvent<HTMLLIElement>) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDropdown((current) => current?.key === key ? null : current); };
+
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
     onScroll();
@@ -113,8 +103,9 @@ export function SiteHeaderBar({ actions, brand, links, logo }: { actions: Header
           const active = isActive(pathname, link);
           const hover = { onFocus: () => moveBar(index), onMouseEnter: () => moveBar(index) };
           if (!link.children.length) return <li className="site-nav__item" key={link.key} {...hover}><Link aria-current={matches(pathname, link.url) ? "page" : undefined} className={active ? "site-nav__link site-nav__link--active" : "site-nav__link"} href={link.url} {...external(link)}><span className="site-nav__label">{link.label}</span></Link></li>;
-          return <li className="site-nav__item site-nav__item--branch" key={link.key} {...hover}>
-            <Link aria-haspopup="true" className={active ? "site-nav__link site-nav__link--active" : "site-nav__link"} href={link.url} {...external(link)}><span className="site-nav__label">{link.label}</span><ChevronDown aria-hidden="true" className="site-nav__caret" size={16} /></Link>
+          const open = openKey === link.key;
+          return <li className="site-nav__item site-nav__item--branch" data-open={open} key={link.key} onBlur={leaveBranch(link.key)} onFocus={() => { moveBar(index); openDropdown(link.key); }} onKeyDown={closeOnEscape} onMouseEnter={() => { moveBar(index); openDropdown(link.key); }} onMouseLeave={() => closeDropdownSoon(link.key)}>
+            <Link aria-expanded={open} aria-haspopup="true" className={active ? "site-nav__link site-nav__link--active" : "site-nav__link"} href={link.url} {...external(link)}><span className="site-nav__label">{link.label}</span><ChevronDown aria-hidden="true" className="site-nav__caret" size={16} /></Link>
             <DropdownPanel link={link} pathname={pathname} />
           </li>;
         })}</ul>

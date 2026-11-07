@@ -364,27 +364,17 @@ body:has([data-hero-top="dark"]) .site-header:not(.site-header--scrolled) .brand
 .site-nav__bar[data-instant="true"] { transition: opacity 160ms ease; }
 .site-nav__link:focus-visible, .site-nav__dropdown-link:focus-visible { outline: 3px solid rgb(21 112 224 / .3); outline-offset: 2px; }
 .site-nav__caret { color: var(--color-muted); transition: transform 160ms ease; }
-.site-nav__item--branch:hover .site-nav__caret, .site-nav__item--branch:focus-within .site-nav__caret { transform: rotate(180deg); }
-.site-nav__dropdown { position: absolute; top: calc(100% + 10px); left: 50%; z-index: 30; width: max-content; min-width: 17.5rem; max-width: calc(100vw - 2rem); margin: 0; padding: .625rem; border: 1px solid var(--color-line); border-radius: 1.25rem; background: white; box-shadow: var(--shadow-raised); opacity: 0; pointer-events: none; translate: -50% -6px; visibility: hidden; transition: opacity 160ms ease, translate 160ms ease, visibility 160ms; }
-.site-nav__dropdown-list { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; }
-.site-nav__dropdown::before { position: absolute; top: -12px; right: 0; left: 0; height: 12px; content: ""; }
-/* Mũi nhọn chữ V ở giữa mép trên: chỉ thẳng vào mục cha (bảng luôn căn giữa dưới mục), nối bảng với mục đang mở. */
-.site-nav__dropdown::after { position: absolute; top: -7px; left: 50%; width: 14px; height: 14px; border-top: 1px solid var(--color-line); border-left: 1px solid var(--color-line); border-top-left-radius: 3px; background: white; content: ""; transform: translateX(-50%) rotate(45deg); }
-.site-nav__dropdown--wide .site-nav__dropdown-list { grid-template-columns: repeat(2, minmax(19rem, 1fr)); column-gap: .5rem; }
-.site-nav__item--branch:hover > .site-nav__dropdown, .site-nav__item--branch:focus-within > .site-nav__dropdown { opacity: 1; pointer-events: auto; translate: -50% 0; visibility: visible; }
-.site-nav__dropdown-link { display: flex; align-items: center; gap: .875rem; min-height: 3.25rem; border-radius: .875rem; padding: .5rem .75rem; color: var(--color-ink); font-size: .95rem; font-weight: 500; line-height: 1.4; transition: background 150ms ease, color 150ms ease; }
-/* Mục con đang rê/đang xem: đổi màu chữ và ô biểu tượng, không tô nền cả ô. */
-.site-nav__dropdown-link:hover, .site-nav__dropdown-link[aria-current="page"] { color: var(--color-brand-700); }
-/* Ô biểu tượng: nền xanh nhạt, đậm lên khi rê chuột để mắt dễ bám theo mục đang chọn. */
-.site-nav__dropdown-icon { display: grid; flex-shrink: 0; width: 2.5rem; height: 2.5rem; place-items: center; border-radius: .75rem; background: var(--color-accent-blue-soft); color: var(--color-brand-600); transition: background 150ms ease, color 150ms ease; }
-.site-nav__dropdown-link:hover .site-nav__dropdown-icon, .site-nav__dropdown-link[aria-current="page"] .site-nav__dropdown-icon { background: var(--color-brand-600); color: white; }
-/* Mục con nối về mục cha bằng vạch dạng cây (dọc + nhánh ngang), mỗi cột một nhánh khi bảng chia 2 cột. */
-.site-nav__dropdown-list--tree > li { position: relative; padding-left: 1.25rem; }
-.site-nav__dropdown-list--tree > li::before { position: absolute; top: 0; bottom: 0; left: .5rem; border-left: 1.5px solid var(--color-line); content: ""; }
-.site-nav__dropdown-list--tree > li::after { position: absolute; top: 50%; left: .5rem; width: .625rem; border-top: 1.5px solid var(--color-line); content: ""; }
-.site-nav__dropdown-list--tree > li:last-child::before { bottom: 50%; }
-/* Bảng 2 cột: mục kế cuối luôn là mục cuối của cột còn lại (số mục chẵn hay lẻ đều đúng). */
-.site-nav__dropdown--wide .site-nav__dropdown-list--tree > li:nth-last-child(2)::before { bottom: 50%; }
+.site-nav__item--branch[data-open="true"] .site-nav__caret { transform: rotate(180deg); }
+/* Bảng thả xuống: một bảng mở tại một thời điểm (data-open do JS đặt). Danh sách chữ gọn, góc bo nhỏ, bóng nhẹ. */
+.site-nav__dropdown { position: absolute; top: calc(100% + 8px); left: 50%; z-index: 30; width: max-content; min-width: 14rem; max-width: calc(100vw - 2rem); margin: 0; padding: 6px; border: 1px solid var(--color-line); border-radius: 10px; background: white; box-shadow: 0 10px 24px -12px rgb(15 23 42 / .22); opacity: 0; pointer-events: none; translate: -50% -4px; visibility: hidden; transition: opacity 120ms ease, translate 120ms ease, visibility 120ms; }
+.site-nav__dropdown-list { display: grid; gap: 1px; margin: 0; padding: 0; list-style: none; }
+/* Cầu nối vô hình giữa mục cha và bảng để rê chuột xuống không bị mất bảng. */
+.site-nav__dropdown::before { position: absolute; top: -10px; right: 0; left: 0; height: 10px; content: ""; }
+.site-nav__dropdown--wide .site-nav__dropdown-list { grid-template-columns: repeat(2, minmax(15rem, 1fr)); column-gap: 4px; }
+.site-nav__item--branch[data-open="true"] > .site-nav__dropdown { opacity: 1; pointer-events: auto; translate: -50% 0; visibility: visible; }
+.site-nav__dropdown-link { display: flex; align-items: center; min-height: 2.5rem; border-radius: 6px; padding: .5rem .75rem; color: var(--color-ink); font-size: .95rem; font-weight: 500; line-height: 1.4; transition: background 120ms ease, color 120ms ease; }
+.site-nav__dropdown-link:hover { background: var(--color-subtle); }
+.site-nav__dropdown-link[aria-current="page"] { color: var(--color-brand-700); font-weight: 600; }
 
 /* Máy tính màn hẹp: menu và nút gọn lại để logo – menu – nút luôn cách nhau, không chữ nào đè lên nhau.
  * Hẹp hơn nữa (xem breakpoint menu điện thoại bên dưới) thì chuyển sang nút ☰. Đổi nhãn menu dài hơn trong CMS thì đo lại. */
