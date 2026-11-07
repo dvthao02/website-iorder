@@ -427,83 +427,52 @@ body:has([data-hero-top="dark"]) .site-header:not(.site-header--scrolled) .brand
 }
 
 /*
- * Chân trang tông trắng – xanh như toàn website (theo mẫu người dùng duyệt): nền xanh rất nhạt có hai dải sóng trắng mềm,
- * thanh liên hệ trắng bo tròn (4 mục ngăn bằng vạch dọc) → cột thương hiệu | vạch dọc | cột menu (biểu tượng + tiêu đề
- * in hoa, không vạch nhấn) → dải cuối một hàng (© – đơn vị phát triển | tên pháp lý … nhãn DMCA).
+ * Chân trang kiểu thông thường, phẳng: nền xám rất nhạt, không sóng/bóng/viên thuốc.
+ * Cột thương hiệu (logo, mô tả, liên hệ dạng chữ, mạng xã hội, kho ứng dụng) → các cột menu từ CMS (tiêu đề chữ thường,
+ * không biểu tượng) → dải cuối hai bên: © – đơn vị phát triển · tên pháp lý | DMCA.
  */
-.site-footer {
-  border-top: 1px solid var(--color-line);
-  background:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 240' preserveAspectRatio='none'%3E%3Cpath fill='%23fff' fill-opacity='.7' d='M0 0h1440v96c-220 70-430 84-700 40C470 92 230 70 0 120z'/%3E%3C/svg%3E") top / 100% 240px no-repeat,
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 260' preserveAspectRatio='none'%3E%3Cpath fill='%23fff' fill-opacity='.55' d='M0 120c260-70 520-60 760 0s470 40 680-30v170H0z'/%3E%3C/svg%3E") bottom / 100% 260px no-repeat,
-    radial-gradient(50% 60% at 100% 20%, rgb(217 235 255 / .7), transparent 70%),
-    linear-gradient(180deg, #f3f8ff 0%, #e8f1fc 100%);
-  color: var(--color-muted);
-}
-.site-footer__frame { width: 100%; max-width: var(--site-width); margin: 0 auto; padding: 72px var(--gutter) 0; }
-/* Thanh liên hệ */
-.site-footer__contacts { display: grid; grid-template-columns: repeat(var(--footer-contacts, 4), minmax(0, 1fr)); margin: 0 0 64px; border-radius: 2.5rem; background: white; padding: 22px 12px; box-shadow: 0 18px 44px -24px rgb(21 112 224 / .35), 0 2px 6px rgb(15 23 42 / .04); list-style: none; }
-.site-footer__contacts > li { display: flex; min-width: 0; padding: 0 clamp(16px, 2vw, 32px); }
-.site-footer__contacts > li + li { border-left: 1px solid var(--color-line); }
-.site-footer__contact { display: flex; width: 100%; align-items: center; gap: 16px; border-radius: 1.5rem; }
-a.site-footer__contact:hover .site-footer__contact-value { color: var(--color-brand-700); }
-.site-footer__contact-icon { display: grid; flex: 0 0 auto; width: clamp(48px, 3.4vw, 60px); height: clamp(48px, 3.4vw, 60px); place-items: center; border-radius: 999px; background: var(--color-brand-50); color: var(--color-brand-600); }
-.site-footer__contact-text { display: grid; min-width: 0; gap: 4px; }
-.site-footer__contact-label { color: var(--color-muted); font-size: .92rem; }
-/* Chữ dài (email, giờ làm việc) xuống dòng thay vì bị cắt. */
-.site-footer__contact-value { color: var(--color-ink); font-size: 1.12rem; font-weight: 700; line-height: 1.3; overflow-wrap: break-word; transition: color 150ms ease; }
-/* Cột thương hiệu | các cột menu */
-.site-footer__inner { display: grid; grid-template-columns: minmax(240px, 1fr) minmax(0, 3.3fr); gap: 40px; padding-bottom: 56px; }
-.site-footer__profile { display: grid; align-content: start; gap: 22px; border-right: 1px solid var(--color-line); padding-right: clamp(24px, 3vw, 48px); }
+.site-footer { border-top: 1px solid var(--color-line); background: #f7f9fc; color: var(--color-muted); }
+.site-footer__frame { width: 100%; max-width: var(--site-width); margin: 0 auto; padding: 56px var(--gutter) 0; }
+.site-footer__inner { display: grid; grid-template-columns: minmax(240px, 1.1fr) minmax(0, 3fr); gap: 48px; padding-bottom: 48px; }
+.site-footer__profile { display: grid; align-content: start; gap: 18px; }
 .site-footer__logo { display: inline-flex; width: fit-content; }
-.site-footer__logo strong { color: var(--color-ink); font-size: 2rem; }
-.site-footer__tagline { margin: 0; color: var(--color-ink); opacity: .8; font-size: 1.05rem; line-height: 1.55; }
-.site-footer__socials, .site-footer__stores { display: flex; flex-wrap: wrap; gap: 12px; margin: 0; padding: 0; list-style: none; }
-.site-footer__socials a { display: grid; width: 48px; height: 48px; place-items: center; border-radius: 999px; background: white; box-shadow: 0 6px 16px -8px rgb(15 23 42 / .35); transition: transform 150ms ease, box-shadow 150ms ease; }
-.site-footer__socials a:hover { box-shadow: 0 10px 22px -10px rgb(21 112 224 / .5); transform: translateY(-2px); }
-.site-footer__stores a { display: inline-flex; height: 48px; align-items: center; gap: 8px; border-radius: 10px; background: #0b0d12; padding: 0 14px 0 12px; color: white; transition: transform 150ms ease, background 150ms ease; }
-.site-footer__stores a:hover { background: #1c2230; transform: translateY(-2px); }
-.site-footer__stores span { display: grid; font-size: 1.05rem; font-weight: 600; line-height: 1.05; }
-.site-footer__stores small { font-size: .62rem; font-weight: 500; letter-spacing: .02em; }
+.site-footer__logo strong { color: var(--color-ink); font-size: 1.75rem; }
+.site-footer__tagline { margin: 0; color: var(--color-muted); font-size: .95rem; line-height: 1.6; }
+.site-footer__contact-list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; font-size: .95rem; }
+.site-footer__contact-list li { display: flex; flex-wrap: wrap; gap: 0 6px; }
+.site-footer__contact-list span { color: var(--color-muted); }
+.site-footer__contact-list a, .site-footer__contact-list strong { color: var(--color-ink); font-weight: 600; }
+.site-footer__contact-list a:hover { color: var(--color-brand-700); text-decoration: underline; }
+.site-footer__socials, .site-footer__stores { display: flex; flex-wrap: wrap; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.site-footer__socials a { display: grid; width: 38px; height: 38px; place-items: center; border: 1px solid var(--color-line); border-radius: 8px; background: white; transition: border-color 150ms ease; }
+.site-footer__socials a:hover { border-color: var(--color-brand-300); }
+.site-footer__socials svg { width: 20px; height: 20px; }
+.site-footer__stores a { display: inline-flex; height: 42px; align-items: center; gap: 8px; border-radius: 8px; background: #0b0d12; padding: 0 12px 0 10px; color: white; transition: background 150ms ease; }
+.site-footer__stores a:hover { background: #262d3b; }
+.site-footer__stores span { display: grid; font-size: .95rem; font-weight: 600; line-height: 1.05; }
+.site-footer__stores small { font-size: .58rem; font-weight: 500; letter-spacing: .02em; }
 .site-footer__columns { display: grid; grid-template-columns: repeat(var(--footer-columns, 3), minmax(0, 1fr)); gap: 32px clamp(20px, 2.5vw, 40px); }
-.site-footer__heading { display: flex; align-items: center; gap: 14px; margin: 0 0 22px; color: var(--color-ink); font-size: 1rem; font-weight: 800; letter-spacing: .03em; line-height: 1.3; text-transform: uppercase; }
-.site-footer__heading-icon { flex: 0 0 auto; color: var(--color-brand-600); }
+.site-footer__heading { display: block; margin: 0 0 14px; color: var(--color-ink); font-size: .95rem; font-weight: 700; line-height: 1.4; }
 a.site-footer__heading:hover { color: var(--color-brand-700); }
-.site-footer__column ul { display: grid; gap: 14px; margin: 0; padding: 0; list-style: none; }
-.site-footer__column ul a { display: inline-block; color: #3b4a63; font-size: 1rem; line-height: 1.45; text-wrap: pretty; transition: color 150ms ease; }
-.site-footer__column ul a:hover { color: var(--color-brand-600); }
-.site-footer__column ul a { min-height: 24px; padding-block: 2px; }
-/* Dải cuối */
-/* Dải cuối căn giữa: bản quyền | tên pháp lý | nhãn DMCA nằm cân giữa một hàng; màn hẹp tự xếp thành các dòng căn giữa. */
-.site-footer__bottom { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 14px 24px; border-top: 1px solid var(--color-line); padding: 24px 0 28px; text-align: center; }
-.site-footer__copyright { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px 20px; margin: 0; color: var(--color-ink); font-size: 1rem; }
-.site-footer__legal { border-left: 1px solid var(--color-line-strong, #c9d4e3); padding-left: 20px; }
-.site-footer__developer { color: var(--color-brand-600); font-weight: 700; }
-.site-footer__developer:hover { text-decoration: underline; }
-.site-footer__dmca { display: inline-flex; height: 48px; align-items: center; gap: 10px; border: 1px solid var(--color-brand-200); border-radius: 999px; background: rgb(255 255 255 / .6); padding: 0 22px; color: var(--color-brand-700); font-size: 1rem; font-weight: 700; transition: background 150ms ease; }
-.site-footer__dmca svg { color: var(--color-brand-600); }
-.site-footer__dmca:hover { background: white; }
-/* Thanh liên hệ 4 mục một hàng từ 1440px (email, giờ làm việc dài); hẹp hơn 2 cột, vạch ngăn theo hàng.
- * Từ 1023px trở xuống cột thương hiệu nằm trên các cột menu. */
-@media (max-width: 1439px) {
-  .site-footer__contacts { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 18px; border-radius: 1.75rem; }
-  .site-footer__contacts > li:nth-child(odd) { border-left: 0; }
-}
+.site-footer__column ul { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.site-footer__column ul a { display: inline-block; min-height: 24px; padding-block: 2px; color: #4b5565; font-size: .95rem; line-height: 1.45; text-wrap: pretty; transition: color 150ms ease; }
+.site-footer__column ul a:hover { color: var(--color-brand-700); text-decoration: underline; }
+.site-footer__bottom { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 24px; border-top: 1px solid var(--color-line); padding: 20px 0 24px; font-size: .9rem; }
+.site-footer__copyright { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; margin: 0; color: var(--color-muted); }
+.site-footer__legal::before { content: "·"; margin-right: 6px; }
+.site-footer__developer { color: var(--color-ink); font-weight: 600; }
+.site-footer__developer:hover { color: var(--color-brand-700); text-decoration: underline; }
+.site-footer__dmca { display: inline-flex; align-items: center; gap: 6px; color: var(--color-muted); }
+.site-footer__dmca:hover { color: var(--color-ink); text-decoration: underline; }
 @media (max-width: 1023px) {
-  .site-footer__inner { grid-template-columns: minmax(0, 1fr); }
-  .site-footer__profile { border-right: 0; border-bottom: 1px solid var(--color-line); padding: 0 0 32px; }
+  .site-footer__inner { grid-template-columns: minmax(0, 1fr); gap: 36px; }
 }
 @media (max-width: 767px) { .site-footer__columns { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 640px) {
-  .site-footer__frame { padding-top: 44px; }
-  .site-footer__contacts { grid-template-columns: minmax(0, 1fr); row-gap: 0; margin-bottom: 40px; padding: 8px 4px; }
-  .site-footer__contacts > li { padding: 14px 16px; }
-  .site-footer__contacts > li + li { border-top: 1px solid var(--color-line); border-left: 0; }
-  .site-footer__contact-icon { width: 48px; height: 48px; }
-  .site-footer__heading { font-size: .9rem; }
-  .site-footer__copyright { flex-direction: column; gap: 6px; }
-  .site-footer__legal { border-left: 0; padding-left: 0; }
-  .site-footer__bottom { flex-direction: column; padding-bottom: 84px; }
+  .site-footer__frame { padding-top: 40px; }
+  .site-footer__legal::before { content: none; }
+  .site-footer__copyright { flex-direction: column; align-items: flex-start; }
+  .site-footer__bottom { flex-direction: column; align-items: flex-start; padding-bottom: 84px; }
 }
 
 /* Nút nổi: bong bóng liên hệ (phải) và lên đầu trang (trái). Mọi nút cùng cỡ --float-size, nhỏ dần theo màn hình. */
