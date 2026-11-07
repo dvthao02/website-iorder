@@ -1,5 +1,5 @@
 import Image from "next/image";
-import Link from "next/link";
+import { SiteLink as Link } from "@/components/site/site-link";
 import { Check, CircleCheck } from "lucide-react";
 import type { CSSProperties, ReactNode } from "react";
 import type { BlockBackground, BlockFrame } from "@iorder/core/server/pages/block-layout";

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { englishPathRedirect, publicRewrites, routeFolders } from "./legacy-paths";
+import { englishPathRedirect, isRewrittenPath, publicRewrites, routeFolders } from "./legacy-paths";
 
 test("URL tiếng Anh (tên thư mục) chuyển về URL tiếng Việt, giữ phần đường dẫn con", () => {
   assert.equal(englishPathRedirect("/news"), "/tin-tuc");
@@ -33,4 +33,9 @@ test("Mỗi URL tiếng Việt có hai rewrite (chính nó và đường dẫn c
   const index = (source: string) => rewrites.findIndex((rule) => rule.source === source);
   assert.ok(index("/tin-tuc/chuyen-muc") < index("/tin-tuc"));
   assert.ok(index("/tin-tuc/the/:path*") < index("/tin-tuc/:path*"));
+});
+
+test("Nhận ra URL đi qua rewrites() để tắt tải trước (kèm query, neo, đường dẫn con)", () => {
+  for (const href of ["/tin-tuc", "/tin-tuc/bai-viet-mau", "/tin-tuc?trang=2", "/thiet-bi#bang-gia", "/ho-tro/huong-dan/cai-dat-may-in", "/lien-he", "/trang/uu-dai"]) assert.equal(isRewrittenPath(href), true, href);
+  for (const href of ["/", "/phan-mem", "/phan-mem/iorder", "/tin-tucx", "https://iorder.vn/tin-tuc", "//cdn.example.com/tin-tuc", "#lien-he", "mailto:a@b.vn"]) assert.equal(isRewrittenPath(href), false, href);
 });

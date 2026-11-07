@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { SiteLink as Link } from "@/components/site/site-link";
 import type { ReactNode } from "react";
 
 // Khối thông báo dùng chung cho trang 404 và trang lỗi; không gọi Backend để vẫn hiển thị khi Backend lỗi.

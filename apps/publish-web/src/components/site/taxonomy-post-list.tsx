@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { SiteLink as Link } from "@/components/site/site-link";
 import type { PublicPostSummary } from "@iorder/core/server/posts/posts.contract";
 
 const postTypeLabel = { announcement: "Thông báo", case_study: "Câu chuyện khách hàng", guide: "Hướng dẫn", news: "Tin tức", promotion: "Khuyến mãi" } as const;

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { SiteLink as Link } from "@/components/site/site-link";
 import { ArrowRight, Check } from "lucide-react";
 import type { OfferingContent, OfferingSectionKey } from "@iorder/core/server/offerings/offering-content.contract";
 import { sectionFrame, type BlockFrame, type SectionSurface } from "@iorder/core/server/pages/block-layout";

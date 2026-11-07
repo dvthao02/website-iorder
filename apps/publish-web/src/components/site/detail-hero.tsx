@@ -1,5 +1,5 @@
 import Image from "next/image";
-import Link from "next/link";
+import { SiteLink as Link } from "@/components/site/site-link";
 import { ArrowLeft } from "lucide-react";
 import type { ReactNode } from "react";
 import { Actions, type ActionData } from "@/components/ui";

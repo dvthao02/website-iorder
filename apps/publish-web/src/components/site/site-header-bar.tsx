@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
+import { SiteLink as Link } from "@/components/site/site-link";
 import { usePathname } from "next/navigation";
 import { BookOpen, Building2, ChevronDown, Compass, CodeXml, Menu, MonitorSmartphone, Network, Newspaper, Package, Phone, ReceiptText, Server, ShieldCheck, ShoppingCart, Wrench, X, Zap, type LucideIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type FocusEvent } from "react";

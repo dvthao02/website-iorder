@@ -1,5 +1,5 @@
 import Image from "next/image";
-import Link from "next/link";
+import { SiteLink as Link } from "@/components/site/site-link";
 
 import type { BlockFrame } from "@iorder/core/server/pages/block-layout";
 import type { CollectionListData, CollectionSource } from "@iorder/core/server/pages/pages.contract";

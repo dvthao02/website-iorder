@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { Fragment, type CSSProperties } from "react";
-import Link from "next/link";
+import { SiteLink as Link } from "@/components/site/site-link";
 import { resolveBlockFrames, type BlockFrame, type SectionSurface } from "@iorder/core/server/pages/block-layout";
 import type { PageBlock } from "@iorder/core/server/pages/pages.contract";
 import { resolveSettingLinks } from "@iorder/core/server/pages/setting-links";

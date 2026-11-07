@@ -26,6 +26,13 @@ export function publicRewrites() {
   ]);
 }
 
+/** URL nội bộ (có thể kèm ?query hoặc #neo) đi qua bảng rewrites() ở trên — dùng để tắt tải trước của Link (xem site-link.tsx). */
+export function isRewrittenPath(href: string) {
+  if (!href.startsWith("/") || href.startsWith("//")) return false;
+  const pathname = href.split(/[?#]/)[0];
+  return routeFolders.some(([publicPath]) => pathname === publicPath || pathname.startsWith(`${publicPath}/`));
+}
+
 // URL cũ không còn trang riêng, chỉ chuyển hướng vĩnh viễn tới URL chuẩn hiện tại.
 const retiredPaths: ReadonlyArray<readonly [string, string]> = [["/huong-dan", "/ho-tro/huong-dan"]];
 

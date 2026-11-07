@@ -1,5 +1,5 @@
 import Image from "next/image";
-import Link from "next/link";
+import { SiteLink as Link } from "@/components/site/site-link";
 import type { CSSProperties, ReactNode } from "react";
 import { BookOpen, Box, Building2, Clock, Headphones, Mail, Phone, Settings, ShieldCheck, type LucideIcon } from "lucide-react";
 import type { NavigationItems } from "@iorder/core/server/navigation/navigation.contract";
