@@ -1,5 +1,5 @@
 import { SiteLink as Link } from "@/components/site/site-link";
-import { ArrowRight, Check } from "lucide-react";
+import { ArrowRight, Check, Sparkles, UsersRound } from "lucide-react";
 import type { OfferingContent, OfferingSectionKey } from "@iorder/core/server/offerings/offering-content.contract";
 import { sectionFrame, type BlockFrame, type SectionSurface } from "@iorder/core/server/pages/block-layout";
 import { resolveSettingLinks } from "@iorder/core/server/pages/setting-links";
@@ -35,6 +35,17 @@ export async function OfferingContent({ content, closing = null }: { content: Of
         <div>
           <SectionHeading align="left" className="mb-6" dark={dark("overview")} title="Tổng quan" />
           <p className={`mb-0 text-lead whitespace-pre-line ${dark("overview") ? "text-white/85" : "text-ink/80"}`}>{content.description}</p>
+          {/* "Phù hợp với" và "Giá trị nổi bật" (CMS › Sản phẩm): người đọc biết ngay giải pháp có dành cho mình không. */}
+          {content.bestFor || content.keyValue ? <dl className="m-0 mt-8 grid gap-4 sm:grid-cols-2">
+            {content.bestFor ? <div className="rounded-card border border-line bg-white p-5 shadow-card">
+              <dt className="flex items-center gap-2 text-small font-bold tracking-wide text-brand-700 uppercase"><UsersRound aria-hidden="true" size={18} />Phù hợp với</dt>
+              <dd className="m-0 mt-2 text-body font-semibold text-ink">{content.bestFor}</dd>
+            </div> : null}
+            {content.keyValue ? <div className="rounded-card border border-line bg-white p-5 shadow-card">
+              <dt className="flex items-center gap-2 text-small font-bold tracking-wide text-accent-violet uppercase"><Sparkles aria-hidden="true" size={18} />Giá trị nổi bật</dt>
+              <dd className="m-0 mt-2 text-body font-semibold text-ink">{content.keyValue}</dd>
+            </div> : null}
+          </dl> : null}
         </div>
         {content.features.length ? <div className="self-start rounded-card border border-line bg-white p-6 shadow-card sm:p-8">
           <h2 className="mb-2 text-h3 font-bold tracking-tight text-ink">Tính năng chính</h2>
@@ -48,8 +59,8 @@ export async function OfferingContent({ content, closing = null }: { content: Of
 
     {content.benefits.length ? <FrameSection frame={frames.benefits}>
       <SectionHeading align="left" dark={dark("benefits")} eyebrow="Lợi ích" title="Lợi ích mang lại" />
-      <ul className={`m-0 grid list-none gap-5 p-0 ${content.benefits.length === 1 ? "max-w-xl" : content.benefits.length === 2 ? "md:grid-cols-2" : gridColumns(content.benefits.length)}`}>{content.benefits.map((benefit, index) => <li className="flex flex-col gap-5 rounded-card border border-line bg-white p-6 shadow-card" key={`${benefit}-${index}`}>
-        <span aria-hidden="true" className="grid size-10 place-items-center rounded-full bg-brand-600 text-white"><Check size={20} strokeWidth={3} /></span>
+      <ul className={`m-0 grid list-none gap-5 p-0 ${content.benefits.length === 1 ? "max-w-xl" : content.benefits.length === 2 ? "md:grid-cols-2" : gridColumns(content.benefits.length)}`}>{content.benefits.map((benefit, index) => <li className="flex items-center gap-4 rounded-card border border-line bg-white p-5 shadow-card sm:p-6" key={`${benefit}-${index}`}>
+        <span aria-hidden="true" className="grid size-10 shrink-0 place-items-center rounded-full bg-brand-600 text-white"><Check size={20} strokeWidth={3} /></span>
         <span className="text-lead font-semibold text-ink">{benefit}</span>
       </li>)}</ul>
     </FrameSection> : null}

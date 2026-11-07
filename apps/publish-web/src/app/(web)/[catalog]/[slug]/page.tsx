@@ -1,4 +1,5 @@
 import type { Metadata, ResolvingMetadata } from "next";
+import { CircleCheck } from "lucide-react";
 import { contentMetadata } from "@/lib/page-metadata";
 import { notFound } from "next/navigation";
 
@@ -61,12 +62,14 @@ export default async function OfferingDetailPage({ params }: OfferingDetailPageP
         <DetailHero
           back={{ href: `/${catalog}`, label: `Tất cả ${label.toLowerCase()}` }}
           image={offering.cover ? { url: offering.cover.url, alt: offering.cover.altText ?? `Ảnh minh họa ${offering.title}`, width: offering.cover.width, height: offering.cover.height } : null}
-          label={label}
+          label={offering.content.category ?? label}
           primary={{ label: "Nhận tư vấn miễn phí", href: "/lien-he" }}
           secondary={offering.content.pricing ? { label: "Xem bảng giá", href: "#bang-gia" } : null}
           summary={offering.summary}
           title={offering.title}
         >
+          {/* Số liệu nổi bật ngay dưới mô tả: bằng chứng ngắn trước nút tư vấn. */}
+          {offering.content.metrics.length ? <ul aria-label="Điểm nổi bật" className="m-0 mt-6 flex list-none flex-wrap gap-x-6 gap-y-2 p-0">{offering.content.metrics.map(metric => <li className="flex items-center gap-2 font-semibold text-ink" key={metric}><CircleCheck aria-hidden="true" className="shrink-0 text-accent-green" size={20} />{metric}</li>)}</ul> : null}
           <ChipList items={offering.content.tags.map(tag => ({ key: tag, text: tag }))} label="Chủ đề liên quan" />
         </DetailHero>
         <OfferingContent closing={{ title: offering.title, hotline: profile?.hotline ?? null }} content={offering.content} />

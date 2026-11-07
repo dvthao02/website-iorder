@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { BookOpen } from "lucide-react";
+import { BookOpen, Check } from "lucide-react";
 import type { PublicPostSummary } from "@iorder/core/server/posts/posts.contract";
 import { SiteLink as Link } from "@/components/site/site-link";
 
@@ -133,12 +133,20 @@ async function renderItems(data: CollectionListData, Card: "h2" | "h3", dark: bo
       const offerings = take(await getPublishedOfferingSummaries(data.source), data.limit);
       // Nhãn "Nổi bật" chỉ có nghĩa khi có mục không nổi bật đứng cạnh.
       const markFeatured = offerings.some(offering => !offering.isFeatured);
-      return offerings.length ? <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{offerings.map(offering => <Link className={cardClass} href={`${offeringPath[data.source as keyof typeof offeringPath]}/${offering.slug}`} key={offering.id}>
+      // Hai mục thì hai cột rộng vừa phải (không để trống một ô của lưới ba cột).
+      return offerings.length ? <div className={`grid gap-5 sm:grid-cols-2 ${offerings.length === 2 ? "lg:mx-auto lg:max-w-5xl" : "lg:grid-cols-3"}`}>{offerings.map(offering => <Link className={cardClass} href={`${offeringPath[data.source as keyof typeof offeringPath]}/${offering.slug}`} key={offering.id}>
         {offering.cover ? <Image alt={offering.cover.altText ?? `Ảnh minh họa ${offering.title}`} className="aspect-[16/10] w-full bg-brand-50 object-cover transition duration-500 group-hover:scale-[1.02]" height={offering.cover.height ?? 630} sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw" src={offering.cover.url} width={offering.cover.width ?? 1200} /> : null}
         <div className={bodyClass}>
-          {markFeatured && offering.isFeatured ? <p className={`mb-3 ${chipClass}`}>Nổi bật</p> : null}
+          {offering.category || (markFeatured && offering.isFeatured) ? <p className="mb-3 flex flex-wrap gap-2">
+            {markFeatured && offering.isFeatured ? <span className="inline-flex w-fit items-center rounded-full bg-brand-600 px-2.5 py-0.5 text-caption font-semibold text-white">Nổi bật</span> : null}
+            {offering.category ? <span className={chipClass}>{offering.category}</span> : null}
+          </p> : null}
           <Card className={`${titleClass} line-clamp-2`}>{offering.title}</Card>
           {offering.summary ? <p className={`${textClass} line-clamp-3`}>{offering.summary}</p> : null}
+          {/* Số liệu nổi bật (CMS › Sản phẩm › Số liệu): bằng chứng ngắn ngay trên thẻ, tối đa hai dòng. */}
+          {offering.metrics.length ? <ul className="m-0 mt-4 grid list-none gap-1.5 p-0">{offering.metrics.slice(0, 2).map(metric => <li className="flex items-start gap-2 text-small font-semibold text-ink" key={metric}>
+            <Check aria-hidden="true" className="mt-0.5 shrink-0 text-accent-green" size={16} strokeWidth={2.6} />{metric}
+          </li>)}</ul> : null}
           <p className={moreClass}>Xem chi tiết →</p>
         </div>
       </Link>)}</div> : null;
