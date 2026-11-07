@@ -38,6 +38,8 @@ test("Hướng dẫn: danh mục bên trái, bài đang xem được tô, mục 
   await expect(page).toHaveURL(/\/ho-tro\/huong-dan\/.+/);
   await expect(page.locator("h1")).toHaveText(title);
   await expect(page.locator('.guide-docs__side .guide-nav__link[aria-current="page"]')).toHaveText(title);
+  // Thanh trượt "|" nằm cạnh bài đang xem.
+  await expect(page.locator('.guide-docs__side .sliding-rail__bar[data-visible="true"]')).toBeVisible();
   const toc = page.locator(".guide-docs__toc .article-toc a");
   if (await toc.count() >= 2) {
     const target = toc.nth(1);
