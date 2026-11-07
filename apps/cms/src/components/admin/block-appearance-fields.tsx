@@ -1,7 +1,7 @@
 "use client";
 
-import { Pipette } from "lucide-react";
-import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
+import { ChevronDown, Pipette } from "lucide-react";
+import { useEffect, useId, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 
 import { mediaAssetSchema } from "@iorder/core/server/media/media.contract";
 import { blockAnchor, blockSupportsDarkTone } from "@iorder/core/server/pages/block-layout";
@@ -14,11 +14,11 @@ import { readAdminJson } from "@/lib/admin-api";
 import { MediaPicker } from "./media-picker";
 
 // Giao diện của một phần trang (khối trang, phần đầu trang, các phần của trang sản phẩm): nền (màu có sẵn, màu tự chọn,
-// ảnh nền), độ rộng nội dung, khoảng cách, mã neo. "Tự động" để website giữ nhịp đều: nền xen kẽ trắng / xanh nhạt.
+// ảnh nền), độ rộng nội dung, khoảng cách, mã neo. "Tự động" để website giữ nhịp đều: nền xen kẽ trắng / xám nhạt.
 // Ô xem trước bên cạnh vẽ đúng màu chữ website sẽ dùng (màu tối → chữ trắng), lớp phủ ảnh nền và độ rộng.
 export const defaultAppearance: BlockAppearance = { anchor: null, tone: "auto", spacing: "auto", width: null, backgroundColor: null, backgroundMediaId: null, backgroundOverlay: 80 };
 
-const toneLabels: Record<BlockTone, string> = { auto: "Tự động (xen kẽ với phần trước)", white: "Trắng", tinted: "Xanh nhạt", dark: "Tối (chữ trắng)", custom: "Màu tự chọn…" };
+const toneLabels: Record<BlockTone, string> = { auto: "Tự động (xen kẽ với phần trước)", white: "Trắng", tinted: "Xám nhạt (nền xen kẽ)", dark: "Tối (chữ trắng)", custom: "Màu tự chọn…" };
 const spacingLabels: Record<BlockSpacing, string> = { auto: "Tự động", sm: "Gọn", md: "Vừa", lg: "Rộng" };
 // Màu gợi ý hợp với bộ màu website: tông sáng (chữ đậm) và vài tông đậm làm điểm nhấn (chữ trắng).
 export const colorSwatches = [
@@ -33,7 +33,7 @@ export const colorSwatches = [
   { value: "#0a2a57", label: "Xanh đêm" },
   { value: "#0d1b33", label: "Đen than" },
 ] as const;
-const toneColors = { white: "#ffffff", tinted: "#f1f7fe", dark: "#0a2a57" } as const;
+const toneColors = { white: "#ffffff", tinted: "#f6f8fb", dark: "#0a2a57" } as const;
 const widthPresets = [60, 70, 80, 90, 100] as const;
 const hexPattern = /^#[0-9a-f]{6}$/i;
 
@@ -55,14 +55,16 @@ function useEyeDropper() {
 }
 
 /** Ô chọn màu: dải màu gợi ý, ô màu của trình duyệt, ống hút, mã hex. `allowNone`: thêm lựa chọn "Mặc định" (không màu riêng). */
-export function ColorField({ value, onChange, disabled, allowNone = false, compact = false, label = "Màu nền" }: { value: string | null; onChange: (value: string | null) => void; disabled?: boolean; allowNone?: boolean; compact?: boolean; label?: string }) {
+export function ColorField({ value, onChange, disabled, allowNone = false, compact = false, label = "Màu nền", onPicked }: { value: string | null; onChange: (value: string | null) => void; disabled?: boolean; allowNone?: boolean; compact?: boolean; label?: string; onPicked?: () => void }) {
   const [draft, setDraft] = useState<string | null>(null);
   const pick = useEyeDropper();
   const set = (next: string | null) => { setDraft(null); onChange(next); };
+  // Bấm một màu gợi ý (hoặc "Mặc định") là xong: báo để bảng chọn đóng lại.
+  const choose = (next: string | null) => { set(next); onPicked?.(); };
   return <div className={compact ? "admin-color-field admin-color-field--compact" : "admin-color-field"}>
     <div aria-label={`${label}: màu gợi ý`} className="admin-swatches" role="radiogroup">
-      {allowNone ? <button aria-checked={value === null} aria-label="Mặc định" className="admin-swatch admin-swatch--none" disabled={disabled} onClick={() => set(null)} role="radio" title="Mặc định (không màu riêng)" type="button" /> : null}
-      {colorSwatches.map((swatch) => <button aria-checked={value === swatch.value} aria-label={swatch.label} className="admin-swatch" disabled={disabled} key={swatch.value} onClick={() => set(swatch.value)} role="radio" style={{ background: swatch.value }} title={swatch.label} type="button" />)}
+      {allowNone ? <button aria-checked={value === null} aria-label="Mặc định" className="admin-swatch admin-swatch--none" disabled={disabled} onClick={() => choose(null)} role="radio" title="Mặc định (không màu riêng)" type="button" /> : null}
+      {colorSwatches.map((swatch) => <button aria-checked={value === swatch.value} aria-label={swatch.label} className="admin-swatch" disabled={disabled} key={swatch.value} onClick={() => choose(swatch.value)} role="radio" style={{ background: swatch.value }} title={swatch.label} type="button" />)}
     </div>
     <div className="admin-appearance__picker">
       <input aria-label={`${label}: chọn màu khác`} disabled={disabled} onChange={(event) => set(event.target.value.toLowerCase())} type="color" value={value ?? "#ffffff"} />
@@ -112,6 +114,36 @@ export type AppearanceEditorOptions = {
   width?: boolean;
 };
 
+/** Tên dễ đọc của màu: "Mặc định", tên màu gợi ý, hoặc mã hex. */
+export function colorName(value: string | null) {
+  return value === null ? "Mặc định" : colorSwatches.find((swatch) => swatch.value === value)?.label ?? value.toUpperCase();
+}
+
+/**
+ * Ô chọn màu gọn dùng chung (màu nền thẻ, màu tự chọn của phần, màu nền/lớp phủ phần đầu trang): một nút hiện chấm màu
+ * và tên màu đang chọn; bấm mới mở bảng chọn (màu gợi ý, ô màu, ống hút, mã hex). Chọn màu gợi ý là đóng; Esc hoặc bấm
+ * ra ngoài cũng đóng. Danh sách nhiều thẻ vì thế không còn bày dải màu ở mỗi thẻ.
+ */
+export function ColorPicker({ value, onChange, disabled, allowNone = false, label = "Màu nền" }: { value: string | null; onChange: (value: string | null) => void; disabled?: boolean; allowNone?: boolean; label?: string }) {
+  const [open, setOpen] = useState(false);
+  const root = useRef<HTMLDivElement>(null);
+  const id = useId();
+  useEffect(() => {
+    if (!open) return;
+    const outside = (event: PointerEvent) => { if (!root.current?.contains(event.target as Node)) setOpen(false); };
+    document.addEventListener("pointerdown", outside);
+    return () => document.removeEventListener("pointerdown", outside);
+  }, [open]);
+  return <div className="admin-color-picker" onKeyDown={(event) => { if (event.key === "Escape" && open) { event.stopPropagation(); setOpen(false); } }} ref={root}>
+    <button aria-controls={`${id}-panel`} aria-expanded={open} aria-label={`${label}: ${colorName(value)}. Bấm để đổi màu`} className="admin-color-picker__trigger" disabled={disabled} onClick={() => setOpen((current) => !current)} type="button">
+      <span aria-hidden="true" className={value === null ? "admin-color-picker__chip admin-swatch--none" : "admin-color-picker__chip"} style={value === null ? undefined : { background: value }} />
+      <span className="admin-color-picker__text"><small>{label}</small><strong>{colorName(value)}</strong></span>
+      <ChevronDown aria-hidden="true" className="admin-color-picker__caret" size={16} />
+    </button>
+    {open ? <div className="admin-color-picker__panel" id={`${id}-panel`}><ColorField allowNone={allowNone} disabled={disabled} label={label} onChange={onChange} onPicked={() => setOpen(false)} value={value} /></div> : null}
+  </div>;
+}
+
 /** Trình chỉnh giao diện theo giá trị; `extra` (ví dụ ô mã neo) nằm cuối cột điều khiển. */
 export function AppearanceEditor({ value, onChange, disabled, onUploadingChange, options = {}, extra }: { value: Partial<BlockAppearance> | null | undefined; onChange: (patch: Partial<BlockAppearance>) => void; disabled?: boolean; onUploadingChange?: (pending: boolean) => void; options?: AppearanceEditorOptions; extra?: ReactNode }) {
   const appearance = { ...defaultAppearance, ...value };
@@ -142,7 +174,7 @@ export function AppearanceEditor({ value, onChange, disabled, onUploadingChange,
       </div> : null}
 
       {color && showTone ? <div className="admin-appearance__colors">
-        <ColorField disabled={disabled} onChange={(next) => onChange({ backgroundColor: next ?? colorSwatches[1].value })} value={color} />
+        <ColorPicker disabled={disabled} label="Màu nền tự chọn" onChange={(next) => onChange({ backgroundColor: next ?? colorSwatches[1].value })} value={color} />
         <p className={darkFallback ? "admin-help admin-text-warning" : "admin-help"}>{darkFallback
           ? "Phần này có nhiều chữ hoặc ô nhập, đặt trên nền tối sẽ khó đọc nên website dùng nền xanh nhạt. Chọn màu sáng hơn để giữ màu riêng."
           : colorDark ? "Màu tối: website tự dùng chữ trắng." : "Màu sáng: website dùng chữ đậm như bình thường."}</p>

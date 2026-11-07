@@ -697,6 +697,18 @@
   .admin-swatch[aria-checked="true"] { box-shadow: 0 0 0 2px var(--cms-card), 0 0 0 4px var(--cms-primary); }
   .admin-appearance__picker { display: flex; align-items: center; gap: 8px; }
   .admin-color-field { display: grid; gap: 8px; }
+  /* Ô chọn màu gọn dùng chung: nút hiện màu đang chọn, bấm mở bảng chọn ngay bên dưới. */
+  .admin-color-picker { display: grid; justify-items: start; gap: 8px; }
+  .admin-color-picker__trigger { display: inline-flex; min-width: 220px; min-height: var(--cms-control-height); align-items: center; gap: 10px; border: 1px solid var(--cms-border-strong); border-radius: var(--cms-radius-component); background: var(--cms-input-background); padding: 4px 10px 4px 6px; color: var(--cms-text); text-align: left; cursor: pointer; }
+  .admin-color-picker__trigger:hover:not(:disabled) { border-color: var(--cms-primary); }
+  .admin-color-picker__trigger[aria-expanded="true"] { border-color: var(--cms-primary); box-shadow: 0 0 0 3px var(--cms-primary-soft); }
+  .admin-color-picker__chip { width: 26px; height: 26px; flex-shrink: 0; border: 1px solid var(--cms-border-strong); border-radius: 999px; }
+  .admin-color-picker__text { display: grid; flex: 1; line-height: 1.2; }
+  .admin-color-picker__text small { color: var(--cms-muted); font-size: var(--cms-text-xs); }
+  .admin-color-picker__text strong { font-size: var(--cms-text-sm); font-weight: 600; }
+  .admin-color-picker__caret { flex-shrink: 0; color: var(--cms-muted); transition: transform 120ms ease; }
+  .admin-color-picker__trigger[aria-expanded="true"] .admin-color-picker__caret { transform: rotate(180deg); }
+  .admin-color-picker__panel { width: min(100%, 420px); border: 1px solid var(--cms-border); border-radius: var(--cms-radius-component); background: var(--cms-card); padding: 12px; box-shadow: var(--cms-shadow-popover); }
   .admin-color-field--compact .admin-swatch { width: 24px; height: 24px; }
   /* "Mặc định": ô trắng gạch chéo đỏ = không có màu riêng. */
   .admin-swatch--none { background: linear-gradient(135deg, transparent calc(50% - 1px), #e5484d calc(50% - 1px), #e5484d calc(50% + 1px), transparent calc(50% + 1px)), #fff; }

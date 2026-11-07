@@ -10,7 +10,7 @@ import { blockAnchor, isDarkColor } from "@iorder/core/server/pages/block-layout
 import { youtubeEmbedUrl, youtubeVideoId } from "@iorder/core/server/shared/youtube";
 import { settingLinkHref, settingLinkKey, settingLinkOptions, type SettingLinkKey } from "@iorder/core/server/pages/setting-links";
 
-import { BlockAppearanceFields, ColorField, colorSwatches, defaultAppearance } from "./block-appearance-fields";
+import { BlockAppearanceFields, ColorPicker, colorSwatches, defaultAppearance } from "./block-appearance-fields";
 import { MediaPicker } from "./media-picker";
 import { useAdminConfirm } from "./ui/admin-confirm-dialog";
 import { AdminStatusBadge } from "./ui/admin-feedback";
@@ -75,7 +75,7 @@ export function blockSummary(block: PageBlock) {
 }
 
 // Nhãn nhỏ trên dòng khối đang gập: những gì đã chỉnh ở Giao diện khối (để "Tự động" thì không hiện gì).
-const toneTags: Partial<Record<string, string>> = { white: "Nền trắng", tinted: "Nền xanh nhạt", dark: "Nền tối" };
+const toneTags: Partial<Record<string, string>> = { white: "Nền trắng", tinted: "Nền xám nhạt", dark: "Nền tối" };
 function appearanceTags(block: PageBlock) {
   const appearance = block.appearance;
   const tags: { label: string; color?: string }[] = [];
@@ -185,7 +185,7 @@ function CardStyleField({ block, onChange }: { block: CardBlock; onChange: (bloc
 // `bento`: ghi rõ thẻ 1 là thẻ lớn để người vận hành biết nên đặt nội dung chính và ảnh đẹp nhất ở đâu.
 // Màu nền riêng của một thẻ con (thẻ lưới, gói giá, nhóm); "Mặc định" = thẻ trắng.
 function CardColor({ value, onChange, disabled }: { value: string | null | undefined; onChange: (value: string | null) => void; disabled?: boolean }) {
-  return <div className="admin-field"><span>Màu nền thẻ (tùy chọn)</span><ColorField allowNone compact disabled={disabled} label="Màu nền thẻ" onChange={onChange} value={value ?? null} /><small className="admin-help">Để “Mặc định” là thẻ trắng. Màu tối thì chữ trong thẻ tự chuyển sang trắng.</small></div>;
+  return <div className="admin-field"><ColorPicker allowNone disabled={disabled} label="Màu nền thẻ" onChange={onChange} value={value ?? null} />{value ? <small className="admin-help">{isDarkColor(value) ? "Màu tối: chữ trong thẻ tự chuyển sang trắng." : "Màu sáng: chữ đậm như bình thường."}</small> : null}</div>;
 }
 
 function CardItemsEditor({ items, onChange, showIcons, disabled, onUploadingChange, bento = false }: { items: CardBlock["data"]["items"]; onChange: (items: CardBlock["data"]["items"]) => void; showIcons: boolean; disabled?: boolean; onUploadingChange: (pending: boolean) => void; bento?: boolean }) {
@@ -244,7 +244,7 @@ function HeroToneField({ block, onChange, disabled }: { block: HeroBlock; onChan
       <option value="custom">Màu tự chọn…</option>
     </select></label>
     {custom ? <>
-      <ColorField disabled={disabled} label={background ? "Màu lớp phủ" : "Màu nền"} onChange={next => onChange({ ...block, appearance: { ...appearance, tone: "custom", backgroundColor: next ?? color } })} value={color} />
+      <ColorPicker disabled={disabled} label={background ? "Màu lớp phủ" : "Màu nền tự chọn"} onChange={next => onChange({ ...block, appearance: { ...appearance, tone: "custom", backgroundColor: next ?? color } })} value={color} />
       <small className="admin-help">{isDarkColor(color) ? "Màu tối: chữ, nút và menu phía trên tự chuyển sang màu sáng." : "Màu sáng: chữ đậm như bình thường."}{background ? " Độ đậm lớp phủ chỉnh ở mục Giao diện phần đầu trang bên dưới." : ""}</small>
     </> : null}
   </div>;
