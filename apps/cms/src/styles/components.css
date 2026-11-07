@@ -1012,7 +1012,17 @@
   .admin-layout-picker__label { font-size: var(--cms-text-xs); font-weight: 500; line-height: 1.3; text-align: center; }
   .admin-block__body > .media-picker { border-top: 1px solid var(--cms-border); padding-top: 12px; }
   .admin-block__body > .media-picker:first-child { border-top: 0; padding-top: 0; }
-  .admin-block-item { display: grid; gap: 12px; border: 1px solid var(--cms-border); border-radius: var(--cms-radius-component); background: var(--cms-card); padding: 12px; }
+  /* Mục lặp (ảnh, khối, thẻ, gói…): không khung thẻ; vạch dọc bên trái gom nội dung của mục, dòng đầu đánh số + nút biểu tượng. */
+  .admin-list-item { display: grid; gap: 10px; min-width: 0; border-left: 2px solid var(--cms-border); padding: 2px 0 4px 14px; }
+  .admin-list-item + .admin-list-item { margin-top: 10px; }
+  .admin-list-item:focus-within { border-left-color: var(--cms-primary); }
+  .admin-list-item__head { display: flex; min-height: 30px; align-items: center; gap: 8px; }
+  .admin-list-item__index { display: grid; width: 22px; height: 22px; flex-shrink: 0; place-items: center; border-radius: 6px; background: var(--cms-hover); color: var(--cms-muted); font-size: 12px; font-weight: 600; }
+  .admin-list-item:focus-within .admin-list-item__index { background: var(--cms-primary); color: white; }
+  .admin-list-item__title { display: flex; min-width: 0; flex: 1; align-items: baseline; gap: 8px; }
+  .admin-list-item__title strong { flex-shrink: 0; font-size: var(--cms-text-sm); font-weight: 600; }
+  .admin-list-item__title small { overflow: hidden; color: var(--cms-muted); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+  .admin-list-item__head .admin-list-editor__controls { margin-left: auto; }
   @media (max-width: 680px) { .admin-block__summary, .admin-block__toggle > small { display: none; } }
 
   .published-preview-link { display: inline-flex; height: 32px; align-items: center; gap: 4px; border-radius: var(--cms-radius-component); padding: 0 10px; color: var(--cms-primary); font-size: var(--cms-text-sm); white-space: nowrap; }

@@ -20,13 +20,15 @@ type MediaPickerProps = {
   hint?: string;
   /** Ảnh đã chọn hiện thu nhỏ theo tỉ lệ chia sẻ 1200×630 (ảnh bìa bài viết…), rê chuột hoặc bấm để xem lớn; nút "Tải ảnh khác"/"Bỏ ảnh" thay cho khung tải lên. */
   preview?: boolean;
+  /** Nằm trong một mục danh sách đã có tên (ListItem): tiêu đề chỉ cho trình đọc màn hình, gợi ý riêng (nếu có) vẫn hiện. */
+  compact?: boolean;
   onChange: (id: string | null) => void;
   onUploaded?: (asset: MediaAsset) => Promise<void> | void;
   onUploadingChange?: (pending: boolean) => void;
   value: string | null;
 };
 
-export function MediaPicker({ disabled = false, value, onChange, files = false, onUploaded, onUploadingChange, label: customLabel, hint, preview = false }: MediaPickerProps) {
+export function MediaPicker({ disabled = false, value, onChange, files = false, onUploaded, onUploadingChange, label: customLabel, hint, preview = false, compact = false }: MediaPickerProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const uploading = useRef(false);
   const uploadController = useRef<AbortController | null>(null);
@@ -198,7 +200,7 @@ export function MediaPicker({ disabled = false, value, onChange, files = false, 
   };
 
   return <section className="media-picker">
-    <div className="media-picker__heading"><div><h3>{label}</h3><p>{hint ?? formats}</p></div></div>
+    {compact ? <><h3 className="sr-only">{label}</h3>{hint ? <p className="admin-help">{hint}</p> : null}</> : <div className="media-picker__heading"><div><h3>{label}</h3><p>{hint ?? formats}</p></div></div>}
     <input accept={files ? ".pdf,.zip,application/pdf,application/zip" : "image/png,image/jpeg,image/webp"} className="sr-only" disabled={disabled || isUploading} onChange={(event) => void upload(event.target.files?.[0])} ref={inputRef} type="file" />
     {showPreview && selected ? <div className={dragging ? "media-picker__file media-picker__file--drop" : "media-picker__file"} {...dropTarget}>
       <button aria-label={`Xem lớn ảnh ${selected.originalName}`} className="media-picker__peek" onClick={openViewer} onPointerEnter={startPeek} onPointerLeave={stopPeek} type="button">{thumbnail}<ZoomIn aria-hidden="true" size={14} /></button>
@@ -209,7 +211,7 @@ export function MediaPicker({ disabled = false, value, onChange, files = false, 
     {/* Đã có tệp thì chỉ còn dòng tệp (kéo thả tệp mới vào dòng đó để thay), không hiện thêm khung tải lên. */}
     {showPreview || value ? null : <button className={dragging ? "media-picker__upload media-picker__upload--drop" : "media-picker__upload"} disabled={disabled || isUploading} onClick={() => inputRef.current?.click()} type="button" {...dropTarget}>
       {isUploading ? <LoaderCircle aria-hidden="true" className="animate-spin" size={20} /> : <Upload aria-hidden="true" size={20} />}
-      <span><strong>{isUploading ? "Đang tải tệp lên…" : dragging ? "Thả tệp để tải lên" : files ? "Kéo tệp vào đây hoặc bấm để chọn" : "Kéo ảnh vào đây hoặc bấm để chọn"}</strong><small>{files ? "Tệp mới sẽ được gắn và lưu ngay vào tài nguyên này." : hint ? formats : "Tải trực tiếp từ máy tính của bạn."}</small></span>
+      <span><strong>{isUploading ? "Đang tải tệp lên…" : dragging ? "Thả tệp để tải lên" : files ? "Kéo tệp vào đây hoặc bấm để chọn" : "Kéo ảnh vào đây hoặc bấm để chọn"}</strong><small>{files ? "Tệp mới sẽ được gắn và lưu ngay vào tài nguyên này." : hint || compact ? formats : "Tải trực tiếp từ máy tính của bạn."}</small></span>
     </button>}
     {selected && !showPreview ? <div className={dragging ? "media-picker__file media-picker__file--drop" : "media-picker__file"} {...dropTarget}><span className="media-picker__file-icon">{thumbnail ?? <AdminFileIcon kind={fileKindOf(selected.mimeType)} />}</span><span><strong>{selected.originalName}</strong><small>{selected.mimeType === "application/pdf" ? "Tài liệu PDF" : selected.mimeType === "application/zip" ? "Tệp ZIP" : selected.mimeType.startsWith("image/") ? "Ảnh đã chọn" : "Tệp đã chọn"}</small></span><a href={selected.url} rel="noreferrer" target="_blank">Mở tệp</a></div> : null}
     <div className="media-picker__library">{value ? <button disabled={disabled || isUploading} onClick={() => inputRef.current?.click()} type="button"><Upload aria-hidden="true" size={16} />{isUploading ? "Đang tải…" : files ? "Tải tệp khác" : "Tải ảnh khác"}</button> : null}<button aria-expanded={isLibraryOpen} disabled={disabled || isUploading} onClick={() => { setLoaded(false); setLibraryError(""); setIsLibraryOpen((current) => !current); }} type="button"><FolderOpen aria-hidden="true" size={16} />{isLibraryOpen ? "Đóng thư viện" : "Chọn từ thư viện"}</button>{value ? <button disabled={disabled || isUploading} onClick={() => onChange(null)} type="button">{files ? "Bỏ tệp" : "Bỏ ảnh"}</button> : null}</div>
