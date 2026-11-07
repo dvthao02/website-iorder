@@ -30,6 +30,9 @@ test("Tin tức: thanh chủ đề, bài nổi bật, trang chủ đề và bài
   await expect(page).toHaveURL(/\/tin-tuc\/.+/);
   await expect(page.locator("h1")).toHaveText(title);
   await expect(page.getByText(/\d+ phút đọc/)).toBeVisible();
-  await expect(page.getByRole("group", { name: "Chia sẻ bài viết" }).getByRole("button", { name: "Sao chép liên kết" })).toBeVisible();
+  // Chia sẻ ở đầu và cuối bài; cột bên (máy tính) có bài viết mới nhất.
+  await expect(page.getByRole("group", { name: "Chia sẻ bài viết" })).toHaveCount(2);
+  await expect(page.getByRole("group", { name: "Chia sẻ bài viết" }).first().getByRole("button", { name: "Sao chép liên kết" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Bài viết mới nhất" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Bài viết liên quan" })).toBeVisible();
 });
