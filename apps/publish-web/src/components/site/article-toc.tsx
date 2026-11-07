@@ -29,7 +29,7 @@ export function ArticleToc({ entries }: { entries: Entry[] }) {
   }, [entries]);
 
   return <nav aria-label="Mục lục bài viết" className="article-toc">
-    <p className="article-toc__title">Nội dung bài viết</p>
+    <p className="article-toc__title">Trong bài này</p>
     <ol>{entries.map((entry) => <li data-level={entry.level} key={entry.id}>
       <a aria-current={entry.id === active ? "location" : undefined} href={`#${entry.id}`}>{entry.text}</a>
     </li>)}</ol>

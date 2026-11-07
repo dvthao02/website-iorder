@@ -2,11 +2,10 @@ import { ChevronDown } from "lucide-react";
 import type { ReactNode } from "react";
 
 import type { GuideGroup } from "@/lib/guides";
-import { iconFor } from "./guide-icons";
 import { SiteLink as Link } from "./site-link";
 
 /**
- * Danh mục hướng dẫn: mỗi nhóm (chuyên mục) gập/mở được, bài có biểu tượng theo chức năng, bài đang xem được tô.
+ * Danh mục hướng dẫn: mỗi nhóm (chuyên mục) gập/mở được, bài đang xem được tô.
  * Nhóm chứa bài đang xem mở sẵn; ở trang tổng hợp (không có bài đang xem) mọi nhóm đều mở.
  */
 function GuideNav({ groups, activeHref }: { groups: GuideGroup[]; activeHref?: string }) {
@@ -14,11 +13,8 @@ function GuideNav({ groups, activeHref }: { groups: GuideGroup[]; activeHref?: s
     {groups.map((group) => {
       const open = !activeHref || groups.length === 1 || group.items.some((item) => item.href === activeHref);
       return <details className="guide-nav__group" key={group.key} open={open}>
-        <summary>{group.label}<span className="guide-nav__count">{group.items.length}</span><ChevronDown aria-hidden="true" size={16} /></summary>
-        <ul>{group.items.map((item) => {
-          const Icon = iconFor(item.title);
-          return <li key={item.href}><Link aria-current={item.href === activeHref ? "page" : undefined} className="guide-nav__link" href={item.href}><Icon aria-hidden="true" size={18} strokeWidth={1.8} /><span>{item.title}</span></Link></li>;
-        })}</ul>
+        <summary>{group.label}<ChevronDown aria-hidden="true" size={16} /></summary>
+        <ul>{group.items.map((item) => <li key={item.href}><Link aria-current={item.href === activeHref ? "page" : undefined} className="guide-nav__link" href={item.href}>{item.title}</Link></li>)}</ul>
       </details>;
     })}
   </nav>;

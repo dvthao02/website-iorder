@@ -37,14 +37,14 @@ export default async function SupportGuidesPage() {
           {index.groups.map((group) => {
             const id = `nhom-${headingId(group.label)}`;
             return <section aria-labelledby={id} key={group.key}>
-              <h2 className="mb-4 flex items-center gap-2 text-h3 font-bold tracking-tight text-ink" id={id}>{group.label}<span className="guide-nav__count">{group.items.length} bài</span></h2>
+              <h2 className="mb-4 text-h3 font-bold tracking-tight text-ink" id={id}>{group.label} <span className="guide-count">({group.items.length})</span></h2>
               <ul className="m-0 grid list-none gap-3 p-0 md:grid-cols-2">{group.items.map((item) => {
                 const Icon = iconFor(item.title);
                 const description = descriptions.get(item.href);
                 return <li key={item.href}><Link className="guide-card group" href={item.href}>
-                  <span aria-hidden="true" className="guide-card__icon"><Icon size={22} strokeWidth={1.8} /></span>
+                  <Icon aria-hidden="true" className="guide-card__icon" size={20} strokeWidth={1.7} />
                   <span className="min-w-0 flex-1">
-                    <span className="block font-bold text-ink group-hover:text-brand-700">{item.title}</span>
+                    <span className="guide-card__title block font-semibold text-ink group-hover:text-brand-700">{item.title}</span>
                     {description ? <span className="mt-1 line-clamp-2 block text-small text-muted">{description}</span> : null}
                   </span>
                   <ChevronRight aria-hidden="true" className="shrink-0 text-faint transition group-hover:translate-x-0.5 group-hover:text-brand-600" size={18} />
