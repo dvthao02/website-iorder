@@ -4,6 +4,7 @@ import { ListingPageShortcut } from "@/components/admin/listing-page-shortcut";
 import { outOfRangeListHref, validPageSize } from "@/lib/admin-list-url";
 
 import { PostManagerList } from "@/components/admin/post-manager-list";
+import { uncategorizedGuideGroup } from "@iorder/core/server/posts/posts.contract";
 import { getAdminPostsPage, getTaxonomy } from "@/lib/backend";
 
 export const dynamic = "force-dynamic";
@@ -25,5 +26,5 @@ export default async function GuidesPage({ searchParams }: { searchParams: Promi
   const correctedHref = outOfRangeListHref("/admin/guides", result, filters);
   if (correctedHref) redirect(correctedHref);
 
-  return <main className="admin-page"><ListingPageShortcut slugs={["listing-guides"]} /><section><PostManagerList baseHref="/admin/guides" createHref="/admin/guides/new" categories={taxonomy.categories} initialQuery={params.query ?? ""} initialStatus={status ?? "all"} key={params.query ?? ""} result={result} singularLabel="hướng dẫn" tags={taxonomy.tags} title="Hướng dẫn sử dụng" /></section></main>;
+  return <main className="admin-page"><ListingPageShortcut slugs={["listing-guides"]} /><section><PostManagerList baseHref="/admin/guides" createHref="/admin/guides/new" categories={taxonomy.categories} groupColumn={{ label: "Nhóm", empty: uncategorizedGuideGroup }} showTaxonomyLink initialQuery={params.query ?? ""} initialStatus={status ?? "all"} key={params.query ?? ""} result={result} singularLabel="hướng dẫn" tags={taxonomy.tags} title="Hướng dẫn sử dụng" /></section></main>;
 }

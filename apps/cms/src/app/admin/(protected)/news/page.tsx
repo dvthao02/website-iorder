@@ -26,5 +26,5 @@ export default async function AdministratorPostsPage({ searchParams }: { searchP
   const correctedHref = outOfRangeListHref("/admin/news", result, filters);
   if (correctedHref) redirect(correctedHref);
 
-  return <main className="admin-page"><ListingPageShortcut slugs={["listing-news"]} /><section><PostManagerList categories={taxonomy.categories} showTaxonomyLink initialQuery={params.query ?? ""} initialStatus={status ?? "all"} key={params.query ?? ""} result={result} tags={taxonomy.tags} typeOptions={[...newsTypes]} /></section></main>;
+  return <main className="admin-page"><ListingPageShortcut slugs={["listing-news"]} /><section><PostManagerList categories={taxonomy.categories} groupColumn={{ label: "Chuyên mục", empty: "Chưa có" }} showTaxonomyLink initialQuery={params.query ?? ""} initialStatus={status ?? "all"} key={params.query ?? ""} result={result} tags={taxonomy.tags} typeOptions={[...newsTypes]} /></section></main>;
 }

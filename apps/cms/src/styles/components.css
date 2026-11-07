@@ -255,6 +255,8 @@
   .admin-filter-bar__bulk-actions { margin-left: auto; }
   .admin-bulk-bar--inline { min-height: 0; border: 0; background: transparent; padding: 0; }
   .admin-bulk-bar--inline .admin-bulk-bar__clear { margin-left: 0; }
+  /* Ô chọn riêng trong thanh thao tác (ví dụ "Chuyển vào nhóm…"): gọn theo nội dung, không chiếm hết dòng của thanh lọc. */
+  .admin-bulk-bar__actions > select, .admin-filter-bar__controls .admin-bulk-bar__actions > select { width: auto; min-width: 0; max-width: 200px; flex: 0 0 auto; }
   /* Menu "Thao tác" của thanh chọn nhiều (admin-bulk-menu.tsx): mở sang phải, mục mờ kèm lý do khi không áp dụng được. */
   .admin-bulk-menu > summary { display: inline-flex; }
   .admin-bulk-menu > summary .admin-button { pointer-events: none; }

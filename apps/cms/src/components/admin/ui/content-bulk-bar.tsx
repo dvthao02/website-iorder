@@ -1,7 +1,7 @@
 "use client";
 
 import { Archive, ArchiveRestore, Send, Trash2, Undo2 } from "lucide-react";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 
 import type { CmsModuleKey, CmsPermissionCode } from "@iorder/core/server/auth/permissions";
 import type { TransferDatasetId } from "@iorder/core/server/data-transfer/data-transfer.contract";
@@ -23,7 +23,7 @@ export function useRowSelection(resetKey: string) {
 
 /** Thao tác hàng loạt cho nội dung có vòng đời (bài viết, sản phẩm, thiết bị, trang): menu "Thao tác" gồm xuất bản,
  * chuyển về nháp, lưu trữ, khôi phục, xuất Excel các mục đã chọn và xóa mục đã lưu trữ. */
-export function ContentBulkBar<Item extends { id: string; status: string }>({ items, selectedIds, onClear, module, noun, request, deleteRequest, exportDataset, exportUnavailable }: {
+export function ContentBulkBar<Item extends { id: string; status: string }>({ items, selectedIds, onClear, module, noun, request, deleteRequest, exportDataset, exportUnavailable, extra }: {
   items: Item[];
   selectedIds: readonly string[];
   onClear: () => void;
@@ -36,6 +36,8 @@ export function ContentBulkBar<Item extends { id: string; status: string }>({ it
   exportDataset?: TransferDatasetId;
   /** Khi màn trộn nhiều bảng (ví dụ tab "Tất cả" sản phẩm): lý do chưa xuất được. */
   exportUnavailable?: string;
+  /** Điều khiển riêng của màn đặt cạnh menu "Thao tác" (ví dụ "Chuyển vào nhóm…" của bài viết). */
+  extra?: ReactNode;
 }) {
   const { can } = useAdminPermissions();
   const { busy, run } = useBulkAction();
@@ -59,5 +61,5 @@ export function ContentBulkBar<Item extends { id: string; status: string }>({ it
   if (exportDataset || exportUnavailable) actions.push({ key: "export", label: "Xuất Excel", icon: <AdminFileIcon action="export" kind="excel" size="sm" />, count: selected.length, disabledReason: exportDataset ? undefined : exportUnavailable, href: exportDataset ? `/api/admin/data-transfer/${exportDataset}?format=xlsx&ids=${selected.map((item) => item.id).join(",")}` : undefined });
   if (deleteRequest) actions.push({ key: "delete", label: "Xóa vĩnh viễn", icon: <Trash2 aria-hidden="true" />, count: restorable.length, disabledReason: deleteDenied ?? (restorable.length ? undefined : "Chỉ xóa được mục đã lưu trữ."), tone: "danger", onSelect: () => void run({ items: restorable, request: deleteRequest, verb: "Xóa vĩnh viễn", noun, confirmMessage: "Các mục đã lưu trữ sẽ bị xóa khỏi CMS. Thao tác không thể hoàn tác.", tone: "danger", onDone: onClear }) });
 
-  return <AdminBulkBar count={selected.length} onClear={onClear}><AdminBulkMenu actions={actions} busy={busy} /></AdminBulkBar>;
+  return <AdminBulkBar count={selected.length} onClear={onClear}>{extra}<AdminBulkMenu actions={actions} busy={busy} /></AdminBulkBar>;
 }
