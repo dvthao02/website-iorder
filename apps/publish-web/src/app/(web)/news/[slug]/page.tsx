@@ -3,6 +3,11 @@ import { contentMetadata } from "@/lib/page-metadata";
 import { notFound, permanentRedirect } from "next/navigation";
 
 import { ChipList, DetailHero } from "@/components/site/detail-hero";
+import { ConsultBand } from "@/components/site/consult-band";
+import { NewsGrid } from "@/components/site/news";
+import { ShareLinks } from "@/components/site/share-links";
+import { Container } from "@/components/ui";
+import { getNewsIndex, readingMinutes, relatedNews } from "@/lib/news";
 import { ArticleToc } from "@/components/site/article-toc";
 import { PostContent } from "@/components/site/post-content";
 import { articleOutline } from "@/lib/article-outline";
@@ -47,7 +52,9 @@ export default async function NewsDetailPage({ params }: NewsDetailPageProps) {
   }
   // Bài hướng dẫn có trang riêng; tránh trùng nội dung dưới hai URL.
   if (post.type === "guide") permanentRedirect(`/ho-tro/huong-dan/${post.slug}`);
-  const [config, profile] = await Promise.all([getPublishingConfig(), getSiteProfile()]);
+  const [config, profile, index] = await Promise.all([getPublishingConfig(), getSiteProfile(), getNewsIndex()]);
+  const related = relatedNews(index.posts, post);
+  const topic = post.categories[0] ?? null;
   const site = config.siteUrl;
   const { document, toc } = articleOutline(post.content, post.title);
 
@@ -58,16 +65,22 @@ export default async function NewsDetailPage({ params }: NewsDetailPageProps) {
       {/* Bài viết: phần đầu cùng kiểu trang chi tiết nhưng không ép cao một màn hình, để người đọc thấy ngay nội dung. */}
       <main id="noi-dung">
         <article>
-          <DetailHero back={{ href: "/tin-tuc", label: "Tất cả bài viết" }} fill={false} image={post.cover ? { url: post.cover.url, alt: post.cover.altText ?? post.title } : null} label={postTypeLabel[post.type]} summary={post.excerpt} title={post.title}>
-            {post.publishedAt ? <p className="mt-5 mb-0 text-sm text-muted">Đăng ngày {dateFormatter.format(post.publishedAt)}</p> : null}
+          <DetailHero back={{ href: "/tin-tuc", label: "Tất cả bài viết" }} fill={false} image={post.cover ? { url: post.cover.url, alt: post.cover.altText ?? post.title } : null} label={topic?.name ?? postTypeLabel[post.type]} summary={post.excerpt} title={post.title}>
+            <p className="mt-5 mb-0 text-sm text-muted">{post.publishedAt ? `Đăng ngày ${dateFormatter.format(post.publishedAt)} · ` : ""}{readingMinutes(post.content)} phút đọc</p>
             <ChipList items={[...post.categories.map(category => ({ key: `c-${category.id}`, text: category.name, href: `/tin-tuc/chuyen-muc/${category.slug}` })), ...post.tags.map(tag => ({ key: `t-${tag.id}`, text: `#${tag.name}`, href: `/tin-tuc/the/${tag.slug}` }))]} label="Chuyên mục và thẻ của bài viết" />
           </DetailHero>
           {/* Màn rộng: nội dung + mục lục bám theo bên phải; màn hẹp: mục lục nằm đầu bài. */}
           <div className="site-container py-12 sm:py-16"><div className="article-layout">
-            <div className="min-w-0"><PostContent document={document} tocClassName={toc.length >= 2 ? "xl:hidden" : ""} /></div>
+            <div className="min-w-0"><PostContent document={document} tocClassName={toc.length >= 2 ? "xl:hidden" : ""} /><div className="mt-10 border-t border-line pt-6"><ShareLinks /></div></div>
             {toc.length >= 2 ? <aside className="article-layout__toc"><div className="guide-docs__sticky"><ArticleToc entries={toc} /></div></aside> : null}
           </div></div>
         </article>
+        {/* Đọc tiếp: cùng chủ đề trước, thiếu thì bài mới nhất. */}
+        {related.length ? <section aria-labelledby="doc-tiep" className="news-section border-t border-line"><Container>
+          <h2 className="mb-6 text-h3 font-bold tracking-tight text-ink" id="doc-tiep">Bài viết liên quan</h2>
+          <NewsGrid posts={related} />
+        </Container></section> : null}
+        <ConsultBand actionLabel="Đăng ký tư vấn" description="Đội ngũ iOrder tư vấn phần mềm, thiết bị và cách vận hành phù hợp với cửa hàng của bạn — miễn phí." hotline={profile?.hotline ?? null} title="Muốn áp dụng cho cửa hàng của bạn?" />
       </main>
     </>
   );

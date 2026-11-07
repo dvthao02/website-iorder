@@ -131,6 +131,44 @@ html { font-size: clamp(16px, calc(16px + (100vw - 1440px) * 0.0033), 24px); }
 
 .support-band { background: var(--color-navy); }
 
+/* Tin tức (/tin-tuc, chuyên mục, bài viết): thanh chủ đề chữ thường gạch chân, khối nổi bật 1 lớn + danh sách nhỏ,
+   lưới thẻ, phân trang số, nút chia sẻ. Phẳng: viền mảnh, không bóng. */
+.news-topics { position: sticky; top: var(--header-height); z-index: 20; border-bottom: 1px solid var(--color-line); background: white; }
+.news-topics__list { display: flex; gap: 28px; margin: 0 auto; overflow-x: auto; padding-top: 0; padding-bottom: 0; list-style: none; scrollbar-width: none; }
+.news-topics__list::-webkit-scrollbar { display: none; }
+.news-topics__list a { display: inline-flex; min-height: 52px; align-items: center; gap: 6px; color: var(--color-muted); font-weight: 600; white-space: nowrap; transition: color 120ms ease; }
+.news-topics__list a:hover { color: var(--color-ink); }
+.news-topics__list a[aria-current="page"] { color: var(--color-brand-700); box-shadow: inset 0 -2px 0 var(--color-brand-600); }
+.news-topics__count { color: var(--color-faint); font-size: .8rem; font-weight: 500; }
+.news-featured { display: grid; gap: 28px; padding-top: 36px; padding-bottom: 16px; }
+@media (min-width: 1024px) { .news-featured { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 40px; padding-top: 44px; } }
+.news-lead { display: block; color: inherit; }
+.news-lead__image { width: 100%; height: auto; aspect-ratio: 16 / 9; border: 1px solid var(--color-line); border-radius: var(--radius-card); background: var(--color-subtle); object-fit: cover; }
+.news-lead .news-meta { margin-top: 18px; }
+.news-lead__title { margin: 8px 0 0; color: var(--color-ink); font-size: clamp(1.5rem, 1.1rem + 1.2vw, 2rem); font-weight: 700; line-height: 1.25; letter-spacing: -.01em; text-wrap: balance; transition: color 120ms ease; }
+.news-lead:hover .news-lead__title { color: var(--color-brand-700); }
+.news-lead__excerpt { display: -webkit-box; margin: 10px 0 0; overflow: hidden; color: var(--color-muted); font-size: 1.05rem; line-height: 1.6; -webkit-box-orient: vertical; -webkit-line-clamp: 3; }
+.news-meta { display: flex; flex-wrap: wrap; gap: 4px 12px; margin: 0; color: var(--color-faint); font-size: .85rem; }
+.news-meta__topic { color: var(--color-brand-700); font-weight: 600; }
+.news-side { display: grid; align-content: start; margin: 0; padding: 0; list-style: none; }
+.news-side > li + li { border-top: 1px solid var(--color-line); }
+.news-side__item { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 16px; align-items: start; padding: 14px 0; color: inherit; }
+.news-side > li:first-child .news-side__item { padding-top: 0; }
+.news-side__image { width: 112px; height: 72px; border: 1px solid var(--color-line); border-radius: 8px; background: var(--color-subtle); object-fit: cover; }
+.news-side__title { display: -webkit-box; margin-top: 4px; overflow: hidden; color: var(--color-ink); font-weight: 600; line-height: 1.4; -webkit-box-orient: vertical; -webkit-line-clamp: 2; transition: color 120ms ease; }
+.news-side__item:hover .news-side__title { color: var(--color-brand-700); }
+.news-section { padding: 36px 0 56px; }
+@media (min-width: 1024px) { .news-section { padding: 44px 0 72px; } }
+.news-pagination { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-top: 36px; }
+.news-pagination > a, .news-pagination__disabled { display: inline-grid; min-width: 40px; height: 40px; place-items: center; border: 1px solid var(--color-line); border-radius: 8px; padding: 0 10px; color: var(--color-ink); font-weight: 600; transition: border-color 120ms ease, color 120ms ease; }
+.news-pagination > a:hover { border-color: var(--color-brand-400); color: var(--color-brand-700); }
+.news-pagination > a[aria-current="page"] { border-color: var(--color-brand-600); background: var(--color-brand-600); color: white; }
+.news-pagination__disabled { color: var(--color-faint); }
+.share-links { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.share-links__label { margin-right: 4px; color: var(--color-muted); font-size: .9rem; font-weight: 600; }
+.share-links__button { display: inline-flex; min-height: 38px; align-items: center; gap: 8px; border: 1px solid var(--color-line); border-radius: 8px; background: white; padding: 0 12px; color: var(--color-ink); font-size: .9rem; font-weight: 600; transition: border-color 120ms ease; }
+.share-links__button:hover { border-color: var(--color-brand-400); }
+
 /* Khung tài liệu hướng dẫn (/ho-tro/huong-dan…), kiểu trang tài liệu thường gặp: nền trắng, không thẻ nổi/bóng.
    Danh mục bên trái ngăn bằng một đường kẻ, bài ở giữa, mục lục chữ thường bên phải; hai cột bên bám theo khi cuộn.
    Dưới 1024px danh mục thành hộp gập đầu nội dung; dưới 1280px mục lục phải ẩn (bài tự hiện mục lục ở đầu). */

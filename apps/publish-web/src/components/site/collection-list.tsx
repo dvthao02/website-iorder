@@ -64,7 +64,7 @@ export function PostCard({ post, Heading = "h3" }: { post: PublicPostSummary; He
   return <Link className={cardClass} href={post.type === "guide" ? `/ho-tro/huong-dan/${post.slug}` : `/tin-tuc/${post.slug}`}>
     {post.cover ? <Image alt={post.cover.altText ?? post.title} className="card-media aspect-[16/9] w-full bg-subtle object-cover transition duration-500 group-hover:scale-[1.02]" height={338} sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw" src={post.cover.url} width={600} /> : null}
     <div className={bodyClass}>
-      <p className={`mb-3 ${chipClass}`}>{postTypeLabel[post.type]}</p>
+      <p className="mb-2 text-small font-semibold text-brand-700">{post.categories[0]?.name ?? postTypeLabel[post.type]}</p>
       <Heading className={`${titleClass} line-clamp-2`}>{post.title}</Heading>
       {post.excerpt ? <p className={`${textClass} line-clamp-2`}>{post.excerpt}</p> : null}
       <p className={metaClass}>{dateFormatter.format(post.publishedAt ?? post.createdAt)}</p>

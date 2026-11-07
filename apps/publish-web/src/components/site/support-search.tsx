@@ -15,7 +15,7 @@ export type SupportSearchItem = { title: string; href: string; kind: string; tex
  * (dữ liệu từ CMS truyền xuống). Mọi từ gõ vào phải có trong tiêu đề hoặc mô tả; tiêu đề khớp được xếp trước.
  * Enter mở kết quả đầu tiên; các gợi ý nhanh bên dưới điền sẵn từ khóa.
  */
-export function SupportSearch({ items, suggestions }: { items: SupportSearchItem[]; suggestions: string[] }) {
+export function SupportSearch({ items, suggestions, label = "Tìm trong trung tâm hỗ trợ", placeholder = "Ví dụ: kết ca, in hóa đơn…" }: { items: SupportSearchItem[]; suggestions: string[]; label?: string; placeholder?: string }) {
   const router = useRouter();
   const [query, setQuery] = useState("");
   const resultsId = useId();
@@ -29,10 +29,10 @@ export function SupportSearch({ items, suggestions }: { items: SupportSearchItem
 
   return <div className="support-search">
     <form onSubmit={(event) => { event.preventDefault(); if (results[0]) router.push(results[0].href); }} role="search">
-      <label className="sr-only" htmlFor={`${resultsId}-input`}>Tìm trong trung tâm hỗ trợ</label>
+      <label className="sr-only" htmlFor={`${resultsId}-input`}>{label}</label>
       <div className="support-search__box">
         <Search aria-hidden="true" className="shrink-0 text-muted" size={22} />
-        <input aria-controls={resultsId} autoComplete="off" className="support-search__input" id={`${resultsId}-input`} onChange={(event) => setQuery(event.target.value)} placeholder="Ví dụ: kết ca, in hóa đơn…" type="search" value={query} />
+        <input aria-controls={resultsId} autoComplete="off" className="support-search__input" id={`${resultsId}-input`} onChange={(event) => setQuery(event.target.value)} placeholder={placeholder} type="search" value={query} />
         {query ? <button aria-label="Xóa từ khóa" className="support-search__clear" onClick={() => setQuery("")} type="button"><X aria-hidden="true" size={18} /></button> : null}
       </div>
     </form>
