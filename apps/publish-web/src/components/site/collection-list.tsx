@@ -24,7 +24,7 @@ const emptyMessages: Record<CollectionSource, string> = {
 const dateFormatter = new Intl.DateTimeFormat("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
 const priceFormatter = new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" });
 // Thẻ ảnh dùng chung với Lưới thẻ: ảnh sát mép trên cùng, phần chữ đệm đều, nhãn dạng chip, dòng cuối thẻ luôn sát đáy.
-const cardClass = "group flex h-full flex-col overflow-hidden rounded-card border border-line bg-white shadow-card transition hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-raised";
+const cardClass = "group flex h-full flex-col overflow-hidden rounded-card border border-line bg-white transition hover:border-brand-300";
 const bodyClass = "flex flex-1 flex-col p-5 sm:p-6";
 const chipClass = "inline-flex w-fit items-center rounded-full bg-brand-50 px-2.5 py-0.5 text-caption font-semibold text-brand-700";
 const titleClass = "mb-0 text-h3 font-bold tracking-tight text-ink";
@@ -130,6 +130,7 @@ async function renderItems(data: CollectionListData, Card: "h2" | "h3", dark: bo
     case "software":
     case "solution":
     case "service": {
+      // Dữ liệu từ Backend cũ hoặc cache trước khi có chuyên mục/số liệu thì thiếu hai trường này: coi như trống, không làm sập trang.
       const offerings = take(await getPublishedOfferingSummaries(data.source), data.limit);
       // Nhãn "Nổi bật" chỉ có nghĩa khi có mục không nổi bật đứng cạnh.
       const markFeatured = offerings.some(offering => !offering.isFeatured);
@@ -144,7 +145,7 @@ async function renderItems(data: CollectionListData, Card: "h2" | "h3", dark: bo
           <Card className={`${titleClass} line-clamp-2`}>{offering.title}</Card>
           {offering.summary ? <p className={`${textClass} line-clamp-3`}>{offering.summary}</p> : null}
           {/* Số liệu nổi bật (CMS › Sản phẩm › Số liệu): bằng chứng ngắn ngay trên thẻ, tối đa hai dòng. */}
-          {offering.metrics.length ? <ul className="m-0 mt-4 grid list-none gap-1.5 p-0">{offering.metrics.slice(0, 2).map(metric => <li className="flex items-start gap-2 text-small font-semibold text-ink" key={metric}>
+          {offering.metrics?.length ? <ul className="m-0 mt-4 grid list-none gap-1.5 p-0">{offering.metrics.slice(0, 2).map(metric => <li className="flex items-start gap-2 text-small font-semibold text-ink" key={metric}>
             <Check aria-hidden="true" className="mt-0.5 shrink-0 text-accent-green" size={16} strokeWidth={2.6} />{metric}
           </li>)}</ul> : null}
           <p className={moreClass}>Xem chi tiết →</p>
