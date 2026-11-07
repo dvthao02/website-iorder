@@ -29,7 +29,7 @@ export default async function EquipmentDetail({ params }: Props) {
   const [config, profile] = await Promise.all([getPublishingConfig(), getSiteProfile()]);
   const site = config.siteUrl;
   return <><SiteHeader />{site ? <JsonLd data={[productJsonLd(site, { name: item.name, description: item.seoDescription || item.summary, path: `/thiet-bi/${item.slug}`, imagePath: item.coverUrl ?? null, sku: item.modelCode, priceVnd: item.priceVnd, brand: profile?.companyName ?? "iOrder" }), breadcrumbJsonLd(site, [{ name: "Trang chủ", path: "/" }, { name: "Thiết bị", path: "/thiet-bi" }, { name: item.name, path: `/thiet-bi/${item.slug}` }])]} /> : null}
-    <main>
+    <main id="noi-dung">
       <DetailHero back={{ href: "/thiet-bi", label: "Tất cả thiết bị" }} image={item.coverUrl ? { url: item.coverUrl, alt: item.coverAlt ?? item.name } : null} imageStyle="product" label={item.groupName} primary={{ label: "Liên hệ mua hàng", href: "/lien-he" }} secondary={{ label: "Xem thiết bị khác", href: "/thiet-bi" }} summary={item.summary} title={item.name}>
         <p className="mt-6 mb-0 text-3xl font-bold tracking-tight text-brand-700">{priceFormatter.format(item.priceVnd)}</p>
         <ul className="mt-5 flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted">

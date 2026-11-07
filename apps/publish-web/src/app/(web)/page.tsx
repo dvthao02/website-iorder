@@ -14,7 +14,7 @@ export default async function Home() {
   return (
     <>
       <SiteHeader />
-      {page ? <PageBlockRenderer blocks={page.blocks} screens /> : <main className="mx-auto max-w-4xl p-8"><p>Trang chủ đang chờ được xuất bản trong CMS.</p></main>}
+      {page ? <main id="noi-dung"><PageBlockRenderer blocks={page.blocks} screens /></main> : <main id="noi-dung" className="mx-auto max-w-4xl p-8"><p>Trang chủ đang chờ được xuất bản trong CMS.</p></main>}
     </>
   );
 }

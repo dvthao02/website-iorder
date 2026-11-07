@@ -9,4 +9,4 @@ export const revalidate = 0;
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }, parent: ResolvingMetadata): Promise<Metadata> {
   return cmsStaticMetadata((await params).slug, parent);
 }
-export default async function ContentPage({ params }: { params: Promise<{ slug: string }> }) { const { slug } = await params; const fixedPage = getFixedWebsitePage(slug); if (fixedPage) permanentRedirect(fixedPage.publicPath); const page = await getPublishedPage(slug); if (!page) notFound(); return <><SiteHeader /><PageBlockRenderer blocks={page.blocks} /></>; }
+export default async function ContentPage({ params }: { params: Promise<{ slug: string }> }) { const { slug } = await params; const fixedPage = getFixedWebsitePage(slug); if (fixedPage) permanentRedirect(fixedPage.publicPath); const page = await getPublishedPage(slug); if (!page) notFound(); return <><SiteHeader /><main id="noi-dung"><PageBlockRenderer blocks={page.blocks} /></main></>; }

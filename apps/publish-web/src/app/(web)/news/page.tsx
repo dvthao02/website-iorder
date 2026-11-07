@@ -10,6 +10,6 @@ export async function generateMetadata(_: unknown, parent: ResolvingMetadata): P
 
 export default async function NewsPage() {
   const content = await getListingPageContent("listing-news");
-  if (!content) return <><SiteHeader /><main className="site-container py-6">Nội dung trang tin tức đang chờ được cấu hình trong CMS.</main></>;
+  if (!content) return <><SiteHeader /><main id="noi-dung" className="site-container py-6">Nội dung trang tin tức đang chờ được cấu hình trong CMS.</main></>;
   return <ListingPageView content={content} />;
 }

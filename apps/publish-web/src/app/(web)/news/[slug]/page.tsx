@@ -54,7 +54,7 @@ export default async function NewsDetailPage({ params }: NewsDetailPageProps) {
       <SiteHeader />
       {site ? <JsonLd data={[articleJsonLd(site, { title: post.title, description: post.seoDescription ?? suggestSeoDescription(post.excerpt, post.content), path: `/tin-tuc/${post.slug}`, imagePath: post.cover?.url ?? null, publishedAt: post.publishedAt, publisherName: profile?.companyName ?? "iOrder" }), breadcrumbJsonLd(site, [{ name: "Trang chủ", path: "/" }, { name: "Tin tức", path: "/tin-tuc" }, { name: post.title, path: `/tin-tuc/${post.slug}` }])]} /> : null}
       {/* Bài viết: phần đầu cùng kiểu trang chi tiết nhưng không ép cao một màn hình, để người đọc thấy ngay nội dung. */}
-      <main>
+      <main id="noi-dung">
         <article>
           <DetailHero back={{ href: "/tin-tuc", label: "Tất cả bài viết" }} fill={false} image={post.cover ? { url: post.cover.url, alt: post.cover.altText ?? post.title } : null} label={postTypeLabel[post.type]} summary={post.excerpt} title={post.title}>
             {post.publishedAt ? <p className="mt-5 mb-0 text-sm text-muted">Đăng ngày {dateFormatter.format(post.publishedAt)}</p> : null}

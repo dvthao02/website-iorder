@@ -32,7 +32,7 @@ export default async function SupportGuideDetailPage({ params }: SupportGuideDet
     <>
       <SiteHeader />
       {site ? <JsonLd data={[articleJsonLd(site, { title: post.title, description: post.seoDescription ?? suggestSeoDescription(post.excerpt, post.content), path: `/ho-tro/huong-dan/${post.slug}`, imagePath: post.cover?.url ?? null, publishedAt: post.publishedAt, publisherName: profile?.companyName ?? "iOrder" }), breadcrumbJsonLd(site, [{ name: "Trang chủ", path: "/" }, { name: "Hướng dẫn sử dụng", path: "/ho-tro/huong-dan" }, { name: post.title, path: `/ho-tro/huong-dan/${post.slug}` }])]} /> : null}
-      <main>
+      <main id="noi-dung">
         <article>
           <DetailHero back={{ href: "/ho-tro/huong-dan", label: "Hướng dẫn sử dụng" }} fill={false} image={post.cover ? { url: post.cover.url, alt: post.cover.altText ?? post.title } : null} label="Hướng dẫn sử dụng" summary={post.excerpt} title={post.title} />
           <Container className="py-12 sm:py-16" width="text"><PostContent document={post.content} /></Container>

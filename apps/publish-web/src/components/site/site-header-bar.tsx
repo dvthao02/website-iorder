@@ -101,7 +101,8 @@ export function SiteHeaderBar({ actions, brand, links, logo }: { actions: Header
   }, [mobileOpen]);
 
   // Bảng menu điện thoại nằm ngoài <header>: header có backdrop-filter nên phần tử fixed bên trong sẽ bị định vị theo header.
-  return <><header className={scrolled || mobileOpen ? "site-header site-header--scrolled" : "site-header"}>
+  // "Bỏ qua tới nội dung chính": phần tử đầu tiên khi bấm Tab, chỉ hiện khi được focus (người dùng bàn phím, trình đọc màn hình).
+  return <><a className="skip-link" href="#noi-dung">Bỏ qua tới nội dung chính</a><header className={scrolled || mobileOpen ? "site-header site-header--scrolled" : "site-header"}>
     <div className="site-header__inner">
       <Link aria-label={`${brand} - Trang chủ`} className="brand" href="/">
         {logo ? <Image alt={logo.alt} className="h-[2.375rem] w-auto" height={80} priority src={logo.url} width={200} /> : <><span aria-hidden="true" className="brand__mark">i</span>{brand}</>}

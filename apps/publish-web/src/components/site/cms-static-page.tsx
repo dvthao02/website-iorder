@@ -12,4 +12,4 @@ export async function cmsStaticMetadata(slug: string, parent: ResolvingMetadata)
   if (!page) return { title: "Không tìm thấy trang | iOrder" };
   return contentMetadata({ title: page.seoTitle || page.title, description: page.seoDescription, path: getFixedWebsitePage(slug)?.publicPath ?? `/trang/${slug}`, canonicalUrl: page.canonicalUrl }, parent);
 }
-export async function CmsStaticPage({ slug }: { slug: string }) { const page = await getPublishedPage(slug); if (!page) notFound(); return <><SiteHeader /><PageBlockRenderer blocks={page.blocks} /></>; }
+export async function CmsStaticPage({ slug }: { slug: string }) { const page = await getPublishedPage(slug); if (!page) notFound(); return <><SiteHeader /><main id="noi-dung"><PageBlockRenderer blocks={page.blocks} /></main></>; }

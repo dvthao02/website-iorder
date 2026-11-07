@@ -11,7 +11,7 @@ export function ListingPageView({ content }: { content: ListingPageContent }) {
   const sections = blocks.flatMap(block => { const anchor = blockAnchor(block); return block.isEnabled && block.type === "collection_list" && anchor && block.data.title ? [{ anchor, title: block.data.title }] : []; });
   return <>
     <SiteHeader />
-    <main className="pb-12">
+    <main id="noi-dung" className="pb-12">
       <header><Container className="pt-16 sm:pt-24">
         <SectionHeading description={header.description} eyebrow={header.eyebrow} level="h1" size="lg" title={header.title} />
         {sections.length > 1 ? <nav aria-label="Các phần trong trang" className="mx-auto mt-8 flex w-fit flex-wrap items-center justify-center gap-1 rounded-full border border-line bg-white p-1 shadow-card">

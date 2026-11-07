@@ -57,7 +57,7 @@ export default async function OfferingDetailPage({ params }: OfferingDetailPageP
       <SiteHeader />
       {site ? <JsonLd data={[serviceJsonLd(site, { name: offering.title, description: offering.seoDescription ?? offering.summary, path: `/${catalog}/${offering.slug}`, imagePath: offering.cover?.url ?? null, providerName: profile?.companyName ?? "iOrder" }), breadcrumbJsonLd(site, [{ name: "Trang chủ", path: "/" }, { name: label, path: `/${catalog}` }, { name: offering.title, path: `/${catalog}/${offering.slug}` }])]} /> : null}
       {/* Phần đầu chiếm một màn hình như trang chủ; các phần nội dung phía dưới cũng mỗi phần một màn hình. */}
-      <main>
+      <main id="noi-dung">
         <DetailHero
           back={{ href: `/${catalog}`, label: `Tất cả ${label.toLowerCase()}` }}
           image={offering.cover ? { url: offering.cover.url, alt: offering.cover.altText ?? `Ảnh minh họa ${offering.title}`, width: offering.cover.width, height: offering.cover.height } : null}

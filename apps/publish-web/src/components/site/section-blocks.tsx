@@ -64,7 +64,7 @@ export function GroupedListSection({ data, frame }: { data: Extract<PageBlock, {
         const row = "grouped-row flex items-center gap-3 border-b border-line py-3 text-body text-ink";
         return <li key={`${item.label}-${itemIndex}`}>{item.href ? <TextLink className={`${row} transition hover:text-brand-700`} href={item.href}>{content}</TextLink> : <div className={row}>{content}</div>}</li>;
       })}</ul> : <CardText className="mt-4 flex-1">Chưa có mục nào.</CardText>}
-      {group.action ? <TextLink className="mt-5 inline-flex items-center gap-2 self-start text-small font-bold text-brand-700 hover:underline" href={group.action.href}><Sparkles aria-hidden="true" size={16} />{group.action.label}</TextLink> : null}
+      {group.action ? <TextLink className="mt-5 inline-flex min-h-6 items-center gap-2 self-start text-small font-bold text-brand-700 hover:underline" href={group.action.href}><Sparkles aria-hidden="true" size={16} />{group.action.label}</TextLink> : null}
     </Card>)}</div>
   </FrameSection>;
 }

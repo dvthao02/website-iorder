@@ -10,6 +10,6 @@ export async function generateMetadata(_: unknown, parent: ResolvingMetadata): P
 
 export default async function SupportGuidesPage() {
   const content = await getListingPageContent("listing-guides");
-  if (!content) return <><SiteHeader /><main className="mx-auto max-w-4xl p-6">Nội dung trang hướng dẫn đang chờ được cấu hình trong CMS.</main></>;
+  if (!content) return <><SiteHeader /><main id="noi-dung" className="mx-auto max-w-4xl p-6">Nội dung trang hướng dẫn đang chờ được cấu hình trong CMS.</main></>;
   return <ListingPageView content={content} />;
 }
