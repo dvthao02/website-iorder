@@ -46,7 +46,7 @@ const typeInfo = Object.fromEntries(offeringTypes.map((entry) => [entry.type, en
 function CreateOfferingButton({ type }: { type: OfferingTypeFilter }) {
   const { can } = useAdminPermissions();
   if (!can("offerings.create")) return null;
-  if (type !== "all") return <AdminButton href={`${typeInfo[type].editorHref}/moi`} leadingIcon={<Plus aria-hidden="true" size={16} />}>Tạo {typeInfo[type].label.toLocaleLowerCase("vi")}</AdminButton>;
+  if (type !== "all") return <AdminButton href={`${typeInfo[type].editorHref}/new`} leadingIcon={<Plus aria-hidden="true" size={16} />}>Tạo {typeInfo[type].label.toLocaleLowerCase("vi")}</AdminButton>;
   return <AdminPopover className="admin-create-menu" label="Chọn loại cần tạo" trigger={<span className="admin-button admin-button--primary"><Plus aria-hidden="true" size={16} />Tạo mới<ChevronDown aria-hidden="true" size={14} /></span>}>
     <div className="admin-header-popover admin-header-popover--menu">{offeringTypes.map((entry) => <Link href={`${entry.editorHref}/new`} key={entry.type}><strong>{entry.label}</strong><small>{entry.hint}</small></Link>)}</div>
   </AdminPopover>;

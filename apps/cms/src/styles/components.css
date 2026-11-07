@@ -522,7 +522,8 @@
   .admin-post-editor__state { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
   .admin-post-editor__group { display: grid; min-width: 0; gap: 6px; margin: 0; border: 0; padding: 0; }
   .admin-post-editor__group > legend { margin-bottom: 4px; padding: 0; color: var(--cms-text); font-size: var(--cms-text-sm); font-weight: 500; }
-  .admin-post-editor__checklist { display: grid; max-height: 216px; gap: 2px; overflow-y: auto; border: 1px solid var(--cms-border); border-radius: var(--cms-radius-component); padding: 6px 10px; }
+  /* Chuyên mục, thẻ: thấy khoảng 5–6 mục, còn lại cuộn trong ô (nhiều hơn 8 mục có ô tìm) để cột thiết lập không dài hơn cột viết. */
+  .admin-post-editor__checklist { display: grid; max-height: 152px; gap: 2px; overflow-y: auto; border: 1px solid var(--cms-border); border-radius: var(--cms-radius-component); padding: 6px 10px; }
   .admin-post-editor__filter { height: 32px; }
   .admin-post-editor__prepublish { display: grid; gap: 4px; border: 1px solid var(--cms-status-warning-border); border-radius: var(--cms-radius-component); background: var(--cms-status-warning-background); padding: 10px 12px; font-size: var(--cms-text-sm); }
   .admin-post-editor__prepublish ul { display: grid; gap: 2px; margin: 0; padding-left: 18px; list-style: disc; }
@@ -604,6 +605,8 @@
   .admin-rte__linkbar input { flex: 1 1 auto; min-width: 0; }
   .admin-rte__status { border-top: 1px solid var(--cms-border); padding: 6px 12px; color: var(--cms-muted); font-size: var(--cms-text-xs); }
   .admin-rte__content .tiptap { min-height: 360px; padding: 16px 20px; outline: 0; font-size: 15px; line-height: 1.7; }
+  /* Bài viết: vùng soạn thảo cao theo màn hình (như trang giấy của Word), bài mới có chỗ viết lấp đầy màn đầu và cân với cột thiết lập. */
+  #post-content .admin-rte__content .tiptap { min-height: clamp(360px, calc(100svh - 440px), 640px); }
   .admin-rte__content .tiptap > * + * { margin-top: .75em; }
   .admin-rte__content .tiptap h2 { margin-top: 1.4em; font-size: 22px; font-weight: 700; line-height: 1.3; }
   .admin-rte__content .tiptap h3 { margin-top: 1.2em; font-size: 18px; font-weight: 700; }

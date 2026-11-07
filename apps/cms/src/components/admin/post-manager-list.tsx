@@ -46,7 +46,7 @@ type PostManagerListProps = {
   showTaxonomyLink?: boolean;
 };
 
-export function PostManagerList({ baseHref = "/admin/news", createHref = `${baseHref}/moi`, initialQuery, initialStatus, result, tabs, title = "Bài viết & Tin tức", singularLabel = "bài viết", typeOptions = [], categories = [], tags = [], showTaxonomyLink = false }: PostManagerListProps) {
+export function PostManagerList({ baseHref = "/admin/news", createHref = `${baseHref}/new`, initialQuery, initialStatus, result, tabs, title = "Bài viết & Tin tức", singularLabel = "bài viết", typeOptions = [], categories = [], tags = [], showTaxonomyLink = false }: PostManagerListProps) {
   const { navigate, pagination, searchParams, setFilter, setSort, sort } = useListNavigation();
   const [query, setQuery] = useState(initialQuery);
   const { selectedIds, setSelectedIds, clear } = useRowSelection(searchParams.toString());
