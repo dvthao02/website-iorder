@@ -72,12 +72,17 @@ test("Trình sửa trang chỉ có một thanh cuộn; ảnh của phần đầu
   const hero = page.locator(".admin-block").filter({ has: page.locator(".admin-block__toggle > strong", { hasText: "Phần đầu trang" }) }).first();
   if (!(await hero.evaluate((element) => element.classList.contains("admin-block--open")))) await hero.locator(".admin-block__toggle").click();
   // Trang chủ có thể đang dùng kiểu khác (ví dụ trượt ảnh): chọn kiểu chữ – ảnh trên form (không lưu) để có ô ảnh minh họa.
+  // Kiểu bố cục và ảnh nằm ở tab "Bố cục & ảnh" của thành phần.
+  await hero.getByRole("tab", { name: "Bố cục & ảnh" }).click();
   await hero.getByRole("group", { name: "Kiểu bố cục" }).getByText("Chữ trái, ảnh phải").click();
-  // Ảnh của phần đầu trang nằm trong một nhóm "Ảnh bên phải (tùy chọn) (n/…)", mỗi ảnh một bộ chọn "Ảnh 1", "Ảnh 2"…
+  // Ảnh của phần đầu trang nằm trong một nhóm "Ảnh bên phải (tùy chọn) (n/…)", mỗi ảnh là một mục phẳng (không khung thẻ)
+  // có dòng đầu đánh số "1 Ảnh" và bộ chọn ảnh ngay bên dưới.
   const images = hero.locator(".admin-block-group").filter({ has: page.locator("legend", { hasText: "Ảnh bên phải (tùy chọn)" }) }).first();
   await expect(images).toBeVisible();
-  const picker = images.locator(".media-picker").first();
-  await expect(picker.getByRole("heading", { name: "Ảnh 1" })).toBeVisible();
+  const firstImage = images.getByRole("region", { name: "Ảnh 1" });
+  await expect(firstImage.locator(".admin-list-item__head")).toContainText("Ảnh");
+  const picker = firstImage.locator(".media-picker");
+  await expect(picker).toBeVisible();
   // Bộ chọn ảnh nằm thẳng trong nhóm ảnh, không lồng thêm khung nhóm thứ hai.
   expect(await picker.evaluate((element) => {
     let groups = 0;
