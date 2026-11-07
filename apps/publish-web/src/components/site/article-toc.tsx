@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 
+import { SlidingRail } from "./sliding-rail";
+
 type Entry = { id: string; text: string; level: 2 | 3 };
 
 /**
@@ -30,8 +32,8 @@ export function ArticleToc({ entries }: { entries: Entry[] }) {
 
   return <nav aria-label="Mục lục bài viết" className="article-toc">
     <p className="article-toc__title">Trong bài này</p>
-    <ol>{entries.map((entry) => <li data-level={entry.level} key={entry.id}>
+    <SlidingRail><ol>{entries.map((entry) => <li data-level={entry.level} key={entry.id}>
       <a aria-current={entry.id === active ? "location" : undefined} href={`#${entry.id}`}>{entry.text}</a>
-    </li>)}</ol>
+    </li>)}</ol></SlidingRail>
   </nav>;
 }

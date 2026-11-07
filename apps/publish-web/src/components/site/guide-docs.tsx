@@ -3,13 +3,15 @@ import type { ReactNode } from "react";
 
 import type { GuideGroup } from "@/lib/guides";
 import { SiteLink as Link } from "./site-link";
+import { SlidingRail } from "./sliding-rail";
 
 /**
- * Danh mục hướng dẫn: mỗi nhóm (chuyên mục) gập/mở được, bài đang xem được tô.
+ * Danh mục hướng dẫn: mỗi nhóm (chuyên mục) gập/mở được; bài đang xem có thanh trượt "|" bên trái (SlidingRail),
+ * thanh trượt theo bài đang rê chuột rồi quay về bài đang xem.
  * Nhóm chứa bài đang xem mở sẵn; ở trang tổng hợp (không có bài đang xem) mọi nhóm đều mở.
  */
 function GuideNav({ groups, activeHref }: { groups: GuideGroup[]; activeHref?: string }) {
-  return <nav aria-label="Danh mục hướng dẫn" className="guide-nav">
+  return <nav aria-label="Danh mục hướng dẫn" className="guide-nav"><SlidingRail className="guide-nav__rail">
     {groups.map((group) => {
       const open = !activeHref || groups.length === 1 || group.items.some((item) => item.href === activeHref);
       return <details className="guide-nav__group" key={group.key} open={open}>
@@ -17,7 +19,7 @@ function GuideNav({ groups, activeHref }: { groups: GuideGroup[]; activeHref?: s
         <ul>{group.items.map((item) => <li key={item.href}><Link aria-current={item.href === activeHref ? "page" : undefined} className="guide-nav__link" href={item.href}>{item.title}</Link></li>)}</ul>
       </details>;
     })}
-  </nav>;
+  </SlidingRail></nav>;
 }
 
 /**
