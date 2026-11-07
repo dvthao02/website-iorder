@@ -82,7 +82,7 @@ function ensureUniqueNavigationPaths(groups: NavigationGroup[]) {
 const navigationGroups = ensureUniqueNavigationPaths([
   // Thứ tự theo tần suất dùng: việc nội dung hằng ngày ở trên, quản trị hệ thống rồi cài đặt ở dưới cùng.
   // Mọi loại nội dung chung một nhóm: cấu trúc website (đường dẫn, menu) do admin đặt trong CMS nên sidebar không tách theo nó.
-  { id: "overview", label: "Tổng quan", icon: LayoutDashboard, items: [{ href: "/admin", label: "Tổng quan", icon: Home }, { href: "/admin/analytics", label: "Thống kê truy cập", icon: BarChart3, permission: "dashboard.view" }, { href: "/admin/seo/publish-check", label: "Kiểm tra xuất bản", icon: ClipboardCheck, permission: "settings.view" }] },
+  { id: "overview", label: "Tổng quan", icon: LayoutDashboard, items: [{ href: "/admin", label: "Bảng điều khiển", icon: Home }, { href: "/admin/analytics", label: "Thống kê truy cập", icon: BarChart3, permission: "dashboard.view" }, { href: "/admin/seo/publish-check", label: "Kiểm tra xuất bản", icon: ClipboardCheck, permission: "settings.view" }] },
   {
     id: "content",
     label: "Nội dung",
@@ -100,11 +100,11 @@ const navigationGroups = ensureUniqueNavigationPaths([
   {
     // Tệp tải lên dùng chung (ảnh, tài liệu) và tệp cài đặt cho khách tải về: tách khỏi việc viết nội dung hằng ngày.
     id: "storage",
-    label: "Lưu trữ",
+    label: "Tệp & Media",
     icon: Archive,
     items: [
       { href: "/admin/media", label: "Thư viện media", icon: Image, permission: "media.view" },
-      { href: "/admin/resources", label: "Hỗ trợ cài đặt", icon: Download, matchesChildRoutes: true, permission: "support_downloads.view" },
+      { href: "/admin/resources", label: "Tệp cài đặt", icon: Download, matchesChildRoutes: true, permission: "support_downloads.view" },
     ],
   },
   {
@@ -117,7 +117,7 @@ const navigationGroups = ensureUniqueNavigationPaths([
   },
   {
     id: "structure",
-    label: "Cấu trúc website",
+    label: "Điều hướng & URL",
     icon: FolderTree,
     items: [
       { href: "/admin/menu", label: "Menu & Điều hướng", icon: Menu, permission: "navigation.view" },

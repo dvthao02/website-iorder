@@ -76,7 +76,7 @@ export default async function AdministratorHomePage() {
   const primaryAction = can("posts.create") ? { href: "/admin/news/new", label: "Viết bài" } : can("pages.create") ? { href: "/admin/pages/new", label: "Tạo trang" } : null;
 
   return <div className="admin-page">
-    <h1 className="sr-only">Tổng quan</h1>
+    <h1 className="sr-only">Bảng điều khiển</h1>
     <AdminPageBarMeta>Xin chào {administrator.fullName}</AdminPageBarMeta>
     <AdminPageBarActions>
       {canViewAnalytics ? <AdminButton href="/admin/analytics" leadingIcon={<CalendarDays aria-hidden="true" />} variant="secondary">Thống kê {analytics.periodDays} ngày</AdminButton> : null}

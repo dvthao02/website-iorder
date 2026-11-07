@@ -16,7 +16,7 @@ export const cmsModules = [
   { key: "posts", name: "Bài viết, tin tức & hướng dẫn", actions: ["view", "create", "update", "delete", "publish"] },
   { key: "offerings", name: "Sản phẩm & Dịch vụ", actions: ["view", "create", "update", "delete", "publish"] },
   { key: "equipment", name: "Thiết bị", actions: ["view", "create", "update", "delete", "publish"] },
-  { key: "support_downloads", name: "Hỗ trợ cài đặt (tệp tải về)", actions: ["view", "create", "update", "delete", "publish"] },
+  { key: "support_downloads", name: "Tệp cài đặt (khách tải về)", actions: ["view", "create", "update", "delete", "publish"] },
   { key: "supporting", name: "Đối tác & Đánh giá", actions: ["view", "create", "update", "delete", "publish"] },
   { key: "media", name: "Thư viện media", actions: ["view", "create", "update", "delete"] },
   { key: "taxonomy", name: "Chuyên mục & Thẻ", actions: ["view", "create", "update", "delete"] },
