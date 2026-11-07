@@ -152,10 +152,10 @@ body { margin: 0; background: var(--color-canvas); color: var(--color-ink); font
  * viền và bóng. Nền tối (ảnh nền, trượt ảnh) thì chữ menu và logo chuyển trắng khi còn trong suốt.
  * Trang không có phần đầu trang giữ header trắng.
  */
-:root { --header-height: 4.75rem; }
+:root { --header-height: 5.25rem; }
 /* Bấm liên kết tới mã neo (#tu-van…): đích dừng dưới header cố định, chừa thêm 1rem; áp cho mọi phần trang, không cần class riêng. */
 html { scroll-padding-top: calc(var(--header-height) + 1rem); }
-@media (max-width: 640px) { :root { --header-height: 4rem; } }
+@media (max-width: 640px) { :root { --header-height: 4.25rem; } }
 .site-header { position: sticky; top: 0; z-index: 40; border-bottom: 1px solid rgb(226 232 240 / .92); background: rgb(255 255 255 / .98); transition: box-shadow 200ms ease, background 200ms ease, border-color 200ms ease; }
 .site-header--scrolled { box-shadow: 0 12px 30px rgb(15 23 42 / .08); }
 /* Cuộn xuống: nền trắng mờ kính (nội dung chạy ngầm phía dưới thấy lờ mờ). Từ 1024px header thấp lại 12px; margin-bottom
@@ -184,7 +184,7 @@ body:has([data-hero-top="dark"]) .site-header:not(.site-header--scrolled) .brand
 .brand { display: inline-flex; flex-shrink: 0; align-items: center; gap: 8px; font-size: 1.25rem; font-weight: 800; letter-spacing: -.04em; }
 .brand__mark { display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 9px; background: var(--color-brand-600); color: white; font: italic 1.5rem Georgia, serif; }
 /* Tỉ lệ header theo iorder.com.vn: logo 38px, chữ menu 16,5px, nút cao 42px chữ 15,5px — logo, chữ và nút cùng tâm dọc. */
-.header-cta { min-height: 2.625rem; padding: 0 1.25rem; font-size: .97rem; font-weight: 600; white-space: nowrap; }
+.header-cta { min-height: 2.875rem; padding: 0 1.4rem; font-size: 1.03rem; font-weight: 600; white-space: nowrap; }
 .header-cta--primary { background: var(--color-brand-600); color: white; }
 .header-cta--primary:hover { background: var(--color-brand-700); }
 .header-cta--secondary { border: 1px solid var(--color-line); background: white; color: var(--color-ink); }
@@ -194,7 +194,7 @@ body:has([data-hero-top="dark"]) .site-header:not(.site-header--scrolled) .brand
 .site-nav { position: relative; display: flex; flex: 1 1 auto; justify-content: center; min-width: 0; }
 .site-nav__list { display: flex; align-items: center; gap: 2px; margin: 0; padding: 0; list-style: none; }
 .site-nav__item { position: relative; }
-.site-nav__link { display: inline-flex; align-items: center; gap: 4px; min-height: 2.625rem; padding: 0 .875rem; border-radius: .75rem; color: var(--color-ink); font-size: 1.03rem; font-weight: 600; white-space: nowrap; transition: color 150ms ease; }
+.site-nav__link { display: inline-flex; align-items: center; gap: 4px; min-height: 2.875rem; padding: 0 1rem; border-radius: .75rem; color: var(--color-ink); font-size: 1.1rem; font-weight: 600; white-space: nowrap; transition: color 150ms ease; }
 .site-nav__link:hover { color: var(--color-brand-600); }
 /* Mục đang chọn: chỉ đổi màu chữ, không tô nền; vị trí do thanh trượt bên dưới chỉ ra. */
 .site-nav__link--active { color: var(--color-brand-700); }
@@ -232,7 +232,7 @@ body:has([data-hero-top="dark"]) .site-header:not(.site-header--scrolled) .brand
   .site-header__inner { gap: 1rem; }
   .site-nav__list { gap: 0; }
   .site-nav__link { padding: 0 .625rem; font-size: .97rem; }
-  .header-cta { padding: 0 1rem; font-size: .93rem; }
+  .header-cta { min-height: 2.75rem; padding: 0 1rem; font-size: .95rem; }
 }
 
 /* Menu điện thoại: nút ☰ và bảng toàn chiều ngang dưới đầu trang. */
