@@ -54,7 +54,7 @@ test.describe("Trang danh sách là Trang website", () => {
     await expect(page.getByRole("heading", { name: /không tồn tại hoặc đã bị xóa/ })).toBeVisible();
   });
 
-  test("Hướng dẫn sử dụng tách khỏi Hỗ trợ cài đặt ở cả CMS và website", async ({ page, request }) => {
+  test("Hướng dẫn sử dụng tách khỏi Tệp cài đặt ở cả CMS và website", async ({ page, request }) => {
     await page.goto("/admin/resources?tab=guides");
     await expect(page).toHaveURL(/\/admin\/guides$/);
     await expect(page.getByRole("heading", { name: "Hướng dẫn sử dụng" })).toBeVisible();
