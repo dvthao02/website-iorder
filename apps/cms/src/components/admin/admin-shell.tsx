@@ -8,6 +8,7 @@ import { AdminToastProvider } from "@/components/admin/ui/admin-feedback";
 import { AdminConfirmProvider } from "@/components/admin/ui/admin-confirm-dialog";
 import { AdminPermissionsProvider } from "@/components/admin/ui/admin-permissions";
 import {
+  Archive,
   ArrowRightLeft,
   BarChart3,
   BookOpen,
@@ -93,9 +94,17 @@ const navigationGroups = ensureUniqueNavigationPaths([
       { href: "/admin/products", label: "Sản phẩm & Dịch vụ", icon: Package, matchesChildRoutes: true, permission: "offerings.view", subPages: [{ href: "/admin/solutions" }, { href: "/admin/services" }] },
       { href: "/admin/equipment", label: "Thiết bị", icon: Laptop, matchesChildRoutes: true, permission: "equipment.view" },
       { href: "/admin/partners", label: "Đối tác & Đánh giá", icon: Star, permission: "supporting.view" },
-      { href: "/admin/resources", label: "Hỗ trợ cài đặt", icon: Download, matchesChildRoutes: true, permission: "support_downloads.view" },
       { href: "/admin/guides", label: "Hướng dẫn sử dụng", icon: BookOpen, matchesChildRoutes: true, permission: "posts.view" },
+    ],
+  },
+  {
+    // Tệp tải lên dùng chung (ảnh, tài liệu) và tệp cài đặt cho khách tải về: tách khỏi việc viết nội dung hằng ngày.
+    id: "storage",
+    label: "Lưu trữ",
+    icon: Archive,
+    items: [
       { href: "/admin/media", label: "Thư viện media", icon: Image, permission: "media.view" },
+      { href: "/admin/resources", label: "Hỗ trợ cài đặt", icon: Download, matchesChildRoutes: true, permission: "support_downloads.view" },
     ],
   },
   {
