@@ -10,6 +10,15 @@ test("Máy tính: menu thả xuống, chân trang, liên hệ nổi, lên đầu
   test.skip(await branch.count() === 0, "Menu đầu trang chưa có mục có con");
   await branch.hover();
   await expect(branch.locator(".site-nav__dropdown")).toBeVisible();
+  // Chỉ một bảng mở tại một thời điểm: focus một mục (như sau khi bấm) rồi rê sang mục có con khác.
+  const branches = nav.locator(".site-nav__item--branch");
+  if (await branches.count() > 1) {
+    await branches.nth(0).locator("> a").focus();
+    await branches.nth(1).hover();
+    await expect(branches.nth(1).locator(".site-nav__dropdown")).toBeVisible();
+    await expect(branches.nth(0).locator(".site-nav__dropdown")).toBeHidden();
+    await page.keyboard.press("Escape");
+  }
 
   const footer = page.locator("footer.site-footer");
   await expect(footer.getByRole("list", { name: "Liên hệ iOrder" })).toBeVisible();
