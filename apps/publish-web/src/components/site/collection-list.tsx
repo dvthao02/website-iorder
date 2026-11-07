@@ -5,6 +5,7 @@ import type { BlockFrame } from "@iorder/core/server/pages/block-layout";
 import type { CollectionListData, CollectionSource } from "@iorder/core/server/pages/pages.contract";
 
 import { FrameSection, SectionHeading, TextLink } from "@/components/ui";
+import { EquipmentExplorer } from "./equipment-explorer";
 import { getEnabledSupportDownloads, getEquipment, getPublishedOfferingSummaries, getPublishedPostSummaries } from "@/lib/backend";
 
 const postTypeLabel = { announcement: "Thông báo", case_study: "Câu chuyện khách hàng", guide: "Hướng dẫn", news: "Tin tức", promotion: "Khuyến mãi" } as const;
@@ -38,7 +39,7 @@ const listingPath: Partial<Record<CollectionSource, string>> = { posts: "/tin-tu
 // Khi khối không có tiêu đề (thường là ngay dưới phần đầu trang danh sách), thẻ dùng h2.
 export async function CollectionList({ data, frame }: { data: CollectionListData; frame: BlockFrame }) {
   const Card = data.title ? "h3" : "h2";
-  const items = await renderItems(data, Card);
+  const items = await renderItems(data, Card, frame.tone === "dark");
   return <FrameSection frame={frame} label={data.title ?? undefined}>
     {data.title ? <ListHeading data={data} dark={frame.tone === "dark"} /> : null}
     {items ?? <div className="rounded-card border border-dashed border-line bg-white p-8 text-body text-muted">{emptyMessages[data.source]}</div>}
@@ -73,7 +74,7 @@ export function EquipmentCard({ item, Heading = "h3" }: { item: EquipmentItem; H
   </Link>;
 }
 
-async function renderItems(data: CollectionListData, Card: "h2" | "h3") {
+async function renderItems(data: CollectionListData, Card: "h2" | "h3", dark: boolean) {
   switch (data.source) {
     case "posts": {
       const posts = take((await getPublishedPostSummaries()).filter(post => post.type !== "guide"), data.limit);
@@ -113,7 +114,9 @@ async function renderItems(data: CollectionListData, Card: "h2" | "h3") {
     case "equipment": {
       const equipment = take(await getEquipment(true), data.limit);
       // Ảnh thiết bị cùng khung 4:3 nền nhạt sát mép thẻ, ảnh nằm gọn bên trong (ảnh nền trong suốt vẫn đều nhau); 4 cột trên màn rộng.
-      return equipment.length ? <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">{equipment.map(item => <EquipmentCard Heading={Card} item={item} key={item.id} />)}</div> : null;
+      // Lưới chọn thiết bị: bấm thẻ mở chi tiết ngay dưới hàng. Hiện tất cả (trang Thiết bị) thì chia theo nhóm.
+      const grouped = !data.limit && new Set(equipment.map(item => item.groupName)).size > 1;
+      return equipment.length ? <EquipmentExplorer dark={dark} grouped={grouped} Heading={Card} items={equipment.map(item => ({ id: item.id, slug: item.slug, name: item.name, modelCode: item.modelCode ?? null, priceVnd: item.priceVnd, warrantyMonths: item.warrantyMonths, summary: item.summary ?? null, groupName: item.groupName, coverUrl: item.coverUrl, coverAlt: item.coverAlt ?? null, specificationGroups: item.specificationGroups }))} /> : null;
     }
     case "software":
     case "solution":

@@ -106,6 +106,35 @@ html { font-size: clamp(16px, calc(16px + (100vw - 1440px) * 0.0033), 24px); }
 /* Độ rộng nội dung chọn trong CMS (% khung của khối), căn giữa; điện thoại luôn rộng hết khung để chữ không bị ép. */
 .block-width { width: 100%; margin-inline: auto; }
 @media (min-width: 768px) { .block-width { width: var(--block-width, 100%); } }
+/* Lưới chọn thiết bị (trang Thiết bị): thẻ gọn ảnh – tên – giá – bảo hành; thẻ đang chọn viền xanh, khung chi tiết
+ * mở ngay dưới hàng với mũi nhọn chỉ lên thẻ (vị trí mũi nhọn: --notch-left, tính theo cột trong equipment-explorer.tsx). */
+.equipment-tile { display: flex; height: 100%; flex-direction: column; align-items: center; gap: 6px; border: 1px solid transparent; border-radius: var(--radius-card); background: transparent; padding: 18px 14px 20px; text-align: center; transition: border-color 160ms ease, background 160ms ease, box-shadow 160ms ease, transform 160ms ease; }
+.equipment-tile:hover { border-color: var(--color-line); background: white; box-shadow: var(--shadow-card); transform: translateY(-2px); }
+.equipment-tile:focus-visible { outline: 3px solid rgb(21 112 224 / .35); outline-offset: 2px; }
+.equipment-tile--active, .equipment-tile--active:hover { border-color: var(--color-brand-500); background: white; box-shadow: 0 0 0 1px var(--color-brand-500), var(--shadow-card); transform: none; }
+.equipment-tile__media { display: block; width: 100%; aspect-ratio: 4 / 3; margin-bottom: 8px; transition: transform 300ms ease; }
+.equipment-tile:hover .equipment-tile__media { transform: scale(1.03); }
+.equipment-tile__name { color: var(--color-ink); font-size: 1.08rem; font-weight: 600; line-height: 1.4; text-wrap: balance; }
+.equipment-tile__price { margin-top: 4px; color: var(--color-brand-600); font-size: 1.2rem; font-weight: 700; }
+.equipment-tile__meta { color: var(--color-muted); font-size: .9rem; }
+.equipment-panel { position: relative; display: grid; grid-template-columns: minmax(0, 1fr); gap: 24px; margin-top: 4px; border: 1px solid var(--color-line); border-radius: calc(var(--radius-card) + 4px); background: white; padding: 28px 22px; box-shadow: var(--shadow-raised, 0 18px 40px -20px rgb(15 23 42 / .3)); animation: equipment-panel-in 220ms ease; }
+/* Mũi nhọn: ô vuông xoay 45° nằm trên mép khung, cùng viền và nền với khung. */
+.equipment-panel::before { position: absolute; top: -9px; left: var(--notch-left, 50%); width: 16px; height: 16px; border-top: 1px solid var(--color-line); border-left: 1px solid var(--color-line); background: white; content: ""; transform: translateX(-50%) rotate(45deg); }
+.equipment-panel__close { position: absolute; top: 14px; right: 14px; display: grid; width: 40px; height: 40px; place-items: center; border-radius: 999px; color: var(--color-muted); transition: background 150ms ease, color 150ms ease; }
+.equipment-panel__close:hover { background: var(--color-subtle, #f1f5f9); color: var(--color-ink); }
+.equipment-panel__media { width: 100%; max-width: 360px; aspect-ratio: 4 / 3; margin: 0 auto; }
+.equipment-panel__specs { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; margin-top: 22px; border-top: 1px solid var(--color-line); padding-top: 20px; }
+@media (min-width: 768px) {
+  .equipment-panel { grid-template-columns: minmax(0, 2fr) minmax(0, 5fr); gap: 36px; padding: 36px 40px; }
+  .equipment-panel__media { align-self: center; max-width: none; }
+  .equipment-panel__specs { grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: 0; }
+  .equipment-panel__specs > section { padding: 0 24px; }
+  .equipment-panel__specs > section:first-child { padding-left: 0; }
+  .equipment-panel__specs > section + section { border-left: 1px solid var(--color-line); }
+}
+@keyframes equipment-panel-in { from { opacity: 0; transform: translateY(-6px); } }
+@media (prefers-reduced-motion: reduce) { .equipment-panel { animation: none; } .equipment-tile, .equipment-tile__media { transition: none; } }
+
 /* Thẻ có màu nền riêng đủ tối (CMS): chữ, đường kẻ, liên kết bên trong chuyển sang màu sáng. Màu sáng thì giữ nguyên chữ. */
 .card-on-dark.border-line, .card-on-dark .border-line { border-color: rgb(255 255 255 / .16); }
 .card-on-dark :is(.text-ink, .text-ink\/80) { color: #fff; }
