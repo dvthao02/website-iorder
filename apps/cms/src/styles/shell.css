@@ -83,7 +83,12 @@
     overscroll-behavior: contain;
     padding: 12px 10px 16px;
   }
-  .admin-navigation { display: grid; gap: 12px; }
+  .admin-navigation { position: relative; display: grid; gap: 12px; }
+  /* Thanh dọc đánh dấu mục đang chọn, nằm sát mép trái mục và trượt sang mục mới khi chuyển trang. */
+  .admin-navigation__indicator { position: absolute; top: 0; left: 0; z-index: 1; width: 3px; height: 0; border-radius: 3px; background: var(--cms-primary); opacity: 0; pointer-events: none; clip-path: inset(7px 0 round 3px); }
+  .admin-navigation__indicator[data-visible] { opacity: 1; }
+  .admin-navigation__indicator[data-ready] { transition: transform 240ms cubic-bezier(.2, .8, .2, 1), height 240ms ease, opacity 150ms ease; }
+  @media (prefers-reduced-motion: reduce) { .admin-navigation__indicator[data-ready] { transition: opacity 150ms ease; } }
   .admin-navigation__group { display: grid; min-width: 0; gap: 2px; }
   .admin-navigation__group-toggle {
     display: flex;

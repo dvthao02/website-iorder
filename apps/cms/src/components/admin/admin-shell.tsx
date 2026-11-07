@@ -3,7 +3,7 @@
 import NextImage from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { AdminToastProvider } from "@/components/admin/ui/admin-feedback";
 import { AdminConfirmProvider } from "@/components/admin/ui/admin-confirm-dialog";
 import { AdminPermissionsProvider } from "@/components/admin/ui/admin-permissions";
@@ -204,6 +204,32 @@ export function AdminShell({ administrator, children, notifications }: { adminis
       document.removeEventListener("keydown", close);
     };
   }, [hasCompactGroupOpen]);
+  // Thanh dọc đánh dấu mục đang chọn: trượt tới mục mới (ngay khi bấm, rồi theo trang thật sự mở). Đặt vị trí bằng
+  // style trực tiếp (không qua state) vì chỉ là hiệu ứng; ẩn khi thanh bên thu gọn hoặc nhóm chứa mục đang gập.
+  const navigationRef = useRef<HTMLElement>(null);
+  const indicatorRef = useRef<HTMLSpanElement>(null);
+  function placeIndicator(link: HTMLElement | null) {
+    const nav = navigationRef.current;
+    const indicator = indicatorRef.current;
+    if (!nav || !indicator) return;
+    if (!link || isSidebarCollapsed || link.closest("[hidden]") || !link.offsetHeight) { delete indicator.dataset.visible; return; }
+    const top = link.getBoundingClientRect().top - nav.getBoundingClientRect().top;
+    indicator.style.transform = `translateY(${top}px)`;
+    indicator.style.height = `${link.offsetHeight}px`;
+    indicator.dataset.visible = "";
+    // Lần đầu đặt thẳng vào chỗ (không trượt từ đầu thanh bên); từ đó mới bật chuyển động.
+    if (!("ready" in indicator.dataset)) requestAnimationFrame(() => { indicator.dataset.ready = ""; });
+  }
+  useEffect(() => {
+    const nav = navigationRef.current;
+    if (!nav) return;
+    const update = () => placeIndicator(nav.querySelector<HTMLElement>(".admin-navigation__link--active"));
+    update();
+    // Nhóm phía trên mở/gập, cỡ chữ đổi… làm mục đang chọn dịch chỗ: đo lại.
+    const observer = new ResizeObserver(update);
+    observer.observe(nav);
+    return () => observer.disconnect();
+  });
   const currentNavigation = navigationGroups
     .flatMap((group) => visibleNavigationItems(administrator, group.items)
       .map((item) => ({ group, item })))
@@ -303,7 +329,12 @@ export function AdminShell({ administrator, children, notifications }: { adminis
             {isSidebarCollapsed ? <ChevronRight aria-hidden="true" size={18} /> : <ChevronLeft aria-hidden="true" size={18} />}
           </AdminIconButton>
           <div className="admin-sidebar__scroll">
-          <nav className="admin-navigation" aria-label="Điều hướng quản trị">
+          <nav aria-label="Điều hướng quản trị" className="admin-navigation" onClick={(event) => {
+            if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+            const link = event.target instanceof Element ? event.target.closest<HTMLElement>(".admin-navigation__link") : null;
+            if (link) placeIndicator(link);
+          }} ref={navigationRef}>
+            <span aria-hidden="true" className="admin-navigation__indicator" ref={indicatorRef} />
             {navigationGroups.map(group => {
               const items = visibleNavigationItems(administrator, group.items);
               if (!items.length) return null;
