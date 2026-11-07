@@ -3,6 +3,7 @@
 // (thẻ lạ bị bỏ), và máy chủ còn kiểm tra lại khi lưu.
 
 import { outlineHeadingLevel } from "@iorder/core/server/shared/rich-text";
+import { youtubeLineVideoId } from "@iorder/core/server/shared/youtube";
 
 export type ImportResult = { html: string; title: string | null; warnings: string[] };
 export type UploadImage = (file: File) => Promise<string>;
@@ -109,6 +110,20 @@ export async function normalizeImportedHtml(html: string, uploadImage: UploadIma
     paragraph.replaceWith(heading);
     promoted++;
   });
+  // Dòng chỉ có link YouTube (gõ link, hoặc cả dòng là một liên kết tới YouTube) thành khối video ngay chỗ đó.
+  let videos = 0;
+  [...document.body.children].forEach((element) => {
+    if (element.tagName !== "P" || element.querySelector("img")) return;
+    const links = [...element.querySelectorAll("a[href]")].map((link) => ({ href: link.getAttribute("href") ?? "", text: link.textContent ?? "" }));
+    const videoId = youtubeLineVideoId(element.textContent ?? "", links);
+    if (!videoId) return;
+    const video = document.createElement("div");
+    video.setAttribute("data-youtube", "");
+    video.setAttribute("data-video-id", videoId);
+    element.replaceWith(video);
+    videos++;
+  });
+  if (videos) warnings.push(`Đã chuyển ${videos} link YouTube thành khung video (chỉnh độ rộng, chú thích bằng cách bấm vào video).`);
   if (promoted) warnings.push(`Đã chuyển ${promoted} dòng in đậm đánh số (I., 1., Bước…) thành tiêu đề để bài có mục lục.`);
 
   let uploaded = 0, dropped = 0, unsupported = 0;

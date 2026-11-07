@@ -1,9 +1,10 @@
 import Image from "@tiptap/extension-image";
 import type { DOMOutputSpec } from "@tiptap/pm/model";
+import { Plugin } from "@tiptap/pm/state";
 import { mergeAttributes, Node, ReactNodeViewRenderer } from "@tiptap/react";
 
 import { imageWidthLimits, videoWidthLimits, type BannerHeight, type BannerOverlay, type ImageAlign } from "@iorder/core/server/shared/rich-text";
-import { isYoutubeVideoId, youtubeThumbnailUrl, youtubeVideoId } from "@iorder/core/server/shared/youtube";
+import { isYoutubeVideoId, youtubeLineVideoId, youtubeThumbnailUrl, youtubeVideoId } from "@iorder/core/server/shared/youtube";
 import { ImageView } from "./image-view";
 
 const legacyWidths: Record<string, number> = { small: 33, medium: 50, large: 75, full: 100 };
@@ -38,13 +39,30 @@ const clampVideoWidth = (value: unknown) => Math.min(videoWidthLimits.max, Math.
 
 // Video YouTube trong bài: một khối nguyên (không gõ chữ bên trong). Trình soạn hiện ảnh xem trước của video
 // (iframe trong vùng soạn thảo sẽ "nuốt" cú bấm nên không chọn được khối); website nhúng khung phát thật.
-// Dán HTML có iframe YouTube (từ trang khác) cũng thành khối video.
+// Dán HTML có iframe YouTube (từ trang khác) cũng thành khối video. Dán một link YouTube vào dòng trống cũng thành video
+// (link dán giữa câu vẫn là liên kết bình thường).
 export const YouTubeVideo = Node.create({
   name: "youtube",
   group: "block",
   atom: true,
   draggable: true,
   selectable: true,
+  addProseMirrorPlugins() {
+    const type = this.type;
+    return [new Plugin({
+      props: {
+        handlePaste(view, event) {
+          const text = event.clipboardData?.getData("text/plain") ?? "";
+          const videoId = youtubeLineVideoId(text);
+          const { selection } = view.state;
+          const { $from } = selection;
+          if (!videoId || !selection.empty || $from.parent.type.name !== "paragraph" || $from.parent.content.size > 0) return false;
+          view.dispatch(view.state.tr.replaceRangeWith($from.before(), $from.after(), type.create({ videoId })).scrollIntoView());
+          return true;
+        },
+      },
+    })];
+  },
   addAttributes() {
     return {
       videoId: { default: null, parseHTML: (element) => element.getAttribute("data-video-id"), renderHTML: () => ({}) },
