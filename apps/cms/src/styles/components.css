@@ -838,7 +838,7 @@
   .admin-select-list { display: grid; border-top: 1px solid var(--cms-border); }
   /* Menu & Điều hướng: xem trước như trên website, cây menu bên trái và ô sửa bên phải trên cùng một trang. */
   .admin-nav-preview { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px 16px; border-top: 1px solid var(--cms-border); background: var(--cms-subtle); padding: 12px var(--cms-card-padding); }
-  .admin-nav-preview__label { padding-top: 5px; color: var(--cms-muted); font-size: var(--cms-text-xs); font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
+  .admin-nav-preview__label { padding-top: 5px; color: var(--cms-muted); font-size: var(--cms-text-xs); font-weight: 600; }
   .admin-nav-preview > ul { display: flex; min-width: 0; flex: 1 1 auto; flex-wrap: wrap; gap: 4px 6px; margin: 0; padding: 0; list-style: none; }
   .admin-nav-preview > ul > li { display: grid; align-content: start; gap: 2px; }
   .admin-nav-preview .admin-nav-preview__item { display: inline-flex; height: auto; min-height: 28px; align-items: center; gap: 4px; border: 1px solid transparent; border-radius: var(--cms-radius-sm); background: transparent; padding: 3px 8px; color: var(--cms-text); font: inherit; font-size: var(--cms-text-sm); font-weight: 500; cursor: pointer; }
@@ -990,7 +990,7 @@
   .admin-block-library__close { display: grid; width: 32px; height: 32px; place-items: center; border: 0; border-radius: var(--cms-radius-component); background: transparent; color: var(--cms-muted); cursor: pointer; }
   .admin-block-library__close:hover { background: var(--cms-hover); color: var(--cms-text); }
   .admin-block-library__body { display: grid; align-content: start; gap: 18px; overflow-y: auto; padding: 16px; }
-  .admin-block-library__group h3 { margin: 0 0 8px; color: var(--cms-muted); font-size: var(--cms-text-xs); font-weight: 600; letter-spacing: .03em; text-transform: uppercase; }
+  .admin-block-library__group h3 { margin: 0 0 8px; color: var(--cms-muted); font-size: var(--cms-text-xs); font-weight: 600; }
   .admin-block-library__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(200px, 100%), 1fr)); gap: 10px; }
   .admin-block-library__item { display: grid; align-content: start; gap: 4px; border: 1px solid var(--cms-border); border-radius: var(--cms-radius-card); background: var(--cms-card); padding: 8px 8px 10px; color: var(--cms-text); text-align: left; cursor: pointer; }
   .admin-block-library__item:hover:not(:disabled), .admin-block-library__item:focus-visible { border-color: var(--cms-primary); background: var(--cms-primary-soft); }

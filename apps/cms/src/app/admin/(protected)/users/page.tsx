@@ -18,7 +18,8 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
   const tab = params.tab === "roles" ? "roles" : "users";
   if (tab === "users" && !canUsers) redirect("/admin/users?tab=roles");
   if (tab === "roles" && !canRoles) redirect("/admin/users");
-  const tabs = <AdminRouteTabs ariaLabel="Người dùng và vai trò" value={tab} items={[
+  // `key`: phần tử tạo ở Server Component rồi đặt giữa các con của AdminCard (client), React dev cần key để không báo thiếu.
+  const tabs = <AdminRouteTabs ariaLabel="Người dùng và vai trò" key="user-role-tabs" value={tab} items={[
     ...(canUsers ? [{ label: "Người dùng", value: "users" as const, href: "/admin/users" }] : []),
     ...(canRoles ? [{ label: "Vai trò & quyền", value: "roles" as const, href: "/admin/users?tab=roles" }] : []),
   ]} />;

@@ -303,7 +303,7 @@
   /* Mục có ô biểu tượng loại tệp bên trái (AdminFileIcon), chia nhóm "Xuất file" / "Nhập file". */
   .admin-transfer-menu > .admin-transfer-menu__item { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 10px; width: 100%; border: 0; border-radius: var(--cms-radius-component); background: transparent; padding: 7px 10px; color: inherit; font: inherit; text-align: left; cursor: pointer; }
   .admin-transfer-menu__item > span:last-child { display: grid; min-width: 0; gap: 1px; }
-  .admin-transfer-menu__group { padding: 8px 10px 2px; color: var(--cms-muted); font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
+  .admin-transfer-menu__group { padding: 8px 10px 2px; color: var(--cms-muted); font-size: 11px; font-weight: 600; }
   .admin-transfer-menu__group:not(:first-child) { margin-top: 4px; border-top: 1px solid var(--cms-border); padding-top: 10px; }
   .admin-transfer-menu__item:hover, .admin-transfer-menu__item:focus-visible { background: var(--cms-hover); }
   .admin-transfer-menu strong { display: flex; align-items: center; gap: 6px; }
