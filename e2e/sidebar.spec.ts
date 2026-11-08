@@ -76,7 +76,7 @@ test("Trang chủ trên sidebar, Trang tĩnh, Sửa nội dung từ Menu", async
   // Một bảng gồm mọi trang trừ Trang chủ (có mục riêng), tab lọc theo loại; trang danh sách ghi rõ lấy từ module nào.
   const table = page.locator(".admin-data-table");
   await expect(table.getByRole("link", { name: /^Chính sách bảo mật/ })).toBeVisible();
-  await expect(table.getByText("Lấy từ").first()).toBeVisible();
+  await expect(table.getByRole("link", { name: "Bài viết & Tin tức" })).toBeVisible();
   await expect(table.getByText("/", { exact: true })).toHaveCount(0);
   const tabs = page.getByRole("tablist", { name: "Loại trang" });
   await tabs.getByRole("tab", { name: /^Trang danh sách/ }).click();
