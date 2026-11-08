@@ -73,11 +73,18 @@ test("Trang chủ trên sidebar, Trang tĩnh, Sửa nội dung từ Menu", async
   await expect(content.getByRole("link").nth(2)).toHaveText("Trang tĩnh");
   await sidebar.getByRole("link", { name: "Trang tĩnh" }).click();
   await expect(page).toHaveURL(/\/admin\/pages$/);
-  const index = page.getByRole("region", { name: "Trang có sẵn của website" });
-  await expect(index.getByRole("link", { name: /Chính sách bảo mật/ })).toBeVisible();
-  await expect(index.getByText("Danh sách lấy từ").first()).toBeVisible();
-  // Bảng chính không lẫn trang có sẵn.
-  await expect(page.locator(".admin-data-table").getByText("/chinh-sach-bao-mat")).toHaveCount(0);
+  // Một bảng gồm mọi trang trừ Trang chủ (có mục riêng), tab lọc theo loại; trang danh sách ghi rõ lấy từ module nào.
+  const table = page.locator(".admin-data-table");
+  await expect(table.getByRole("link", { name: /^Chính sách bảo mật/ })).toBeVisible();
+  await expect(table.getByText("Lấy từ").first()).toBeVisible();
+  await expect(table.getByText("/", { exact: true })).toHaveCount(0);
+  const tabs = page.getByRole("tablist", { name: "Loại trang" });
+  await tabs.getByRole("tab", { name: /^Trang danh sách/ }).click();
+  await expect(page).toHaveURL(/type=listing/);
+  await expect(table.getByText("/tin-tuc", { exact: true })).toBeVisible();
+  await expect(table.getByText("/chinh-sach-bao-mat")).toHaveCount(0);
+  // Trang có sẵn không chọn được để lưu trữ/xóa hàng loạt.
+  await expect(table.locator("tbody input[type=checkbox]")).toHaveCount(0);
 
   await page.goto("/admin/menu");
   const row = page.locator(".admin-sortable-row").filter({ hasText: "Về chúng tôi" });
