@@ -19,7 +19,7 @@ export default async function BackupPage() {
     <div className="admin-backup__layout">
       {/* Sao lưu/phục hồi/lên lịch chỉ Super Admin bấm được (xem apps/backend/src/lib/admin-permission.ts); người chỉ xem được cài đặt chỉ thấy lịch sử và trạng thái. */}
       <BackupManager canOperate={isSuperAdmin(administrator)} history={overview.history} scheduled={overview.scheduled} />
-      <aside><BackupStatusCard status={overview.status} /></aside>
+      <aside><BackupStatusCard status={overview.status} title="Tình trạng" /></aside>
     </div>
   </main>;
 }

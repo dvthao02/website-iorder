@@ -25,11 +25,11 @@ function size(bytes: number) {
 }
 
 /** Thẻ Tổng quan: lần sao lưu gần nhất (script backup.sh/backup.ps1 ghi vào site_settings), báo quá hạn hoặc lỗi. */
-export function BackupStatusCard({ status, now = new Date(), detailsHref }: { status: BackupStatus; now?: Date; detailsHref?: string }) {
+export function BackupStatusCard({ status, now = new Date(), detailsHref, title = "Sao lưu" }: { status: BackupStatus; now?: Date; detailsHref?: string; title?: string }) {
   const badge = badges[status.state];
   const { lastSuccess, lastFailure } = status;
   return <AdminCard className="admin-dashboard__backup">
-    <header><h2>Sao lưu</h2><span className="admin-dashboard__backup-actions"><AdminStatusBadge tone={badge.tone}>{badge.label}</AdminStatusBadge>{detailsHref ? <Link href={detailsHref}>Chi tiết</Link> : null}</span></header>
+    <header><h2>{title}</h2><span className="admin-dashboard__backup-actions"><AdminStatusBadge tone={badge.tone}>{badge.label}</AdminStatusBadge>{detailsHref ? <Link href={detailsHref}>Chi tiết</Link> : null}</span></header>
     {lastSuccess ? <dl>
       <div><dt>Bản gần nhất</dt><dd>{dateTime.format(lastSuccess.finishedAt)}<small>{ago(lastSuccess.finishedAt, now)} · {sources[lastSuccess.source]}</small></dd></div>
       <div><dt>Database</dt><dd>{size(lastSuccess.databaseBytes)}<small>{lastSuccess.verified ? `Đã khôi phục thử${lastSuccess.users === null ? "" : `: ${lastSuccess.users} tài khoản, ${lastSuccess.mediaAssets ?? 0} media`}` : "Chưa khôi phục thử"}</small></dd></div>

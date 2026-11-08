@@ -120,16 +120,16 @@ export function BackupManager({ canOperate, history, scheduled: initialScheduled
   }
 
   const columns: AdminDataTableColumn<Row>[] = [
-    { id: "ranAt", label: "Thời điểm", defaultWidth: 130, minWidth: 120, cell: (row) => <span className="whitespace-nowrap">{dateTime.format(row.ranAt)}</span> },
-    { id: "result", label: "Kết quả", defaultWidth: 110, minWidth: 100, cell: (row) => <AdminStatusBadge tone={kindTone[row.kind]}>{kindLabel[row.kind]}</AdminStatusBadge> },
-    { id: "source", label: "Máy", defaultWidth: 110, minWidth: 100, cell: (row) => row.source === "windows" ? "Máy Windows" : "Máy chủ" },
-    { id: "size", label: "Database", defaultWidth: 100, minWidth: 90, cell: (row) => row.kind === "success" ? size(row.databaseBytes) : "—" },
-    { id: "detail", label: "Chi tiết", defaultWidth: 320, minWidth: 180, cell: (row) => {
+    { id: "ranAt", label: "Thời điểm", defaultWidth: 120, minWidth: 110, cell: (row) => <span className="whitespace-nowrap">{dateTime.format(row.ranAt)}</span> },
+    { id: "result", label: "Kết quả", defaultWidth: 120, minWidth: 110, cell: (row) => <AdminStatusBadge tone={kindTone[row.kind]}>{kindLabel[row.kind]}</AdminStatusBadge> },
+    { id: "source", label: "Máy", defaultWidth: 120, minWidth: 110, cell: (row) => row.source === "windows" ? "Máy Windows" : "Máy chủ" },
+    { id: "size", label: "Dung lượng", defaultWidth: 116, minWidth: 110, cell: (row) => row.kind === "success" ? size(row.databaseBytes) : "—" },
+    { id: "detail", label: "Chi tiết", defaultWidth: 240, minWidth: 160, cell: (row) => {
       if (row.kind === "success") return <span className="text-[var(--cms-muted)]">{row.verified ? `Đã khôi phục thử${row.users === null ? "" : `: ${row.users} tài khoản, ${row.mediaAssets ?? 0} media`}` : "Chưa khôi phục thử"}</span>;
       if (row.kind === "failure") return <span className="text-[var(--cms-status-error-text)]" title={row.message}>{row.message}</span>;
       return <span className="text-[var(--cms-muted)]">Từ bản lúc {dateTime.format(new Date(row.fromStamp.replace(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z$/, "$1-$2-$3T$4:$5:$6Z")))}</span>;
     } },
-    { id: "action", label: "", defaultWidth: 90, minWidth: 80, cell: (row) => canOperate && row.kind === "success" && row.source === "windows" && row.location && row.repoDir && row.database
+    { id: "action", label: "", defaultWidth: 120, minWidth: 120, align: "right", cell: (row) => canOperate && row.kind === "success" && row.source === "windows" && row.location && row.repoDir && row.database
       ? <AdminButton onClick={() => setConfirmRow(row)} size="sm" variant="secondary"><RotateCcw aria-hidden="true" size={14} />Phục hồi</AdminButton>
       : null },
   ];
