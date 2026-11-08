@@ -8,8 +8,10 @@ import { blockAppearanceSchema, cardBackgroundSchema } from "../shared/appearanc
 export { blockAppearanceSchema, blockOverlayLimits, blockSpacingSchema, blockToneSchema, blockWidthLimits, type BlockAppearance, type BlockSpacing, type BlockTone } from "../shared/appearance";
 import type { CmsModuleKey, CmsPermissionCode } from "../auth/permissions";
 
-// `kind`: "custom" = trang admin tự tạo, "system" = trang có sẵn của website (route thuộc code).
-export const pageKindFilterSchema = z.enum(["custom", "system"]);
+// `kind`: "custom" = trang admin tự tạo, "system" = trang có sẵn của website (route thuộc code, gồm Trang chủ);
+// màn "Trang tĩnh" dùng "static" (mọi trang trừ Trang chủ), "standard" (trang nội dung có sẵn trừ Trang chủ), "listing" (trang danh sách).
+export const pageKindFilterSchema = z.enum(["custom", "system", "static", "standard", "listing"]);
+export type PageKindFilter = z.infer<typeof pageKindFilterSchema>;
 export const pageListQuerySchema = adminListQuerySchema.extend({ status: z.enum(["draft", "review", "scheduled", "published", "archived"]).optional(), kind: pageKindFilterSchema.optional() });
 export const pageSaveRequestSchema = z.object({ id: z.string().uuid().nullable(), values: z.unknown(), expectedVersion: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER).optional() }).strict().superRefine((value, context) => {
   if (value.id && value.expectedVersion === undefined) context.addIssue({ code: "custom", path: ["expectedVersion"], message: "Vui lòng tải lại trang để lấy phiên bản trước khi lưu." });

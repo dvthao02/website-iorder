@@ -1,8 +1,8 @@
-import { and, asc, count, desc, eq, ilike, inArray, isNull, notInArray, or } from "drizzle-orm";
+import { and, asc, count, desc, eq, ilike, inArray, isNull, ne, notInArray, or } from "drizzle-orm";
 import { getDb } from "@iorder/core/db/client";
 import { auditLogs, pageBlocks, pageRevisions, pages } from "@iorder/core/db/schema";
 import { toAdminListPage, type AdminListQuery } from "@iorder/core/server/shared/admin-list.contract";
-import { fixedWebsitePages, type PageInput } from "./pages.contract";
+import { fixedWebsitePages, type PageInput, type PageKindFilter } from "./pages.contract";
 import { publicationDate } from "../shared/publication-date";
 import { assertPageVersion } from "./page-version";
 import { listOrder, workflowStatusRank, vietnameseText } from "../shared/list-order";
@@ -25,15 +25,28 @@ async function withBlocksBatch<T extends { id: string }>(pagesToHydrate: T[]) {
   return pagesToHydrate.map((page) => ({ ...page, blocks: blocksByPage.get(page.id) ?? [] }));
 }
 
-type PageListQuery = AdminListQuery & { status?: "draft" | "review" | "scheduled" | "published" | "archived"; kind?: "custom" | "system" };
+type PageListQuery = AdminListQuery & { status?: "draft" | "review" | "scheduled" | "published" | "archived"; kind?: PageKindFilter };
 const fixedSlugs = fixedWebsitePages.map((page) => page.slug);
+const standardSlugs = fixedWebsitePages.filter((page) => page.kind === "standard" && page.slug !== "home").map((page) => page.slug);
+const listingSlugs = fixedWebsitePages.filter((page) => page.kind === "listing").map((page) => page.slug);
+
+function pageKindCondition(kind: PageKindFilter | undefined) {
+  switch (kind) {
+    case "custom": return notInArray(pages.slug, fixedSlugs);
+    case "system": return inArray(pages.slug, fixedSlugs);
+    case "static": return ne(pages.slug, "home");
+    case "standard": return inArray(pages.slug, standardSlugs);
+    case "listing": return inArray(pages.slug, listingSlugs);
+    default: return undefined;
+  }
+}
 
 function pageListCondition(query: PageListQuery) {
   const keyword = query.query ? `%${query.query.replace(/[\\%_]/g, "\\$&")}%` : undefined;
   return and(
     isNull(pages.deletedAt),
     query.status ? eq(pages.status, query.status) : undefined,
-    query.kind === "custom" ? notInArray(pages.slug, fixedSlugs) : query.kind === "system" ? inArray(pages.slug, fixedSlugs) : undefined,
+    pageKindCondition(query.kind),
     keyword ? or(ilike(pages.title, keyword), ilike(pages.slug, keyword)) : undefined,
   );
 }

@@ -38,8 +38,8 @@ test("Query Trang chuẩn hóa ở biên và giữ số mục hợp lệ ngoài 
   assert.equal(pageListQuerySchema.parse(source).pageSize, 7);
   assert.equal(pageListQuerySchema.parse(source).query, "Trang thử");
   assert.equal(source.query, "  Trang thử  ");
-  for (const bad of [{ page: 0 }, { pageSize: 101 }, { status: "sai" }, { kind: "listing" }, { unknown: true }]) assert.equal(pageListQuerySchema.safeParse(bad).success, false);
-  assert.equal(pageListQuerySchema.parse({ kind: "custom" }).kind, "custom");
+  for (const bad of [{ page: 0 }, { pageSize: 101 }, { status: "sai" }, { kind: "khac" }, { unknown: true }]) assert.equal(pageListQuerySchema.safeParse(bad).success, false);
+  for (const kind of ["custom", "system", "static", "standard", "listing"]) assert.equal(pageListQuerySchema.parse({ kind }).kind, kind);
 });
 
 test("Trang danh sách nhận quyền của module sở hữu, trang thường chỉ nhận quyền Trang website", () => {

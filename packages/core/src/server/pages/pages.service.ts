@@ -1,4 +1,4 @@
-import { adminPageListItemSchema, adminPageSchema, getFixedWebsitePage, pageBlockInputSchema, pageInputSchema, publicPageSchema, type AdminPageListItem } from "./pages.contract";
+import { adminPageListItemSchema, adminPageSchema, getFixedWebsitePage, pageBlockInputSchema, pageInputSchema, publicPageSchema, type AdminPageListItem, type PageKindFilter } from "./pages.contract";
 import type { AdminListPage, AdminListQuery } from "@iorder/core/server/shared/admin-list.contract";
 import { contentStateAfterAction, contentStateChangeNotes, type ContentStateAction } from "../shared/content-version";
 import { deleteArchivedPage, findAdminPageById, findPageBySlug, listAdminPages, listAdminPagesPage, listPublishedPageSummaries, listPublishedPages, writePage } from "./pages.repository";
@@ -22,7 +22,7 @@ export async function getPublishedPages() {
 export async function getAdminPages() {
   return adminPageSchema.array().parse((await listAdminPages()).map(page => serialize(page as NonNullable<Awaited<ReturnType<typeof findPageBySlug>>>)));
 }
-export async function getAdminPagesPage(query: AdminListQuery & { status?: "draft" | "review" | "scheduled" | "published" | "archived"; kind?: "custom" | "system" }): Promise<AdminListPage<AdminPageListItem>> {
+export async function getAdminPagesPage(query: AdminListQuery & { status?: "draft" | "review" | "scheduled" | "published" | "archived"; kind?: PageKindFilter }): Promise<AdminListPage<AdminPageListItem>> {
   const result = await listAdminPagesPage(query);
   return { ...result, items: adminPageListItemSchema.array().parse(result.items) };
 }
