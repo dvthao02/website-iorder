@@ -83,8 +83,14 @@ test("Trang chủ trên sidebar, Trang tĩnh, Sửa nội dung từ Menu", async
   await expect(page).toHaveURL(/type=listing/);
   await expect(table.getByText("/tin-tuc", { exact: true })).toBeVisible();
   await expect(table.getByText("/chinh-sach-bao-mat")).toHaveCount(0);
-  // Trang có sẵn không chọn được để lưu trữ/xóa hàng loạt.
-  await expect(table.locator("tbody input[type=checkbox]")).toHaveCount(0);
+  // Chọn nhiều dòng vẫn dùng được (xuất bản / chuyển về nháp); trang có sẵn không lưu trữ được nên "Lưu trữ" mờ kèm lý do.
+  await table.locator("tbody input[type=checkbox]").first().check();
+  await page.locator("summary[aria-label=\"Chọn thao tác cho các dòng đã chọn\"]").click();
+  const archive = page.getByRole("menuitem", { name: /^Lưu trữ/ });
+  await expect(archive).toBeDisabled();
+  await expect(archive).toHaveAttribute("title", /không lưu trữ hay xóa được/);
+  await expect(page.getByRole("menuitem", { name: /^Chuyển về nháp/ })).toBeEnabled();
+  await page.keyboard.press("Escape");
 
   await page.goto("/admin/menu");
   const row = page.locator(".admin-sortable-row").filter({ hasText: "Về chúng tôi" });
