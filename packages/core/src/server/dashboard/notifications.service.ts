@@ -38,7 +38,7 @@ export async function getAdminNotifications(actor: CmsActor): Promise<AdminNotif
     ...(backup === "failed" ? [{ id: "backup-failed", label: "Sao lưu bị lỗi", detail: "Lần sao lưu gần nhất không thành công.", href: "/admin/backup" }] : []),
     ...(backup === "stale" ? [{ id: "backup-stale", label: "Sao lưu quá hạn", detail: "Hơn 36 giờ chưa có bản sao lưu mới.", href: "/admin/backup" }] : []),
     ...(newLeads > 0 ? [{ id: "leads-new", label: "Khách hàng tiềm năng mới", detail: `${newLeads} liên hệ chưa xử lý.`, href: "/admin/leads?status=new" }] : []),
-    ...review("review-pages", "Trang website", pageReviews, "/admin/pages?status=review"),
+    ...review("review-pages", "Trang tĩnh", pageReviews, "/admin/pages?status=review"),
     ...postReviews.flatMap((row) => row.isGuide
       ? review("review-guides", "Hướng dẫn", row.total, "/admin/guides?status=review")
       : review("review-posts", "Bài viết", row.total, "/admin/news?status=review")),

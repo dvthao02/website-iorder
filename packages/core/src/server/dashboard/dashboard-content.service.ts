@@ -53,7 +53,7 @@ function emptyStat(): DashboardContentStat {
 export async function getDashboardContentSummary(actor: CmsActor): Promise<DashboardContentSummary> {
   const when = <T>(permission: CmsPermissionCode, query: () => Promise<T>, fallback: T) => hasCmsPermission(actor, permission) ? query() : Promise.resolve(fallback);
   const [pageStats, postStats, productStats, solutionStats, serviceStats, equipmentStats, downloadRows, leadRows, pageRecent, postRecent, offeringRecent, equipmentRecent] = await Promise.all([
-    when("pages.view", () => contentStats(pages), emptyStat()),
+    when("pages.view", () => contentStats(pages, ne(pages.slug, "home")), emptyStat()),
     when("posts.view", () => contentStats(posts, ne(posts.type, "guide")), emptyStat()),
     when("offerings.view", () => contentStats(offerings, eq(offerings.type, "software")), emptyStat()),
     when("offerings.view", () => contentStats(offerings, eq(offerings.type, "solution")), emptyStat()),

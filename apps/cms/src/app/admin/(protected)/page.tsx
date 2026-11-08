@@ -41,13 +41,13 @@ export default async function AdministratorHomePage() {
   const [analytics, readiness, content, backup] = await Promise.all([getAnalyticsOverview(), getPublishingReadiness(), getDashboardContentSummary(), getBackupStatus()]);
   const can = (permission: CmsPermissionCode) => hasCmsPermission(administrator, permission);
   const contentSummary = ([
-    { label: "Trang website", value: content.pages.total, detail: `${content.pages.published} trang đã xuất bản`, href: "/admin/pages", permission: "pages.view" },
+    { label: "Trang tĩnh", value: content.pages.total, detail: `${content.pages.published} trang đã xuất bản`, href: "/admin/pages", permission: "pages.view" },
     { label: "Bài viết & Tin tức", value: content.posts.total, detail: `${content.posts.published} bài đã xuất bản`, href: "/admin/news", permission: "posts.view" },
     { label: "Sản phẩm", value: content.offerings.products.total, detail: `${content.offerings.products.published} sản phẩm đã xuất bản`, href: "/admin/products?type=software", permission: "offerings.view" },
     { label: "Giải pháp", value: content.offerings.solutions.total, detail: `${content.offerings.solutions.published} giải pháp đã xuất bản`, href: "/admin/products?type=solution", permission: "offerings.view" },
     { label: "Dịch vụ", value: content.offerings.services.total, detail: `${content.offerings.services.published} dịch vụ đã xuất bản`, href: "/admin/products?type=service", permission: "offerings.view" },
     { label: "Thiết bị", value: content.equipment.total, detail: `${content.equipment.published} thiết bị đã xuất bản`, href: "/admin/equipment", permission: "equipment.view" },
-    { label: "Tài nguyên", value: content.downloads.total, detail: `${content.downloads.enabled} tệp đang hiển thị`, href: "/admin/resources", permission: "support_downloads.view" },
+    { label: "Tệp cài đặt", value: content.downloads.total, detail: `${content.downloads.enabled} tệp đang hiển thị`, href: "/admin/resources", permission: "support_downloads.view" },
     { label: "Khách hàng tiềm năng", value: content.leads.total, detail: `${content.leads.new} liên hệ mới cần xử lý`, href: "/admin/leads", permission: "leads.view" },
   ] satisfies Array<{ permission: CmsPermissionCode } & Record<string, unknown>>).filter((item) => can(item.permission));
   const quickActions = ([
@@ -58,11 +58,11 @@ export default async function AdministratorHomePage() {
   ] satisfies Array<{ permission: CmsPermissionCode } & Record<string, unknown>>).filter((item) => can(item.permission));
   const contentForRecent: DashboardContent[] = content.recent.map((item) => ({
     ...item,
-    type: item.kind === "page" ? "Trang website" : item.kind === "post" ? postTypeLabels[item.type] ?? "Bài viết" : item.kind === "offering" ? offeringTypeLabels[item.type] ?? "Nội dung catalog" : "Thiết bị",
+    type: item.kind === "page" ? "Trang" : item.kind === "post" ? postTypeLabels[item.type] ?? "Bài viết" : item.kind === "offering" ? offeringTypeLabels[item.type] ?? "Nội dung catalog" : "Thiết bị",
     href: item.kind === "page" ? `/admin/pages/${item.id}` : item.kind === "post" ? `/admin/news/${item.id}` : item.kind === "offering" ? `${offeringManagerHref(item.type)}/${item.id}` : `/admin/equipment/${item.id}`,
   }));
   const workItems = [
-    ...contentWarnings("Trang website", "/admin/pages", content.pages),
+    ...contentWarnings("Trang tĩnh", "/admin/pages", content.pages),
     ...contentWarnings("Bài viết & Tin tức", "/admin/news", content.posts),
     ...contentWarnings("Sản phẩm", "/admin/products?type=software", content.offerings.products),
     ...contentWarnings("Giải pháp", "/admin/products?type=solution", content.offerings.solutions),
@@ -72,15 +72,12 @@ export default async function AdministratorHomePage() {
   ].slice(0, 6);
   const readyChecks = readiness.filter((item) => item.status === "ready").length;
   const canViewAnalytics = can("dashboard.view");
-  // Nút chính là việc làm hằng ngày (viết bài); tạo trang tự tạo hiếm hơn nên chỉ là lựa chọn dự phòng.
-  const primaryAction = can("posts.create") ? { href: "/admin/news/new", label: "Viết bài" } : can("pages.create") ? { href: "/admin/pages/new", label: "Tạo trang" } : null;
 
   return <div className="admin-page">
     <h1 className="sr-only">Bảng điều khiển</h1>
     <AdminPageBarMeta>Xin chào {administrator.fullName}</AdminPageBarMeta>
     <AdminPageBarActions>
       {canViewAnalytics ? <AdminButton href="/admin/analytics" leadingIcon={<CalendarDays aria-hidden="true" />} variant="secondary">Thống kê {analytics.periodDays} ngày</AdminButton> : null}
-      {primaryAction ? <AdminButton href={primaryAction.href} leadingIcon={<Plus aria-hidden="true" />}>{primaryAction.label}</AdminButton> : null}
     </AdminPageBarActions>
     <div className="admin-dashboard__layout">
       <div className="admin-dashboard__primary">
