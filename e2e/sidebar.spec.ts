@@ -53,8 +53,8 @@ test("Sản phẩm & Dịch vụ một màn có tab loại; Chuyên mục & Th�
   await expect(page.getByRole("navigation", { name: "Vị trí hiện tại" })).toContainText("Chuyên mục & Thẻ");
 });
 
-// Không còn màn "Trang website": Trang chủ có mục riêng, trang khác mở từ Menu; "Trang tự tạo" chỉ liệt kê trang admin tạo.
-test("Trang chủ trên sidebar, Trang tự tạo, Sửa nội dung từ Menu", async ({ page }) => {
+// Nhóm Nội dung: Trang chủ (mục riêng) → Bài viết & Tin tức → Trang tĩnh (bảng trang tự tạo + danh mục trang có sẵn).
+test("Trang chủ trên sidebar, Trang tĩnh, Sửa nội dung từ Menu", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 800 });
   await loginAsAdmin(page);
   const sidebar = page.locator(".admin-sidebar");
@@ -67,7 +67,11 @@ test("Trang chủ trên sidebar, Trang tự tạo, Sửa nội dung từ Menu", 
   await expect(page.getByLabel("Tên trang")).toHaveCount(0);
   await expect(sidebar.getByRole("link", { name: "Trang chủ" })).toHaveAttribute("aria-current", "page");
 
-  await sidebar.getByRole("link", { name: "Trang tự tạo" }).click();
+  const content = sidebar.locator(".admin-navigation__group").filter({ has: page.locator(".admin-navigation__group-toggle", { hasText: "Nội dung" }) });
+  await expect(content.getByRole("link").nth(0)).toHaveText("Trang chủ");
+  await expect(content.getByRole("link").nth(1)).toHaveText("Bài viết & Tin tức");
+  await expect(content.getByRole("link").nth(2)).toHaveText("Trang tĩnh");
+  await sidebar.getByRole("link", { name: "Trang tĩnh" }).click();
   await expect(page).toHaveURL(/\/admin\/pages$/);
   const index = page.getByRole("region", { name: "Trang có sẵn của website" });
   await expect(index.getByRole("link", { name: /Chính sách bảo mật/ })).toBeVisible();

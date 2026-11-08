@@ -64,7 +64,8 @@ test.describe("Trang danh sách là Trang website", () => {
     expect(support).not.toContain('id="huong-dan"');
     const guides = await request.get(`${webUrl}/ho-tro/huong-dan`);
     expect(guides.status()).toBe(200);
-    const legacy = await request.get(`${webUrl}/ho-tro/huong-dan`, { maxRedirects: 0 });
+    // Đường dẫn cũ /huong-dan (retiredPaths trong legacy-paths.ts) chuyển 301 về /ho-tro/huong-dan.
+    const legacy = await request.get(`${webUrl}/huong-dan`, { maxRedirects: 0 });
     expect(legacy.headers().location).toContain("/ho-tro/huong-dan");
   });
 });
