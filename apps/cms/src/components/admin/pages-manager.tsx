@@ -73,7 +73,7 @@ type PagesManagerProps = {
 /**
  * Màn "Trang tĩnh": mọi trang trừ Trang chủ (có mục riêng) trong một bảng — trang nội dung có sẵn (Giới thiệu, Liên hệ,
  * Chính sách…), trang danh sách (phần đầu và SEO của /tin-tuc, /thiet-bi…) và trang tự tạo; tab lọc theo loại.
- * Chỉ trang tự tạo chọn được để lưu trữ/xóa hàng loạt (trang có sẵn do code quản lý đường dẫn).
+ * Chọn nhiều dòng để xuất bản / chuyển về nháp / khôi phục; lưu trữ và xóa chỉ áp dụng cho trang tự tạo (trang có sẵn do code quản lý đường dẫn).
  */
 export function PagesManager({ counts, initialQuery, initialStatus, initialType, result }: PagesManagerProps) {
   const { navigate, pagination, searchParams, setFilter, setSort, sort } = useListNavigation();
@@ -84,15 +84,13 @@ export function PagesManager({ counts, initialQuery, initialStatus, initialType,
     ...(initialStatus !== "all" ? [{ key: "status", label: `Trạng thái: ${statusLabels[initialStatus]}`, onRemove: () => setFilter("status", undefined) }] : []),
   ];
   const filtered = chips.length > 0;
-  // Chỉ trang tự tạo chọn được (lưu trữ/xóa hàng loạt); trang này không có trang tự tạo thì bỏ hẳn cột ô chọn.
-  const selectable = result.items.some(isCustomPage);
   const columns = useMemo<AdminDataTableColumn<AdminPage>[]>(() => [
     { id: "page", label: "Trang", defaultWidth: 320, minWidth: 220, sortKey: "title", cell: (page) => <Link className="block hover:text-[var(--cms-primary)]" href={`/admin/pages/${page.id}`}><strong className="block">{page.title}</strong><span className="admin-field__hint block">{getPublicPath(page)}</span></Link> },
     { id: "kind", label: "Loại", defaultWidth: 240, minWidth: 160, cell: (page) => <PageKind page={page} /> },
     { id: "status", label: "Trạng thái", defaultWidth: 140, minWidth: 120, sortKey: "status", cell: (page) => <StatusBadge status={page.status} /> },
     { id: "updatedAt", label: "Cập nhật", defaultWidth: 140, minWidth: 120, sortKey: "updatedAt", sortFirst: "desc", cell: (page) => <span className="admin-text-muted">{dateFormatter.format(new Date(page.updatedAt))}</span> },
-    { id: "actions", label: "Thao tác", defaultWidth: 120, minWidth: 120, align: "right", cell: (page) => isCustomPage(page)
-      ? <AdminContentActions module="pages" deleteMutation={page.status === "archived" ? { method: "DELETE", url: `/api/admin/pages/${page.id}`, body: { expectedVersion: page.draftVersion } } : undefined} editHref={`/admin/pages/${page.id}`} isArchived={page.status === "archived"} label="trang" mutation={pageStateRequest(page, page.status === "archived" ? "restore" : "archive")} viewHref={page.status === "published" ? getPublicPath(page) : undefined} />
+    { id: "actions", label: "Thao tác", defaultWidth: 120, minWidth: 120, align: "right", cell: (page) => isCustomPage(page) || page.status === "archived"
+      ? <AdminContentActions module="pages" deleteMutation={page.status === "archived" && isCustomPage(page) ? { method: "DELETE", url: `/api/admin/pages/${page.id}`, body: { expectedVersion: page.draftVersion } } : undefined} editHref={`/admin/pages/${page.id}`} isArchived={page.status === "archived"} label="trang" mutation={pageStateRequest(page, page.status === "archived" ? "restore" : "archive")} viewHref={page.status === "published" ? getPublicPath(page) : undefined} />
       : <FixedPageActions page={page} /> },
   ], []);
 
@@ -111,8 +109,8 @@ export function PagesManager({ counts, initialQuery, initialStatus, initialType,
           {Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
         </select>
       </AdminFilterBar>
-      <ContentBulkBar deleteRequest={(page) => ({ method: "DELETE", url: `/api/admin/pages/${page.id}`, body: { expectedVersion: page.draftVersion } })} items={result.items} module="pages" noun="trang" onClear={clear} request={pageStateRequest} selectedIds={selectedIds} />
-      <AdminDataTable columns={columns} emptyMessage={filtered ? "Không có trang khớp bộ lọc." : emptyMessages[initialType]} getRowId={(page) => page.id} isRowSelectable={isCustomPage} onSelectionChange={selectable ? setSelectedIds : undefined} onSortChange={setSort} rows={result.items} selectedIds={selectable ? selectedIds : undefined} sort={sort} tableId="static-pages" />
+      <ContentBulkBar archiveBlockedReason="Trang có sẵn của website không lưu trữ hay xóa được; chuyển về nháp nếu cần ẩn tạm." canArchive={isCustomPage} deleteRequest={(page) => ({ method: "DELETE", url: `/api/admin/pages/${page.id}`, body: { expectedVersion: page.draftVersion } })} items={result.items} module="pages" noun="trang" onClear={clear} request={pageStateRequest} selectedIds={selectedIds} />
+      <AdminDataTable columns={columns} emptyMessage={filtered ? "Không có trang khớp bộ lọc." : emptyMessages[initialType]} getRowId={(page) => page.id} onSelectionChange={setSelectedIds} onSortChange={setSort} rows={result.items} selectedIds={selectedIds} sort={sort} tableId="static-pages" />
       <AdminPagination unit="trang" page={result.page} pageSize={result.pageSize} total={result.total} totalPages={result.totalPages} {...pagination} />
     </AdminCard>
   </AdminListPage>;
