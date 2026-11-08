@@ -48,10 +48,10 @@ function pageStateRequest(page: AdminPage, action: ContentStateAction) {
   return { method: "PATCH" as const, url: `/api/admin/pages/${page.id}`, body: { action, expectedVersion: page.draftVersion } };
 }
 
-// Loại trang: trang danh sách ghi rõ nội dung lấy từ module nào (bấm để sang module đó).
+// Loại trang, một dòng: trang danh sách kèm module cấp nội dung (bấm để sang module đó).
 function PageKind({ page }: { page: AdminPage }) {
-  if (isListingPageSlug(page.slug)) return <span className="admin-page-kind">Trang danh sách<small>Lấy từ <Link className="admin-link" href={listingPageModuleHref[page.slug]}>{listingPageModuleLabel[page.slug]}</Link></small></span>;
-  return <span className="admin-page-kind">{isCustomPage(page) ? "Trang tự tạo" : "Trang nội dung"}</span>;
+  if (isListingPageSlug(page.slug)) return <span className="admin-page-kind">Danh sách <span aria-hidden="true">·</span> <Link href={listingPageModuleHref[page.slug]} title={`Nội dung lấy từ ${listingPageModuleLabel[page.slug]}`}>{listingPageModuleLabel[page.slug]}</Link></span>;
+  return <span className="admin-page-kind">{isCustomPage(page) ? "Tự tạo" : "Nội dung"}</span>;
 }
 
 // Trang có sẵn (đường dẫn thuộc code): chỉ xem và sửa nội dung, không lưu trữ hay xóa được.
@@ -84,9 +84,11 @@ export function PagesManager({ counts, initialQuery, initialStatus, initialType,
     ...(initialStatus !== "all" ? [{ key: "status", label: `Trạng thái: ${statusLabels[initialStatus]}`, onRemove: () => setFilter("status", undefined) }] : []),
   ];
   const filtered = chips.length > 0;
+  // Chỉ trang tự tạo chọn được (lưu trữ/xóa hàng loạt); trang này không có trang tự tạo thì bỏ hẳn cột ô chọn.
+  const selectable = result.items.some(isCustomPage);
   const columns = useMemo<AdminDataTableColumn<AdminPage>[]>(() => [
     { id: "page", label: "Trang", defaultWidth: 320, minWidth: 220, sortKey: "title", cell: (page) => <Link className="block hover:text-[var(--cms-primary)]" href={`/admin/pages/${page.id}`}><strong className="block">{page.title}</strong><span className="admin-field__hint block">{getPublicPath(page)}</span></Link> },
-    { id: "kind", label: "Loại", defaultWidth: 220, minWidth: 160, cell: (page) => <PageKind page={page} /> },
+    { id: "kind", label: "Loại", defaultWidth: 240, minWidth: 160, cell: (page) => <PageKind page={page} /> },
     { id: "status", label: "Trạng thái", defaultWidth: 140, minWidth: 120, sortKey: "status", cell: (page) => <StatusBadge status={page.status} /> },
     { id: "updatedAt", label: "Cập nhật", defaultWidth: 140, minWidth: 120, sortKey: "updatedAt", sortFirst: "desc", cell: (page) => <span className="admin-text-muted">{dateFormatter.format(new Date(page.updatedAt))}</span> },
     { id: "actions", label: "Thao tác", defaultWidth: 120, minWidth: 120, align: "right", cell: (page) => isCustomPage(page)
@@ -110,7 +112,7 @@ export function PagesManager({ counts, initialQuery, initialStatus, initialType,
         </select>
       </AdminFilterBar>
       <ContentBulkBar deleteRequest={(page) => ({ method: "DELETE", url: `/api/admin/pages/${page.id}`, body: { expectedVersion: page.draftVersion } })} items={result.items} module="pages" noun="trang" onClear={clear} request={pageStateRequest} selectedIds={selectedIds} />
-      <AdminDataTable columns={columns} emptyMessage={filtered ? "Không có trang khớp bộ lọc." : emptyMessages[initialType]} getRowId={(page) => page.id} isRowSelectable={isCustomPage} onSelectionChange={setSelectedIds} onSortChange={setSort} rows={result.items} selectedIds={selectedIds} sort={sort} tableId="static-pages" />
+      <AdminDataTable columns={columns} emptyMessage={filtered ? "Không có trang khớp bộ lọc." : emptyMessages[initialType]} getRowId={(page) => page.id} isRowSelectable={isCustomPage} onSelectionChange={selectable ? setSelectedIds : undefined} onSortChange={setSort} rows={result.items} selectedIds={selectable ? selectedIds : undefined} sort={sort} tableId="static-pages" />
       <AdminPagination unit="trang" page={result.page} pageSize={result.pageSize} total={result.total} totalPages={result.totalPages} {...pagination} />
     </AdminCard>
   </AdminListPage>;

@@ -16,7 +16,8 @@ export default async function PagesManagerPage({ searchParams }: { searchParams:
   void _type;
   // Số trang của từng tab (không theo từ khóa/trạng thái) để người vận hành biết mỗi loại có bao nhiêu.
   const [result, ...totals] = await Promise.all([
-    getAdminPagesPage({ ...listParams, kind: kindOfType[type] }),
+    // Mặc định xếp theo tên (danh mục trang cố định, tìm theo tên dễ hơn theo ngày sửa).
+    getAdminPagesPage({ ...listParams, sort: listParams.sort ?? "title", dir: listParams.sort ? listParams.dir : "asc", kind: kindOfType[type] }),
     ...(["all", "standard", "listing", "custom"] as const).map((entry) => getAdminPagesPage({ kind: kindOfType[entry], pageSize: 5 })),
   ]);
   if (result.page > result.totalPages) {
