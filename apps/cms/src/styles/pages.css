@@ -147,20 +147,7 @@
 }
 
 @layer components {
-  /* Danh mục trang có sẵn ở màn "Trang tự tạo": hai cột (trang nội dung / trang danh sách), mỗi trang một dòng. */
-  .admin-system-pages { display: grid; gap: 12px; }
-  .admin-system-pages > header h2 { font-size: var(--cms-text-base, 15px); font-weight: 600; }
-  .admin-system-pages__groups { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(360px, 100%), 1fr)); gap: 12px 24px; }
-  .admin-system-pages h3 { margin-bottom: 4px; color: var(--cms-muted); font-size: var(--cms-text-xs); font-weight: 500; text-transform: uppercase; letter-spacing: .02em; }
-  .admin-system-pages ul { display: grid; margin: 0; padding: 0; list-style: none; }
-  .admin-system-pages li { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 2px 12px; border-top: 1px solid var(--cms-border); padding: 7px 0; }
-  .admin-system-pages li:first-child { border-top: 0; }
-  .admin-system-pages__link { display: flex; min-width: 0; align-items: baseline; gap: 8px; }
-  .admin-system-pages__link strong { font-size: var(--cms-text-sm); font-weight: 500; }
-  .admin-system-pages__link:hover strong { color: var(--cms-primary); }
-  .admin-system-pages__link code { overflow: hidden; color: var(--cms-muted); font-size: var(--cms-text-xs); text-overflow: ellipsis; white-space: nowrap; }
-  .admin-system-pages__note { grid-column: 1; color: var(--cms-muted); font-size: var(--cms-text-xs); }
-  .admin-system-pages__note:empty { display: none; }
-  .admin-system-pages__status { grid-column: 2; grid-row: 1; color: var(--cms-status-success-text); font-size: var(--cms-text-xs); }
-  .admin-system-pages__status--off { color: var(--cms-muted); }
+  /* Màn "Trang tĩnh": cột Loại có dòng phụ "lấy từ <module>" cho trang danh sách. */
+  .admin-page-kind { display: grid; gap: 1px; }
+  .admin-page-kind small { color: var(--cms-muted); font-size: var(--cms-text-xs); }
 }

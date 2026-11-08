@@ -3,7 +3,7 @@ import { createAdminListPageSchema } from "@iorder/core/server/shared/admin-list
 import { supportDownloadListResponseSchema } from "@iorder/core/server/support/support-downloads.contract";
 import { adminPostListItemSchema, adminPostSchema, publicPostTypeSchema } from "@iorder/core/server/posts/posts.contract";
 import { adminOfferingListItemSchema, adminOfferingSchema, publicOfferingTypeSchema } from "@iorder/core/server/offerings/offering-content.contract";
-import { adminPageSchema, adminPagesPageSchema, pageListQuerySchema } from "@iorder/core/server/pages/pages.contract";
+import { adminPageSchema, adminPagesPageSchema, pageListQuerySchema, type PageKindFilter } from "@iorder/core/server/pages/pages.contract";
 import { z } from "zod";
 import { parseAdminDetailPayload } from "./admin-detail-payload";
 import { cache } from "react";
@@ -180,7 +180,7 @@ export async function getAdminOfferingsPage(params: { page?: string | number; pa
 }
 export async function getAdminOfferingById(id: string) { return getDetail(`/api/admin/offerings/${encodeURIComponent(id)}`, "offering", adminOfferingSchema, id); }
 export async function getAdminPages(): Promise<AdminPagesPage["items"]> { return (await getAdminPagesPage())?.items ?? []; }
-export async function getAdminPagesPage(params: { page?: string | number; pageSize?: string | number; query?: string; status?: string; kind?: "custom" | "system"; sort?: string; dir?: string } = {}): Promise<AdminPagesPage> {
+export async function getAdminPagesPage(params: { page?: string | number; pageSize?: string | number; query?: string; status?: string; kind?: PageKindFilter; sort?: string; dir?: string } = {}): Promise<AdminPagesPage> {
   const input = pageListQuerySchema.parse({ ...params, status: params.status || undefined });
   const query = new URLSearchParams();
   Object.entries(input).forEach(([key, value]) => { if (value !== undefined && value !== "") query.set(key, String(value)); });
