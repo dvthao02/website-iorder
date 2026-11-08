@@ -89,8 +89,8 @@ const navigationGroups = ensureUniqueNavigationPaths([
     icon: FileText,
     items: [
       { href: "/admin/homepage", label: "Trang chủ", icon: LayoutTemplate, permission: "pages.view" },
-      { href: "/admin/pages", label: "Trang tự tạo", icon: PanelsTopLeft, matchesChildRoutes: true, permission: "pages.view" },
       { href: "/admin/news", label: "Bài viết & Tin tức", icon: Newspaper, matchesChildRoutes: true, permission: "posts.view", subPages: [{ href: "/admin/taxonomy", label: "Chuyên mục & Thẻ" }], fallback: { href: "/admin/taxonomy", label: "Chuyên mục & Thẻ", permission: "taxonomy.view" } },
+      { href: "/admin/pages", label: "Trang tĩnh", icon: PanelsTopLeft, matchesChildRoutes: true, permission: "pages.view" },
       { href: "/admin/products", label: "Sản phẩm & Dịch vụ", icon: Package, matchesChildRoutes: true, permission: "offerings.view", subPages: [{ href: "/admin/solutions" }, { href: "/admin/services" }] },
       { href: "/admin/equipment", label: "Thiết bị", icon: Laptop, matchesChildRoutes: true, permission: "equipment.view" },
       { href: "/admin/partners", label: "Đối tác & Đánh giá", icon: Star, permission: "supporting.view" },

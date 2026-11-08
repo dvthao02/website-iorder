@@ -26,7 +26,7 @@ const cmsRoutes: CmsRoute[] = [
   { id: "overview", label: "Bảng điều khiển", slug: "/admin", type: "Điều hướng CMS", href: "/admin" },
   { id: "analytics", label: "Thống kê truy cập", slug: "/admin/analytics", type: "Điều hướng CMS", href: "/admin/analytics", permission: "dashboard.view" },
   { id: "home-page", label: "Trang chủ", slug: "/admin/homepage", type: "Điều hướng CMS", href: "/admin/homepage", permission: "pages.view" },
-  { id: "pages", label: "Trang tự tạo", slug: "/admin/pages", type: "Điều hướng CMS", href: "/admin/pages", permission: "pages.view" },
+  { id: "pages", label: "Trang tĩnh", slug: "/admin/pages", type: "Điều hướng CMS", href: "/admin/pages", permission: "pages.view" },
   { id: "posts", label: "Bài viết & Tin tức", slug: "/admin/news", type: "Điều hướng CMS", href: "/admin/news", permission: "posts.view" },
   { id: "downloads", label: "Tệp cài đặt", slug: "/admin/resources", type: "Điều hướng CMS", href: "/admin/resources", permission: "support_downloads.view" },
   { id: "guides", label: "Hướng dẫn sử dụng", slug: "/admin/guides", type: "Điều hướng CMS", href: "/admin/guides", permission: "posts.view" },

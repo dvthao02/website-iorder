@@ -16,7 +16,7 @@ export const listingPageModuleHref: Record<ListingPageSlug, string> = {
 export const listingPageModuleLabel: Record<ListingPageSlug, string> = {
   "listing-news": "Bài viết & Tin tức",
   "listing-equipment": "Thiết bị",
-  "listing-support": "Hỗ trợ cài đặt",
+  "listing-support": "Tệp cài đặt",
   "listing-guides": "Hướng dẫn sử dụng",
   "listing-software": "Sản phẩm & Dịch vụ",
   "listing-solution": "Sản phẩm & Dịch vụ",

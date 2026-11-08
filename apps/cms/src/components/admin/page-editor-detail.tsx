@@ -72,7 +72,7 @@ export function PageEditorDetail({ page }: { page?: AdminPage }) {
   const pageType = listingSlug ? "Trang danh sách" : fixedPage ? "Trang hệ thống" : "Trang tự tạo";
   const publicPath = fixedPage?.publicPath ?? `/trang/${form.slug || "duong-dan"}`;
   const { can, canAny } = useAdminPermissions();
-  // Trang danh sách thuộc module của nó; Trang chủ mở từ sidebar; trang khác nằm trong "Trang tự tạo".
+  // Trang danh sách thuộc module của nó; Trang chủ mở từ sidebar; trang khác nằm trong "Trang tĩnh".
   const backHref = listingSlug ? listingPageModuleHref[listingSlug] : page?.slug === "home" ? "/admin" : "/admin/pages";
   const set = <K extends keyof typeof form>(key: K, value: typeof form[K]) => setForm(current => ({ ...current, [key]: value }));
   const canPublish = canAny(pagePermissionCodes(page?.slug, "publish"));
@@ -134,7 +134,7 @@ export function PageEditorDetail({ page }: { page?: AdminPage }) {
     finally { saving.current = false; setBusy(false); }
   }
 
-  return <AdminDetailPanel backHref={backHref} description={`Đường dẫn hiển thị: ${publicPath}`} eyebrow={pageType} hasUnsavedChanges={isDirty} title={page?.title ?? "Tạo trang mới"}>
+  return <AdminDetailPanel backHref={backHref} description={`Đường dẫn hiển thị: ${publicPath}`} eyebrow={page?.slug === "home" ? "Trang chủ" : "Trang tĩnh"} hasUnsavedChanges={isDirty} title={page?.title ?? "Tạo trang mới"}>
     <form id="page-editor" className="admin-post-editor" onSubmit={submit} ref={formRef}>
       <fieldset className="contents" disabled={processing}>
       <div className="admin-post-editor__main">
