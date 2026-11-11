@@ -1,3 +1,4 @@
+import { contentSeoSchema, contentSeoVisibilitySchema } from "../shared/content-seo";
 import { and, asc, count, desc, eq, ilike, inArray, isNull, ne, notInArray, or } from "drizzle-orm";
 import { getDb } from "@iorder/core/db/client";
 import { auditLogs, pageBlocks, pageRevisions, pages } from "@iorder/core/db/schema";
@@ -10,7 +11,7 @@ import { contentPathChange, pagePublicPath } from "../shared/content-paths";
 import { applyContentPathChange } from "../redirects/redirects.repository";
 import { liveContentCondition } from "../shared/live-content";
 
-const selectPage = { id: pages.id, title: pages.title, slug: pages.slug, template: pages.template, status: pages.status, draftVersion: pages.draftVersion, seoTitle: pages.seoTitle, seoDescription: pages.seoDescription, canonicalUrl: pages.canonicalUrl, scheduledAt: pages.scheduledAt, publishedAt: pages.publishedAt, updatedAt: pages.updatedAt };
+const selectPage = { id: pages.id, title: pages.title, slug: pages.slug, template: pages.template, status: pages.status, draftVersion: pages.draftVersion, seoTitle: pages.seoTitle, seoDescription: pages.seoDescription, canonicalUrl: pages.canonicalUrl, seo: pages.seo, scheduledAt: pages.scheduledAt, publishedAt: pages.publishedAt, updatedAt: pages.updatedAt };
 
 async function withBlocks<T extends { id: string }>(page: T) {
   const blocks = await getDb().select({ type: pageBlocks.type, data: pageBlocks.data, isEnabled: pageBlocks.isEnabled, appearance: pageBlocks.appearance }).from(pageBlocks).where(eq(pageBlocks.pageId, page.id)).orderBy(asc(pageBlocks.sortOrder));
@@ -79,7 +80,7 @@ export async function findAdminPageById(id: string) {
 }
 
 export function listPublishedPageSummaries() {
-  return getDb().select({ slug: pages.slug, updatedAt: pages.updatedAt }).from(pages).where(and(isNull(pages.deletedAt), liveContentCondition(pages)));
+  return getDb().select({ slug: pages.slug, updatedAt: pages.updatedAt, seo: pages.seo }).from(pages).where(and(isNull(pages.deletedAt), liveContentCondition(pages))).then(rows => rows.map(row => ({ ...row, seo: contentSeoVisibilitySchema.parse(row.seo) })));
 }
 
 export async function listPublishedPages() {
@@ -94,13 +95,14 @@ export async function writePage(id: string | null, input: PageInput, editorId: s
     if (existing) assertPageVersion(existing.draftVersion, expectedVersion);
     const version = (existing?.draftVersion ?? 0) + 1;
     const publishedAt = publicationDate(input, existing, new Date());
-    const values = { title: input.title, slug: input.slug, template: input.template, status: input.status, seoTitle: input.seoTitle, seoDescription: input.seoDescription, canonicalUrl: input.canonicalUrl, scheduledAt: input.scheduledAt, publishedAt, draftVersion: version };
+    const seo = contentSeoSchema.parse(input.seo ?? existing?.seo ?? {});
+    const values = { seo, title: input.title, slug: input.slug, template: input.template, status: input.status, seoTitle: input.seoTitle, seoDescription: input.seoDescription, canonicalUrl: input.canonicalUrl, scheduledAt: input.scheduledAt, publishedAt, draftVersion: version };
     const [page] = id ? await tx.update(pages).set({ ...values, updatedAt: new Date() }).where(eq(pages.id, id)).returning({ id: pages.id }) : await tx.insert(pages).values(values).returning({ id: pages.id });
     const pathChange = contentPathChange(existing && { status: existing.status, scheduledAt: existing.scheduledAt, path: pagePublicPath(existing.slug) }, { status: input.status, scheduledAt: input.scheduledAt, path: pagePublicPath(input.slug) });
     await applyContentPathChange(tx, pathChange, editorId);
     await tx.delete(pageBlocks).where(eq(pageBlocks.pageId, page.id));
     if (input.blocks.length) await tx.insert(pageBlocks).values(input.blocks.map((block, index) => ({ pageId: page.id, type: block.type, data: block.data, sortOrder: index, isEnabled: block.isEnabled, appearance: block.appearance ?? null })));
-    const snapshot = { ...input, publishedAt: publishedAt?.toISOString() ?? null };
+    const snapshot = { ...input, seo, publishedAt: publishedAt?.toISOString() ?? null };
     await tx.insert(pageRevisions).values({ pageId: page.id, editorId, versionNumber: version, snapshot, changeNote: changeNote ?? (id ? "Cập nhật trang trong CMS" : "Tạo trang trong CMS"), isPublished: input.status === "published" });
     await tx.insert(auditLogs).values({ userId: editorId, action: id ? "page.update" : "page.create", entityType: "page", entityId: page.id, afterData: snapshot });
     return page.id;

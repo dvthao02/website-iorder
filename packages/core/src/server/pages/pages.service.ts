@@ -1,3 +1,4 @@
+import { validateSeoMedia } from "../media/media.service";
 import { adminPageListItemSchema, adminPageSchema, getFixedWebsitePage, pageBlockInputSchema, pageInputSchema, publicPageSchema, type AdminPageListItem, type PageKindFilter } from "./pages.contract";
 import type { AdminListPage, AdminListQuery } from "@iorder/core/server/shared/admin-list.contract";
 import { contentStateAfterAction, contentStateChangeNotes, type ContentStateAction } from "../shared/content-version";
@@ -13,8 +14,8 @@ function serialize(row: NonNullable<Awaited<ReturnType<typeof findPageBySlug>>>)
 export async function getPublishedPage(slug: string, previewId?: string) {
   const page = await findPageBySlug(slug, !previewId);
   if (!page || (previewId && page.id !== previewId)) return undefined;
-  const { title, template, seoTitle, seoDescription, canonicalUrl, blocks } = serialize(page);
-  return publicPageSchema.parse({ title, slug: page.slug, template, seoTitle, seoDescription, canonicalUrl, blocks: blocks.filter(block => block.isEnabled) });
+  const { title, template, seoTitle, seoDescription, canonicalUrl, seo, blocks } = serialize(page);
+  return publicPageSchema.parse({ title, slug: page.slug, template, seoTitle, seoDescription, canonicalUrl, seo, blocks: blocks.filter(block => block.isEnabled) });
 }
 export async function getPublishedPages() {
   return adminPageSchema.array().parse((await listPublishedPages()).map(page => serialize(page as NonNullable<Awaited<ReturnType<typeof findPageBySlug>>>)));
@@ -48,6 +49,7 @@ export async function saveAdminPage(
   options: { allowFixedPageCreation?: boolean; expectedVersion?: number; changeNote?: string } = {},
 ) {
   const values = pageInputSchema.parse(input);
+  await validateSeoMedia(values.seo);
   const existing = id ? await findAdminPageById(id) : undefined;
   const fixedPage = existing ? getFixedWebsitePage(existing.slug) : undefined;
 
@@ -79,8 +81,8 @@ export async function changeAdminPageState(id: string, action: ContentStateActio
   const existing = await getAdminPageById(id);
   if (!existing) return undefined;
   const status = contentStateAfterAction(existing, action, expectedVersion);
-  const { title, slug, template, seoTitle, seoDescription, canonicalUrl, scheduledAt, blocks } = existing;
-  return saveAdminPage(id, { title, slug, template, status, seoTitle, seoDescription, canonicalUrl, scheduledAt: status === "published" ? null : scheduledAt, blocks }, editorId, { expectedVersion, changeNote: contentStateChangeNotes[action] });
+  const { title, slug, template, seoTitle, seoDescription, canonicalUrl, seo, scheduledAt, blocks } = existing;
+  return saveAdminPage(id, { title, slug, template, status, seoTitle, seoDescription, canonicalUrl, seo, scheduledAt: status === "published" ? null : scheduledAt, blocks }, editorId, { expectedVersion, changeNote: contentStateChangeNotes[action] });
 }
 
 export async function deleteArchivedAdminPage(id: string, editorId: string, expectedVersion?: number) {

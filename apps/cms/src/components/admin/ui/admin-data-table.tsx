@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type DragEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { ArrowDown, ArrowUp, ArrowUpDown, GripVertical, Pin, PinOff, RotateCcw, Settings2, X } from "lucide-react";
 import { useAdminToast } from "./admin-feedback";
+import { useAdminFocusTrap } from "./admin-focus-trap";
 
 export type AdminDataTableColumn<Row> = {
   id: string;
@@ -40,7 +41,9 @@ type AdminDataTableProps<Row> = {
   columns: AdminDataTableColumn<Row>[];
   rows: Row[];
   getRowId: (row: Row) => string;
+  getRowLabel?: (row: Row) => string;
   emptyMessage: string;
+  emptyAction?: ReactNode;
   onRowClick?: (row: Row) => void;
   settingsOpen?: boolean;
   onSettingsOpenChange?: (isOpen: boolean) => void;
@@ -78,11 +81,12 @@ function normalizeSettings<Row>(columns: AdminDataTableColumn<Row>[], candidate:
   const defaults = createDefaultSettings(columns);
   const validIds = new Set(defaults.order);
   const candidateOrder = (candidate?.order ?? []).filter((id) => validIds.has(id));
-  const order = [...candidateOrder, ...defaults.order.filter((id) => !candidateOrder.includes(id))];
+  const order = [...new Set([...candidateOrder, ...defaults.order.filter((id) => !candidateOrder.includes(id))])];
+  const hidden = [...new Set((candidate?.hidden ?? []).filter((id) => validIds.has(id)))];
 
   return {
     order,
-    hidden: (candidate?.hidden ?? []).filter((id) => validIds.has(id)),
+    hidden: hidden.length === columns.length ? hidden.filter((id) => id !== order[0]) : hidden,
     labels: Object.fromEntries(columns.map((column) => [column.id, candidate?.labels?.[column.id]?.trim() || column.label])),
     pinned: (candidate?.pinned ?? []).filter((id) => validIds.has(id)),
     widths: Object.fromEntries(columns.map((column) => {
@@ -106,11 +110,13 @@ function loadSettings<Row>(tableId: string, columns: AdminDataTableColumn<Row>[]
   }
 }
 
-export function AdminDataTable<Row>({ tableId, columns, rows, getRowId, emptyMessage, onRowClick, settingsOpen: controlledSettingsOpen, onSettingsOpenChange, showSettingsButton = true, sort: controlledSort, onSortChange, selectedIds, onSelectionChange, isRowSelectable }: AdminDataTableProps<Row>) {
+export function AdminDataTable<Row>({ tableId, columns, rows, getRowId, getRowLabel = getRowId, emptyMessage, emptyAction, onRowClick, settingsOpen: controlledSettingsOpen, onSettingsOpenChange, showSettingsButton = true, sort: controlledSort, onSortChange, selectedIds, onSelectionChange, isRowSelectable }: AdminDataTableProps<Row>) {
   const { show: showToast } = useAdminToast();
   const columnSignature = columns.map((column) => `${column.id}:${column.label}:${column.defaultWidth}:${column.minWidth ?? ""}`).join("|");
   const columnsRef = useRef(columns);
   const [settings, setSettings] = useState<TableSettings>(() => createDefaultSettings(columns));
+  const [restoredTableId, setRestoredTableId] = useState<string | null>(null);
+  const dialogRef = useRef<HTMLElement>(null);
   const [draft, setDraft] = useState<TableSettings>(() => createDefaultSettings(columns));
   const [internalSettingsOpen, setInternalSettingsOpen] = useState(false);
   const [columnQuery, setColumnQuery] = useState("");
@@ -149,6 +155,8 @@ export function AdminDataTable<Row>({ tableId, columns, rows, getRowId, emptyMes
     onSettingsOpenChange?.(next);
   }
 
+  useAdminFocusTrap({ containerRef: dialogRef, isOpen: isSettingsOpen, onClose: () => setSettingsOpen(false) });
+
   useEffect(() => {
     columnsRef.current = columns;
   }, [columns]);
@@ -158,17 +166,19 @@ export function AdminDataTable<Row>({ tableId, columns, rows, getRowId, emptyMes
       const restored = loadSettings(tableId, columnsRef.current);
       setSettings(restored);
       setDraft(restored);
+      setRestoredTableId(tableId);
     }, 0);
     return () => window.clearTimeout(timer);
   }, [columnSignature, tableId]);
 
   useEffect(() => {
+    if (restoredTableId !== tableId) return;
     try {
       window.localStorage.setItem(storageKey(tableId), JSON.stringify(settings));
     } catch {
       // Cấu hình chỉ là tùy chọn cá nhân; bảng vẫn hoạt động khi trình duyệt chặn lưu trữ.
     }
-  }, [settings, tableId]);
+  }, [settings, tableId, restoredTableId]);
 
   const allColumns = useMemo(() => {
     const byId = new Map(columns.map((column) => [column.id, column]));
@@ -262,7 +272,8 @@ export function AdminDataTable<Row>({ tableId, columns, rows, getRowId, emptyMes
 
   return <>
     <div className="admin-data-table">
-      <div className="admin-data-table__scroll">
+      <p className="admin-data-table__scroll-hint">Vuốt ngang để xem thêm cột</p>
+      <div aria-label="Bảng dữ liệu. Cuộn ngang để xem thêm cột." className="admin-data-table__scroll" role="region" tabIndex={0}>
         <table style={{ minWidth: minTableWidth }}>
           <colgroup>{selectable ? <col style={{ width: selectColumnWidth }} /> : null}{columnLayout.map(({ column, width }) => <col key={column.id} style={{ width }} />)}</colgroup>
           <thead><tr>{selectable ? <th className="admin-data-table__select-cell admin-data-table__pinned-cell" style={{ left: 0, position: "sticky", zIndex: 4 }}><SelectAllCheckbox checked={selectableRowIds.length > 0 && selectedOnPage === selectableRowIds.length} indeterminate={selectedOnPage > 0 && selectedOnPage < selectableRowIds.length} onChange={togglePage} /></th> : null}{columnLayout.map(({ column, pinned, left }, index) => {
@@ -276,7 +287,11 @@ export function AdminDataTable<Row>({ tableId, columns, rows, getRowId, emptyMes
             return <th aria-sort={sortDir === "asc" ? "ascending" : sortDir === "desc" ? "descending" : undefined} className={className || undefined} key={column.id} style={style}><div className="admin-data-table__head">
               {sortable ? <button className={sortDir ? "admin-data-table__sort admin-data-table__sort--active" : "admin-data-table__sort"} onClick={() => changeSort(column)} title={sortDir ? "Bấm để đổi chiều hoặc bỏ sắp xếp" : `Sắp xếp theo ${label}`} type="button"><span>{label}</span><SortIcon aria-hidden="true" size={13} /></button> : <span>{label}</span>}
               {isActionsColumn ? null : <button aria-label={pinned ? `Bỏ ghim cột ${label}` : `Ghim cột ${label}`} aria-pressed={pinned} className={pinned ? "admin-data-table__pin-toggle admin-data-table__pin-toggle--active" : "admin-data-table__pin-toggle"} onClick={() => togglePinned(column.id)} title={pinned ? "Bỏ ghim cột" : "Ghim cột bên trái khi cuộn ngang"} type="button">{pinned ? <PinOff aria-hidden="true" size={13} /> : <Pin aria-hidden="true" size={13} />}</button>}
-            </div>{isActionsColumn ? null : <button aria-label={`Thay đổi độ rộng cột ${settings.labels[column.id] ?? column.label}`} className="admin-data-table__resize-handle" onPointerDown={(event) => startResize(event, column)} type="button" />}{showSettingsButton && index === columnLayout.length - 1 ? <button aria-label="Cài đặt cột" className="admin-data-table__settings-button" onClick={openSettings} title={`Cài đặt cột (${visibleColumns.length}/${columns.length} cột đang hiển thị)`} type="button"><Settings2 aria-hidden="true" size={15} /></button> : null}</th>;
+            </div>{isActionsColumn ? null : <button aria-label={`Thay đổi độ rộng cột ${label}`} className="admin-data-table__resize-handle" onKeyDown={(event) => {
+              if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+              event.preventDefault();
+              updateWidth(column, widthOf(column) + (event.key === "ArrowLeft" ? -1 : 1) * (event.shiftKey ? 40 : 10));
+            }} onPointerDown={(event) => startResize(event, column)} title="Kéo để đổi độ rộng, hoặc dùng phím trái/phải (Shift để đổi nhanh)" type="button" />}{showSettingsButton && index === columnLayout.length - 1 ? <button aria-label="Cài đặt cột" className="admin-data-table__settings-button" disabled={restoredTableId !== tableId} onClick={openSettings} title={`Cài đặt cột (${visibleColumns.length}/${columns.length} cột đang hiển thị)`} type="button"><Settings2 aria-hidden="true" size={15} /></button> : null}</th>;
           })}</tr></thead>
           <tbody>{sortedRows.map((row) => { const rowId = getRowId(row); const rowSelectable = selectable && (isRowSelectable?.(row) ?? true); return <tr aria-selected={selectable ? selected.has(rowId) : undefined} className={[onRowClick ? "admin-data-table__row--interactive" : "", selected.has(rowId) ? "admin-data-table__row--selected" : ""].filter(Boolean).join(" ") || undefined} key={rowId} onClick={(event) => {
             if (!onRowClick || event.target instanceof Element && event.target.closest("a, button, input, select, textarea, label")) return;
@@ -285,33 +300,38 @@ export function AdminDataTable<Row>({ tableId, columns, rows, getRowId, emptyMes
             if (!onRowClick || event.target !== event.currentTarget || event.key !== "Enter" && event.key !== " ") return;
             event.preventDefault();
             onRowClick(row);
-          }} tabIndex={onRowClick ? 0 : undefined}>{selectable ? <td className="admin-data-table__select-cell admin-data-table__pinned-cell" style={{ left: 0, position: "sticky", zIndex: 1 }}>{rowSelectable ? <input aria-label="Chọn dòng" checked={selected.has(rowId)} onChange={(event) => toggleRow(rowId, event.target.checked)} type="checkbox" /> : null}</td> : null}{columnLayout.map(({ column, pinned, left }) => {
+          }} tabIndex={onRowClick ? 0 : undefined}>{selectable ? <td className="admin-data-table__select-cell admin-data-table__pinned-cell" style={{ left: 0, position: "sticky", zIndex: 1 }}>{rowSelectable ? <input aria-label={`Chọn ${getRowLabel(row)}`} checked={selected.has(rowId)} onChange={(event) => toggleRow(rowId, event.target.checked)} type="checkbox" /> : null}</td> : null}{columnLayout.map(({ column, pinned, left }) => {
             const isActionsColumn = column.id === "actions";
             const style: CSSProperties = isActionsColumn ? { right: 0, position: "sticky", width: widthOf(column), zIndex: 2 } : pinned ? { left, position: "sticky", width: widthOf(column), zIndex: 1 } : { width: widthOf(column) };
             const className = [column.align === "right" && !isActionsColumn ? "admin-data-table__cell--right" : "", pinned ? "admin-data-table__pinned-cell" : "", isActionsColumn ? "admin-data-table__actions-cell" : ""].filter(Boolean).join(" ");
             return <td className={className || undefined} key={column.id} style={style}>{column.cell(row)}</td>;
-          })}</tr>; })}{rows.length === 0 ? <tr><td className="admin-data-table__empty" colSpan={Math.max(visibleColumns.length + (selectable ? 1 : 0), 1)}>{emptyMessage}</td></tr> : null}</tbody>
+          })}</tr>; })}{rows.length === 0 ? <tr><td className="admin-data-table__empty" colSpan={Math.max(visibleColumns.length + (selectable ? 1 : 0), 1)}><p>{emptyMessage}</p>{emptyAction}</td></tr> : null}</tbody>
         </table>
       </div>
     </div>
 
     {isSettingsOpen ? <div className="admin-data-table__dialog-backdrop" onMouseDown={() => setSettingsOpen(false)} role="presentation">
-      <section aria-labelledby={`${tableId}-column-settings-title`} aria-modal="true" className="admin-data-table__dialog" onMouseDown={(event) => event.stopPropagation()} role="dialog">
+      <section aria-labelledby={`${tableId}-column-settings-title`} aria-modal="true" className="admin-data-table__dialog" onMouseDown={(event) => event.stopPropagation()} ref={dialogRef} role="dialog" tabIndex={-1}>
         <header><div><h2 id={`${tableId}-column-settings-title`}>Cài đặt bảng</h2><p>Chọn cột hiển thị, đổi tên, độ rộng, thứ tự và cột cố định.</p></div><button aria-label="Đóng cài đặt bảng" onClick={() => setSettingsOpen(false)} type="button"><X aria-hidden="true" size={20} /></button></header>
         <div className="admin-data-table__dialog-actions"><label><span className="sr-only">Tìm kiếm cột</span><input onChange={(event) => setColumnQuery(event.target.value)} placeholder="Tìm kiếm cột" value={columnQuery} /></label><button onClick={() => setDraft(createDefaultSettings(columns))} type="button"><RotateCcw aria-hidden="true" size={15} />Trở về mặc định</button></div>
         <div className="admin-data-table__settings-list">
-          <div className="admin-data-table__settings-heading"><span>Hiển thị & thứ tự</span><span>Tên cột trên giao diện</span><span>Độ rộng</span><span>Cố định</span></div>
-          {matchingDraftColumns.map((column) => {
+          <div className="admin-data-table__settings-heading"><span>Hiển thị</span><span>Tên cột trên giao diện</span><span>Độ rộng</span><span>Cố định</span><span>Thứ tự</span></div>
+          {matchingDraftColumns.length === 0 ? <p className="admin-data-table__empty" role="status">Không có cột khớp từ khóa. Thử tên khác.</p> : null}
+          {matchingDraftColumns.map((column, index) => {
             const visible = !draft.hidden.includes(column.id);
             const pinned = draft.pinned.includes(column.id);
             const isDragSource = draggedColumnId === column.id;
             const dropPosition = columnDropTarget?.columnId === column.id ? columnDropTarget.position : undefined;
             const rowClassName = ["admin-data-table__settings-row", isDragSource ? "admin-data-table__settings-row--dragging" : "", dropPosition ? `admin-data-table__settings-row--drop-${dropPosition}` : ""].filter(Boolean).join(" ");
             return <div className={rowClassName} draggable key={column.id} onDragEnd={() => { setDraggedColumnId(undefined); setColumnDropTarget(undefined); }} onDragOver={(event) => { event.preventDefault(); setColumnDropTarget(getDropTarget(event, column.id)); }} onDragStart={(event) => dragStart(event, column.id)} onDrop={(event) => { const target = getDropTarget(event, column.id); if (draggedColumnId && target) moveDraftColumn(draggedColumnId, target.columnId, target.position); setDraggedColumnId(undefined); setColumnDropTarget(undefined); }}>
-              <label><input checked={visible} onChange={(event) => updateDraft({ hidden: event.target.checked ? draft.hidden.filter((id) => id !== column.id) : [...draft.hidden, column.id] })} type="checkbox" /><GripVertical aria-hidden="true" size={17} /><span>{column.label}</span></label>
+              <label><input checked={visible} disabled={visible && columns.length - draft.hidden.length <= 1} onChange={(event) => updateDraft({ hidden: event.target.checked ? draft.hidden.filter((id) => id !== column.id) : [...draft.hidden, column.id] })} type="checkbox" /><GripVertical aria-hidden="true" size={17} /><span>{column.label}</span></label>
               <input aria-label={`Tên hiển thị cho cột ${column.label}`} onChange={(event) => updateDraft({ labels: { ...draft.labels, [column.id]: event.target.value } })} placeholder="Tên hiển thị" value={draft.labels[column.id] ?? column.label} />
               <input aria-label={`Độ rộng cột ${column.label}`} disabled={column.id === "actions"} min={column.minWidth ?? 110} onChange={(event) => updateDraft({ widths: { ...draft.widths, [column.id]: Math.max(column.minWidth ?? 110, Number(event.target.value) || column.defaultWidth) } })} placeholder="Độ rộng" type="number" value={draft.widths[column.id] ?? column.defaultWidth} />
               <label className="admin-data-table__pin"><input checked={pinned} onChange={(event) => updateDraft({ pinned: event.target.checked ? [...draft.pinned, column.id] : draft.pinned.filter((id) => id !== column.id) })} type="checkbox" /><span>Ghim</span></label>
+              <div aria-label={`Thứ tự cột ${column.label}`} className="admin-data-table__reorder" role="group">
+                <button aria-label={`Đưa cột ${column.label} lên`} disabled={index === 0} onClick={() => moveDraftColumn(column.id, matchingDraftColumns[index - 1].id, "before")} type="button"><ArrowUp aria-hidden="true" size={15} /></button>
+                <button aria-label={`Đưa cột ${column.label} xuống`} disabled={index === matchingDraftColumns.length - 1} onClick={() => moveDraftColumn(column.id, matchingDraftColumns[index + 1].id, "after")} type="button"><ArrowDown aria-hidden="true" size={15} /></button>
+              </div>
             </div>;
           })}
         </div>

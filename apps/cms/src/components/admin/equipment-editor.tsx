@@ -1,4 +1,6 @@
 "use client";
+import { CmsPageBuilder } from "./cms-page-builder";
+import { ContentSeoEditor } from "./content-seo-editor";
 
 import { Plus } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
@@ -15,7 +17,8 @@ import { PublishedPreviewLink } from "./published-preview-link";
 import { RevisionHistory } from "./revision-history";
 import { AdminButton } from "./ui/admin-button";
 import { AdminEditorActions } from "./ui/admin-editor-actions";
-import { AdminStatusBadge } from "./ui/admin-feedback";
+import { AdminEditorSection } from "./ui/admin-editor-section";
+import { AdminNotice, AdminStatusBadge } from "./ui/admin-feedback";
 import { AdminInlineCreate } from "./ui/admin-inline-create";
 import { AdminListRowControls, moveListItem } from "./ui/admin-list-editor";
 import { useAdminPermissions } from "./ui/admin-permissions";
@@ -33,11 +36,11 @@ const priceFormatter = new Intl.NumberFormat("vi-VN", { style: "currency", curre
 const noun = "thiết bị";
 
 function blankItem(groupId: string): EquipmentInput {
-  return { groupId, name: "", slug: "", modelCode: null, coverMediaId: null, priceVnd: 0, warrantyMonths: 12, summary: null, specificationGroups: [], status: "draft", scheduledAt: null, sortOrder: 0, isFeatured: false, seoTitle: null, seoDescription: null, canonicalUrl: null };
+  return { groupId, name: "", slug: "", modelCode: null, coverMediaId: null, priceVnd: 0, warrantyMonths: 12, summary: null, specificationGroups: [], status: "draft", scheduledAt: null, sortOrder: 0, isFeatured: false, seoTitle: null, seoDescription: null, canonicalUrl: null, seo: {}, blocks: [] };
 }
 
 function itemToForm(item: EquipmentItem): EquipmentInput {
-  return { groupId: item.groupId, name: item.name, slug: item.slug, modelCode: item.modelCode, coverMediaId: item.coverMediaId, priceVnd: item.priceVnd, warrantyMonths: item.warrantyMonths, summary: item.summary, specificationGroups: item.specificationGroups, status: item.status, scheduledAt: item.scheduledAt, sortOrder: item.sortOrder, isFeatured: item.isFeatured, seoTitle: item.seoTitle, seoDescription: item.seoDescription, canonicalUrl: item.canonicalUrl };
+  return { groupId: item.groupId, name: item.name, slug: item.slug, modelCode: item.modelCode, coverMediaId: item.coverMediaId, priceVnd: item.priceVnd, warrantyMonths: item.warrantyMonths, summary: item.summary, specificationGroups: item.specificationGroups, status: item.status, scheduledAt: item.scheduledAt, sortOrder: item.sortOrder, isFeatured: item.isFeatured, seoTitle: item.seoTitle, seoDescription: item.seoDescription, canonicalUrl: item.canonicalUrl, seo: item.seo ?? {}, blocks: item.blocks ?? [] };
 }
 
 // Thông số theo nhóm (ví dụ "Kết nối" → "Cổng USB: 2 cổng"); website hiện thành bảng theo từng nhóm.
@@ -71,6 +74,7 @@ export function EquipmentEditor({ groups, item, onDirtyChange, onError, onSaved 
   const [id, setId] = useState<string | null>(item?.id ?? null);
   const [version, setVersion] = useState<number | undefined>(item?.version);
   const [savedStatus, setSavedStatus] = useState(item?.status);
+  const canEdit = can(id ? "equipment.update" : "equipment.create") && (canPublish || !["published", "scheduled"].includes(savedStatus ?? "draft"));
   const [isSaving, setIsSaving] = useState(false);
   const saving = useRef(false);
   const uploading = useRef(false);
@@ -97,11 +101,11 @@ export function EquipmentEditor({ groups, item, onDirtyChange, onError, onSaved 
   }, []);
 
   function update<Field extends keyof EquipmentInput>(field: Field, value: EquipmentInput[Field]) {
-    if (saving.current) return;
+    if (!canEdit || saving.current) return;
     setForm((current) => ({ ...current, [field]: value }));
   }
   function changeName(name: string) {
-    if (saving.current) return;
+    if (!canEdit || saving.current) return;
     setForm((current) => ({ ...current, name, ...(slugTouched ? {} : { slug: toSlug(name, 80) }) }));
   }
 
@@ -118,7 +122,7 @@ export function EquipmentEditor({ groups, item, onDirtyChange, onError, onSaved 
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (saving.current || uploading.current) return;
+    if (!canEdit || saving.current || uploading.current) return;
     saving.current = true;
     setIsSaving(true);
     try {
@@ -154,12 +158,13 @@ export function EquipmentEditor({ groups, item, onDirtyChange, onError, onSaved 
 
   return (
     <form className="admin-post-editor" onSubmit={submit} ref={formRef}>
+      {!canEdit ? <div className="col-span-full"><AdminNotice tone="info">Bạn chỉ có quyền xem nội dung này. Nội dung đang hiển thị cần thêm quyền xuất bản để sửa.</AdminNotice></div> : null}
       <fieldset disabled={processing} className="contents">
       <div className="admin-post-editor__main">
-        <section className="admin-content-section admin-post-editor__writing">
+        <AdminEditorSection className="admin-post-editor__writing" description="Tên, giá và mô tả ngắn để khách hàng nhận diện thiết bị." id="equipment-basic" step={1} title="Thông tin cơ bản">
           <label className="admin-post-editor__title-field"><span className="sr-only">Tên thiết bị</span><input className="admin-post-editor__title" maxLength={220} onChange={(event) => changeName(event.target.value)} placeholder="Nhập tên thiết bị…" required value={form.name} /></label>
           {editingSlug ? <div className="admin-post-editor__slug-edit">
-            <div className="admin-field"><label className="admin-seo__label" htmlFor="equipment-slug">Đường dẫn (slug)<span className="admin-help">{publicPath}</span></label><span className="admin-post-editor__slug"><input autoFocus className="admin-input" id="equipment-slug" maxLength={180} onChange={(event) => { setSlugTouched(true); update("slug", event.target.value); }} pattern="[a-z0-9]+(-[a-z0-9]+)*" required value={form.slug} /><AdminButton disabled={!form.name.trim() || toSlug(form.name, 80) === form.slug} onClick={() => { setSlugTouched(true); update("slug", toSlug(form.name, 80)); }} size="sm" variant="secondary">Tạo từ tên</AdminButton><AdminButton onClick={() => setEditingSlug(false)} size="sm" variant="ghost">Xong</AdminButton></span></div>
+            <div className="admin-field"><label className="admin-seo__label" htmlFor="equipment-slug">Đường dẫn<span className="admin-help">Địa chỉ không dấu trên website: {publicPath}</span></label><span className="admin-post-editor__slug"><input autoFocus className="admin-input" id="equipment-slug" maxLength={180} onChange={(event) => { setSlugTouched(true); update("slug", event.target.value); }} pattern="[a-z0-9]+(-[a-z0-9]+)*" required value={form.slug} /><AdminButton disabled={!form.name.trim() || toSlug(form.name, 80) === form.slug} onClick={() => { setSlugTouched(true); update("slug", toSlug(form.name, 80)); }} size="sm" variant="secondary">Tạo từ tên</AdminButton><AdminButton onClick={() => setEditingSlug(false)} size="sm" variant="ghost">Xong</AdminButton></span></div>
             {savedStatus === "published" && form.status === "published" ? <small className="admin-help">Thiết bị đang hiển thị: khi lưu với đường dẫn mới, đường dẫn cũ tự chuyển hướng (301) sang đường dẫn mới.</small> : savedStatus === "published" ? <small className="admin-help admin-text-warning">Sau lần lưu này nội dung chưa hiện ngay trên website nên đổi đường dẫn sẽ không tạo chuyển hướng từ đường dẫn cũ.</small> : <small className="admin-help">Chỉ dùng chữ thường không dấu, số và dấu gạch ngang.</small>}
           </div> : <p className="admin-post-editor__slug-line"><span className="admin-help">Đường dẫn:</span> <span className="admin-post-editor__path">{publicPath}</span><button className="admin-post-editor__link" onClick={() => setEditingSlug(true)} type="button">Sửa</button>{!slugTouched ? <span className="admin-help"> · tự tạo theo tên</span> : null}</p>}
           <div className="admin-form-grid admin-equipment-sale">
@@ -168,13 +173,15 @@ export function EquipmentEditor({ groups, item, onDirtyChange, onError, onSaved 
             <label className="admin-field">Mã model<input className="admin-input" maxLength={80} onChange={event => update("modelCode", event.target.value || null)} placeholder="Ví dụ: SUNMI T2s" value={form.modelCode ?? ""} /></label>
           </div>
           <label className="admin-field" htmlFor="equipment-summary">Mô tả ngắn<textarea className="admin-input" id="equipment-summary" maxLength={20_000} onChange={event => update("summary", event.target.value || null)} placeholder="Thiết bị dùng để làm gì, phù hợp với mô hình nào. Hiện trên thẻ ở trang danh sách và đầu trang chi tiết." rows={4} value={summary} /></label>
-        </section>
-        <section className="admin-content-section" id="equipment-specs"><header><h3>Thông số kỹ thuật</h3><p className="admin-help">Chia theo nhóm, ví dụ nhóm “Kết nối” có dòng “Cổng USB: 2 cổng”. Website hiện thành bảng.</p></header><SpecificationGroupsEditor onChange={specificationGroups => update("specificationGroups", specificationGroups)} value={form.specificationGroups} /></section>
+        </AdminEditorSection>
+        <AdminEditorSection description="Chia theo nhóm, ví dụ nhóm “Kết nối” có dòng “Cổng USB: 2 cổng”. Website hiện thành bảng." id="equipment-specs" step={2} title="Thông số kỹ thuật"><SpecificationGroupsEditor onChange={specificationGroups => update("specificationGroups", specificationGroups)} value={form.specificationGroups} /></AdminEditorSection>
+        <AdminEditorSection title="Nội dung trang thiết bị" description="Các thành phần nội dung dùng chung Page Builder. Giá, bảo hành và thông số vẫn quản lý ở phần thông tin thiết bị."><CmsPageBuilder readOnly={!canEdit} documentId={id} document={{ kind: "equipment", values: form }} blocks={form.blocks ?? []} onChange={blocks => update("blocks", blocks)} disabled={processing} onUploadingChange={handleUploadingChange} showGroupPicker /></AdminEditorSection>
         <details className="admin-post-editor__panel">
           <summary><span><strong>Google &amp; chia sẻ mạng xã hội</strong><small>Mặc định lấy từ tên và mô tả ngắn — chỉ mở khi muốn đặt riêng.</small></span><AdminStatusBadge tone={seoPassed === checks.length ? "success" : "warning"}>SEO {seoPassed}/{checks.length} đạt</AdminStatusBadge></summary>
           <div className="admin-post-editor__panel-body">
             <SeoAssistant content={seoContent} excerpt={summary} hasCover={Boolean(form.coverMediaId)} onChange={(field, value) => update(field, value || null)} path={publicPath} seoDescription={form.seoDescription ?? ""} seoTitle={form.seoTitle ?? ""} slug={form.slug} title={form.name} />
-            <label className="admin-field">URL chuẩn (canonical)<input className="admin-input" onChange={event => update("canonicalUrl", event.target.value || null)} placeholder="https://… — chỉ điền khi trang này là bản sao của trang khác" type="url" value={form.canonicalUrl ?? ""} /></label>
+            <ContentSeoEditor value={form.seo ?? {}} onChange={seo => update("seo", seo)} title={form.seoTitle || form.name} description={form.seoDescription || form.summary || ""} disabled={processing || !canEdit} onUploadingChange={handleUploadingChange} />
+            <label className="admin-field">Địa chỉ chính thức của nội dung (nâng cao)<input className="admin-input" onChange={event => update("canonicalUrl", event.target.value || null)} placeholder="Chỉ điền khi nội dung này được sao chép từ một địa chỉ khác" type="url" value={form.canonicalUrl ?? ""} /></label>
           </div>
         </details>
         {id ? <details className="admin-post-editor__panel" onToggle={(event) => setHistoryOpen(event.currentTarget.open)}>

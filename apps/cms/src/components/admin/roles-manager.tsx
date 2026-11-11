@@ -19,6 +19,9 @@ import { AdminRowEditIcon } from "./ui/admin-row-title";
 import { useAdminPermissions } from "./ui/admin-permissions";
 import { AdminSidePanel } from "./ui/admin-side-panel";
 import { allState, moduleState, permissionCode, setModules, setPermission, type CheckState, type MatrixModule } from "./ui/role-permission-matrix";
+import { useAdminClientReady } from "./ui/use-admin-client-ready";
+import { AdminFormField } from "./ui/admin-form-field";
+import { useAdminFormValidation } from "./ui/use-admin-form-validation";
 import { useNavigationGuard } from "./ui/use-navigation-guard";
 
 type RoleForm = { name: string; description: string; permissions: string[] };
@@ -32,6 +35,7 @@ function valuesOf(role: CmsRole): RoleForm {
 
 export function RolesManager({ roles, modules, actionLabels, tabs }: RolesManagerProps & { tabs?: ReactNode }) {
   const router = useRouter();
+  const ready = useAdminClientReady();
   const { show: showToast } = useAdminToast();
   const { confirm } = useAdminConfirm();
   const { can } = useAdminPermissions();
@@ -40,6 +44,12 @@ export function RolesManager({ roles, modules, actionLabels, tabs }: RolesManage
   const [initialValues, setInitialValues] = useState<RoleForm | null>(null);
   const [busy, setBusy] = useState(false);
   const mutationPending = useRef(false);
+  const [saveError, setSaveError] = useState("");
+  const validation = useAdminFormValidation("cms-role", {
+    name: { label: "Tên vai trò", message: "Nhập tên vai trò từ 2 đến 120 ký tự." },
+    description: { label: "Mô tả", message: "Mô tả không vượt quá 500 ký tự." },
+    permissions: { label: "Quyền", message: "Kiểm tra các quyền được chọn (tối đa 200 quyền)." },
+  });
   const [isColumnSettingsOpen, setIsColumnSettingsOpen] = useState(false);
   const active = roles.find((role) => role.id === activeId);
   const readOnly = Boolean(active?.isSystem) || !can(active ? "roles.update" : "roles.create");
@@ -61,6 +71,8 @@ export function RolesManager({ roles, modules, actionLabels, tabs }: RolesManage
     if (!allowSelectionChange()) return;
     const values = role ? valuesOf(role) : { ...blank };
     setActiveId(role?.id ?? null);
+    validation.reset();
+    setSaveError("");
     setForm(values);
     setInitialValues(values);
   }
@@ -74,6 +86,8 @@ export function RolesManager({ roles, modules, actionLabels, tabs }: RolesManage
 
   function discardChanges() {
     if (mutationPending.current) return;
+    validation.reset();
+    setSaveError("");
     setForm(initialValues);
     showToast("Đã bỏ các thay đổi chưa lưu.", "info");
   }
@@ -81,11 +95,13 @@ export function RolesManager({ roles, modules, actionLabels, tabs }: RolesManage
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!form || !dirty || readOnly || mutationPending.current) return;
+    setSaveError("");
     const parsed = cmsRoleInputSchema.safeParse({ ...form, description: form.description });
     if (!parsed.success) {
-      showToast("Tên vai trò cần từ 2 đến 120 ký tự.", "error");
+      validation.report(parsed.error.issues);
       return;
     }
+    validation.reset();
     mutationPending.current = true;
     setBusy(true);
     try {
@@ -98,7 +114,9 @@ export function RolesManager({ roles, modules, actionLabels, tabs }: RolesManage
       showToast(active ? "Đã lưu vai trò." : "Đã tạo vai trò.", "success");
       router.refresh();
     } catch (error) {
-      showToast(error instanceof Error ? error.message : "Không kết nối được máy chủ.", "error");
+      const message = error instanceof Error ? error.message : "Không kết nối được máy chủ.";
+      setSaveError(message);
+      showToast(message, "error");
     } finally {
       mutationPending.current = false;
       setBusy(false);
@@ -120,7 +138,9 @@ export function RolesManager({ roles, modules, actionLabels, tabs }: RolesManage
       showToast("Đã xóa vai trò.", "success");
       router.refresh();
     } catch (error) {
-      showToast(error instanceof Error ? error.message : "Không kết nối được máy chủ.", "error");
+      const message = error instanceof Error ? error.message : "Không kết nối được máy chủ.";
+      setSaveError(message);
+      showToast(message, "error");
     } finally {
       mutationPending.current = false;
       setBusy(false);
@@ -143,19 +163,22 @@ export function RolesManager({ roles, modules, actionLabels, tabs }: RolesManage
 
   return <AdminListPage className="admin-list-manager" variant="dense">
     <AdminCard className="admin-list-manager__card">
-      <AdminListHeader actions={can("roles.create") ? <AdminButton leadingIcon={<Plus aria-hidden="true" size={16} />} onClick={() => select()}>Tạo vai trò</AdminButton> : null} description={`${roles.length} vai trò`} title="Vai trò & quyền" />
+      <AdminListHeader actions={can("roles.create") ? <AdminButton disabled={busy || !ready} leadingIcon={<Plus aria-hidden="true" size={16} />} onClick={() => select()}>Tạo vai trò</AdminButton> : null} description={`${roles.length} vai trò`} title="Vai trò & quyền" />
       {tabs}
       <AdminDataTable columns={columns} emptyMessage="Chưa có vai trò." getRowId={(role) => role.id} onRowClick={select} onSettingsOpenChange={setIsColumnSettingsOpen} rows={roles} settingsOpen={isColumnSettingsOpen} tableId="cms-roles" />
     </AdminCard>
-    <AdminSidePanel footer={footer} isOpen={form !== null} label="Trình chỉnh sửa vai trò" onClose={closeEditor}>
-      <header className="admin-list-manager__panel-header"><span className="admin-list-manager__panel-icon"><ShieldCheck aria-hidden="true" size={18} /></span><div><p>{active ? (readOnly ? "Xem vai trò" : "Chỉnh sửa vai trò") : "Tạo vai trò"}</p><h2>{form?.name || "Vai trò mới"}</h2></div></header>
-      {form ? <form className="admin-list-manager__form" id="role-editor" onSubmit={save}>
+    <AdminSidePanel footer={footer} isOpen={form !== null} label={readOnly ? "Xem vai trò" : active ? "Chỉnh sửa vai trò" : "Tạo vai trò"} onClose={closeEditor}>
+      <header className="admin-list-manager__panel-header"><span className="admin-list-manager__panel-icon"><ShieldCheck aria-hidden="true" size={18} /></span><div><p>{active ? (readOnly ? "Xem vai trò" : "Chỉnh sửa vai trò") : "Tạo vai trò"}</p><h2>{form?.name || "Vai trò mới"}</h2><small className={dirty ? "admin-list-manager__dirty" : undefined}>{busy ? "Đang lưu vai trò…" : readOnly ? "Chỉ xem." : dirty ? "Có thay đổi chưa lưu." : active ? "Không có thay đổi chưa lưu." : "Nhập thông tin và chọn quyền để tạo vai trò."}</small></div></header>
+      {form ? <form className="admin-list-manager__form" id="role-editor" noValidate onSubmit={save}>
+        {validation.summary}
+        {saveError ? <AdminNotice tone="error">{saveError}</AdminNotice> : null}
         {active?.isSystem ? <AdminNotice tone="info">Super Admin luôn có toàn quyền và được bảo vệ: không thể sửa, xóa hoặc gỡ khỏi Super Admin cuối cùng.</AdminNotice> : null}
-        {!active?.isSystem && !can("roles.delete") && !readOnly ? <AdminNotice tone="info">Bạn chỉ cấp được những quyền mà chính bạn đang có.</AdminNotice> : null}
+        {!active?.isSystem && !readOnly ? <AdminNotice tone="info">Bạn chỉ cấp được những quyền mà chính bạn đang có.</AdminNotice> : null}
+        {readOnly && !active?.isSystem ? <AdminNotice tone="info">Bạn đang xem vai trò. Cần quyền sửa vai trò để lưu thay đổi.</AdminNotice> : null}
         <fieldset disabled={busy}>
-          <Field label="Tên vai trò"><input className="admin-input" maxLength={120} minLength={2} onChange={(event) => setForm({ ...form, name: event.target.value })} readOnly={readOnly} required value={form.name} /></Field>
-          <Field label="Mô tả"><textarea className="admin-input" maxLength={500} onChange={(event) => setForm({ ...form, description: event.target.value })} readOnly={readOnly} rows={2} value={form.description} /></Field>
-          <PermissionMatrix actionLabels={actionLabels} canGrant={canGrant} modules={modules} onChange={(next) => setForm({ ...form, permissions: [...next].sort() })} selected={new Set(active?.isSystem ? modules.flatMap((module) => module.actions.map((action) => permissionCode(module, action))) : form.permissions)} />
+          <AdminFormField id="cms-role-name" label="Tên vai trò" error={validation.message("name")}><input {...validation.props("name")} className="admin-input" maxLength={120} minLength={2} onChange={(event) => setForm({ ...form, name: event.target.value })} readOnly={readOnly} required value={form.name} /></AdminFormField>
+          <AdminFormField id="cms-role-description" label="Mô tả" error={validation.message("description")}><textarea {...validation.props("description")} className="admin-input" maxLength={500} onChange={(event) => setForm({ ...form, description: event.target.value })} readOnly={readOnly} rows={2} value={form.description} /></AdminFormField>
+          <div {...validation.props("permissions")} className="min-w-0" tabIndex={-1}><PermissionMatrix actionLabels={actionLabels} canGrant={canGrant} modules={modules} onChange={(next) => setForm({ ...form, permissions: [...next].sort() })} selected={new Set(active?.isSystem ? modules.flatMap((module) => module.actions.map((action) => permissionCode(module, action))) : form.permissions)} />{validation.message("permissions")}</div>
         </fieldset>
       </form> : null}
     </AdminSidePanel>
@@ -169,7 +192,7 @@ function PermissionMatrix({ actionLabels, canGrant, modules, onChange, selected 
     <table>
       <caption className="sr-only">Quyền theo module</caption>
       <thead><tr>
-        <th scope="col"><label className="admin-role-matrix__group"><TriStateCheckbox disabled={!everyGrantable} label="Chọn tất cả quyền" onChange={(checked) => onChange(setModules(selected, modules, checked, canGrant))} state={allState(selected, modules, canGrant)} />Module</label></th>
+        <th scope="col"><label className="admin-role-matrix__group"><TriStateCheckbox disabled={!everyGrantable} label="Chọn tất cả quyền" onChange={(checked) => onChange(setModules(selected, modules, checked, canGrant))} state={allState(selected, modules, canGrant)} />Nhóm chức năng</label></th>
         {actions.map((action) => <th key={action} scope="col">{actionLabels[action]}</th>)}
       </tr></thead>
       <tbody>{modules.map((module) => {
@@ -190,8 +213,4 @@ function TriStateCheckbox({ disabled, label, onChange, state }: { disabled?: boo
   const ref = useRef<HTMLInputElement>(null);
   useEffect(() => { if (ref.current) ref.current.indeterminate = state === "some"; }, [state]);
   return <input aria-checked={state === "some" ? "mixed" : state === "all"} aria-label={label} checked={state === "all"} disabled={disabled} onChange={(event) => onChange(event.target.checked)} ref={ref} type="checkbox" />;
-}
-
-function Field({ children, label }: { children: ReactNode; label: string }) {
-  return <label className="admin-list-manager__field"><span>{label}</span>{children}</label>;
 }

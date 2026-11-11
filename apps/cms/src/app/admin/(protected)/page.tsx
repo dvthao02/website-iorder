@@ -41,7 +41,7 @@ export default async function AdministratorHomePage() {
   const [analytics, readiness, content, backup] = await Promise.all([getAnalyticsOverview(), getPublishingReadiness(), getDashboardContentSummary(), getBackupStatus()]);
   const can = (permission: CmsPermissionCode) => hasCmsPermission(administrator, permission);
   const contentSummary = ([
-    { label: "Trang tĩnh", value: content.pages.total, detail: `${content.pages.published} trang đã xuất bản`, href: "/admin/pages", permission: "pages.view" },
+    { label: "Trang website", value: content.pages.total, detail: `${content.pages.published} trang đã xuất bản`, href: "/admin/pages", permission: "pages.view" },
     { label: "Bài viết & Tin tức", value: content.posts.total, detail: `${content.posts.published} bài đã xuất bản`, href: "/admin/news", permission: "posts.view" },
     { label: "Sản phẩm", value: content.offerings.products.total, detail: `${content.offerings.products.published} sản phẩm đã xuất bản`, href: "/admin/products?type=software", permission: "offerings.view" },
     { label: "Giải pháp", value: content.offerings.solutions.total, detail: `${content.offerings.solutions.published} giải pháp đã xuất bản`, href: "/admin/products?type=solution", permission: "offerings.view" },
@@ -62,7 +62,7 @@ export default async function AdministratorHomePage() {
     href: item.kind === "page" ? `/admin/pages/${item.id}` : item.kind === "post" ? `/admin/news/${item.id}` : item.kind === "offering" ? `${offeringManagerHref(item.type)}/${item.id}` : `/admin/equipment/${item.id}`,
   }));
   const workItems = [
-    ...contentWarnings("Trang tĩnh", "/admin/pages", content.pages),
+    ...contentWarnings("Trang website", "/admin/pages", content.pages),
     ...contentWarnings("Bài viết & Tin tức", "/admin/news", content.posts),
     ...contentWarnings("Sản phẩm", "/admin/products?type=software", content.offerings.products),
     ...contentWarnings("Giải pháp", "/admin/products?type=solution", content.offerings.solutions),

@@ -22,12 +22,16 @@
 }
 
 {$SITE_ADDRESS} {
+	@notBuilderPreview not path /cms-preview
+	header @notBuilderPreview X-Frame-Options "DENY"
+	header @notBuilderPreview Referrer-Policy "strict-origin-when-cross-origin"
+	@builderPreview path /cms-preview
+	header @builderPreview Referrer-Policy "no-referrer"
 	import observability
 	encode zstd gzip
 	header {
 		X-Content-Type-Options "nosniff"
-		X-Frame-Options "DENY"
-		Referrer-Policy "strict-origin-when-cross-origin"
+
 	}
 
 	request_body /api/admin/media {

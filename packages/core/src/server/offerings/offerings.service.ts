@@ -1,3 +1,4 @@
+import { contentSeoSchema } from "../shared/content-seo";
 import {
   adminOfferingInputSchema,
   adminOfferingSchema,
@@ -12,7 +13,7 @@ import {
 } from "./offering-content.contract";
 import { mediaPath } from "../media/storage";
 import { contentPathChange, offeringPublicPath } from "../shared/content-paths";
-import { validateCoverMedia } from "../media/media.service";
+import { validateCoverMedia, validateSeoMedia } from "../media/media.service";
 import { publicationDate } from "../shared/publication-date";
 import { assertContentVersion, contentStateAfterAction, contentStateChangeNotes, contentStateRequestSchema, ContentVersionConflictError, type ContentStateAction } from "../shared/content-version";
 import {
@@ -87,6 +88,7 @@ export async function getAdminOfferingById(id: string) {
 export async function createAdminOffering(input: unknown, editorId: string) {
   const values = adminOfferingInputSchema.parse(input);
   await validateCoverMedia(values.coverMediaId);
+  await validateSeoMedia(values.seo);
   const publishedAt = values.status === "scheduled" ? values.scheduledAt : values.status === "published" ? new Date() : null;
   const snapshot = { ...values, publishedAt: publishedAt?.toISOString() ?? null };
   const id = await createOfferingWithRevision(
@@ -106,12 +108,14 @@ export async function createAdminOffering(input: unknown, editorId: string) {
 export async function updateAdminOffering(id: string, input: unknown, editorId: string, changeNote = "Cập nhật Offering trong CMS", expectedVersion?: number) {
   const values = adminOfferingInputSchema.parse(input);
   await validateCoverMedia(values.coverMediaId);
+  await validateSeoMedia(values.seo);
   const existing = await findAdminOfferingById(id);
 
   if (!existing) {
     return undefined;
   }
 
+  values.seo ??= contentSeoSchema.parse(existing.seo ?? {});
   if (expectedVersion !== undefined) assertContentVersion(existing.draftVersion, expectedVersion);
   const publishedAt = publicationDate(values, existing, new Date());
   const versionNumber = existing.draftVersion + 1;

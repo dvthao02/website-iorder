@@ -44,7 +44,7 @@ export function AdminListEditor({ addLabel, id, itemLabel, items, maxItems, maxL
     if (event.key === "Backspace" && !items[index] && items.length > 0) { event.preventDefault(); remove(index); focusRow(Math.max(0, index - 1)); }
   }
   return <div className="admin-list-editor" id={id}>
-    {items.length ? <ol className="admin-list-editor__rows" ref={listRef}>{items.map((item, index) => <li className="admin-list-editor__row" key={index}>
+    {items.length ? <ol className="admin-list-editor__rows" ref={listRef}>{items.map((item, index) => <li className="admin-list-editor__row" data-builder-item={index} key={index}>
       <span aria-hidden="true" className="admin-list-editor__index">{index + 1}</span>
       <input aria-label={`${itemLabel} ${index + 1}`} className="admin-input" maxLength={maxLength} onChange={(event) => onChange(items.map((entry, entryIndex) => entryIndex === index ? event.target.value : entry))} onKeyDown={(event) => keyDown(event, index)} placeholder={placeholder} value={item} />
       <AdminListRowControls index={index} label={`${itemLabel} ${index + 1}`} length={items.length} onMove={(direction) => onChange(moveListItem(items, index, direction))} onRemove={() => remove(index)} />

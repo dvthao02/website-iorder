@@ -17,6 +17,7 @@ export const pages = pgTable(
     seoTitle: varchar("seo_title", { length: 70 }),
     seoDescription: varchar("seo_description", { length: 180 }),
     canonicalUrl: text("canonical_url"),
+    seo: jsonb("seo").$type<unknown>().default({}).notNull(),
     scheduledAt: timestamp("scheduled_at", { withTimezone: true }),
     publishedAt: timestamp("published_at", { withTimezone: true }),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),

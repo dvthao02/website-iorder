@@ -4,7 +4,7 @@ import { notFound, permanentRedirect } from "next/navigation";
 import { ChevronRight, Phone } from "lucide-react";
 
 import { suggestSeoDescription } from "@iorder/core/server/shared/seo";
-import { JsonLd } from "@/components/site/json-ld";
+import { ContentJsonLd } from "@/components/site/content-json-ld";
 import { PostContent } from "@/components/site/post-content";
 import { ShareLinks } from "@/components/site/share-links";
 import { SiteHeader } from "@/components/site/site-header";
@@ -23,7 +23,7 @@ export async function generateMetadata({ params }: NewsDetailPageProps, parent: 
   const { slug } = await params;
   const post = await getPublishedPostBySlug(slug);
   if (!post) return { title: "Không tìm thấy bài viết | iOrder" };
-  return contentMetadata({ title: `${post.seoTitle ?? post.title} | iOrder`, description: post.seoDescription ?? suggestSeoDescription(post.excerpt, post.content), path: `/tin-tuc/${post.slug}`, canonicalUrl: post.canonicalUrl, image: post.cover ? { url: post.cover.url, alt: post.cover.altText } : null, type: "article" }, parent);
+  return contentMetadata({ title: `${post.seoTitle ?? post.title} | iOrder`, description: post.seoDescription ?? suggestSeoDescription(post.excerpt, post.content), path: `/tin-tuc/${post.slug}`, canonicalUrl: post.canonicalUrl, seo: post.seo, image: post.cover ? { url: post.cover.url, alt: post.cover.altText } : null, type: "article" }, parent);
 }
 
 const dateFormatter = new Intl.DateTimeFormat("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
@@ -53,7 +53,7 @@ export default async function NewsDetailPage({ params }: NewsDetailPageProps) {
 
   return <>
     <SiteHeader />
-    {site ? <JsonLd data={[articleJsonLd(site, { title: post.title, description: post.seoDescription ?? suggestSeoDescription(post.excerpt, post.content), path, imagePath: post.cover?.url ?? null, publishedAt: post.publishedAt, publisherName: profile?.companyName ?? "iOrder" }), breadcrumbJsonLd(site, crumbs)]} /> : null}
+    {site ? <ContentJsonLd seo={post.seo} title={post.title} description={post.seoDescription} path={path} defaults={[articleJsonLd(site, { title: post.title, description: post.seoDescription ?? suggestSeoDescription(post.excerpt, post.content), path, imagePath: post.cover?.url ?? null, publishedAt: post.publishedAt, publisherName: profile?.companyName ?? "iOrder" }), breadcrumbJsonLd(site, crumbs)]} /> : null}
     <main id="noi-dung">
       <div className="site-container article-page">
         <article className="article-main">

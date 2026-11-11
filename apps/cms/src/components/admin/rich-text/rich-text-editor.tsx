@@ -194,7 +194,7 @@ export function RichTextEditor({ value, onChange, onImportTitle, placeholder = "
       <ToolButton active={state.ordered} disabled={locked} label="Danh sách số" onClick={() => chain().toggleOrderedList().run()}><ListOrdered size={16} /></ToolButton>
       <ToolButton active={state.quote} disabled={locked} label="Trích dẫn" onClick={() => chain().toggleBlockquote().run()}><Quote size={16} /></ToolButton>
       <ToolButton disabled={locked} label="Đường kẻ ngang" onClick={() => chain().setHorizontalRule().run()}><Minus size={16} /></ToolButton>
-      <ToolButton disabled={locked} label="Chèn ảnh (tải lên Thư viện media)" onClick={() => imageInput.current?.click()}><ImagePlus size={16} /></ToolButton>
+      <ToolButton disabled={locked} label="Chèn ảnh (tải lên Thư viện hình ảnh & tệp)" onClick={() => imageInput.current?.click()}><ImagePlus size={16} /></ToolButton>
       <ToolButton active={state.banner} disabled={locked} label="Khối ảnh nền (chữ đè lên ảnh)" onClick={() => bannerInput.current?.click()}><Wallpaper size={16} /></ToolButton>
       <ToolButton active={state.video} disabled={locked} label="Chèn video YouTube (dán link)" onClick={() => setVideoDraft(videoAttrs ? youtubeWatchUrl(videoAttrs.videoId) : "")}><SquarePlay size={16} /></ToolButton>
       <ToolButton active={state.table} disabled={locked} label="Chèn bảng 3×3" onClick={() => chain().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}><TableIcon size={16} /></ToolButton>

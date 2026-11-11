@@ -6,7 +6,7 @@ import { getAdminSystemPageBySlug } from "@/lib/backend";
 
 export const dynamic = "force-dynamic";
 
-// Trang chủ có mục riêng trên sidebar (sửa thường xuyên nhất); các trang có sẵn khác mở từ Menu hoặc "Trang tĩnh".
+// Trang chủ có mục riêng trên sidebar (sửa thường xuyên nhất); các trang có sẵn khác mở từ Menu hoặc "Trang website".
 export default async function HomePageEditor() {
   await requireAdminPermission("pages.view");
   const page = await getAdminSystemPageBySlug("home");

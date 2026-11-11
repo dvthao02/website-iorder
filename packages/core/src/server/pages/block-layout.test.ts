@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { blockAnchor, resolveBlockFrames, sectionFrame } from "./block-layout";
+import { blockAnchor, blockUsesScreenHeight, resolveBlockFrames, sectionFrame } from "./block-layout";
 import { pageBlockInputSchema, type PageBlock } from "./pages.contract";
 
 const block = (input: unknown) => pageBlockInputSchema.parse(input) as PageBlock;
@@ -62,4 +62,10 @@ test("Khung một phần trang riêng lẻ (trang sản phẩm): tự động th
   assert.deepEqual(sectionFrame(undefined, { fallback: "white", darkAllowed: true, spacing: "md", anchor: "bang-gia" }), { tone: "white", spacing: "md", anchor: "bang-gia", width: null, background: null });
   assert.equal(sectionFrame({ tone: "custom", backgroundColor: "#0d1b33" }, { fallback: "white", darkAllowed: false, spacing: "md" }).tone, "tinted");
   assert.deepEqual(sectionFrame({ tone: "custom", backgroundColor: "#fff7ed", spacing: "lg", width: 70 }, { fallback: "tinted", darkAllowed: true, spacing: "md" }), { tone: "white", spacing: "lg", anchor: null, width: 70, background: { color: "#fff7ed", mediaId: null, overlay: 80 } });
+});
+test("Khoảng cách chọn cụ thể trong CMS không bị nhịp toàn màn hình của trang chủ ghi đè", () => {
+  const item = pageBlockInputSchema.parse({ type: "features", isEnabled: true, data: { eyebrow: null, title: "Lợi ích", description: null, items: [] } });
+  assert.equal(blockUsesScreenHeight(item, true), true);
+  for (const spacing of ["sm", "md", "lg"] as const) assert.equal(blockUsesScreenHeight(pageBlockInputSchema.parse({ ...item, appearance: { spacing } }), true), false);
+  assert.equal(blockUsesScreenHeight(item, false), false);
 });

@@ -4,7 +4,7 @@ import { adminApiError, readAdminJson } from "@/lib/admin-api";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff, Plus, Trash2 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState, useTransition, type Dispatch, type SetStateAction, type FormEvent, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition, type Dispatch, type SetStateAction, type FormEvent } from "react";
 
 import type {
   PartnerInput,
@@ -20,7 +20,7 @@ import { AdminButton } from "./ui/admin-button";
 import { AdminCard } from "./ui/admin-card";
 import { AdminDataTable, type AdminDataTableColumn } from "./ui/admin-data-table";
 import { useAdminConfirm } from "./ui/admin-confirm-dialog";
-import { AdminStatusBadge, useAdminToast } from "./ui/admin-feedback";
+import { AdminNotice, AdminStatusBadge, useAdminToast } from "./ui/admin-feedback";
 import { AdminEmptyState } from "./ui/admin-empty-state";
 import { AdminFileIcon } from "./ui/admin-file-icon";
 import { AdminRowEditIcon } from "./ui/admin-row-title";
@@ -36,6 +36,9 @@ import { DataTransferActions } from "./data-transfer-actions";
 import { AdminSidePanel } from "./ui/admin-side-panel";
 import { AdminPagination } from "./ui/admin-pagination";
 import { requestNavigationFocus } from "./ui/navigation-focus";
+import { useAdminClientReady } from "./ui/use-admin-client-ready";
+import { AdminFormField } from "./ui/admin-form-field";
+import { useAdminFormValidation, type AdminFormValidation } from "./ui/use-admin-form-validation";
 import { useNavigationGuard } from "./ui/use-navigation-guard";
 
 type Partner = PartnerInput & {
@@ -50,6 +53,7 @@ type Testimonial = TestimonialInput & {
   avatar: { url: string; altText: string | null } | null;
 };
 
+type SupportingField = keyof PartnerInput | keyof TestimonialInput;
 type SupportingKind = "partners" | "testimonials";
 type VisibilityFilter = "all" | "enabled" | "disabled";
 type PartnerKindFilter = "all" | PartnerInput["kind"];
@@ -121,10 +125,12 @@ export function SupportingManager({
   pagination: { page: number; pageSize: number; total: number; totalPages: number };
 }) {
   const router = useRouter();
+  const ready = useAdminClientReady();
   const { confirm } = useAdminConfirm();
   const { show: showToast } = useAdminToast();
   const [kind, setKind] = useState<SupportingKind>(initialKind);
   const filter = initialQuery.visibility;
+  const hasFilters = Boolean(initialQuery.query.trim()) || filter !== "all" || (initialKind === "partners" && initialQuery.partnerKind !== "all");
   const partnerKindFilter = initialQuery.partnerKind;
   const [search, setSearch] = useState(initialQuery.query);
   const chips: AdminFilterChip[] = [
@@ -139,6 +145,22 @@ export function SupportingManager({
   const [initialValues, setInitialValues] = useState<PartnerInput | TestimonialInput | null>(null);
   const [busy, setBusy] = useState(false);
   const mutationPending = useRef(false);
+  const [saveError, setSaveError] = useState("");
+  const validation = useAdminFormValidation<SupportingField>("supporting", {
+    name: { label: "Tên đối tác", message: "Nhập tên đối tác hoặc khách hàng từ 1 đến 180 ký tự." },
+    kind: { label: "Loại", message: "Chọn loại đối tác hoặc khách hàng." },
+    websiteUrl: { label: "Website", message: "Nhập URL đầy đủ, ví dụ https://ten-mien.vn, hoặc để trống." },
+    description: { label: "Mô tả", message: "Mô tả không vượt quá 10.000 ký tự." },
+    logoMediaId: { label: "Logo", message: "Chọn logo hợp lệ từ thư viện." },
+    authorName: { label: "Họ tên khách hàng", message: "Nhập họ tên khách hàng từ 1 đến 180 ký tự." },
+    authorRole: { label: "Chức danh", message: "Chức danh không vượt quá 180 ký tự." },
+    company: { label: "Doanh nghiệp", message: "Tên doanh nghiệp không vượt quá 180 ký tự." },
+    quote: { label: "Nhận xét", message: "Nhập nhận xét từ 1 đến 10.000 ký tự." },
+    rating: { label: "Đánh giá", message: "Chọn số sao từ 1 đến 5 hoặc không hiển thị." },
+    avatarMediaId: { label: "Ảnh đại diện", message: "Chọn ảnh hợp lệ từ thư viện." },
+    sortOrder: { label: "Thứ tự hiển thị", message: "Nhập số nguyên từ 0 đến 10.000." },
+    isEnabled: { label: "Hiển thị", message: "Chọn trạng thái hiển thị." },
+  });
   const uploadPending = useRef(false);
   const [isUploading, setIsUploading] = useState(false);
   const handleUploadingChange = useCallback((pending: boolean) => {
@@ -155,6 +177,7 @@ export function SupportingManager({
   const editorOpen = form !== null;
   // Chọn nhiều dòng: tự bỏ chọn khi đổi loại, bộ lọc, từ khóa hoặc trang.
   const { can } = useAdminPermissions();
+  const canEdit = can(activeId ? "supporting.update" : "supporting.create");
   const selection = useRowSelection(`${kind}|${initialQuery.query}|${filter}|${partnerKindFilter}|${pagination.page}|${pagination.pageSize}`);
   const { busy: bulkBusy, run: runBulk } = useBulkAction();
   const bulkItems: (Partner | Testimonial)[] = kind === "partners" ? visiblePartners : visibleTestimonials;
@@ -197,6 +220,8 @@ export function SupportingManager({
   function selectPartner(row?: Partner, defaultKind: PartnerInput["kind"] = "partner") {
     if (!allowSelectionChange()) return;
     const values = row ? partnerValues(row) : { ...blankPartner, kind: defaultKind };
+    validation.reset();
+    setSaveError("");
     setKind("partners");
     setActiveId(row?.id ?? null);
     setPartnerForm(values);
@@ -207,6 +232,8 @@ export function SupportingManager({
   function selectTestimonial(row?: Testimonial) {
     if (!allowSelectionChange()) return;
     const values = row ? testimonialValues(row) : { ...blankTestimonial };
+    validation.reset();
+    setSaveError("");
     setKind("testimonials");
     setActiveId(row?.id ?? null);
     setTestimonialForm(values);
@@ -230,6 +257,8 @@ export function SupportingManager({
 
   function discardChanges() {
     if (mutationPending.current || uploadPending.current || !initialValues) return;
+    validation.reset();
+    setSaveError("");
     if (kind === "partners") setPartnerForm(initialValues as PartnerInput);
     else setTestimonialForm(initialValues as TestimonialInput);
     showToast("Đã bỏ các thay đổi chưa lưu.", "info");
@@ -257,13 +286,15 @@ export function SupportingManager({
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!form || !dirty || mutationPending.current || uploadPending.current) return;
+    if (!form || !canEdit || !dirty || mutationPending.current || uploadPending.current) return;
+    setSaveError("");
     const submitted = (kind === "partners" ? partnerInputSchema : testimonialInputSchema).safeParse(form);
     if (!submitted.success) {
-      showToast("Kiểm tra tên, nội dung, website, ảnh và thứ tự hiển thị trước khi lưu.", "warning");
+      validation.report(submitted.error.issues);
       return;
     }
 
+    validation.reset();
     mutationPending.current = true;
     setBusy(true);
     try {
@@ -296,7 +327,9 @@ export function SupportingManager({
       );
       router.refresh();
     } catch (error) {
-      showToast(error instanceof Error ? error.message : "Không thể kết nối máy chủ.", "error");
+      const message = error instanceof Error ? error.message : "Không thể kết nối máy chủ.";
+      setSaveError(message);
+      showToast(message, "error");
     } finally {
       mutationPending.current = false;
       setBusy(false);
@@ -340,7 +373,7 @@ export function SupportingManager({
   return (
     <AdminListPage>
       <AdminCard>
-        <AdminListHeader actions={<><DataTransferActions dataset={kind} key={kind} label={kind === "testimonials" ? "Đánh giá" : "Đối tác & khách hàng"} module="supporting" /><AdminButton hideWithoutPermission permission="supporting.create" leadingIcon={<Plus aria-hidden="true" size={16} />} onClick={createCurrentKind}>{kind === "testimonials" ? "Thêm đánh giá" : partnerKindFilter === "customer" ? "Thêm khách hàng" : "Thêm đối tác"}</AdminButton></>} description={loading ? "Đang tải danh sách…" : `${pagination.total} ${kind === "testimonials" ? "đánh giá" : "mục"}`} title="Đối tác & Đánh giá" />
+        <AdminListHeader actions={<><DataTransferActions dataset={kind} key={kind} label={kind === "testimonials" ? "Đánh giá" : "Đối tác & khách hàng"} module="supporting" /><AdminButton hideWithoutPermission permission="supporting.create" disabled={processing || loading || !ready} leadingIcon={<Plus aria-hidden="true" size={16} />} onClick={createCurrentKind}>{kind === "testimonials" ? "Thêm đánh giá" : partnerKindFilter === "customer" ? "Thêm khách hàng" : "Thêm đối tác"}</AdminButton></>} description={loading ? "Đang tải danh sách…" : `${pagination.total} ${kind === "testimonials" ? "đánh giá" : "mục"}`} title="Đối tác & Đánh giá" />
         <AdminFilterTabs<SupportingKind> restoreNavigationFocus ariaLabel="Loại nội dung" disabled={processing || loading} items={[{ label: "Đối tác & khách hàng", value: "partners" }, { label: "Đánh giá", value: "testimonials" }]} value={kind} onValueChange={changeKind} />
         <AdminFilterBar onSubmit={(event) => { event.preventDefault(); navigate({ page: 1, query: search.trim() }); }} chips={chips} onClearAll={() => { setSearch(""); navigate({ page: 1, query: "", partnerKind: "all", visibility: "all" }); }} search={<AdminSearchField disabled={processing || loading} label="Tìm kiếm" onChange={event => setSearch(event.target.value)} placeholder="Tên, doanh nghiệp hoặc nội dung" value={search} />}>
 
@@ -354,10 +387,10 @@ export function SupportingManager({
         <AdminBulkBar count={chosen.length} onClear={selection.clear}><AdminBulkMenu actions={bulkActions} busy={bulkBusy} /></AdminBulkBar>
         <div aria-live="polite">
           {(kind === "partners" ? visiblePartners.length : visibleTestimonials.length) === 0
-            ? <AdminEmptyState description="Đổi bộ lọc hoặc tạo nội dung mới bằng nút phía trên." title={`Chưa có ${kind === "testimonials" ? "đánh giá" : partnerKindFilter === "customer" ? "khách hàng" : partnerKindFilter === "partner" ? "đối tác" : "nội dung"} phù hợp`} />
+            ? <AdminEmptyState action={hasFilters ? <AdminButton disabled={processing || loading} onClick={() => { setSearch(""); navigate({ page: 1, query: "", partnerKind: "all", visibility: "all" }); }} variant="secondary">Xóa bộ lọc</AdminButton> : <AdminButton hideWithoutPermission permission="supporting.create" disabled={processing || loading || !ready} onClick={createCurrentKind}>{kind === "testimonials" ? "Thêm đánh giá" : "Thêm đối tác"}</AdminButton>} description={loading ? "Vui lòng chờ trong giây lát." : hasFilters ? "Thử từ khóa khác hoặc xóa bộ lọc để xem lại danh sách." : "Thêm nội dung đầu tiên để sử dụng trên website."} title={loading ? "Đang tải danh sách…" : hasFilters ? "Không có nội dung khớp bộ lọc" : `Chưa có ${kind === "testimonials" ? "đánh giá" : "đối tác hoặc khách hàng"}`} />
             : kind === "partners"
-              ? <AdminDataTable columns={partnerColumns} emptyMessage="Chưa có đối tác." getRowId={(item) => item.id} onRowClick={selectPartner} onSelectionChange={selection.setSelectedIds} rows={visiblePartners} selectedIds={selection.selectedIds} tableId="cms-partners" />
-              : <AdminDataTable columns={testimonialColumns} emptyMessage="Chưa có đánh giá." getRowId={(item) => item.id} onRowClick={selectTestimonial} onSelectionChange={selection.setSelectedIds} rows={visibleTestimonials} selectedIds={selection.selectedIds} tableId="cms-testimonials" />}
+              ? <AdminDataTable columns={partnerColumns} emptyMessage="Chưa có đối tác." getRowId={(item) => item.id} getRowLabel={(item) => item.name} onRowClick={selectPartner} onSelectionChange={selection.setSelectedIds} rows={visiblePartners} selectedIds={selection.selectedIds} tableId="cms-partners" />
+              : <AdminDataTable columns={testimonialColumns} emptyMessage="Chưa có đánh giá." getRowId={(item) => item.id} getRowLabel={(item) => item.authorName} onRowClick={selectTestimonial} onSelectionChange={selection.setSelectedIds} rows={visibleTestimonials} selectedIds={selection.selectedIds} tableId="cms-testimonials" />}
         </div>
         <AdminPagination unit={kind === "partners" ? "đối tác" : "đánh giá"} disabled={processing || loading} label="Phân trang" onChange={(page) => navigate({ page })} onPageSizeChange={(pageSize) => navigate({ page: 1, pageSize })} page={pagination.page} pageSize={pagination.pageSize} total={pagination.total} totalPages={pagination.totalPages} />
       </AdminCard>
@@ -373,15 +406,18 @@ export function SupportingManager({
             <AdminButton disabled={processing || !dirty} form="supporting-editor" permission={activeId ? "supporting.update" : "supporting.create"} type="submit">{isUploading ? "Đang tải ảnh…" : busy ? "Đang lưu…" : "Lưu thay đổi"}</AdminButton>
           </>}
         >
-          <form id="supporting-editor" onSubmit={save}>
+          <form id="supporting-editor" noValidate onSubmit={save}>
             <header className="admin-list-manager__panel-header">
               <p>{activeId ? "Chỉnh sửa" : "Tạo mới"}</p>
               <h2 id="supporting-editor-title">{kind === "partners" ? "Đối tác" : "Đánh giá khách hàng"}</h2>
               <small className={dirty ? "admin-list-manager__dirty" : undefined}>{processing ? "Đang xử lý nội dung…" : dirty ? "Có thay đổi chưa lưu." : activeId ? "Không có thay đổi chưa lưu." : "Nhập thông tin để tạo nội dung mới."}</small>
             </header>
-            <fieldset className="admin-list-manager__form" disabled={processing}>
-              {kind === "partners" && partnerForm ? <PartnerForm form={partnerForm} onChange={setPartnerForm} onUploadingChange={handleUploadingChange} /> : null}
-              {kind === "testimonials" && testimonialForm ? <TestimonialForm form={testimonialForm} onChange={setTestimonialForm} onUploadingChange={handleUploadingChange} /> : null}
+            <fieldset className="admin-list-manager__form" disabled={processing || !canEdit}>
+              {!canEdit ? <AdminNotice tone="info">Bạn đang xem nội dung. Cần quyền sửa để lưu thay đổi.</AdminNotice> : null}
+              {validation.summary}
+              {saveError ? <AdminNotice tone="error">{saveError}</AdminNotice> : null}
+              {kind === "partners" && partnerForm ? <PartnerForm validation={validation} form={partnerForm} onChange={setPartnerForm} onUploadingChange={handleUploadingChange} /> : null}
+              {kind === "testimonials" && testimonialForm ? <TestimonialForm validation={validation} form={testimonialForm} onChange={setTestimonialForm} onUploadingChange={handleUploadingChange} /> : null}
             </fieldset>
           </form>
         </AdminSidePanel>
@@ -441,61 +477,53 @@ function NameCell({ imageUrl, name }: { imageUrl: string | undefined; name: stri
   </span>;
 }
 
-function PartnerForm({ form, onChange, onUploadingChange }: { form: PartnerInput; onChange: Dispatch<SetStateAction<PartnerInput | null>>; onUploadingChange: (pending: boolean) => void }) {
+function PartnerForm({ form, onChange, onUploadingChange, validation }: { form: PartnerInput; onChange: Dispatch<SetStateAction<PartnerInput | null>>; onUploadingChange: (pending: boolean) => void; validation: AdminFormValidation<SupportingField> }) {
   return (
     <div className="grid gap-4">
       <div className="admin-form-grid">
-        <Field label="Loại">
-          <select value={form.kind} onChange={(event) => onChange({ ...form, kind: event.target.value as PartnerInput["kind"] })}>
+        <AdminFormField id="supporting-kind" label="Loại" error={validation.message("kind")}>
+          <select {...validation.props("kind")} value={form.kind} onChange={(event) => onChange({ ...form, kind: event.target.value as PartnerInput["kind"] })}>
             <option value="partner">Đối tác</option>
             <option value="customer">Khách hàng</option>
           </select>
-        </Field>
-        <Field label="Thứ tự hiển thị">
-          <input min={0} onChange={(event) => onChange({ ...form, sortOrder: Math.max(0, Number(event.target.value) || 0) })} type="number" value={form.sortOrder} />
-        </Field>
+        </AdminFormField>
+        <AdminFormField id="supporting-sortOrder" label="Thứ tự hiển thị" error={validation.message("sortOrder")}>
+          <input {...validation.props("sortOrder")} min={0} onChange={(event) => onChange({ ...form, sortOrder: Math.max(0, Number(event.target.value) || 0) })} type="number" value={form.sortOrder} />
+        </AdminFormField>
       </div>
-      <Field label="Tên đối tác"><input onChange={(event) => onChange({ ...form, name: event.target.value })} required value={form.name} /></Field>
-      <Field label="Website"><input onChange={(event) => onChange({ ...form, websiteUrl: event.target.value || null })} placeholder="https://…" type="url" value={form.websiteUrl || ""} /></Field>
-      <Field label="Mô tả"><textarea onChange={(event) => onChange({ ...form, description: event.target.value || null })} rows={4} value={form.description || ""} /></Field>
+      <AdminFormField id="supporting-name" label="Tên đối tác" error={validation.message("name")}><input {...validation.props("name")} onChange={(event) => onChange({ ...form, name: event.target.value })} required value={form.name} /></AdminFormField>
+      <AdminFormField id="supporting-websiteUrl" label="Website" error={validation.message("websiteUrl")}><input {...validation.props("websiteUrl")} onChange={(event) => onChange({ ...form, websiteUrl: event.target.value || null })} placeholder="https://…" type="url" value={form.websiteUrl || ""} /></AdminFormField>
+      <AdminFormField id="supporting-description" label="Mô tả" error={validation.message("description")}><textarea {...validation.props("description")} onChange={(event) => onChange({ ...form, description: event.target.value || null })} rows={4} value={form.description || ""} /></AdminFormField>
       <Toggle checked={form.isEnabled} label="Hiển thị trên website" onChange={(isEnabled) => onChange({ ...form, isEnabled })} />
-      <Field label="Logo"><MediaPicker onChange={(logoMediaId) => onChange((current) => current ? { ...current, logoMediaId } : current)} onUploadingChange={onUploadingChange} value={form.logoMediaId} /></Field>
+      <div {...validation.props("logoMediaId")} tabIndex={-1}><MediaPicker label="Logo" onChange={(logoMediaId) => onChange((current) => current ? { ...current, logoMediaId } : current)} onUploadingChange={onUploadingChange} value={form.logoMediaId} />{validation.message("logoMediaId")}</div>
     </div>
   );
 }
 
-function TestimonialForm({ form, onChange, onUploadingChange }: { form: TestimonialInput; onChange: Dispatch<SetStateAction<TestimonialInput | null>>; onUploadingChange: (pending: boolean) => void }) {
+function TestimonialForm({ form, onChange, onUploadingChange, validation }: { form: TestimonialInput; onChange: Dispatch<SetStateAction<TestimonialInput | null>>; onUploadingChange: (pending: boolean) => void; validation: AdminFormValidation<SupportingField> }) {
   return (
     <div className="grid gap-4">
-      <Field label="Họ tên khách hàng"><input onChange={(event) => onChange({ ...form, authorName: event.target.value })} required value={form.authorName} /></Field>
+      <AdminFormField id="supporting-authorName" label="Họ tên khách hàng" error={validation.message("authorName")}><input {...validation.props("authorName")} onChange={(event) => onChange({ ...form, authorName: event.target.value })} required value={form.authorName} /></AdminFormField>
       <div className="admin-form-grid">
-        <Field label="Chức danh"><input onChange={(event) => onChange({ ...form, authorRole: event.target.value || null })} value={form.authorRole || ""} /></Field>
-        <Field label="Doanh nghiệp"><input onChange={(event) => onChange({ ...form, company: event.target.value || null })} value={form.company || ""} /></Field>
+        <AdminFormField id="supporting-authorRole" label="Chức danh" error={validation.message("authorRole")}><input {...validation.props("authorRole")} onChange={(event) => onChange({ ...form, authorRole: event.target.value || null })} value={form.authorRole || ""} /></AdminFormField>
+        <AdminFormField id="supporting-company" label="Doanh nghiệp" error={validation.message("company")}><input {...validation.props("company")} onChange={(event) => onChange({ ...form, company: event.target.value || null })} value={form.company || ""} /></AdminFormField>
       </div>
-      <Field label="Nhận xét"><textarea onChange={(event) => onChange({ ...form, quote: event.target.value })} required rows={5} value={form.quote} /></Field>
+      <AdminFormField id="supporting-quote" label="Nhận xét" error={validation.message("quote")}><textarea {...validation.props("quote")} onChange={(event) => onChange({ ...form, quote: event.target.value })} required rows={5} value={form.quote} /></AdminFormField>
       <div className="admin-form-grid">
-        <Field label="Đánh giá">
-          <select onChange={(event) => onChange({ ...form, rating: event.target.value ? Number(event.target.value) : null })} value={form.rating || ""}>
+        <AdminFormField id="supporting-rating" label="Đánh giá" error={validation.message("rating")}>
+          <select {...validation.props("rating")} onChange={(event) => onChange({ ...form, rating: event.target.value ? Number(event.target.value) : null })} value={form.rating || ""}>
             <option value="">Không hiển thị</option>
             {[1, 2, 3, 4, 5].map((value) => <option key={value} value={value}>{value}/5</option>)}
           </select>
-        </Field>
-        <Field label="Thứ tự hiển thị"><input min={0} onChange={(event) => onChange({ ...form, sortOrder: Math.max(0, Number(event.target.value) || 0) })} type="number" value={form.sortOrder} /></Field>
+        </AdminFormField>
+        <AdminFormField id="supporting-sortOrder" label="Thứ tự hiển thị" error={validation.message("sortOrder")}><input {...validation.props("sortOrder")} min={0} onChange={(event) => onChange({ ...form, sortOrder: Math.max(0, Number(event.target.value) || 0) })} type="number" value={form.sortOrder} /></AdminFormField>
       </div>
       <Toggle checked={form.isEnabled} label="Hiển thị trên website" onChange={(isEnabled) => onChange({ ...form, isEnabled })} />
-      <Field label="Ảnh đại diện"><MediaPicker onChange={(avatarMediaId) => onChange((current) => current ? { ...current, avatarMediaId } : current)} onUploadingChange={onUploadingChange} value={form.avatarMediaId} /></Field>
+      <div {...validation.props("avatarMediaId")} tabIndex={-1}><MediaPicker label="Ảnh đại diện" onChange={(avatarMediaId) => onChange((current) => current ? { ...current, avatarMediaId } : current)} onUploadingChange={onUploadingChange} value={form.avatarMediaId} />{validation.message("avatarMediaId")}</div>
     </div>
   );
 }
 
-function Field({ children, label }: { children: ReactNode; label: string }) {
-  return (
-    <label className="admin-field">
-      <span>{label}</span>
-      {children}
-    </label>
-  );
-}
 
 function Toggle({ checked, label, onChange }: { checked: boolean; label: string; onChange: (value: boolean) => void }) {
   return (

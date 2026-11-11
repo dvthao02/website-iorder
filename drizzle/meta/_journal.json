@@ -120,6 +120,20 @@
       "when": 1793763707891,
       "tag": "0016_user_soft_delete",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1794294446299,
+      "tag": "0017_cms_builder_seo",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1794296133013,
+      "tag": "0018_equipment_builder_seo",
+      "breakpoints": true
     }
   ]
 }

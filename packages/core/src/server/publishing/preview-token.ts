@@ -2,11 +2,11 @@ import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 
 // Token xem trước bản nháp: chỉ Backend ký và kiểm tra, website chỉ chuyển tiếp nguyên văn.
 // Mỗi token gắn với đúng một nội dung (loại + id) và hết hạn sau 1 giờ.
-export type PreviewKind = "post" | "page" | "offering";
+export type PreviewKind = "post" | "page" | "offering" | "builder";
 export type PreviewClaims = { kind: PreviewKind; id: string; exp: number };
 
 export const previewTokenTtlSeconds = 60 * 60;
-const kinds = new Set<PreviewKind>(["post", "page", "offering"]);
+const kinds = new Set<PreviewKind>(["post", "page", "offering", "builder"]);
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 // Môi trường dev chưa cấu hình secret: dùng khóa ngẫu nhiên theo tiến trình (token mất hiệu lực khi khởi động lại).
 let developmentKey: Buffer | undefined;

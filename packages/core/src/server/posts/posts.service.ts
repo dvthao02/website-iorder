@@ -1,6 +1,7 @@
+import { contentSeoSchema } from "../shared/content-seo";
 import { adminPostInputSchema, adminPostListItemSchema, adminPostSchema, publicPostDetailSchema, publicPostSummarySchema, type AdminPost, type PublicPostType } from "./posts.contract";
 import type { AdminListPage, AdminListQuery } from "@iorder/core/server/shared/admin-list.contract";
-import { validateCoverMedia } from "../media/media.service";
+import { validateCoverMedia, validateSeoMedia } from "../media/media.service";
 import { publicationDate } from "../shared/publication-date";
 import { assertContentVersion, contentStateAfterAction, contentStateChangeNotes, contentStateRequestSchema, ContentVersionConflictError, type ContentStateAction } from "../shared/content-version";
 import { mediaPath } from "../media/storage";
@@ -85,6 +86,7 @@ export async function deleteArchivedAdminPost(id: string, editorId: string, expe
 export async function createAdminPost(input: unknown, editorId: string) {
   const values = adminPostInputSchema.parse(input);
   await validateCoverMedia(values.coverMediaId);
+  await validateSeoMedia(values.seo);
   await ensureTaxonomyIds(values.categoryIds, values.tagIds);
   const publishedAt = values.status === "scheduled" ? values.scheduledAt : values.status === "published" ? new Date() : null;
   const snapshot = { ...values, authorId: editorId, publishedAt: publishedAt?.toISOString() ?? null };
@@ -105,6 +107,7 @@ export async function createAdminPost(input: unknown, editorId: string) {
 export async function updateAdminPost(id: string, input: unknown, editorId: string, changeNote = "Cập nhật bài viết trong CMS", expectedVersion?: number) {
   const values = adminPostInputSchema.parse(input);
   await validateCoverMedia(values.coverMediaId);
+  await validateSeoMedia(values.seo);
   await ensureTaxonomyIds(values.categoryIds, values.tagIds);
   const existing = await findAdminPostById(id);
 
@@ -112,6 +115,7 @@ export async function updateAdminPost(id: string, input: unknown, editorId: stri
     return undefined;
   }
 
+  values.seo ??= contentSeoSchema.parse(existing.seo ?? {});
   if (expectedVersion !== undefined) assertContentVersion(existing.draftVersion, expectedVersion);
   const publishedAt = publicationDate(values, existing, new Date());
   const versionNumber = existing.draftVersion + 1;

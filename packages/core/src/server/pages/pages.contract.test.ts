@@ -1,9 +1,18 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { pageValidationMessage } from "./page-validation";
 import { adminPagesPageSchema, fixedWebsitePages, heroToneOf, isListingPageSlug, listingHeaderFromBlocks, listingLayoutFromBlocks, pageBlockInputSchema, pageListQuerySchema, pagePermissionCodes, pageSaveRequestSchema } from "./pages.contract";
 import { publicationDate } from "../shared/publication-date";
 import { offeringContentSchema } from "../offerings/offering-content.contract";
 import { assertPageVersion, PageVersionConflictError } from "./page-version";
+
+test("Khối logo giữ mô tả qua contract và vẫn đọc được dữ liệu cũ", () => {
+  const block = { type: "partners", isEnabled: true, data: { eyebrow: null, title: "Đối tác", kind: "all", limit: 28 } };
+  assert.ok(pageBlockInputSchema.safeParse(block).success);
+  const saved = pageBlockInputSchema.parse({ ...block, data: { ...block.data, description: "  Đồng hành cùng cửa hàng  " } });
+  assert.equal(saved.type === "partners" && saved.data.description, "Đồng hành cùng cửa hàng");
+  assert.equal(pageBlockInputSchema.safeParse({ ...block, data: { ...block.data, description: "a".repeat(2001) } }).success, false);
+});
 
 test("Phiên bản Trang cũ/thiếu/sai bị từ chối, đúng phiên bản được phép", () => {
   assert.doesNotThrow(() => assertPageVersion(3, 3));
@@ -157,4 +166,53 @@ test("Nội dung sản phẩm: dữ liệu cũ không có giao diện các phầ
   assert.ok(styled.success);
   assert.equal(styled.data.appearance.benefits?.backgroundColor, "#0a2a57");
   assert.equal(offeringContentSchema.safeParse({ ...content, appearance: { hero: {} } }).success, false);
+  const composed = offeringContentSchema.safeParse({ ...content, description: "", blocks: [{ type: "rich_text", isEnabled: true, data: { heading: "Tổng quan", body: "Mô tả chi tiết" } }] });
+  assert.ok(composed.success);
+  assert.equal(offeringContentSchema.safeParse({ ...content, description: "", blocks: [] }).success, false);
+});
+
+test("Mục trượt giữ ảnh và điểm riêng, phân biệt dùng chung với không có điểm", () => {
+  const data = { eyebrow: null, title: "Trang chủ", description: null, primaryAction: null, secondaryAction: null, layout: "split", highlights: [{ title: "Điểm chung", note: null }] };
+  const panel = { eyebrow: null, title: "Mục hai", description: null, primaryAction: null, secondaryAction: null, mediaId: "22222222-2222-4222-8222-222222222222" };
+  const parse = (highlights?: unknown) => pageBlockInputSchema.parse({ type: "hero", isEnabled: true, data: { ...data, panels: [{ ...panel, ...(highlights === undefined ? {} : { highlights }) }] } });
+  const legacy = parse();
+  assert.ok(legacy.type === "hero");
+  assert.equal(legacy.data.panels[0].highlights, undefined);
+  assert.equal(legacy.data.panels[0].mediaId, panel.mediaId);
+  const empty = parse([]);
+  assert.ok(empty.type === "hero");
+  assert.deepEqual(empty.data.panels[0].highlights, []);
+  const own = parse([{ title: "Điểm riêng", note: "Dòng phụ", isEnabled: true }]);
+  assert.ok(own.type === "hero");
+  assert.deepEqual(own.data.panels[0].highlights, [{ title: "Điểm riêng", note: "Dòng phụ", isEnabled: true }]);
+  assert.deepEqual(own.data.highlights, data.highlights);
+  assert.throws(() => parse(Array.from({ length: 5 }, () => ({ title: "Quá giới hạn", note: null }))));
+});
+
+test("Lỗi nội dung nêu đúng đường dẫn cha con và không lộ nội dung nhập", () => {
+  const block = pageBlockInputSchema.safeParse({ type: "hero", isEnabled: true, data: { eyebrow: null, title: "Trang chủ", description: null, primaryAction: null, secondaryAction: null, layout: "split", panels: [{ eyebrow: null, title: "x".repeat(221), description: null, primaryAction: null, secondaryAction: null, mediaId: null }] } });
+  assert.ok(!block.success);
+  const issues = block.error.issues.map(issue => ({ ...issue, path: ["blocks", 2, ...issue.path.filter(part => part !== "data")] }));
+  assert.match(pageValidationMessage(issues), /Thành phần 3 → Mục trượt bổ sung 1 → Tiêu đề: Vượt giới hạn 220 ký tự/);
+  assert.ok(!pageValidationMessage(issues).includes("xxxxx"));
+});
+
+test("Lỗi trường trống nêu tên dễ hiểu", () => {
+  const result = pageBlockInputSchema.safeParse({ type: "faq", isEnabled: true, data: { eyebrow: null, title: "", items: [{ question: "Hỏi", answer: "Đáp" }] } });
+  assert.ok(!result.success);
+  assert.match(pageValidationMessage(result.error.issues), /Tiêu đề: Không được để trống/);
+});
+
+test("Trang danh sách giữ nguyên khối cha và mọi bố cục con để publish dùng đúng một cấu hình", () => {
+  for (const layout of ["split", "split_reverse", "background", "centered", "slider"]) {
+    const hero = pageBlockInputSchema.parse({ type: "hero", isEnabled: true, appearance: { anchor: "dich-vu", tone: "custom", backgroundColor: "#eef7ff", width: 75 }, data: { eyebrow: null, title: "Dịch vụ", description: "Mô tả", primaryAction: { label: "Tư vấn", href: "/lien-he" }, secondaryAction: null, layout, highlights: [{ title: "Điểm chung", note: null }], panels: [{ eyebrow: null, title: "Mục 2", description: null, primaryAction: null, secondaryAction: null, mediaId: null, highlights: [{ title: "Điểm riêng", note: null }] }] } });
+    const listing = listingLayoutFromBlocks("listing-service", [hero])!;
+    assert.deepEqual(listing.hero, hero);
+    assert.equal(listing.blocks.filter(block => block.type === "hero").length, 0);
+    assert.equal(listing.blocks[0].type, "collection_list");
+    assert.equal(listing.hero!.data.layout, layout);
+  }
+  const fallback = listingLayoutFromBlocks("listing-service", [], { eyebrow: null, title: "Dịch vụ", description: null })!;
+  assert.equal(fallback.hero, undefined);
+  assert.deepEqual(fallback.blocks.map(block => block.type), ["collection_list"]);
 });

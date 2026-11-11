@@ -16,10 +16,10 @@ export function useUnsavedChanges<T>(value: T, initialSavedValue: T = value) {
 
   useNavigationGuard(isDirty);
 
-  const markSaved = useCallback(() => {
-    savedValue.current = structuredClone(value);
-    setSavedSnapshot(currentSnapshot);
-  }, [currentSnapshot, value]);
+  const markSaved = useCallback((saved: T = value) => {
+    savedValue.current = structuredClone(saved);
+    setSavedSnapshot(snapshot(saved));
+  }, [value]);
 
   const getSavedValue = useCallback(() => structuredClone(savedValue.current), []);
 

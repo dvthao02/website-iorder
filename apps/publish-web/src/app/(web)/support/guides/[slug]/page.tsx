@@ -5,7 +5,7 @@ import { ArrowLeft, ArrowRight, ChevronRight, Headset, MessageSquareText, Phone 
 
 import { ArticleToc } from "@/components/site/article-toc";
 import { GuideDocsLayout } from "@/components/site/guide-docs";
-import { JsonLd } from "@/components/site/json-ld";
+import { ContentJsonLd } from "@/components/site/content-json-ld";
 import { PostContent } from "@/components/site/post-content";
 import { SiteHeader } from "@/components/site/site-header";
 import { SiteLink as Link } from "@/components/site/site-link";
@@ -24,7 +24,7 @@ const dateFormatter = new Intl.DateTimeFormat("vi-VN", { day: "2-digit", month: 
 export async function generateMetadata({ params }: SupportGuideDetailPageProps, parent: ResolvingMetadata): Promise<Metadata> {
   const post = await getPublishedPostBySlug((await params).slug);
   return post?.type === "guide"
-    ? contentMetadata({ title: post.seoTitle ?? (/hướng dẫn/i.test(post.title) ? post.title : `${post.title} | Hướng dẫn iOrder`), description: post.seoDescription ?? suggestSeoDescription(post.excerpt, post.content), path: `/ho-tro/huong-dan/${post.slug}`, canonicalUrl: post.canonicalUrl, image: post.cover ? { url: post.cover.url, alt: post.cover.altText } : null, type: "article" }, parent)
+    ? contentMetadata({ title: post.seoTitle ?? (/hướng dẫn/i.test(post.title) ? post.title : `${post.title} | Hướng dẫn iOrder`), description: post.seoDescription ?? suggestSeoDescription(post.excerpt, post.content), path: `/ho-tro/huong-dan/${post.slug}`, canonicalUrl: post.canonicalUrl, seo: post.seo, image: post.cover ? { url: post.cover.url, alt: post.cover.altText } : null, type: "article" }, parent)
     : { title: "Không tìm thấy hướng dẫn | iOrder" };
 }
 
@@ -46,7 +46,7 @@ export default async function SupportGuideDetailPage({ params }: SupportGuideDet
   return (
     <>
       <SiteHeader />
-      {site ? <JsonLd data={[articleJsonLd(site, { title: post.title, description: post.seoDescription ?? suggestSeoDescription(post.excerpt, post.content), path: href, imagePath: post.cover?.url ?? null, publishedAt: post.publishedAt, publisherName: profile?.companyName ?? "iOrder" }), breadcrumbJsonLd(site, [{ name: "Trang chủ", path: "/" }, { name: "Hỗ trợ", path: "/ho-tro" }, { name: "Hướng dẫn sử dụng", path: "/ho-tro/huong-dan" }, { name: post.title, path: href }])]} /> : null}
+      {site ? <ContentJsonLd seo={post.seo} title={post.title} description={post.seoDescription} path={href} defaults={[articleJsonLd(site, { title: post.title, description: post.seoDescription ?? suggestSeoDescription(post.excerpt, post.content), path: href, imagePath: post.cover?.url ?? null, publishedAt: post.publishedAt, publisherName: profile?.companyName ?? "iOrder" }), breadcrumbJsonLd(site, [{ name: "Trang chủ", path: "/" }, { name: "Hỗ trợ", path: "/ho-tro" }, { name: "Hướng dẫn sử dụng", path: "/ho-tro/huong-dan" }, { name: post.title, path: href }])]} /> : null}
       <main id="noi-dung">
         <GuideDocsLayout activeHref={href} groups={index.groups} toc={toc.length >= 2 ? <ArticleToc entries={toc} /> : null}>
           <article className="guide-article">

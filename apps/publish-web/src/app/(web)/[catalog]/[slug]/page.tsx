@@ -7,7 +7,7 @@ import { ChipList, DetailHero } from "@/components/site/detail-hero";
 import { OfferingContent } from "@/components/site/offering-content";
 import { SiteHeader } from "@/components/site/site-header";
 import { getOfferingTypeFromCatalogPath, getPublishedOfferingBySlug, getPublishingConfig, getSiteProfile } from "@/lib/backend";
-import { JsonLd } from "@/components/site/json-ld";
+import { ContentJsonLd } from "@/components/site/content-json-ld";
 import { breadcrumbJsonLd, serviceJsonLd } from "@/lib/structured-data";
 
 export const revalidate = 0;
@@ -33,7 +33,7 @@ export async function generateMetadata({ params }: OfferingDetailPageProps, pare
   const offering = await getPublishedOfferingBySlug(type, slug);
 
   return offering
-    ? contentMetadata({ title: `${offering.seoTitle ?? offering.title} | iOrder`, description: offering.seoDescription ?? offering.summary, path: `/${catalog}/${offering.slug}`, canonicalUrl: offering.canonicalUrl, image: offering.cover ? { url: offering.cover.url, alt: offering.cover.altText } : null }, parent)
+    ? contentMetadata({ title: `${offering.seoTitle ?? offering.title} | iOrder`, description: offering.seoDescription ?? offering.summary, path: `/${catalog}/${offering.slug}`, canonicalUrl: offering.canonicalUrl, seo: offering.seo, image: offering.cover ? { url: offering.cover.url, alt: offering.cover.altText } : null }, parent)
     : { title: "Không tìm thấy nội dung | iOrder" };
 }
 
@@ -56,7 +56,7 @@ export default async function OfferingDetailPage({ params }: OfferingDetailPageP
   return (
     <>
       <SiteHeader />
-      {site ? <JsonLd data={[serviceJsonLd(site, { name: offering.title, description: offering.seoDescription ?? offering.summary, path: `/${catalog}/${offering.slug}`, imagePath: offering.cover?.url ?? null, providerName: profile?.companyName ?? "iOrder" }), breadcrumbJsonLd(site, [{ name: "Trang chủ", path: "/" }, { name: label, path: `/${catalog}` }, { name: offering.title, path: `/${catalog}/${offering.slug}` }])]} /> : null}
+      {site ? <ContentJsonLd seo={offering.seo} title={offering.title} description={offering.seoDescription} path={`/${catalog}/${offering.slug}`} defaults={[serviceJsonLd(site, { name: offering.title, description: offering.seoDescription ?? offering.summary, path: `/${catalog}/${offering.slug}`, imagePath: offering.cover?.url ?? null, providerName: profile?.companyName ?? "iOrder" }), breadcrumbJsonLd(site, [{ name: "Trang chủ", path: "/" }, { name: label, path: `/${catalog}` }, { name: offering.title, path: `/${catalog}/${offering.slug}` }])]} /> : null}
       {/* Phần đầu chiếm một màn hình như trang chủ; các phần nội dung phía dưới cũng mỗi phần một màn hình. */}
       <main id="noi-dung">
         <DetailHero

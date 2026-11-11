@@ -28,11 +28,11 @@ export async function ListingPageShortcut({ slugs }: { slugs: readonly ListingPa
     <div className="admin-header-popover admin-header-popover--menu admin-transfer-menu">
       {pages.map(({ slug, page, fixed }) => {
         const prefix = single ? "" : `${page?.title ?? fixed.label} · `;
-        if (!page) return <span className="admin-header-popover__item" key={slug}><strong>{prefix}Chưa tạo trang {fixed.publicPath}</strong><small>Chạy <code>pnpm db:backfill-listing-pages</code> để tạo.</small></span>;
+        if (!page) return <span className="admin-header-popover__item" key={slug}><strong>{prefix}Trang {fixed.publicPath} chưa sẵn sàng</strong><small>Liên hệ quản trị hệ thống để khởi tạo trang này.</small></span>;
         const canEdit = hasAnyCmsPermission(administrator, pagePermissionCodes(slug, "update"));
         return [
           canEdit
-            ? <Link href={`/admin/pages/${page.id}`} key={`${slug}-edit`}><strong><PencilLine aria-hidden="true" size={14} />{prefix}Sửa phần đầu trang &amp; SEO</strong><small>Tiêu đề, mô tả và các khối của trang {fixed.publicPath}</small></Link>
+            ? <Link href={`/admin/pages/${page.id}`} key={`${slug}-edit`}><strong><PencilLine aria-hidden="true" size={14} />{prefix}Sửa trang danh sách</strong><small>Tiêu đề, mô tả, bố cục và thông tin Google của trang {fixed.publicPath}</small></Link>
             : <span className="admin-header-popover__item" key={`${slug}-edit`}><strong>{prefix}Chỉ xem</strong><small>Cần quyền sửa để đổi trang {fixed.publicPath}</small></span>,
           page.status === "published"
             ? <a href={publishedPublicUrl(fixed.publicPath)} key={`${slug}-view`} rel="noreferrer" target="_blank"><strong><ExternalLink aria-hidden="true" size={14} />{prefix}Xem trên website</strong><small>Mở {fixed.publicPath} ở tab mới</small></a>

@@ -6,6 +6,7 @@ import { getPublishedPostSummaries } from "@/lib/backend";
 import { getPublishingConfig } from "@/lib/backend";
 import { getTaxonomy } from "@/lib/backend";
 import { getFixedWebsitePage } from "@iorder/core/server/pages/pages.contract";
+import { isSitemapEligible } from "@iorder/core/server/shared/content-seo";
 
 export const revalidate = 0;
 
@@ -18,16 +19,16 @@ function url(path: string, siteUrl: string) { return new URL(path, siteUrl).toSt
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const config = await getPublishingConfig();
   const siteUrl = config.siteUrl;
-  if (!siteUrl) return [];
+  if (!siteUrl || !config.allowSearchIndexing) return [];
   const [pages, posts, equipment, taxonomy, ...offeringLists] = await Promise.all([getPublishedPageSummaries(), getPublishedPostSummaries(), getEquipment(true), getTaxonomy(), ...Object.keys(catalogByType).map(type => getPublishedOfferingSummaries(type))]);
   return [
     // Trung tâm hỗ trợ: trang tổng hợp dựng từ dữ liệu CMS (không phải một Trang riêng).
     { url: url("/ho-tro", siteUrl) },
-    ...pages.flatMap(page => { const path = pagePath(page.slug); return path ? [{ url: url(path, siteUrl), lastModified: page.updatedAt }] : []; }),
-    ...posts.map(post => ({ url: url(post.type === "guide" ? `/ho-tro/huong-dan/${post.slug}` : `/tin-tuc/${post.slug}`, siteUrl), lastModified: post.publishedAt ?? post.createdAt })),
-    ...equipment.map(item => ({ url: url(`/thiet-bi/${item.slug}`, siteUrl), lastModified: item.updatedAt })),
+    ...pages.filter(page => isSitemapEligible(page.seo)).flatMap(page => { const path = pagePath(page.slug); return path ? [{ url: url(path, siteUrl), lastModified: page.updatedAt }] : []; }),
+    ...posts.filter(post => isSitemapEligible(post.seo)).map(post => ({ url: url(post.type === "guide" ? `/ho-tro/huong-dan/${post.slug}` : `/tin-tuc/${post.slug}`, siteUrl), lastModified: post.publishedAt ?? post.createdAt })),
+    ...equipment.filter(item => isSitemapEligible(item.seo)).map(item => ({ url: url(`/thiet-bi/${item.slug}`, siteUrl), lastModified: item.updatedAt })),
     ...taxonomy.categories.map(category => ({ url: url(`/tin-tuc/chuyen-muc/${category.slug}`, siteUrl), lastModified: category.updatedAt })),
     ...taxonomy.tags.map(tag => ({ url: url(`/tin-tuc/the/${tag.slug}`, siteUrl), lastModified: tag.updatedAt })),
-    ...offeringLists.flatMap((items, index) => items.map(item => ({ url: url(`/${Object.values(catalogByType)[index]}/${item.slug}`, siteUrl), lastModified: item.publishedAt ?? undefined }))),
+    ...offeringLists.flatMap((items, index) => items.filter(item => isSitemapEligible(item.seo)).map(item => ({ url: url(`/${Object.values(catalogByType)[index]}/${item.slug}`, siteUrl), lastModified: item.publishedAt ?? undefined }))),
   ];
 }

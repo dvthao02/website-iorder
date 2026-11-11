@@ -16,6 +16,7 @@ import { getPartners, getTestimonials } from "@iorder/core/server/supporting/sup
 import { getTaxonomy } from "@iorder/core/server/taxonomy/taxonomy.service";
 import { logger } from "@iorder/core/server/shared/logger";
 import { verifyPreviewToken } from "@iorder/core/server/publishing/preview-token";
+import { builderPreviewPublicContent, readBuilderPreview } from "@iorder/core/server/publishing/builder-preview.service";
 
 export const runtime = "nodejs";
 
@@ -46,6 +47,11 @@ export async function GET(request: Request) {
   const respond = (body: unknown) => NextResponse.json(body, preview ? { headers: { "cache-control": "private, no-store" } } : undefined);
 
   try {
+    if (preview?.kind === "builder" && (resource.data === "page" || resource.data === "offering" || resource.data === "equipment")) {
+      const live = await readBuilderPreview(query.get("preview"));
+      if (!live) return NextResponse.json({ error: { code: "INVALID_PREVIEW", message: "Bản xem trước đã hết hạn." } }, { status: 404, headers: { "cache-control": "private, no-store" } });
+      if (live.document.kind === resource.data && (resource.data === "equipment" || live.document.values.slug === slug) && (live.document.kind !== "offering" || live.document.values.type === offeringType?.data)) return respond(await builderPreviewPublicContent(live));
+    }
     switch (resource.data) {
       case "shared": {
         const [config, profile, externalLinks, catalogContent, listingContent, header, headerCta, footer] = await Promise.all([

@@ -24,6 +24,7 @@ export const posts = pgTable(
     seoTitle: varchar("seo_title", { length: 70 }),
     seoDescription: varchar("seo_description", { length: 180 }),
     canonicalUrl: text("canonical_url"),
+    seo: jsonb("seo").$type<unknown>().default({}).notNull(),
     promotionStartAt: timestamp("promotion_start_at", { withTimezone: true }),
     promotionEndAt: timestamp("promotion_end_at", { withTimezone: true }),
     ctaLabel: varchar("cta_label", { length: 80 }),

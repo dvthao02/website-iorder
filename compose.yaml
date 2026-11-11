@@ -1,6 +1,153 @@
 name: iorder-v2
 
+x-migrations-image: &migrations-image
+  build:
+    context: .
+    dockerfile: Dockerfile
+    target: migrations
+  image: iorder-v2-local-migrations
+
 services:
+  # Môi trường local chạy trọn bộ bằng Docker:
+  #   docker compose up -d --build
+  # Lần đầu job migrate và seed-admin tạo schema/tài khoản quản trị, rồi ba app
+  # lần lượt mở ở http://localhost:3000, :3001 và :3002. Không cần pnpm trên máy host.
+  migrate:
+    <<: *migrations-image
+    restart: "no"
+    command: pnpm db:migrate
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # Chỉ đảm bảo tài khoản khởi tạo. Không tự chèn nội dung/redirect vào database
+  # đang dùng mỗi lần bật Docker.
+  seed-admin:
+    <<: *migrations-image
+    restart: "no"
+    command: pnpm db:seed:admin
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      INITIAL_ADMIN_USERNAME: ${INITIAL_ADMIN_USERNAME}
+      INITIAL_ADMIN_PASSWORD: ${INITIAL_ADMIN_PASSWORD}
+      INITIAL_ADMIN_NAME: ${INITIAL_ADMIN_NAME:-Administrator}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  # Dùng một lần khi khởi tạo database rỗng cần nội dung mẫu/nền:
+  #   docker compose --profile bootstrap up seed-cms
+  # Các seed chỉ bổ sung dữ liệu thiếu; vẫn tách profile để việc bật Docker hằng ngày
+  # không tự thêm nội dung hoặc redirect vào website đang vận hành.
+  seed-cms:
+    <<: *migrations-image
+    profiles: ["bootstrap"]
+    restart: "no"
+    command: pnpm db:seed:cms
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      INITIAL_ADMIN_USERNAME: ${INITIAL_ADMIN_USERNAME}
+      INITIAL_ADMIN_PASSWORD: ${INITIAL_ADMIN_PASSWORD}
+      INITIAL_ADMIN_NAME: ${INITIAL_ADMIN_NAME:-Administrator}
+      S3_ENDPOINT: http://storage:9090
+      S3_BUCKET: ${S3_BUCKET}
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID}
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY}
+    depends_on:
+      seed-admin:
+        condition: service_completed_successfully
+      storage:
+        condition: service_started
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runner
+      args:
+        APP_NAME: backend
+    image: iorder-v2-local-backend
+    environment:
+      SERVICE_NAME: backend
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      LEAD_IP_HASH_SALT: ${LEAD_IP_HASH_SALT:-local-lead-ip-hash-salt}
+      S3_ENDPOINT: http://storage:9090
+      S3_BUCKET: ${S3_BUCKET}
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID}
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY}
+      PUBLISH_WEB_REVALIDATE_URL: http://publish-web:3000/api/internal/revalidate
+      PUBLISH_WEB_REVALIDATE_SECRET: ${PUBLISH_WEB_REVALIDATE_SECRET}
+      UMAMI_API_URL: http://umami:3000
+      UMAMI_API_KEY: ${UMAMI_API_KEY:-}
+      UMAMI_WEBSITE_ID: ${UMAMI_WEBSITE_ID:-}
+    ports:
+      - "127.0.0.1:3002:3000"
+    depends_on:
+      seed-admin:
+        condition: service_completed_successfully
+      storage:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 5s
+      timeout: 5s
+      retries: 24
+      start_period: 15s
+
+  cms:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runner
+      args:
+        APP_NAME: cms
+        BACKEND_URL: http://backend:3000
+        NEXT_PUBLIC_PUBLISH_WEB_URL: http://localhost:3000
+    image: iorder-v2-local-cms
+    environment:
+      SERVICE_NAME: cms
+      BACKEND_URL: http://backend:3000
+      NEXT_PUBLIC_PUBLISH_WEB_URL: http://localhost:3000
+    ports:
+      - "127.0.0.1:3001:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 5s
+      timeout: 5s
+      retries: 24
+      start_period: 15s
+
+  publish-web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runner
+      args:
+        APP_NAME: publish-web
+        BACKEND_URL: http://backend:3000
+    image: iorder-v2-local-publish-web
+    environment:
+      SERVICE_NAME: publish-web
+      BACKEND_URL: http://backend:3000
+      PUBLISH_WEB_REVALIDATE_SECRET: ${PUBLISH_WEB_REVALIDATE_SECRET}
+      UMAMI_WEBSITE_ID: ${UMAMI_WEBSITE_ID:-}
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 5s
+      timeout: 5s
+      retries: 24
+      start_period: 15s
+
   db:
     image: postgres:17.11-alpine3.24
     environment:

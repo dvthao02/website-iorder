@@ -15,7 +15,7 @@ test("Thu gọn và mở lại thanh điều hướng trên desktop", async ({ p
   await expect.poll(async () => Math.round((await sidebar.boundingBox())!.width)).toBe(60);
   await expect(page.getByRole("link", { name: "Bài viết & Tin tức" })).toBeHidden();
 
-  await page.getByRole("button", { name: "Mở nhóm Nội dung" }).click();
+  await page.getByRole("button", { name: "Mở nhóm Nội dung website" }).click();
   await expect(page.getByRole("link", { name: "Bài viết & Tin tức" })).toBeVisible();
 
   await page.getByRole("button", { name: "Mở rộng thanh điều hướng" }).click();
@@ -23,7 +23,7 @@ test("Thu gọn và mở lại thanh điều hướng trên desktop", async ({ p
   await expect.poll(async () => Math.round((await sidebar.boundingBox())!.width)).toBe(232);
 });
 
-// Nhóm Nội dung gọn: Sản phẩm/Giải pháp/Dịch vụ chung một màn có tab; Chuyên mục & Thẻ là màn con của Bài viết.
+// Các module gọn: Sản phẩm/Giải pháp/Dịch vụ chung một màn có tab; Chuyên mục & Thẻ là màn con của Bài viết.
 test("Sản phẩm & Dịch vụ một màn có tab loại; Chuyên mục & Thẻ thuộc Bài viết", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 800 });
   await loginAsAdmin(page);
@@ -53,12 +53,12 @@ test("Sản phẩm & Dịch vụ một màn có tab loại; Chuyên mục & Th�
   await expect(page.getByRole("navigation", { name: "Vị trí hiện tại" })).toContainText("Chuyên mục & Thẻ");
 });
 
-// Nhóm Nội dung: Trang chủ (mục riêng) → Bài viết & Tin tức → Trang tĩnh (bảng trang tự tạo + danh mục trang có sẵn).
-test("Trang chủ trên sidebar, Trang tĩnh, Sửa nội dung từ Menu", async ({ page }) => {
+// Nhóm Nội dung website: Trang chủ → Trang website → Bài viết → Hướng dẫn → Thư viện tệp.
+test("Trang chủ, Trang website và Sửa nội dung từ Menu", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 800 });
   await loginAsAdmin(page);
   const sidebar = page.locator(".admin-sidebar");
-  await expect(sidebar.getByRole("link", { name: "Trang website" })).toHaveCount(0);
+  await expect(sidebar.getByRole("link", { name: "Trang website" })).toHaveCount(1);
 
   await sidebar.getByRole("link", { name: "Trang chủ" }).click();
   await expect(page).toHaveURL(/\/admin\/homepage$/);
@@ -67,11 +67,11 @@ test("Trang chủ trên sidebar, Trang tĩnh, Sửa nội dung từ Menu", async
   await expect(page.getByLabel("Tên trang")).toHaveCount(0);
   await expect(sidebar.getByRole("link", { name: "Trang chủ" })).toHaveAttribute("aria-current", "page");
 
-  const content = sidebar.locator(".admin-navigation__group").filter({ has: page.locator(".admin-navigation__group-toggle", { hasText: "Nội dung" }) });
+  const content = sidebar.locator(".admin-navigation__group").filter({ has: page.locator(".admin-navigation__group-toggle", { hasText: "Nội dung website" }) });
   await expect(content.getByRole("link").nth(0)).toHaveText("Trang chủ");
-  await expect(content.getByRole("link").nth(1)).toHaveText("Bài viết & Tin tức");
-  await expect(content.getByRole("link").nth(2)).toHaveText("Trang tĩnh");
-  await sidebar.getByRole("link", { name: "Trang tĩnh" }).click();
+  await expect(content.getByRole("link").nth(1)).toHaveText("Trang website");
+  await expect(content.getByRole("link").nth(2)).toHaveText("Bài viết & Tin tức");
+  await sidebar.getByRole("link", { name: "Trang website" }).click();
   await expect(page).toHaveURL(/\/admin\/pages$/);
   // Một bảng gồm mọi trang trừ Trang chủ (có mục riêng), tab lọc theo loại; trang danh sách ghi rõ lấy từ module nào.
   const table = page.locator(".admin-data-table");

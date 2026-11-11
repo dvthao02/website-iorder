@@ -121,7 +121,7 @@ function ImportPanel({ dataset, exportHref, label, onClose }: { dataset: Transfe
   }
 
   const rows = plan ? plan.rows.filter((row) => showUnchanged || row.action !== "unchanged") : [];
-  const match = matchColumns[dataset] ?? { column: "Đường dẫn (slug)", example: "slug và giá" };
+  const match = matchColumns[dataset] ?? { column: "Đường dẫn", example: "đường dẫn và giá" };
   return <AdminSidePanel isOpen label={`Nhập ${label.toLocaleLowerCase("vi")} từ file`} onClose={busy ? () => undefined : onClose} footer={<>
     <AdminButton disabled={busy} onClick={onClose} variant="secondary">Đóng</AdminButton>
     {plan ? <AdminButton disabled={busy || blocked} onClick={() => void send("apply")}>{busy ? "Đang áp dụng…" : `Áp dụng ${changes} thay đổi`}</AdminButton>

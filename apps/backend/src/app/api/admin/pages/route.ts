@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { revalidatePath } from "@/lib/publish-cache-revalidation";
 import { z } from "zod";
+import { pageValidationMessage } from "@iorder/core/server/pages/page-validation";
 import { getRequestAdministrator } from "@iorder/core/server/auth/request-administrator";
 import { FixedWebsitePageBindingError, getAdminPageBySlug, getAdminPagesPage, saveAdminPage } from "@iorder/core/server/pages/pages.service";
 import { adminListQuerySchema, listSortParams } from "@iorder/core/server/shared/admin-list.contract";
@@ -60,7 +61,8 @@ async function handlePOST(request: Request) {
   } catch (error) {
     if (error instanceof PageVersionConflictError) return fail("VERSION_CONFLICT", error.message, 409);
     if (error instanceof FixedWebsitePageBindingError) return fail("FIXED_PAGE_ROUTE", error.message, 400);
-    if (error instanceof z.ZodError || error instanceof SyntaxError) return fail("INVALID_INPUT", "Kiểm tra tiêu đề, slug, trạng thái, SEO và cấu trúc block trước khi lưu.", 400);
+    if (error instanceof z.ZodError) return fail("INVALID_INPUT", pageValidationMessage(error.issues), 400);
+    if (error instanceof SyntaxError) return fail("INVALID_INPUT", "Dữ liệu trang không hợp lệ. Vui lòng thử lại.", 400);
     if (hasDatabaseErrorCode(error, "23505")) return fail("DUPLICATE_SLUG", "Slug trang đã tồn tại.", 409);
     return fail("INTERNAL_ERROR", "Không thể lưu trang lúc này.", 500);
   }

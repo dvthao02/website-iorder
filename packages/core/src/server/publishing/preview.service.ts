@@ -3,9 +3,15 @@ import { offeringPublicPath, pagePublicPath, postPublicPath } from "../shared/co
 import { findAdminPageById } from "../pages/pages.repository";
 import { findAdminPostById } from "../posts/posts.repository";
 import { createPreviewToken, verifyPreviewToken, type PreviewKind } from "./preview-token";
+import { findBuilderPreview } from "./builder-preview.repository";
 
 /** Đường dẫn công khai của nội dung (kể cả khi đang là bản nháp); không có → undefined. */
 export async function previewPath(kind: PreviewKind, id: string): Promise<string | undefined> {
+  if (kind === "builder") {
+    const preview = await findBuilderPreview(id);
+    if (!preview) return undefined;
+    return preview.document.kind === "page" ? pagePublicPath(preview.document.values.slug) : preview.document.kind === "equipment" ? `/thiet-bi/${preview.document.values.slug}` : offeringPublicPath(preview.document.values.slug, preview.document.values.type) ?? undefined;
+  }
   if (kind === "post") {
     const post = await findAdminPostById(id);
     return post ? postPublicPath(post.slug, post.type) : undefined;

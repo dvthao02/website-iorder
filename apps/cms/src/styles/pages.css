@@ -147,7 +147,7 @@
 }
 
 @layer components {
-  /* Màn "Trang tĩnh": cột Loại một dòng, chữ nhạt; tên module (trang danh sách) bấm được nhưng không tô xanh cả cột. */
+  /* Màn "Trang website": cột Loại một dòng, chữ nhạt; tên module (trang danh sách) bấm được nhưng không tô xanh cả cột. */
   .admin-page-kind { display: block; overflow: hidden; color: var(--cms-muted); font-size: var(--cms-text-sm); text-overflow: ellipsis; white-space: nowrap; }
   .admin-page-kind a { color: var(--cms-text); }
   .admin-page-kind a:hover { color: var(--cms-primary); text-decoration: underline; text-underline-offset: 2px; }

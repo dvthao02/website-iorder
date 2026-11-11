@@ -72,6 +72,15 @@ test.describe("Bố cục CMS trên desktop", () => {
       if (layout.headerBottom === null || layout.bodyTop === null || Math.abs(layout.bodyTop - layout.headerBottom) > 1) problems.push(`${route}: thân không bắt đầu ngay dưới tiêu đề (${layout.bodyTop} / ${layout.headerBottom})`);
       if (layout.actionsTop !== null && (layout.bodyBottom === null || Math.abs(layout.bodyBottom - layout.actionsTop) > 1)) problems.push(`${route}: khe giữa thân và thanh lưu ${layout.actionsTop - (layout.bodyBottom ?? 0)}px`);
       await page.screenshot({ path: `test-results/layout${route.replaceAll("/", "_")}.png` });
+      if (route === "/admin/products/new" || route === "/admin/services/new") {
+        const outline = page.getByRole("navigation", { name: "Bố cục trang" });
+        await expect(page.getByRole("button", { name: "Trang bán hàng" })).toBeVisible();
+        await page.getByRole("button", { name: "Trang bán hàng" }).click();
+        await expect(page.locator(".admin-blocks__list > li")).toHaveCount(4);
+        await expect(outline.getByRole("link")).toHaveCount(5);
+        await outline.locator('a[href="#page-block-0"]').click();
+        await expect(page.locator("#page-block-0")).toHaveClass(/admin-block--open/);
+      }
     }
     expect(problems).toEqual([]);
   });

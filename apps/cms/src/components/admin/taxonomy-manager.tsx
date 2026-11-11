@@ -3,7 +3,7 @@
 import { adminApiError, readAdminJson } from "@/lib/admin-api";
 import { FolderTree, Plus, Tags, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useRef, useState, type FormEvent, type ReactNode } from "react";
+import { useRef, useState, type FormEvent } from "react";
 
 import { AdminBulkBar } from "./ui/admin-bulk-bar";
 import { AdminBulkMenu, type AdminBulkMenuAction } from "./ui/admin-bulk-menu";
@@ -18,11 +18,16 @@ import { useRowSelection } from "./ui/content-bulk-bar";
 import { useBulkAction } from "./ui/use-bulk-action";
 import { AdminSidePanel } from "./ui/admin-side-panel";
 import { useAdminConfirm } from "./ui/admin-confirm-dialog";
-import { useAdminToast } from "./ui/admin-feedback";
+import { AdminNotice, useAdminToast } from "./ui/admin-feedback";
 import { AdminFilterTabs } from "./ui/admin-filter-tabs";
 import { AdminListHeader } from "./ui/admin-list-header";
 import { DataTransferActions } from "./data-transfer-actions";
 import { AdminListPage } from "./ui/admin-list-page";
+import { categoryInputSchema, tagInputSchema } from "@iorder/core/server/taxonomy/taxonomy.contract";
+import { toSlug } from "@/lib/slug";
+import { useAdminClientReady } from "./ui/use-admin-client-ready";
+import { AdminFormField } from "./ui/admin-form-field";
+import { useAdminFormValidation } from "./ui/use-admin-form-validation";
 import { useNavigationGuard } from "./ui/use-navigation-guard";
 
 type Category = {
@@ -76,6 +81,7 @@ function equalValues(first: CategoryForm | TagForm | null, second: CategoryForm 
 
 export function TaxonomyManager({ categories, tags }: { categories: Category[]; tags: Tag[] }) {
   const router = useRouter();
+  const ready = useAdminClientReady();
   const { confirm } = useAdminConfirm();
   const { show: showToast } = useAdminToast();
   const [kind, setKind] = useState<TaxonomyKind>("categories");
@@ -85,6 +91,15 @@ export function TaxonomyManager({ categories, tags }: { categories: Category[]; 
   const [initialValues, setInitialValues] = useState<CategoryForm | TagForm | null>(null);
   const [busy, setBusy] = useState(false);
   const mutationPending = useRef(false);
+  const [saveError, setSaveError] = useState("");
+  const [slugTouched, setSlugTouched] = useState(false);
+  const validation = useAdminFormValidation("taxonomy", {
+    name: { label: "Tên", message: kind === "categories" ? "Nhập tên chuyên mục từ 1 đến 160 ký tự." : "Nhập tên thẻ từ 1 đến 120 ký tự." },
+    slug: { label: "Đường dẫn", message: kind === "categories" ? "Đường dẫn tối đa 180 ký tự, chỉ gồm chữ không dấu viết thường, số và dấu gạch ngang giữa các từ." : "Đường dẫn tối đa 140 ký tự, chỉ gồm chữ không dấu viết thường, số và dấu gạch ngang giữa các từ." },
+    parentId: { label: "Chuyên mục cha", message: "Chọn chuyên mục cha hợp lệ hoặc để ở cấp cao." },
+    description: { label: "Mô tả", message: "Mô tả không vượt quá 10.000 ký tự." },
+    sortOrder: { label: "Thứ tự hiển thị", message: "Nhập số nguyên từ 0 đến 1.000.000." },
+  });
 
   const form = kind === "categories" ? categoryForm : tagForm;
   // Version vừa lưu được nhớ cục bộ vì props chỉ cập nhật sau khi router.refresh() xong;
@@ -98,6 +113,7 @@ export function TaxonomyManager({ categories, tags }: { categories: Category[]; 
   const invalidParentIds = activeId && kind === "categories" ? descendantIds(categories, activeId) : new Set<string>();
   // Chọn nhiều dòng (bỏ chọn khi đổi tab): xuất Excel các mục đã chọn, xóa hàng loạt.
   const { can } = useAdminPermissions();
+  const canEdit = can(activeId ? "taxonomy.update" : "taxonomy.create");
   const selection = useRowSelection(kind);
   const { busy: bulkBusy, run: runBulk } = useBulkAction();
   const chosen = (kind === "categories" ? categories : tags).filter((item) => selection.selectedIds.includes(item.id));
@@ -133,6 +149,9 @@ export function TaxonomyManager({ categories, tags }: { categories: Category[]; 
     const values: CategoryForm = item
       ? { parentId: item.parentId, name: item.name, slug: item.slug, description: item.description, sortOrder: item.sortOrder }
       : { ...blankCategory };
+    validation.reset();
+    setSaveError("");
+    setSlugTouched(Boolean(item));
     setKind("categories");
     setActiveId(item?.id ?? null);
     setCategoryForm(values);
@@ -143,6 +162,9 @@ export function TaxonomyManager({ categories, tags }: { categories: Category[]; 
   function selectTag(item?: Tag) {
     if (!allowSelectionChange()) return;
     const values: TagForm = item ? { name: item.name, slug: item.slug } : { ...blankTag };
+    validation.reset();
+    setSaveError("");
+    setSlugTouched(Boolean(item));
     setKind("tags");
     setActiveId(item?.id ?? null);
     setCategoryForm(null);
@@ -169,6 +191,9 @@ export function TaxonomyManager({ categories, tags }: { categories: Category[]; 
 
   function discardChanges() {
     if (mutationPending.current || !initialValues) return;
+    validation.reset();
+    setSaveError("");
+    setSlugTouched(Boolean(activeId));
     if (kind === "categories") setCategoryForm(initialValues as CategoryForm);
     else setTagForm(initialValues as TagForm);
     showToast("Đã bỏ các thay đổi chưa lưu.", "info");
@@ -177,15 +202,19 @@ export function TaxonomyManager({ categories, tags }: { categories: Category[]; 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const values = kind === "categories" ? categoryForm : tagForm;
-    if (!values || !dirty || mutationPending.current) return;
+    if (!values || !canEdit || !dirty || mutationPending.current) return;
 
+    setSaveError("");
+    const parsed = (kind === "categories" ? categoryInputSchema : tagInputSchema).safeParse(values);
+    if (!parsed.success) { validation.report(parsed.error.issues); return; }
+    validation.reset();
     mutationPending.current = true;
     setBusy(true);
     try {
       const response = await fetch("/api/admin/taxonomy", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ kind, id: activeId, values, ...(activeVersion !== undefined ? { expectedVersion: activeVersion } : {}) }),
+        body: JSON.stringify({ kind, id: activeId, values: parsed.data, ...(activeVersion !== undefined ? { expectedVersion: activeVersion } : {}) }),
       });
       const body = await readAdminJson(response);
       if (!response.ok) throw adminApiError(body, "Không thể lưu phân loại.");
@@ -195,11 +224,15 @@ export function TaxonomyManager({ categories, tags }: { categories: Category[]; 
       const savedId: string = body.id;
       setSavedVersions((current) => ({ ...current, [savedId]: activeVersion === undefined ? 0 : activeVersion + 1 }));
       setActiveId(savedId);
-      setInitialValues(values);
+      if (kind === "categories") setCategoryForm(parsed.data as CategoryForm);
+      else setTagForm(parsed.data as TagForm);
+      setInitialValues(parsed.data);
       showToast(wasCreating ? (kind === "categories" ? "Đã tạo chuyên mục." : "Đã tạo thẻ.") : "Đã lưu thay đổi.", "success");
       router.refresh();
     } catch (error) {
-      showToast(error instanceof Error ? error.message : "Không kết nối được máy chủ.", "error");
+      const message = error instanceof Error ? error.message : "Không kết nối được máy chủ.";
+      setSaveError(message);
+      showToast(message, "error");
     } finally {
       mutationPending.current = false;
       setBusy(false);
@@ -229,7 +262,9 @@ export function TaxonomyManager({ categories, tags }: { categories: Category[]; 
       showToast(`Đã xóa ${label} khỏi CMS.`, "success");
       router.refresh();
     } catch (error) {
-      showToast(error instanceof Error ? error.message : "Không kết nối được máy chủ.", "error");
+      const message = error instanceof Error ? error.message : "Không kết nối được máy chủ.";
+      setSaveError(message);
+      showToast(message, "error");
     } finally {
       mutationPending.current = false;
       setBusy(false);
@@ -239,17 +274,17 @@ export function TaxonomyManager({ categories, tags }: { categories: Category[]; 
   return (
     <AdminListPage>
       <AdminCard>
-          <AdminListHeader actions={<><DataTransferActions dataset={kind} key={kind} label={kind === "categories" ? "Chuyên mục" : "Thẻ"} module="taxonomy" /><AdminButton hideWithoutPermission permission="taxonomy.create" leadingIcon={<Plus aria-hidden="true" size={16} />} onClick={() => (kind === "categories" ? selectCategory() : selectTag())}>{kind === "categories" ? "Thêm chuyên mục" : "Thêm thẻ"}</AdminButton></>} description={`${categories.length} chuyên mục · ${tags.length} thẻ`} title="Chuyên mục & Thẻ" />
+          <AdminListHeader actions={<><DataTransferActions dataset={kind} key={kind} label={kind === "categories" ? "Chuyên mục" : "Thẻ"} module="taxonomy" /><AdminButton hideWithoutPermission permission="taxonomy.create" disabled={busy || !ready} leadingIcon={<Plus aria-hidden="true" size={16} />} onClick={() => (kind === "categories" ? selectCategory() : selectTag())}>{kind === "categories" ? "Thêm chuyên mục" : "Thêm thẻ"}</AdminButton></>} description={`${categories.length} chuyên mục · ${tags.length} thẻ`} title="Chuyên mục & Thẻ" />
           <AdminFilterTabs ariaLabel="Loại phân loại" disabled={busy} items={[{ label: `Chuyên mục (${categories.length})`, value: "categories" }, { label: `Thẻ (${tags.length})`, value: "tags" }]} onValueChange={changeKind} value={kind} />
 
         <AdminBulkBar count={chosen.length} onClear={selection.clear}><AdminBulkMenu actions={bulkActions} busy={bulkBusy} /></AdminBulkBar>
         <div>
           {kind === "categories"
-            ? categories.length ? <AdminDataTable columns={categoryColumns} emptyMessage="Chưa có chuyên mục." getRowId={(item) => item.id} onRowClick={selectCategory} onSelectionChange={selection.setSelectedIds} rows={categories} selectedIds={selection.selectedIds} tableId="cms-categories" /> : null
-            : tags.length ? <AdminDataTable columns={tagColumns} emptyMessage="Chưa có thẻ." getRowId={(item) => item.id} onRowClick={selectTag} onSelectionChange={selection.setSelectedIds} rows={tags} selectedIds={selection.selectedIds} tableId="cms-tags" /> : null}
+            ? categories.length ? <AdminDataTable columns={categoryColumns} emptyMessage="Chưa có chuyên mục." getRowId={(item) => item.id} getRowLabel={(item) => item.name} onRowClick={selectCategory} onSelectionChange={selection.setSelectedIds} rows={categories} selectedIds={selection.selectedIds} tableId="cms-categories" /> : null
+            : tags.length ? <AdminDataTable columns={tagColumns} emptyMessage="Chưa có thẻ." getRowId={(item) => item.id} getRowLabel={(item) => item.name} onRowClick={selectTag} onSelectionChange={selection.setSelectedIds} rows={tags} selectedIds={selection.selectedIds} tableId="cms-tags" /> : null}
           {(kind === "categories" ? categories.length : tags.length) === 0 ? (
             <AdminEmptyState
-              action={<AdminButton onClick={() => (kind === "categories" ? selectCategory() : selectTag())}>{kind === "categories" ? "Tạo chuyên mục đầu tiên" : "Tạo thẻ đầu tiên"}</AdminButton>}
+              action={<AdminButton hideWithoutPermission permission="taxonomy.create" disabled={busy || !ready} onClick={() => (kind === "categories" ? selectCategory() : selectTag())}>{kind === "categories" ? "Tạo chuyên mục đầu tiên" : "Tạo thẻ đầu tiên"}</AdminButton>}
               description={kind === "categories" ? "Chuyên mục dùng cho điều hướng và trang danh sách bài viết." : "Thẻ giúp liên kết các bài viết có chủ đề liên quan."}
               icon={kind === "categories" ? <FolderTree aria-hidden="true" size={20} /> : <Tags aria-hidden="true" size={20} />}
               title={kind === "categories" ? "Chưa có chuyên mục" : "Chưa có thẻ"}
@@ -269,30 +304,33 @@ export function TaxonomyManager({ categories, tags }: { categories: Category[]; 
         onClose={closeEditor}
       >
         {form ? (
-          <form id="taxonomy-editor" onSubmit={save}>
+          <form id="taxonomy-editor" noValidate onSubmit={save}>
             <header className="admin-list-manager__panel-header">
               <p>{activeId ? "Chỉnh sửa" : "Tạo mới"}</p>
               <h2>{kind === "categories" ? "Chuyên mục" : "Thẻ bài viết"}</h2>
               <small className={dirty ? "admin-list-manager__dirty" : undefined}>{busy ? "Đang xử lý phân loại…" : dirty ? "Có thay đổi chưa lưu." : activeId ? "Không có thay đổi chưa lưu." : "Nhập thông tin để tạo phân loại mới."}</small>
             </header>
 
-            <fieldset className="admin-list-manager__form" disabled={busy}>
+            <fieldset className="admin-list-manager__form" disabled={busy || !canEdit}>
+            {!canEdit ? <AdminNotice tone="info">Bạn đang xem nội dung. Cần quyền sửa để lưu thay đổi.</AdminNotice> : null}
+            {validation.summary}
+            {saveError ? <AdminNotice tone="error">{saveError}</AdminNotice> : null}
             {kind === "categories" && categoryForm ? (
               <>
-                <Field label="Tên chuyên mục"><input onChange={(event) => setCategoryForm({ ...categoryForm, name: event.target.value })} required value={categoryForm.name} /></Field>
+                <AdminFormField id="taxonomy-name" label="Tên chuyên mục" error={validation.message("name")}><input {...validation.props("name")} onChange={(event) => setCategoryForm({ ...categoryForm, name: event.target.value, ...(!activeId && !slugTouched ? { slug: toSlug(event.target.value) } : {}) })} required value={categoryForm.name} /></AdminFormField>
                 <div className="admin-form-grid">
-                  <Field label="Slug"><input onChange={(event) => setCategoryForm({ ...categoryForm, slug: event.target.value })} pattern="[a-z0-9]+(-[a-z0-9]+)*" placeholder="tin-cong-nghe" required value={categoryForm.slug} /></Field>
-                  <Field label="Thứ tự hiển thị"><input min={0} onChange={(event) => setCategoryForm({ ...categoryForm, sortOrder: Math.max(0, Number(event.target.value) || 0) })} type="number" value={categoryForm.sortOrder} /></Field>
+                  <AdminFormField id="taxonomy-slug" label="Đường dẫn" error={validation.message("slug")}><input {...validation.props("slug")} onChange={(event) => { setSlugTouched(true); setCategoryForm({ ...categoryForm, slug: event.target.value }); }} pattern="[a-z0-9]+(-[a-z0-9]+)*" placeholder="tin-cong-nghe" required value={categoryForm.slug} /></AdminFormField>
+                  <AdminFormField id="taxonomy-sortOrder" label="Thứ tự hiển thị" error={validation.message("sortOrder")}><input {...validation.props("sortOrder")} min={0} onChange={(event) => setCategoryForm({ ...categoryForm, sortOrder: Math.max(0, Number(event.target.value) || 0) })} type="number" value={categoryForm.sortOrder} /></AdminFormField>
                 </div>
-                <Field label="Chuyên mục cha"><select onChange={(event) => setCategoryForm({ ...categoryForm, parentId: event.target.value || null })} value={categoryForm.parentId ?? ""}><option value="">Không có — chuyên mục cấp cao</option>{categories.filter((item) => !invalidParentIds.has(item.id)).map((item) => <option key={item.id} value={item.id}>{"— ".repeat(categoryDepth(categories, item))}{item.name}</option>)}</select></Field>
-                <Field label="Mô tả"><textarea onChange={(event) => setCategoryForm({ ...categoryForm, description: event.target.value || null })} rows={5} value={categoryForm.description ?? ""} /></Field>
+                <AdminFormField id="taxonomy-parentId" label="Chuyên mục cha" error={validation.message("parentId")}><select {...validation.props("parentId")} onChange={(event) => setCategoryForm({ ...categoryForm, parentId: event.target.value || null })} value={categoryForm.parentId ?? ""}><option value="">Không có — chuyên mục cấp cao</option>{categories.filter((item) => !invalidParentIds.has(item.id)).map((item) => <option key={item.id} value={item.id}>{"— ".repeat(categoryDepth(categories, item))}{item.name}</option>)}</select></AdminFormField>
+                <AdminFormField id="taxonomy-description" label="Mô tả" error={validation.message("description")}><textarea {...validation.props("description")} onChange={(event) => setCategoryForm({ ...categoryForm, description: event.target.value || null })} rows={5} value={categoryForm.description ?? ""} /></AdminFormField>
               </>
             ) : null}
 
             {kind === "tags" && tagForm ? (
               <>
-                <Field label="Tên thẻ"><input onChange={(event) => setTagForm({ ...tagForm, name: event.target.value })} required value={tagForm.name} /></Field>
-                <Field label="Slug"><input onChange={(event) => setTagForm({ ...tagForm, slug: event.target.value })} pattern="[a-z0-9]+(-[a-z0-9]+)*" placeholder="quan-ly-ban-hang" required value={tagForm.slug} /></Field>
+                <AdminFormField id="taxonomy-name" label="Tên thẻ" error={validation.message("name")}><input {...validation.props("name")} onChange={(event) => setTagForm({ ...tagForm, name: event.target.value, ...(!activeId && !slugTouched ? { slug: toSlug(event.target.value) } : {}) })} required value={tagForm.name} /></AdminFormField>
+                <AdminFormField id="taxonomy-slug" label="Đường dẫn" error={validation.message("slug")}><input {...validation.props("slug")} onChange={(event) => { setSlugTouched(true); setTagForm({ ...tagForm, slug: event.target.value }); }} pattern="[a-z0-9]+(-[a-z0-9]+)*" placeholder="quan-ly-ban-hang" required value={tagForm.slug} /></AdminFormField>
               </>
             ) : null}
 
@@ -302,8 +340,4 @@ export function TaxonomyManager({ categories, tags }: { categories: Category[]; 
       </AdminSidePanel>
     </AdminListPage>
   );
-}
-
-function Field({ children, label }: { children: ReactNode; label: string }) {
-  return <label className="admin-field"><span>{label}</span>{children}</label>;
 }

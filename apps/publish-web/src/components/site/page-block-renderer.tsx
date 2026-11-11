@@ -1,7 +1,8 @@
+import { visibleBlockItems } from "@iorder/core/server/pages/visible-block-items";
 import Image from "next/image";
 import { Fragment, type CSSProperties } from "react";
 import { SiteLink as Link } from "@/components/site/site-link";
-import { resolveBlockFrames, type BlockFrame, type SectionSurface } from "@iorder/core/server/pages/block-layout";
+import { blockUsesScreenHeight, resolveBlockFrames, type BlockFrame, type SectionSurface } from "@iorder/core/server/pages/block-layout";
 import type { PageBlock } from "@iorder/core/server/pages/pages.contract";
 import { resolveSettingLinks } from "@iorder/core/server/pages/setting-links";
 import { isDarkColor } from "@iorder/core/server/shared/color";
@@ -14,8 +15,10 @@ import { CollectionList } from "./collection-list";
 import { HeroSection } from "./hero-section";
 import { GroupedListSection, MediaTextSection, PricingSection } from "./section-blocks";
 import { LeadForm } from "./lead-form";
-import { RichContent } from "./rich-content";
+import type { StaticPageProfile } from "@iorder/core/server/pages/static-page-layout";
+import { RichTableOfContents, RichContent } from "./rich-content";
 import { YouTubeFrame } from "./youtube-frame";
+import { getBuilderPreviewContext } from "@/lib/builder-preview";
 
 // Vẽ các khối trang theo thứ tự CMS. Nền, khoảng cách và mã neo của mọi khối đi qua một quy luật chung
 // (resolveBlockFrames: nền tự xen kẽ, khoảng cách chuẩn); giao diện từng khối dùng component nền @/components/ui.
@@ -23,8 +26,17 @@ import { YouTubeFrame } from "./youtube-frame";
 // Nút "theo Cài đặt" (`setting:trial`…) được đổi sang địa chỉ hiện tại trước khi vẽ.
 // `screens` (trang chủ): trên máy tính mỗi phần cao tối thiểu một màn hình, nội dung căn giữa theo chiều dọc (CSS `.screen-block`);
 // dải gọn (khoảng cách "Gọn", ví dụ logo đối tác) và phần đầu trang không áp dụng.
-export async function PageBlockRenderer({ blocks, previous = null, screens = false }: { blocks: PageBlock[]; previous?: SectionSurface | null; screens?: boolean }) {
-  const enabled = resolveSettingLinks(blocks.filter(block => block.isEnabled), await getExternalLinks());
+export async function PageBlockRenderer({ blocks, previous = null, screens = false, sectionIds, staticPage }: { blocks: PageBlock[]; previous?: SectionSurface | null; screens?: boolean; sectionIds?: ReadonlyArray<string | undefined>; staticPage?: StaticPageProfile }) {
+  const links = await getExternalLinks();
+  const enabled = resolveSettingLinks(blocks.filter(block => block.isEnabled), links);
+  const preview = await getBuilderPreviewContext();
+  const original = preview?.document.kind === "page" ? preview.document.values.blocks : preview?.document.kind === "offering" ? preview.document.values.content.blocks ?? [] : preview?.document.values.blocks ?? [];
+  const fingerprints = original.map(block => JSON.stringify(resolveSettingLinks(block, links)));
+  const previewIndex = (block: PageBlock, index: number) => {
+    const fingerprint = JSON.stringify(resolveSettingLinks(block, links));
+    const occurrence = enabled.slice(0, index).filter(prior => JSON.stringify(resolveSettingLinks(prior, links)) === fingerprint).length;
+    return fingerprints.flatMap((value, sourceIndex) => value === fingerprint ? [sourceIndex] : [])[occurrence];
+  };
   // Ảnh nền chọn trong vỏ chung: đổi mã tệp sang địa chỉ ảnh (tệp đã xóa hoặc không phải ảnh thì bỏ ảnh nền).
   const frames = await Promise.all(resolveBlockFrames(enabled, previous).map(async (frame) => {
     if (!frame.background?.mediaId) return frame;
@@ -35,10 +47,10 @@ export async function PageBlockRenderer({ blocks, previous = null, screens = fal
   // thay vì bắt mọi phần đổi màu nền xen kẽ. Phần có màu hoặc ảnh nền riêng đã tự tách khỏi phần bên cạnh.
   const custom = (index: number) => Boolean(frames[index].background?.color || frames[index].background?.imageUrl);
   const divider = (index: number) => index > 0 && enabled[index - 1].type !== "hero" && frames[index].tone !== "dark" && frames[index].tone === frames[index - 1].tone && !custom(index) && !custom(index - 1);
-  return <>{await Promise.all(enabled.map(async (block, index) => <Fragment key={`${block.type}-${index}`}>
+  return <>{await Promise.all(enabled.map(async (block, index) => { const content = <Fragment key={`${block.type}-${index}`}>
     {divider(index) ? <div aria-hidden="true" className={frames[index].tone === "tinted" ? "bg-surface-tinted" : "bg-white"}><div className="site-container"><hr className="m-0 border-0 border-t border-line" /></div></div> : null}
-    {screens && block.type !== "hero" && frames[index].spacing !== "sm" ? <div className="screen-block"><Block block={block} first={index === 0} frame={frames[index]} /></div> : <Block block={block} first={index === 0} frame={frames[index]} />}
-  </Fragment>))}</>;
+    {preview && previewIndex(block, index) !== undefined ? <div data-builder-block={previewIndex(block, index)}>{blockUsesScreenHeight(block, screens) ? <div className="screen-block"><Block block={visibleBlockItems(block)} first={index === 0} frame={frames[index]} staticPage={staticPage} /></div> : <Block block={visibleBlockItems(block)} first={index === 0} frame={frames[index]} staticPage={staticPage} />}</div> : blockUsesScreenHeight(block, screens) ? <div className="screen-block"><Block block={visibleBlockItems(block)} first={index === 0} frame={frames[index]} staticPage={staticPage} /></div> : <Block block={visibleBlockItems(block)} first={index === 0} frame={frames[index]} staticPage={staticPage} />}
+  </Fragment>; return sectionIds?.[index] ? <div data-static-section={index} data-testid="static-section" id={sectionIds[index]} key={`static-${index}`}>{content}</div> : content; }))}</>;
 }
 
 // Thẻ ảnh chưa có ảnh: mảng xanh thương hiệu nhạt + biểu tượng, cùng một tông cho cả lưới (không xoay màu nhấn để trang khỏi rối).
@@ -156,7 +168,7 @@ function initials(name: string) {
   return name.split(/\s+/).filter(Boolean).slice(-2).map(part => part[0]?.toUpperCase()).join("");
 }
 
-async function Block({ block, first, frame }: { block: PageBlock; first: boolean; frame: BlockFrame }) {
+async function Block({ block, first, frame, staticPage }: { block: PageBlock; first: boolean; frame: BlockFrame; staticPage?: StaticPageProfile }) {
   const dark = frame.tone === "dark";
   switch (block.type) {
     case "hero": return <HeroSection data={block.data} first={first} frame={frame} />;
@@ -220,7 +232,7 @@ async function Block({ block, first, frame }: { block: PageBlock; first: boolean
       };
       const marquee = partners.length >= 8;
       return <FrameSection frame={frame}>
-        <SectionHeading className="mb-8" dark={dark} eyebrow={block.data.eyebrow} size="sm" title={block.data.title} />
+        <SectionHeading className="mb-8" dark={dark} description={block.data.description} eyebrow={block.data.eyebrow} size="sm" title={block.data.title} />
         {marquee ? <div className="logo-marquee" style={{ "--marquee-duration": `${partners.length * 3.5}s` } as CSSProperties}>
           <div className="logo-marquee__track">
             <ul className="logo-marquee__list">{partners.map(item => <li key={item.id}>{logo(item)}</li>)}</ul>
@@ -242,12 +254,12 @@ async function Block({ block, first, frame }: { block: PageBlock; first: boolean
     </FrameSection>;
     case "lead_form": {
       const profile = await getSiteProfile();
-      const contact = { hotline: profile?.hotline ?? null, email: profile?.salesEmail ?? profile?.supportEmail ?? null, workingHours: profile?.workingHours ?? null };
+      const contact = { hotline: profile?.hotline ?? null, email: profile?.salesEmail ?? profile?.supportEmail ?? null, workingHours: profile?.workingHours ?? null, address: staticPage === "contact" ? profile?.address ?? null : null };
       return <FrameSection frame={frame}><LeadForm {...block.data} contact={contact} dark={frame.tone === "dark"} trialUrl={(await getExternalLinks())?.trial ?? null} /></FrameSection>;
     }
     case "rich_text": return <FrameSection frame={frame} width="text">
       {block.data.heading ? <h2 className="mb-6 text-h2 font-bold tracking-tight text-ink">{block.data.heading}</h2> : null}
-      {typeof block.data.body === "string" ? <div className="grid gap-5 text-lead text-ink/80">{block.data.body.split("\n").map((paragraph, index) => paragraph ? <p className="mb-0" key={index}>{paragraph}</p> : null)}</div> : <RichContent doc={block.data.body} />}
+      {typeof block.data.body === "string" ? <div className="grid gap-5 text-lead text-ink/80">{block.data.body.split("\n").map((paragraph, index) => paragraph ? <p className="mb-0" key={index}>{paragraph}</p> : null)}</div> : <>{staticPage === "document" ? <RichTableOfContents doc={block.data.body} label="Mục lục nội dung" title="Nội dung trong trang" /> : null}<RichContent doc={block.data.body} /></>}
     </FrameSection>;
     case "image": {
       const media = await getMediaById(block.data.mediaId);

@@ -1,3 +1,5 @@
+import { contentSeoSchema } from "../shared/content-seo";
+import { pageBlockInputSchema } from "../pages/pages.contract";
 import { z } from "zod";
 
 const slug = z.string().min(1).max(180).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
@@ -15,6 +17,7 @@ export const equipmentInputSchema = z.object({
   status: z.enum(["draft", "review", "scheduled", "published", "archived"]),
   scheduledAt: z.coerce.date().nullable(),
   sortOrder: z.number().int().min(0).max(10000), isFeatured: z.boolean(),
+  seo: contentSeoSchema.optional(), blocks: z.array(pageBlockInputSchema).max(100).nullable().optional(),
   seoTitle: z.string().max(70).nullable(), seoDescription: z.string().max(180).nullable(), canonicalUrl: z.string().url().nullable(),
 }).strict().superRefine((value, context) => {
   if (value.status === "scheduled" && !value.scheduledAt) {

@@ -98,7 +98,7 @@ test("Rời trang khi chưa lưu: hỏi bằng hộp của CMS (không dùng h�
   expect(second!.y).toBeGreaterThanOrEqual(first!.y + first!.height - 1);
   await page.keyboard.press("Escape");
 
-  const sidebarLink = page.getByRole("link", { name: "Trang tĩnh" }).first();
+  const sidebarLink = page.getByRole("link", { name: "Trang website" }).first();
   await sidebarLink.click();
   const dialog = page.getByRole("alertdialog", { name: "Rời màn hình khi chưa lưu?" });
   await expect(dialog).toBeVisible();

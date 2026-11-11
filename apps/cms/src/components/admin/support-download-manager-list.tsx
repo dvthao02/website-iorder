@@ -3,10 +3,10 @@ import { requestAdminJson } from "@/lib/admin-api";
 
 import { Archive, ArchiveRestore, Download, FileDown, Pencil, Plus, RotateCcw, Save } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { AdminSupportDownload, AdminSupportDownloadInput } from "@iorder/core/server/support/support-downloads.contract";
-import { parseSavedSupportDownload, supportDownloadCreateRequestSchema, supportDownloadMutationSchema } from "@iorder/core/server/support/support-downloads.contract";
+import { adminSupportDownloadInputSchema, parseSavedSupportDownload, supportDownloadCreateRequestSchema, supportDownloadMutationSchema } from "@iorder/core/server/support/support-downloads.contract";
 import type { MediaAsset } from "@iorder/core/server/media/media.contract";
 
 import { MediaPicker } from "./media-picker";
@@ -26,6 +26,9 @@ import { AdminSidePanel } from "./ui/admin-side-panel";
 import { useNavigationGuard } from "./ui/use-navigation-guard";
 import { useRevisionRestore } from "./ui/use-revision-restore";
 import { useAdminPermissions } from "./ui/admin-permissions";
+import { AdminFormField } from "./ui/admin-form-field";
+import { useAdminFormValidation } from "./ui/use-admin-form-validation";
+import { useAdminClientReady } from "./ui/use-admin-client-ready";
 
 type Filter = "all" | "draft" | "published" | "archived";
 
@@ -38,6 +41,10 @@ const blank: AdminSupportDownloadInput = {
   sortOrder: 0,
   isEnabled: false,
 };
+
+const downloadFormSchema = adminSupportDownloadInputSchema.superRefine((values, context) => {
+  if (values.isEnabled && !values.fileMediaId) context.addIssue({ code: "custom", path: ["fileMediaId"], message: "Chọn tệp PDF hoặc ZIP trước khi hiển thị trên website." });
+});
 
 const statusLabel: Record<AdminSupportDownload["status"], string> = {
   draft: "Bản nháp",
@@ -97,6 +104,7 @@ export function SupportDownloadManagerList({
   startCreating?: boolean;
 }) {
   const { can } = useAdminPermissions();
+  const clientReady = useAdminClientReady();
   const router = useRouter();
   const { show: showToast } = useAdminToast();
   const initialActive = items.find((item) => item.id === initialSelectedId);
@@ -108,11 +116,31 @@ export function SupportDownloadManagerList({
     setRows(items);
   }
   const [activeId, setActiveId] = useState<string | null>(initialActive?.id ?? null);
+  // Phiên bản gắn với bản nhập đang sửa; refresh danh sách không được thay version của bản nhập cũ.
+  const [activeSnapshot, setActiveSnapshot] = useState(initialActive);
   const [form, setForm] = useState<AdminSupportDownloadInput | null>(() => startCreating ? { ...blank } : initialActive ? valuesOf(initialActive) : null);
   const [initialValues, setInitialValues] = useState<AdminSupportDownloadInput | null>(() => startCreating ? { ...blank } : initialActive ? valuesOf(initialActive) : null);
   const [filter, setFilter] = useState<Filter>("all");
   const [query, setQuery] = useState("");
   const [isSaving, setBusy] = useState(false);
+  const [saveError, setSaveError] = useState("");
+  const validation = useAdminFormValidation("support-download", {
+    title: { label: "Tên hiển thị", message: "Nhập tên hiển thị từ 1 đến 220 ký tự." },
+    description: { label: "Mô tả", message: "Nhập mô tả từ 1 đến 10.000 ký tự hoặc để trống." },
+    meta: { label: "Thông tin phụ", message: "Nhập thông tin phụ tối đa 160 ký tự hoặc để trống." },
+    sortOrder: { label: "Thứ tự", message: "Nhập số nguyên từ 0 đến 10.000." },
+    fileMediaId: { label: "Tệp tải xuống", message: "Chọn lại tệp PDF hoặc ZIP từ thư viện." },
+    icon: { label: "Biểu tượng", message: "Biểu tượng không hợp lệ. Vui lòng tải lại để kiểm tra." },
+    isEnabled: { label: "Hiển thị công khai", message: "Chọn trạng thái hiển thị hợp lệ." },
+  });
+  const formElement = useRef<HTMLFormElement>(null);
+  useEffect(() => {
+    function onSave(event: KeyboardEvent) {
+      if (formElement.current && (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") { event.preventDefault(); formElement.current.requestSubmit(); }
+    }
+    window.addEventListener("keydown", onSave);
+    return () => window.removeEventListener("keydown", onSave);
+  }, []);
   const saving = useRef(false);
   const titleInput = useRef<HTMLInputElement>(null);
   const uploading = useRef(false);
@@ -123,9 +151,11 @@ export function SupportDownloadManagerList({
     uploading.current = pending;
     setUploading(pending);
   }, []);
-  const active = rows.find((item) => item.id === activeId);
+  const active = activeSnapshot?.id === activeId ? activeSnapshot : rows.find((item) => item.id === activeId);
   const dirty = !equalValues(form, initialValues);
   const archived = active?.status === "archived";
+  const canPublish = can("support_downloads.publish");
+  const canEdit = can(active ? "support_downloads.update" : "support_downloads.create") && (canPublish || active?.status !== "published");
   const filterItems: Array<{ label: string; value: Filter }> = [
     { label: "Tất cả", value: "all" },
     { label: statusLabel.published, value: "published" },
@@ -161,32 +191,39 @@ export function SupportDownloadManagerList({
     if (!allowSelectionChange()) return;
     const values = valuesOf(item);
     setActiveId(item.id);
+    setActiveSnapshot(item);
     setForm(values);
     setInitialValues(values);
+    setSaveError(""); validation.reset();
   }
 
   function create() {
-    if (!allowSelectionChange()) return;
+    if (!can("support_downloads.create") || !allowSelectionChange()) return;
     setActiveId(null);
+    setActiveSnapshot(undefined);
     setForm({ ...blank });
     setInitialValues({ ...blank });
+    setSaveError(""); validation.reset();
   }
 
   function closeEditor() {
     if (!allowSelectionChange()) return;
     setActiveId(null);
+    setActiveSnapshot(undefined);
     setForm(null);
     setInitialValues(null);
+    setSaveError(""); validation.reset();
   }
 
   function update<K extends keyof AdminSupportDownloadInput>(key: K, value: AdminSupportDownloadInput[K]) {
-    if (saving.current || revisionRestore.pending.current) return;
+    if (saving.current || revisionRestore.pending.current || !canEdit) return;
     setForm((current) => current ? { ...current, [key]: value } : current);
   }
 
   function discardChanges() {
     if (saving.current || uploading.current || revisionRestore.pending.current) return;
     setForm(initialValues);
+    setSaveError(""); validation.reset();
     titleInput.current?.focus();
     showToast("Đã bỏ các thay đổi chưa lưu.", "info");
   }
@@ -197,31 +234,38 @@ export function SupportDownloadManagerList({
       : [...current, download]);
     const values = valuesOf(download);
     setActiveId(download.id);
+    setActiveSnapshot(download);
     setForm(values);
     setInitialValues(values);
+    setSaveError(""); validation.reset();
   }
 
   async function save() {
-    if (!form || archived || saving.current || uploading.current || revisionRestore.pending.current) return;
+    if (!form || archived || saving.current || uploading.current || revisionRestore.pending.current || !canEdit || !dirty) return;
+    setSaveError("");
+    const parsed = downloadFormSchema.safeParse(form);
+    if (!parsed.success) { validation.report(parsed.error.issues); return; }
+    validation.reset();
     saving.current = true;
     setBusy(true);
     try {
       const download = active
         ? await requestJson(`/api/admin/support-downloads/${active.id}`, "PATCH", {
             action: "save",
-            values: form,
+            values: parsed.data,
             expectedVersion: active.draftVersion,
             changeNote: "Cập nhật từ trình biên tập tệp cài đặt",
           })
         : await requestJson("/api/admin/support-downloads", "POST", {
-            values: form,
+            values: parsed.data,
             changeNote: "Tạo từ trình biên tập tệp cài đặt",
           });
       applySaved(download);
       showToast(active ? "Đã lưu tệp cài đặt và tạo phiên bản mới." : "Đã thêm tệp cài đặt.", "success");
       router.refresh();
     } catch (error) {
-      showToast(error instanceof Error ? error.message : "Không kết nối được máy chủ.", "error");
+      const message = error instanceof Error ? error.message : "Không kết nối được máy chủ.";
+      setSaveError(message); showToast(message, "error");
     } finally {
       saving.current = false;
       setBusy(false);
@@ -229,32 +273,43 @@ export function SupportDownloadManagerList({
   }
 
   async function saveUploadedFile(asset: MediaAsset) {
-    if (!form || archived || saving.current || revisionRestore.pending.current) throw new Error("Không thể lưu tệp lúc này. Vui lòng chọn lại tệp trong thư viện.");
-    saving.current = true;
+    if (!form || archived || saving.current || revisionRestore.pending.current || !canEdit) throw new Error("Không thể lưu tệp lúc này. Vui lòng chọn lại tệp trong thư viện.");
     const values = {
       ...form,
       fileMediaId: asset.id,
       title: form.title.trim() || titleFromFileName(asset.originalName),
     };
+    setForm(values);
+    setSaveError("");
+    const parsed = downloadFormSchema.safeParse(values);
+    if (!parsed.success) {
+      validation.report(parsed.error.issues);
+      const message = "Tệp đã tải lên thư viện. Sửa thông tin được đánh dấu rồi bấm Lưu để hoàn tất.";
+      setSaveError(message);
+      showToast(message, "error");
+      return;
+    }
+    validation.reset();
+    saving.current = true;
     setBusy(true);
     try {
       const download = active
         ? await requestJson(`/api/admin/support-downloads/${active.id}`, "PATCH", {
             action: "save",
-            values,
+            values: parsed.data,
             expectedVersion: active.draftVersion,
             changeNote: "Tải tệp mới từ trình biên tập tệp cài đặt",
           })
         : await requestJson("/api/admin/support-downloads", "POST", {
-            values,
+            values: parsed.data,
             changeNote: "Tải tệp lên và tạo bản nháp tự động",
           });
       applySaved(download);
       showToast(active ? "Đã tải tệp lên và lưu thay đổi." : "Đã tải tệp lên và tạo bản nháp tự động.", "success");
       router.refresh();
     } catch (error) {
-      showToast(error instanceof Error ? error.message : "Không thể lưu tệp cài đặt vừa tải lên.", "error");
-      throw error;
+      const message = error instanceof Error ? error.message : "Không thể lưu tệp cài đặt vừa tải lên.";
+      setSaveError(message); showToast(message, "error");
     } finally {
       saving.current = false;
       setBusy(false);
@@ -262,11 +317,12 @@ export function SupportDownloadManagerList({
   }
 
   async function changeArchiveState() {
-    if (saving.current || uploading.current || revisionRestore.pending.current) return;
+    if (saving.current || uploading.current || revisionRestore.pending.current || !can("support_downloads.update") || !canPublish) return;
     if (!active || dirty) {
       if (dirty) showToast("Hãy lưu hoặc bỏ thay đổi trước khi lưu trữ.", "warning");
       return;
     }
+    setSaveError("");
     saving.current = true;
     setBusy(true);
     try {
@@ -278,7 +334,8 @@ export function SupportDownloadManagerList({
       showToast(archived ? "Đã khôi phục tệp cài đặt về bản nháp." : "Đã chuyển tệp cài đặt vào lưu trữ.", archived ? "success" : "warning");
       router.refresh();
     } catch (error) {
-      showToast(error instanceof Error ? error.message : "Không kết nối được máy chủ.", "error");
+      const message = error instanceof Error ? error.message : "Không kết nối được máy chủ.";
+      setSaveError(message); showToast(message, "error");
     } finally {
       saving.current = false;
       setBusy(false);
@@ -298,7 +355,7 @@ export function SupportDownloadManagerList({
   ];
 
   const sidebar = <>
-      <AdminListHeader actions={<AdminButton hideWithoutPermission permission="support_downloads.create" leadingIcon={<Plus aria-hidden="true" size={16} />} onClick={create}>Thêm</AdminButton>} description={`${rows.length} tệp tải xuống`} headingLevel={1} title="Tệp cài đặt" />
+      <AdminListHeader actions={<AdminButton disabled={!clientReady} hideWithoutPermission permission="support_downloads.create" leadingIcon={<Plus aria-hidden="true" size={16} />} onClick={create}>Thêm</AdminButton>} description={`${rows.length} tệp tải xuống`} headingLevel={1} title="Tệp cài đặt" />
       <AdminFilterBar onSubmit={(event) => event.preventDefault()} chips={chips} onClearAll={() => { setQuery(""); setFilter("all"); }} search={<AdminSearchField id="support-download-search" label="Tìm tệp cài đặt" onChange={(event) => setQuery(event.target.value)} placeholder="Tìm tên hoặc tệp" value={query} />}><select aria-label="Lọc trạng thái" onChange={(event) => setFilter(event.target.value as Filter)} value={filter}>{filterItems.map((item) => <option key={item.value} value={item.value}>{item.value === "all" ? "Tất cả trạng thái" : item.label}</option>)}</select></AdminFilterBar>
     <ContentBulkBar
       deleteRequest={(item) => ({ method: "DELETE", url: `/api/admin/support-downloads/${item.id}?version=${item.draftVersion}` })}
@@ -311,30 +368,36 @@ export function SupportDownloadManagerList({
         : { action, expectedVersion: item.draftVersion } })}
       selectedIds={selection.selectedIds}
     />
-    <AdminDataTable columns={columns} emptyMessage={rows.length ? "Không có tệp cài đặt phù hợp với bộ lọc." : "Chưa có tệp cài đặt. Bấm “Thêm” để tải PDF hoặc ZIP; hệ thống tự tạo bản nháp để bạn hoàn thiện."} getRowId={(item) => item.id} onRowClick={select} onSelectionChange={selection.setSelectedIds} rows={visibleRows} selectedIds={selection.selectedIds} tableId="support-downloads" />
+    <AdminDataTable columns={columns} emptyAction={rows.length ? <AdminButton onClick={() => { setQuery(""); setFilter("all"); }} variant="secondary">Xóa bộ lọc</AdminButton> : <AdminButton hideWithoutPermission permission="support_downloads.create" onClick={create}>Thêm tệp cài đặt</AdminButton>} emptyMessage={rows.length ? "Không có tệp cài đặt phù hợp với bộ lọc." : "Chưa có tệp cài đặt. Bấm “Thêm” để tải PDF hoặc ZIP; hệ thống tự tạo bản nháp để bạn hoàn thiện."} getRowId={(item) => item.id} getRowLabel={(item) => item.title} onRowClick={select} onSelectionChange={selection.setSelectedIds} rows={visibleRows} selectedIds={selection.selectedIds} tableId="support-downloads" />
   </>;
 
   const editor = <>
     <header className="admin-list-manager__panel-header">
-      <div><div className="flex items-center gap-2"><h2>{active?.title || (form ? "Thêm tệp cài đặt" : "Tệp cài đặt")}</h2>{active ? <AdminStatusBadge tone={statusTone[active.status]}>{statusLabel[active.status]}</AdminStatusBadge> : null}</div><small className={dirty ? "admin-list-manager__dirty" : undefined}>{dirty ? "Có thay đổi chưa lưu." : active ? `Phiên bản ${active.draftVersion}` : "Tải PDF hoặc ZIP lên, đặt tên rồi lưu."}</small></div>
+      <div><div className="flex items-center gap-2"><h2>{active?.title || (form ? "Thêm tệp cài đặt" : "Tệp cài đặt")}</h2>{active ? <AdminStatusBadge tone={statusTone[active.status]}>{statusLabel[active.status]}</AdminStatusBadge> : null}</div><small className={dirty ? "admin-list-manager__dirty" : undefined}>{dirty ? "Có thay đổi chưa lưu." : active ? `Phiên bản ${active.draftVersion}` : "Tải PDF hoặc ZIP để tự tạo bản nháp, hoặc nhập tên rồi bấm Lưu."}</small></div>
     </header>
     <div className="admin-list-manager__form">
-      {form ? <div className="grid gap-4">
+      {form ? <form className="grid gap-4" id="support-download-editor" noValidate onSubmit={event => { event.preventDefault(); void save(); }} ref={formElement}>
+        {saveError ? <AdminNotice tone="error">{saveError}</AdminNotice> : null}
+        {validation.summary}
+        {!canEdit ? <AdminNotice tone="info">{active?.status === "published" && !canPublish ? "Tệp đang hiển thị trên website. Bạn cần quyền xuất bản tệp cài đặt để sửa mục này." : "Bạn chỉ có quyền xem tệp cài đặt này."}</AdminNotice> : null}
         {archived ? <AdminNotice tone="warning">Tệp cài đặt đang lưu trữ và không xuất hiện trên website. Khôi phục để chỉnh sửa.</AdminNotice> : null}
-        <fieldset className="grid gap-4" disabled={busy || archived}>
-          <MediaPicker disabled={busy || archived} files onUploadingChange={onUploadingChange} onChange={(fileMediaId) => update("fileMediaId", fileMediaId)} onUploaded={saveUploadedFile} value={form.fileMediaId} />
-          <div className="admin-form-grid"><label className="admin-field">Tên hiển thị<input className="admin-input" ref={titleInput} maxLength={220} onChange={(event) => update("title", event.target.value)} required value={form.title} /></label></div>
-          <label className="admin-field">Mô tả<textarea className="min-h-28" maxLength={10000} onChange={(event) => update("description", event.target.value || null)} value={form.description ?? ""} /></label>
-          <div className="admin-form-grid"><label className="admin-field">Thông tin phụ<input className="admin-input" maxLength={160} onChange={(event) => update("meta", event.target.value || null)} value={form.meta ?? ""} /></label><label className="admin-field">Thứ tự<input className="admin-input" max={10000} min={0} onChange={(event) => update("sortOrder", Number(event.target.value))} type="number" value={form.sortOrder} /></label></div>
-          <label className="admin-check"><input checked={form.isEnabled} onChange={(event) => update("isEnabled", event.target.checked)} type="checkbox" />Hiển thị công khai trên website</label>
+        <fieldset className="grid gap-4" disabled={busy || archived || !canEdit}>
+          <div {...validation.props("fileMediaId")} tabIndex={-1}><MediaPicker disabled={busy || archived || !canEdit} files onUploadingChange={onUploadingChange} onChange={(fileMediaId) => update("fileMediaId", fileMediaId)} onUploaded={saveUploadedFile} value={form.fileMediaId} /></div>
+          {validation.message("fileMediaId")}
+          <p className="admin-help">Tải tệp mới sẽ tự lưu thông tin hiện tại. Chọn tệp có sẵn từ thư viện thì bấm Lưu để hoàn tất.</p>
+          <AdminFormField id={validation.props("title").id} label="Tên hiển thị" error={validation.message("title")}><input {...validation.props("title")} className="admin-input" ref={titleInput} maxLength={220} onChange={(event) => update("title", event.target.value)} required value={form.title} /></AdminFormField>
+          <AdminFormField id={validation.props("description").id} label="Mô tả" error={validation.message("description")}><textarea {...validation.props("description")} className="min-h-28" maxLength={10000} onChange={(event) => update("description", event.target.value || null)} value={form.description ?? ""} /></AdminFormField>
+          <div className="admin-form-grid"><AdminFormField id={validation.props("meta").id} label="Thông tin phụ" error={validation.message("meta")}><input {...validation.props("meta")} className="admin-input" maxLength={160} onChange={(event) => update("meta", event.target.value || null)} value={form.meta ?? ""} /></AdminFormField><AdminFormField id={validation.props("sortOrder").id} label="Thứ tự" error={validation.message("sortOrder")}><input {...validation.props("sortOrder")} className="admin-input" max={10000} min={0} onChange={(event) => update("sortOrder", Number(event.target.value))} type="number" value={form.sortOrder} /></AdminFormField></div>
+          <label className="admin-check"><input checked={form.isEnabled} disabled={!canPublish} onChange={(event) => update("isEnabled", event.target.checked)} type="checkbox" />Hiển thị công khai trên website</label>
+          {!canPublish ? <p className="admin-help">Cần quyền xuất bản tệp cài đặt để thay đổi hiển thị trên website.</p> : null}
         </fieldset>
         {active?.downloadUrl && active.status === "published" ? <AdminButton href={active.downloadUrl} target="_blank" variant="secondary"><Download aria-hidden="true" size={16} />Mở tệp công khai</AdminButton> : null}
-        {active ? <details className="border-t border-[var(--cms-border)] pt-4"><summary className="admin-link cursor-pointer">Lịch sử và khôi phục</summary><RevisionHistory disabled={dirty || busy} expectedVersion={active.draftVersion} id={active.id} target="downloads" onRestorePendingChange={revisionRestore.onPendingChange} onRestored={revisionRestore.onRestored} /></details> : null}
-      </div> : <AdminEmptyState action={<AdminButton onClick={create}>Thêm tệp cài đặt</AdminButton>} description="Chọn một tệp trong bảng để chỉnh sửa." icon={<FileDown aria-hidden="true" size={20} />} title="Chưa chọn tệp cài đặt" />}
+        {active ? <details className="border-t border-[var(--cms-border)] pt-4"><summary className="admin-link cursor-pointer">Lịch sử và khôi phục</summary><RevisionHistory disabled={dirty || busy || !canEdit} expectedVersion={active.draftVersion} id={active.id} target="downloads" onRestorePendingChange={revisionRestore.onPendingChange} onRestored={revisionRestore.onRestored} /></details> : null}
+      </form> : <AdminEmptyState action={<AdminButton hideWithoutPermission permission="support_downloads.create" onClick={create}>Thêm tệp cài đặt</AdminButton>} description="Chọn một tệp trong bảng để chỉnh sửa." icon={<FileDown aria-hidden="true" size={20} />} title="Chưa chọn tệp cài đặt" />}
     </div>
   </>;
 
-  const actions = form ? <>{dirty ? <AdminButton disabled={busy} onClick={discardChanges} variant="secondary"><RotateCcw aria-hidden="true" size={16} />Bỏ thay đổi</AdminButton> : null}{active ? <AdminButton disabled={busy || dirty || !can("support_downloads.update")} hideWithoutPermission onClick={changeArchiveState} permission="support_downloads.publish" variant="secondary">{archived ? <ArchiveRestore aria-hidden="true" size={16} /> : <Archive aria-hidden="true" size={16} />}{archived ? "Khôi phục" : "Lưu trữ"}</AdminButton> : null}<AdminButton disabled={busy || !dirty || archived} onClick={save} permission={active ? "support_downloads.update" : "support_downloads.create"}><Save aria-hidden="true" size={16} />{busy ? "Đang lưu…" : "Lưu"}</AdminButton></> : null;
+  const actions = form ? <>{dirty ? <AdminButton disabled={busy} onClick={discardChanges} variant="secondary"><RotateCcw aria-hidden="true" size={16} />Bỏ thay đổi</AdminButton> : null}{active ? <AdminButton disabled={busy || dirty || !can("support_downloads.update")} hideWithoutPermission onClick={changeArchiveState} permission="support_downloads.publish" variant="secondary">{archived ? <ArchiveRestore aria-hidden="true" size={16} /> : <Archive aria-hidden="true" size={16} />}{archived ? "Khôi phục" : "Lưu trữ"}</AdminButton> : null}<AdminButton disabled={busy || !dirty || archived || !canEdit} form="support-download-editor" type="submit" permission={active ? "support_downloads.update" : "support_downloads.create"}><Save aria-hidden="true" size={16} />{busy ? "Đang lưu…" : "Lưu"}</AdminButton></> : null;
 
-  return <AdminListPage><AdminCard>{sidebar}</AdminCard><AdminSidePanel footer={actions} isOpen={form !== null} onClose={closeEditor}>{editor}</AdminSidePanel></AdminListPage>;
+  return <AdminListPage><AdminCard>{sidebar}</AdminCard><AdminSidePanel label={active ? `Tệp cài đặt: ${active.title}` : "Thêm tệp cài đặt"} footer={actions} isOpen={form !== null} onClose={closeEditor}>{editor}</AdminSidePanel></AdminListPage>;
 }

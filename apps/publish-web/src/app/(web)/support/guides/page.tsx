@@ -5,7 +5,7 @@ import { headingId } from "@iorder/core/server/shared/rich-text";
 import { GuideDocsLayout } from "@/components/site/guide-docs";
 import { iconFor } from "@/components/site/guide-icons";
 import { PageBlockRenderer } from "@/components/site/page-block-renderer";
-import { PageHero } from "@/components/site/page-hero";
+import { ListingPageHeader } from "@/components/site/listing-page-header";
 import { SiteHeader } from "@/components/site/site-header";
 import { SiteLink as Link } from "@/components/site/site-link";
 import { SupportSearch } from "@/components/site/support-search";
@@ -29,9 +29,9 @@ export default async function SupportGuidesPage() {
   return <>
     <SiteHeader />
     <main id="noi-dung">
-      <PageHero crumbs={[{ name: "Hỗ trợ", path: "/ho-tro" }, { name: "Hướng dẫn sử dụng", path: "/ho-tro/huong-dan" }]} description={header.description} eyebrow={header.eyebrow} title={header.title}>
+      <ListingPageHeader hero={content?.hero} header={header} crumbs={[{ name: "Hỗ trợ", path: "/ho-tro" }, { name: "Hướng dẫn sử dụng", path: "/ho-tro/huong-dan" }]}>
         {searchItems.length ? <div className="mt-6 max-w-2xl"><SupportSearch items={searchItems} suggestions={[]} /></div> : null}
-      </PageHero>
+      </ListingPageHeader>
       {index.groups.length ? <GuideDocsLayout groups={index.groups}>
         <div className="grid gap-10">
           {index.groups.map((group) => {

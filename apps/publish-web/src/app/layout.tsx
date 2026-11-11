@@ -1,3 +1,4 @@
+import { draftMode, headers } from "next/headers";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { Google_Sans_Flex } from "next/font/google";
@@ -24,7 +25,8 @@ export async function generateMetadata(): Promise<Metadata> {
   const image = config.defaultOgMediaId && config.siteUrl ? await getMediaById(config.defaultOgMediaId) : null;
   const title = config.defaultTitle ?? profile?.companyName ?? "iOrder";
   const description = config.defaultDescription ?? "Nền tảng vận hành và giải pháp công nghệ cho doanh nghiệp.";
-  return { metadataBase: config.siteUrl ? new URL(config.siteUrl) : undefined, title, description, robots: { index: config.allowSearchIndexing, follow: config.allowSearchIndexing }, openGraph: { title, description, siteName: title, images: image ? [{ url: image.url, alt: image.altText ?? title }] : undefined } };
+  const preview = (await draftMode()).isEnabled || Boolean((await headers()).get("x-iorder-builder-preview"));
+  return { metadataBase: config.siteUrl ? new URL(config.siteUrl) : undefined, title, description, robots: { index: !preview && config.allowSearchIndexing, follow: !preview && config.allowSearchIndexing }, openGraph: { title, description, siteName: title, images: image ? [{ url: image.url, alt: image.altText ?? title }] : undefined } };
 }
 
 // Umami (tự host, không cookie). Script và điểm nhận sự kiện đi qua cùng domain website ở /stats/*

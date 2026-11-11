@@ -1,9 +1,11 @@
 "use client";
+import { BuilderItemsTree } from "./builder-items-tree";
+import { builderItemCollections, type BuilderItemSelection } from "./ui/builder-item-model";
 import { RichTextEditor } from "./rich-text/rich-text-editor";
 import { plainTextToRichDocument, richPlainText } from "@iorder/core/server/shared/rich-text";
 
-import { ArrowDown, ArrowUp, ChevronRight, CopyPlus, Eye, EyeOff, GripVertical, Trash2 } from "lucide-react";
-import { useId, useRef, useState, type ReactNode } from "react";
+import { ChevronRight, CopyPlus, Eye, EyeOff, GripVertical, Trash2 } from "lucide-react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 
 import { collectionSources, heroToneOf, type CollectionSource, type HeroTone, type PageBlock } from "@iorder/core/server/pages/pages.contract";
 import { blockAnchor, isDarkColor } from "@iorder/core/server/pages/block-layout";
@@ -24,8 +26,61 @@ type BlockType = PageBlock["type"];
 type CardBlock = Extract<PageBlock, { type: "features" | "industries" | "ecosystem" | "process" }>;
 type Action = { label: string; href: string };
 
+type PageBlockPreset = {
+  description: string;
+  id: string;
+  label: string;
+  types: BlockType[];
+};
+
+// Mẫu chỉ ghép các thành phần đã có schema/render sẵn: thêm nhanh mà không tạo dữ liệu đặc biệt hay migration.
+const pageBlockPresets: ReadonlyArray<PageBlockPreset> = [
+  { id: "introduction", label: "Trang giới thiệu", description: "Phần đầu, ảnh + chữ, lợi ích và lời kêu gọi liên hệ.", types: ["hero", "media_text", "features", "cta"] },
+  { id: "sales", label: "Trang bán hàng", description: "Phần đầu, lợi ích, bảng giá, câu hỏi và form tư vấn.", types: ["hero", "features", "pricing", "faq", "lead_form"] },
+  { id: "catalog", label: "Trang danh mục", description: "Phần đầu, nội dung theo nhóm, danh sách tự cập nhật và CTA.", types: ["hero", "grouped_list", "collection_list", "cta"] },
+  { id: "trust", label: "Trang tạo niềm tin", description: "Phần đầu, số liệu, logo đối tác, đánh giá và CTA.", types: ["hero", "stats", "partners", "testimonials", "cta"] },
+  { id: "long-form", label: "Trang nội dung chuyên sâu", description: "Phần đầu, ảnh + chữ, bài viết, video, câu hỏi và CTA.", types: ["hero", "media_text", "rich_text", "video", "faq", "cta"] },
+  { id: "resources", label: "Trang tài liệu", description: "Phần đầu, giới thiệu, danh sách nội dung, form nhận tư vấn và CTA.", types: ["hero", "rich_text", "collection_list", "lead_form", "cta"] },
+];
+
 // `legacy`: loại cũ vẫn sửa được trên trang đã lưu, nhưng không cho thêm mới (dùng "Danh sách nội dung").
 const blockGroups = ["Mở đầu", "Giới thiệu", "Sản phẩm & nội dung", "Tạo niềm tin", "Chuyển đổi", "Văn bản & hình ảnh"] as const;
+type BlockGroup = (typeof blockGroups)[number];
+type LibraryBlockOption = { id: string; type: BlockType; label: string; description: string; group: BlockGroup };
+
+// Mỗi nhóm giữ 3–5 lựa chọn. Một vài lựa chọn là biến thể khởi tạo của cùng loại khối,
+// để người soạn chọn đúng kiểu hiển thị ngay từ đầu thay vì thêm rồi tự dò trong phần thiết lập.
+const libraryBlockOptions: ReadonlyArray<LibraryBlockOption> = [
+  { id: "hero-split", type: "hero", label: "Tiêu đề + ảnh", description: "Chữ trái, ảnh phải; hợp giới thiệu sản phẩm hoặc dịch vụ.", group: "Mở đầu" },
+  { id: "hero-background", type: "hero", label: "Ảnh nền tràn màn hình", description: "Ảnh phủ khung với chữ bên trên; hợp ảnh không gian hoặc công trình.", group: "Mở đầu" },
+  { id: "hero-centered", type: "hero", label: "Tiêu đề căn giữa", description: "Trang ngắn hoặc thông điệp thương hiệu, ảnh nằm phía dưới.", group: "Mở đầu" },
+
+  { id: "media-right", type: "media_text", label: "Chữ trái · ảnh phải", description: "Ảnh minh họa nằm bên phải; tiêu đề, mô tả và nút nằm bên trái.", group: "Giới thiệu" },
+  { id: "media-left", type: "media_text", label: "Ảnh trái · chữ phải", description: "Ảnh minh họa nằm bên trái; tiêu đề, mô tả và nút nằm bên phải.", group: "Giới thiệu" },
+  { id: "features-compact", type: "features", label: "Lưới lợi ích", description: "Thẻ gọn có biểu tượng, tiêu đề và mô tả ngắn.", group: "Giới thiệu" },
+  { id: "features-visual", type: "features", label: "Lưới thẻ ảnh", description: "Thẻ ảnh phù hợp giới thiệu các mảng sản phẩm hoặc dịch vụ.", group: "Giới thiệu" },
+  { id: "process", type: "process", label: "Quy trình", description: "Các bước triển khai hoặc cách bắt đầu theo thứ tự.", group: "Giới thiệu" },
+
+  { id: "grouped-list", type: "grouped_list", label: "Danh sách theo nhóm", description: "Nhóm ngành, nhóm thiết bị hoặc các nhu cầu thường gặp.", group: "Sản phẩm & nội dung" },
+  { id: "collection-software", type: "collection_list", label: "Danh sách phần mềm", description: "Tự lấy các phần mềm đã xuất bản từ mục Sản phẩm & Dịch vụ.", group: "Sản phẩm & nội dung" },
+  { id: "collection-solution", type: "collection_list", label: "Danh sách giải pháp", description: "Tự lấy các giải pháp đã xuất bản từ mục Sản phẩm & Dịch vụ.", group: "Sản phẩm & nội dung" },
+  { id: "pricing", type: "pricing", label: "Bảng giá", description: "So sánh 1–4 gói với tính năng, giá và nút đăng ký.", group: "Sản phẩm & nội dung" },
+
+  { id: "stats", type: "stats", label: "Số liệu nổi bật", description: "Các con số tạo điểm nhấn: cửa hàng, đơn hàng, năm kinh nghiệm…", group: "Tạo niềm tin" },
+  { id: "partners", type: "partners", label: "Logo đối tác", description: "Hiển thị logo đối tác đã quản lý trong CMS.", group: "Tạo niềm tin" },
+  { id: "customers", type: "partners", label: "Logo khách hàng", description: "Hiển thị riêng logo khách hàng đã quản lý trong CMS.", group: "Tạo niềm tin" },
+  { id: "testimonials", type: "testimonials", label: "Cảm nhận khách hàng", description: "Hiển thị đánh giá đã quản lý trong CMS.", group: "Tạo niềm tin" },
+
+  { id: "cta-contact", type: "cta", label: "Kêu gọi liên hệ", description: "Một thông điệp ngắn với nút dẫn tới trang Liên hệ.", group: "Chuyển đổi" },
+  { id: "cta-trial", type: "cta", label: "Kêu gọi dùng thử", description: "Nút dùng địa chỉ Đăng ký dùng thử trong Cài đặt.", group: "Chuyển đổi" },
+  { id: "lead-form", type: "lead_form", label: "Biểu mẫu nhận tư vấn", description: "Khách để lại thông tin, CMS chuyển vào Khách hàng tiềm năng.", group: "Chuyển đổi" },
+  { id: "faq", type: "faq", label: "Câu hỏi thường gặp", description: "Giải đáp các băn khoăn trước khi khách liên hệ.", group: "Chuyển đổi" },
+
+  { id: "rich-text", type: "rich_text", label: "Đoạn văn bản", description: "Nội dung chữ tự do với tiêu đề tùy chọn.", group: "Văn bản & hình ảnh" },
+  { id: "image", type: "image", label: "Hình ảnh", description: "Một ảnh từ thư viện media, có mô tả và chú thích.", group: "Văn bản & hình ảnh" },
+  { id: "video", type: "video", label: "Video YouTube", description: "Video 16:9, tiêu đề và chú thích tùy chọn.", group: "Văn bản & hình ảnh" },
+  { id: "media-story", type: "media_text", label: "Câu chuyện bằng ảnh", description: "Ảnh trái + chữ phải, phù hợp câu chuyện thương hiệu hoặc dự án.", group: "Văn bản & hình ảnh" },
+];
 const blockOptions: ReadonlyArray<{ value: BlockType; label: string; description: string; group: (typeof blockGroups)[number] | ""; legacy?: boolean }> = [
   { value: "hero", label: "Phần đầu trang", description: "Tiêu đề lớn và nút; 5 kiểu: chữ – ảnh, ảnh nền tràn màn hình, trượt nhiều ảnh…", group: "Mở đầu" },
   { value: "media_text", label: "Ảnh + chữ", description: "Ảnh một bên, tiêu đề, mô tả, danh sách ✓ và nút bên kia. Xếp nhiều khối xen kẽ trái/phải.", group: "Giới thiệu" },
@@ -122,6 +177,31 @@ function newBlock(type: BlockType): PageBlock {
   }
 }
 
+function typedNewBlock<Type extends BlockType>(type: Type) {
+  return newBlock(type) as Extract<PageBlock, { type: Type }>;
+}
+
+function libraryBlock(id: string): PageBlock {
+  switch (id) {
+    case "hero-background": { const block = typedNewBlock("hero"); return { ...block, data: { ...block.data, layout: "background", tone: "dark" } }; }
+    case "hero-centered": { const block = typedNewBlock("hero"); return { ...block, data: { ...block.data, layout: "centered" } }; }
+    case "media-right": { const block = typedNewBlock("media_text"); return { ...block, data: { ...block.data, layout: "image_right" } }; }
+    case "media-left":
+    case "media-story": { const block = typedNewBlock("media_text"); return { ...block, data: { ...block.data, layout: "image_left" } }; }
+    case "features-compact": { const block = newBlock("features"); return block.type === "features" ? { ...block, data: { ...block.data, cardStyle: "compact" } } : block; }
+    case "features-visual": { const block = newBlock("features"); return block.type === "features" ? { ...block, data: { ...block.data, cardStyle: "visual" } } : block; }
+    case "collection-software": { const block = typedNewBlock("collection_list"); return { ...block, data: { ...block.data, source: "software", title: "Phần mềm nổi bật" } }; }
+    case "collection-solution": { const block = typedNewBlock("collection_list"); return { ...block, data: { ...block.data, source: "solution", title: "Giải pháp nổi bật" } }; }
+    case "partners": { const block = typedNewBlock("partners"); return { ...block, data: { ...block.data, kind: "partner", title: "Đối tác" } }; }
+    case "customers": { const block = typedNewBlock("partners"); return { ...block, data: { ...block.data, kind: "customer", title: "Khách hàng" } }; }
+    case "cta-trial": { const block = typedNewBlock("cta"); return { ...block, data: { ...block.data, title: "Sẵn sàng dùng thử?", action: { label: "Đăng ký dùng thử", href: settingLinkHref("trial") } } }; }
+    default: {
+      const option = libraryBlockOptions.find((item) => item.id === id);
+      return newBlock(option?.type ?? "rich_text");
+    }
+  }
+}
+
 function changePosition<T>(items: T[], index: number, direction: -1 | 1) {
   const target = index + direction;
   if (target < 0 || target >= items.length) return items;
@@ -143,19 +223,19 @@ function NumberField({ label, value, onChange, max }: { label: string; value: nu
 }
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
-  return <fieldset className="admin-block-group"><legend>{title}</legend>{children}</fieldset>;
+  return <fieldset className="admin-block-group" data-builder-collection={title}><legend>{title}</legend>{children}</fieldset>;
 }
 
 /**
- * Một mục trong danh sách lặp (ảnh, khối, thẻ, gói, nhóm…): không khung thẻ lồng trong thẻ. Dòng đầu có số thứ tự, tên loại
- * và tóm tắt (tiêu đề, tên tệp…) để phân biệt nhanh, nút lên/xuống/xóa dạng biểu tượng; nội dung bên dưới có vạch dọc bên trái.
+ * Một mục trong danh sách lặp (ảnh, khối, thẻ, gói, nhóm…). Dòng đầu có số thứ tự, tên loại
+ * để phân biệt nhanh; nội dung nhập chỉ xuất hiện trong trường chỉnh sửa, không lặp trong tiêu đề.
  */
-function ListItem({ noun, number, summary, index, length, onMove, onDelete, children }: { noun: string; number?: number; summary?: string | null; index: number; length: number; onMove?: (direction: -1 | 1) => void; onDelete?: () => void; children: ReactNode }) {
+function ListItem({ noun, number, index, length, onMove, onDelete, children }: { noun: string; number?: number; summary?: string | null; index: number; length: number; onMove?: (direction: -1 | 1) => void; onDelete?: () => void; children: ReactNode }) {
   const order = number ?? index + 1;
-  return <section aria-label={`${noun} ${order}`} className="admin-list-item">
+  return <section aria-label={`${noun} ${order}`} className="admin-list-item" data-builder-item={index}>
     <div className="admin-list-item__head">
       <span aria-hidden="true" className="admin-list-item__index">{order}</span>
-      <span className="admin-list-item__title"><strong>{noun}</strong>{summary?.trim() ? <small>{summary}</small> : null}</span>
+      <span className="admin-list-item__title"><strong>{noun}</strong></span>
       {onMove && onDelete ? <AdminListRowControls index={index} label={`${noun.toLowerCase()} ${order}`} length={length} onMove={onMove} onRemove={onDelete} /> : null}
     </div>
     {children}
@@ -286,23 +366,33 @@ function HeroImagesFields({ data, set, disabled, onUploadingChange }: { data: He
 
 type HeroPanel = HeroBlock["data"]["panels"][number];
 const maxHeroPanels = 7;
+function HeroHighlightsFields({ title, items, onChange }: { title: string; items: HeroBlock["data"]["highlights"]; onChange: (items: HeroBlock["data"]["highlights"]) => void }) {
+  return <Section title={title}>
+    <p className="admin-help">Tối đa 4 điểm nổi bật. Mỗi điểm có một dòng chính và dòng phụ tùy chọn.</p>
+    {items.map((item, index) => <ListItem index={index} key={index} length={items.length} noun="Điểm nổi bật" onDelete={() => onChange(items.filter((_, current) => current !== index))} onMove={direction => onChange(changePosition(items, index, direction))} summary={item.title}>
+      <div className="admin-form-grid"><Field label="Điểm nổi bật" value={item.title} onChange={title => onChange(items.map((entry, current) => current === index ? { ...entry, title } : entry))} /><NullableField label="Dòng phụ" value={item.note} onChange={note => onChange(items.map((entry, current) => current === index ? { ...entry, note } : entry))} /></div>
+    </ListItem>)}
+    <button disabled={items.length >= 4} type="button" onClick={() => onChange([...items, { title: "Điểm nổi bật mới", note: null }])}>Thêm điểm nổi bật</button>
+  </Section>;
+}
 // Khối nội dung trượt: khối 1 là các ô phía trên; mỗi khối thêm có chữ, nút và ảnh riêng, website trượt lần lượt.
 function HeroPanelsFields({ data, set, disabled, onUploadingChange }: { data: HeroBlock["data"]; set: (patch: Partial<HeroBlock["data"]>) => void; disabled?: boolean; onUploadingChange: (pending: boolean) => void }) {
   const panels = data.panels ?? [];
   const setPanel = (index: number, patch: Partial<HeroPanel>) => set({ panels: panels.map((panel, panelIndex) => panelIndex === index ? { ...panel, ...patch } : panel) });
   const imageLabel = data.layout === "background" ? "Ảnh nền của khối" : "Ảnh của khối";
-  return <Section title={`Các khối nội dung trượt (${panels.length + 1}/${maxHeroPanels + 1})`}>
-    <p className="admin-help">Khối 1 là nội dung ở trên. Thêm khối để phần đầu trang tự trượt cả chữ và ảnh (6 giây mỗi khối, có mũi tên và chấm). Điểm nổi bật và dòng ghi chú dùng chung cho mọi khối.</p>
+  return <Section title={`Các mục trượt bổ sung (${panels.length}/${maxHeroPanels})`}>
+    <p className="admin-help">Mục đầu tiên là nội dung chính phía trên. Các mục bổ sung bên dưới luân phiên cả chữ và ảnh (6 giây mỗi mục). Đây là nội dung con của Phần đầu trang; để thêm một phần mới vào trang, dùng Thêm thành phần ở cột bên phải.</p>
     {panels.map((panel, index) => <ListItem index={index} key={index} length={panels.length} noun="Khối" number={index + 2} onDelete={() => set({ panels: panels.filter((_, panelIndex) => panelIndex !== index) })} onMove={direction => set({ panels: changePosition(panels, index, direction) })} summary={panel.title}>
       <div className="admin-form-grid"><NullableField label="Dòng giới thiệu" value={panel.eyebrow} onChange={eyebrow => setPanel(index, { eyebrow })} /><Field label="Tiêu đề" value={panel.title} onChange={title => setPanel(index, { title })} /></div>
       {panel.title.trim() ? null : <p className="admin-help admin-text-warning">Khối chưa có tiêu đề sẽ bị bỏ khi lưu.</p>}
+      <MediaPicker disabled={disabled} label={imageLabel} onUploadingChange={onUploadingChange} preview value={panel.mediaId} onChange={mediaId => setPanel(index, { mediaId })} />
       <NullableField label="Mô tả" multiline value={panel.description} onChange={description => setPanel(index, { description })} />
+      <label className="admin-check"><input checked={panel.highlights === undefined} onChange={event => setPanel(index, { highlights: event.target.checked ? undefined : structuredClone(data.highlights) })} type="checkbox" />Dùng điểm nổi bật chung của phần đầu trang</label>
+      <HeroHighlightsFields title={`Điểm nổi bật của mục ${index + 2}`} items={panel.highlights ?? data.highlights} onChange={highlights => setPanel(index, { highlights })} />
       <ActionFields title="Nút chính" value={panel.primaryAction} onChange={primaryAction => setPanel(index, { primaryAction })} />
       <ActionFields title="Nút phụ" value={panel.secondaryAction} onChange={secondaryAction => setPanel(index, { secondaryAction })} />
-      <MediaPicker disabled={disabled} label={imageLabel} onUploadingChange={onUploadingChange} preview value={panel.mediaId} onChange={mediaId => setPanel(index, { mediaId })} />
-      
     </ListItem>)}
-    {panels.length < maxHeroPanels ? <button type="button" onClick={() => set({ panels: [...panels, { eyebrow: data.eyebrow, title: "Tiêu đề khối mới", description: null, primaryAction: data.primaryAction, secondaryAction: null, mediaId: null }] })}>Thêm khối nội dung</button> : null}
+    {panels.length < maxHeroPanels ? <button type="button" onClick={() => set({ panels: [...panels, { eyebrow: data.eyebrow, title: "Tiêu đề mục trượt mới", description: null, primaryAction: data.primaryAction, secondaryAction: null, mediaId: null, highlights: [] }] })}>Thêm mục trượt</button> : null}
   </Section>;
 }
 
@@ -312,28 +402,31 @@ function HeroFields({ block, onChange, disabled, onUploadingChange, part }: { bl
   const slider = data.layout === "slider";
   const layoutName = `hero-layout-${useId()}`;
   if (part === "media") return <>
+    <p className="admin-help">Bố cục này áp dụng chung cho các mục trượt. Chữ, ảnh và điểm nổi bật được sửa trong từng mục ở cây bên phải.</p>
     <LayoutPicker label="Kiểu bố cục" name={layoutName} onChange={layout => set({ layout })} options={heroLayoutOptions} value={data.layout} />
-    {slider ? null : <>
-      <HeroImagesFields data={data} disabled={disabled} onUploadingChange={onUploadingChange} set={set} />
-      <HeroPanelsFields data={data} disabled={disabled} onUploadingChange={onUploadingChange} set={set} />
-    </>}
-    {slider ? <HeroSlidesFields data={data} disabled={disabled} onUploadingChange={onUploadingChange} set={set} /> : null}
+    {slider ? <Field label="Tiêu đề (cho Google; trên website chỉ hiện chữ của từng ảnh)" value={data.title} onChange={title => set({ title })} /> : null}
+  </>;
+  if (slider) return <>
+    <NullableField label="Dòng giới thiệu" value={data.eyebrow} onChange={eyebrow => set({ eyebrow })} />
+    <Field label="Tiêu đề (cho Google; trên website chỉ hiện chữ của từng ảnh)" value={data.title} onChange={title => set({ title })} />
+    <HeroSlidesFields data={data} disabled={disabled} onUploadingChange={onUploadingChange} set={set} />
   </>;
   return <>
-    {slider ? <p className="admin-help">Kiểu “Trượt nhiều ảnh”: chữ và nút của từng ảnh sửa ở tab “Bố cục &amp; ảnh”.</p> : null}
-    <NullableField label="Dòng giới thiệu" value={data.eyebrow} onChange={eyebrow => set({ eyebrow })} />
-    <Field label={slider ? "Tiêu đề (cho Google; trên website chỉ hiện chữ của từng ảnh)" : "Tiêu đề"} value={data.title} onChange={title => set({ title })} />
-    {slider ? null : <>
+    <Section title="Mục trượt 1">
+      <NullableField label="Dòng giới thiệu" value={data.eyebrow} onChange={eyebrow => set({ eyebrow })} />
+      <Field label="Tiêu đề" value={data.title} onChange={title => set({ title })} />
+      <HeroImagesFields data={data} disabled={disabled} onUploadingChange={onUploadingChange} set={set} />
       <NullableField label="Mô tả" multiline value={data.description} onChange={description => set({ description })} />
-      <Section title="Điểm nổi bật (tối đa 4; 3 ý vừa một hàng, hiện có dấu ✓ dưới mô tả)">{data.highlights.map((item, index) => <ListItem index={index} key={index} length={data.highlights.length} noun="Điểm nổi bật" onDelete={() => set({ highlights: data.highlights.filter((_, entryIndex) => entryIndex !== index) })} onMove={direction => set({ highlights: changePosition(data.highlights, index, direction) })} summary={item.title}><div className="admin-form-grid"><Field label="Điểm nổi bật" value={item.title} onChange={title => set({ highlights: data.highlights.map((entry, entryIndex) => entryIndex === index ? { ...entry, title } : entry) })} /><NullableField label="Dòng phụ" value={item.note} onChange={note => set({ highlights: data.highlights.map((entry, entryIndex) => entryIndex === index ? { ...entry, note } : entry) })} /></div></ListItem>)}{data.highlights.length < 4 ? <button type="button" onClick={() => set({ highlights: [...data.highlights, { title: "Dễ sử dụng", note: null }] })}>Thêm điểm nổi bật</button> : null}</Section>
+      <HeroHighlightsFields title="Điểm nổi bật của mục 1" items={data.highlights} onChange={highlights => set({ highlights })} />
       <ActionFields title="Nút chính" value={data.primaryAction} onChange={primaryAction => set({ primaryAction })} />
       <ActionFields title="Nút phụ" value={data.secondaryAction} onChange={secondaryAction => set({ secondaryAction })} />
       <NullableField label="Dòng ghi chú dưới nút (ví dụ: Dùng thử miễn phí 15 ngày)" value={data.footnote} onChange={footnote => set({ footnote })} />
-    </>}
+    </Section>
+    <HeroPanelsFields data={data} disabled={disabled} onUploadingChange={onUploadingChange} set={set} />
   </>;
 }
 
-// Các ảnh trượt của phần đầu trang kiểu "Trượt nhiều ảnh" (tab Bố cục & ảnh).
+// Các ảnh trượt, chữ và nút của từng mục thuộc tab Nội dung.
 function HeroSlidesFields({ data, set, disabled, onUploadingChange }: { data: HeroBlock["data"]; set: (patch: Partial<HeroBlock["data"]>) => void; disabled?: boolean; onUploadingChange: (pending: boolean) => void }) {
   const slides = data.slides;
   const setSlide = (index: number, patch: Partial<HeroBlock["data"]["slides"][number]>) => set({ slides: slides.map((slide, slideIndex) => slideIndex === index ? { ...slide, ...patch } : slide) });
@@ -354,15 +447,15 @@ function HeroSlidesFields({ data, set, disabled, onUploadingChange }: { data: He
 
 type MediaTextBlock = Extract<PageBlock, { type: "media_text" }>;
 const mediaTextLayoutOptions: ReadonlyArray<LayoutOption<MediaTextBlock["data"]["layout"]>> = [
-  { value: "image_right", label: "Chữ trái, ảnh phải", hint: "Đặt nhiều khối liền nhau và đổi xen kẽ trái/phải để trang có nhịp.", preview: heroLayoutPreviews.split },
-  { value: "image_left", label: "Ảnh trái, chữ phải", hint: "Đặt nhiều khối liền nhau và đổi xen kẽ trái/phải để trang có nhịp.", preview: heroLayoutPreviews.split_reverse },
+  { value: "image_right", label: "Chữ trái · ảnh phải", hint: "Phần chữ nằm bên trái, ảnh nằm bên phải.", preview: heroLayoutPreviews.split },
+  { value: "image_left", label: "Ảnh trái · chữ phải", hint: "Ảnh nằm bên trái, phần chữ nằm bên phải.", preview: heroLayoutPreviews.split_reverse },
 ];
 
 function MediaTextFields({ block, onChange, disabled, onUploadingChange }: { block: MediaTextBlock; onChange: (block: PageBlock) => void; disabled?: boolean; onUploadingChange: (pending: boolean) => void }) {
   const data = block.data;
   const set = (patch: Partial<MediaTextBlock["data"]>) => onChange({ ...block, data: { ...data, ...patch } });
   return <>
-    <LayoutPicker label="Kiểu bố cục" name={`media-text-layout-${useId()}`} onChange={layout => set({ layout })} options={mediaTextLayoutOptions} value={data.layout} />
+
     <NullableField label="Dòng giới thiệu" value={data.eyebrow} onChange={eyebrow => set({ eyebrow })} />
     <Field label="Tiêu đề" value={data.title} onChange={title => set({ title })} />
     <NullableField label="Mô tả" multiline value={data.description} onChange={description => set({ description })} />
@@ -393,7 +486,7 @@ function PricingFields({ block, onChange }: { block: PricingBlock; onChange: (bl
       <div className="admin-form-grid"><Field label="Tên gói" value={plan.name} onChange={name => setPlan(index, { name })} /><NullableField label="Nhãn nổi bật (ví dụ: Phổ biến)" value={plan.badge} onChange={badge => setPlan(index, { badge })} /></div>
       <div className="admin-form-grid"><Field label="Giá (ví dụ: 199.000đ hoặc Liên hệ)" value={plan.price} onChange={price => setPlan(index, { price })} /><NullableField label="Đơn vị (ví dụ: /tháng)" value={plan.period} onChange={period => setPlan(index, { period })} /></div>
       <NullableField label="Mô tả ngắn" value={plan.description} onChange={description => setPlan(index, { description })} />
-      <div className="admin-field"><span>Tính năng của gói</span><AdminListEditor addLabel="Thêm tính năng" itemLabel={`Tính năng gói ${index + 1}`} items={plan.features} maxItems={20} maxLength={200} onChange={features => setPlan(index, { features })} placeholder="Ví dụ: Không giới hạn đơn hàng" /></div>
+      <Section title={`Tính năng của gói ${index + 1}`}><AdminListEditor addLabel="Thêm tính năng" itemLabel={`Tính năng gói ${index + 1}`} items={plan.features} maxItems={20} maxLength={200} onChange={features => setPlan(index, { features })} placeholder="Ví dụ: Không giới hạn đơn hàng" /></Section>
       <ActionFields title="Nút của gói" value={plan.action} onChange={action => setPlan(index, { action })} />
       <CardColor onChange={background => setPlan(index, { background })} value={plan.background} />
       <label className="admin-check"><input checked={plan.highlighted} onChange={event => set({ plans: data.plans.map((entry, planIndex) => ({ ...entry, highlighted: planIndex === index ? event.target.checked : false })) })} type="checkbox" />Gói nổi bật (làm to, viền màu)</label>
@@ -428,7 +521,7 @@ function GroupedListFields({ block, onChange }: { block: GroupedListBlock; onCha
           {group.items.map((item, itemIndex) => {
             const setItems = (items: GroupedListGroup["items"]) => setGroup(index, { items });
             const label = `mục ${itemIndex + 1} của nhóm ${index + 1}`;
-            return <div className="admin-grouped-row" key={itemIndex}>
+            return <div className="admin-grouped-row" key={itemIndex} data-builder-item={itemIndex}>
               <IconPicker label={`Biểu tượng ${label}`} onChange={icon => setItems(group.items.map((entry, entryIndex) => entryIndex === itemIndex ? { ...entry, icon } : entry))} value={item.icon} />
               <input aria-label={`Tên ${label}`} className="admin-input" maxLength={120} onChange={event => setItems(group.items.map((entry, entryIndex) => entryIndex === itemIndex ? { ...entry, label: event.target.value } : entry))} placeholder="Ví dụ: Thời trang" value={item.label} />
               <input aria-label={`Đường dẫn ${label}`} className="admin-input admin-grouped-row__href" maxLength={1000} onChange={event => setItems(group.items.map((entry, entryIndex) => entryIndex === itemIndex ? { ...entry, href: event.target.value || null } : entry))} placeholder="Đường dẫn (tùy chọn)" value={item.href ?? ""} />
@@ -480,9 +573,9 @@ function BlockFields({ block, onChange, disabled, onUploadingChange }: { block: 
     case "features":
     case "industries":
     case "ecosystem":
-    case "process": return <><NullableField label="Dòng giới thiệu" value={block.data.eyebrow} onChange={eyebrow => onChange({ ...block, data: { ...block.data, eyebrow } })} /><Field label="Tiêu đề" value={block.data.title} onChange={title => onChange({ ...block, data: { ...block.data, title } })} /><NullableField label="Mô tả" multiline value={block.data.description} onChange={description => onChange({ ...block, data: { ...block.data, description } })} />{block.type !== "process" ? <CardStyleField block={block} onChange={onChange} /> : null}{block.type === "industries" || block.type === "ecosystem" ? <div className="flex flex-wrap items-center gap-3"><p className="admin-help m-0">Thành phần cũ, hiển thị giống “Lưới thẻ”.</p><button type="button" onClick={() => onChange({ ...block, type: "features" })}>Chuyển thành Lưới thẻ</button></div> : null}<CardItemsEditor bento={block.type !== "process" && block.data.cardStyle === "bento"} items={block.data.items} onChange={items => onChange({ ...block, data: { ...block.data, items } })} showIcons={block.type !== "process"} disabled={disabled} onUploadingChange={onUploadingChange} /></>;
+    case "process": return <><NullableField label="Dòng giới thiệu" value={block.data.eyebrow} onChange={eyebrow => onChange({ ...block, data: { ...block.data, eyebrow } })} /><Field label="Tiêu đề" value={block.data.title} onChange={title => onChange({ ...block, data: { ...block.data, title } })} /><NullableField label="Mô tả" multiline value={block.data.description} onChange={description => onChange({ ...block, data: { ...block.data, description } })} />{block.type === "industries" || block.type === "ecosystem" ? <div className="flex flex-wrap items-center gap-3"><p className="admin-help m-0">Thành phần cũ, hiển thị giống “Lưới thẻ”.</p><button type="button" onClick={() => onChange({ ...block, type: "features" })}>Chuyển thành Lưới thẻ</button></div> : null}<CardItemsEditor bento={block.type !== "process" && block.data.cardStyle === "bento"} items={block.data.items} onChange={items => onChange({ ...block, data: { ...block.data, items } })} showIcons={block.type !== "process"} disabled={disabled} onUploadingChange={onUploadingChange} /></>;
     case "testimonials": return <><NullableField label="Dòng giới thiệu" value={block.data.eyebrow} onChange={eyebrow => onChange({ ...block, data: { ...block.data, eyebrow } })} /><Field label="Tiêu đề" value={block.data.title} onChange={title => onChange({ ...block, data: { ...block.data, title } })} /><NumberField label="Số lượng hiển thị" value={block.data.limit} max={30} onChange={limit => onChange({ ...block, data: { ...block.data, limit } })} /></>;
-    case "partners": return <><NullableField label="Dòng giới thiệu" value={block.data.eyebrow} onChange={eyebrow => onChange({ ...block, data: { ...block.data, eyebrow } })} /><Field label="Tiêu đề" value={block.data.title} onChange={title => onChange({ ...block, data: { ...block.data, title } })} /><label className="admin-field">Nhóm hiển thị<select value={block.data.kind} onChange={event => onChange({ ...block, data: { ...block.data, kind: event.target.value as typeof block.data.kind } })}><option value="all">Tất cả</option><option value="partner">Đối tác</option><option value="customer">Khách hàng</option></select></label><NumberField label="Số lượng hiển thị" value={block.data.limit} max={60} onChange={limit => onChange({ ...block, data: { ...block.data, limit } })} /></>;
+    case "partners": return <><NullableField label="Dòng giới thiệu" value={block.data.eyebrow} onChange={eyebrow => onChange({ ...block, data: { ...block.data, eyebrow } })} /><Field label="Tiêu đề" value={block.data.title} onChange={title => onChange({ ...block, data: { ...block.data, title } })} /><NullableField label="Mô tả" multiline value={block.data.description ?? null} onChange={description => onChange({ ...block, data: { ...block.data, description } })} /><p className="admin-help">Logo, tên và liên kết lấy từ mục Đối tác &amp; Đánh giá. Chỉ các mục đang hiển thị mới xuất hiện trên trang chủ.</p><label className="admin-field">Nhóm hiển thị<select value={block.data.kind} onChange={event => onChange({ ...block, data: { ...block.data, kind: event.target.value as typeof block.data.kind } })}><option value="all">Tất cả</option><option value="partner">Đối tác</option><option value="customer">Khách hàng</option></select></label><NumberField label="Số lượng hiển thị" value={block.data.limit} max={60} onChange={limit => onChange({ ...block, data: { ...block.data, limit } })} /></>;
     case "featured_posts": return <><NullableField label="Dòng giới thiệu" value={block.data.eyebrow} onChange={eyebrow => onChange({ ...block, data: { ...block.data, eyebrow } })} /><Field label="Tiêu đề" value={block.data.title} onChange={title => onChange({ ...block, data: { ...block.data, title } })} /><NumberField label="Số bài viết hiển thị" value={block.data.limit} max={12} onChange={limit => onChange({ ...block, data: { ...block.data, limit } })} /></>;
     case "faq": return <><NullableField label="Dòng giới thiệu" value={block.data.eyebrow} onChange={eyebrow => onChange({ ...block, data: { ...block.data, eyebrow } })} /><Field label="Tiêu đề" value={block.data.title} onChange={title => onChange({ ...block, data: { ...block.data, title } })} /><Section title="Câu hỏi và trả lời">{block.data.items.map((item, index) => <ListItem index={index} key={index} length={block.data.items.length} noun="Câu hỏi" onDelete={() => onChange({ ...block, data: { ...block.data, items: block.data.items.filter((_, itemIndex) => itemIndex !== index) } })} onMove={direction => onChange({ ...block, data: { ...block.data, items: changePosition(block.data.items, index, direction) } })} summary={item.question}><Field label="Câu hỏi" value={item.question} onChange={question => onChange({ ...block, data: { ...block.data, items: block.data.items.map((entry, itemIndex) => itemIndex === index ? { ...entry, question } : entry) } })} /><Field label="Trả lời" multiline value={item.answer} onChange={answer => onChange({ ...block, data: { ...block.data, items: block.data.items.map((entry, itemIndex) => itemIndex === index ? { ...entry, answer } : entry) } })} /></ListItem>)}<button type="button" onClick={() => onChange({ ...block, data: { ...block.data, items: [...block.data.items, { question: "Câu hỏi mới", answer: "Nội dung trả lời" }] } })}>Thêm câu hỏi</button></Section></>;
     case "cta": return <><NullableField label="Dòng giới thiệu" value={block.data.eyebrow} onChange={eyebrow => onChange({ ...block, data: { ...block.data, eyebrow } })} /><Field label="Tiêu đề" value={block.data.title} onChange={title => onChange({ ...block, data: { ...block.data, title } })} /><ActionFields title="Nút hành động" value={block.data.action} optional={false} onChange={action => action && onChange({ ...block, data: { ...block.data, action } })} /></>;
@@ -502,13 +595,20 @@ function BlockFields({ block, onChange, disabled, onUploadingChange }: { block: 
   }
 }
 
-type PageBlocksEditorProps = {
+export type PageBlocksEditorProps = {
   blocks: PageBlock[];
   onChange: (blocks: PageBlock[]) => void;
   disabled?: boolean;
+  readOnly?: boolean;
   onUploadingChange?: (pending: boolean) => void;
   /** Trang danh sách: phần đầu trang cố định ở vị trí đầu, chỉ thêm được khối phục vụ danh sách. */
   listing?: boolean;
+  /** Trang tự tạo: hiện các nhóm thành phần ngay trong form để bắt đầu bố cục nhanh hơn. */
+  showGroupPicker?: boolean;
+  /** Giới hạn loại thành phần theo nơi dùng, ví dụ trang chi tiết không thêm phần đầu trang thứ hai. */
+  allowedTypes?: readonly BlockType[];
+  layout?: "accordion" | "split" | "builder";
+  preview?: ReactNode;
   /** Thành phần đang mở do màn cha giữ (để thẻ "Bố cục trang" mở/nhảy tới); bỏ trống thì tự giữ. */
   openIndex?: number | null;
   onOpenIndexChange?: (index: number | null) => void;
@@ -519,55 +619,119 @@ type BlockTab = "content" | "media" | "appearance";
  * Thân thành phần đang mở, chia tab cho form ngắn lại: Nội dung | (phần đầu trang) Bố cục & ảnh | Giao diện.
  * Tab chưa mở không nằm trong form (không bị chặn lưu bởi ô ẩn). Đang tải ảnh thì khóa đổi tab để không mất upload dở.
  */
-function BlockBody({ block, disabled, onChange, onUploadingChange }: { block: PageBlock; disabled?: boolean; onChange: (block: PageBlock) => void; onUploadingChange: (key: string, pending: boolean) => void }) {
-  const [tab, setTab] = useState<BlockTab>("content");
+function BlockLayoutFields({ block, disabled, onChange, onUploadingChange }: { block: PageBlock; disabled?: boolean; onChange: (block: PageBlock) => void; onUploadingChange: (pending: boolean) => void }) {
+  const id = useId();
+  if (block.type === "hero") return <><HeroFields block={block} disabled={disabled} onChange={onChange} onUploadingChange={onUploadingChange} part="media" />{block.data.layout !== "slider" ? <HeroToneField block={block} disabled={disabled} onChange={onChange} /> : null}</>;
+  if (block.type === "media_text") return <LayoutPicker label="Kiểu bố cục" name={id} options={mediaTextLayoutOptions} value={block.data.layout} onChange={layout => onChange({ ...block, data: { ...block.data, layout } })} />;
+  if (block.type === "features" || block.type === "industries" || block.type === "ecosystem") return <CardStyleField block={block} onChange={onChange} />;
+  return null;
+}
+
+const componentSettingsSelection: BuilderItemSelection = { path: "component.settings", index: 0, heading: "", tab: "content" };
+const heroLayoutSelection: BuilderItemSelection = { path: "hero.layout", index: 0, heading: "", tab: "media" };
+function BlockBody({ block, disabled, onChange, onUploadingChange, itemSelection }: { itemSelection?: BuilderItemSelection | null; block: PageBlock; disabled?: boolean; onChange: (block: PageBlock) => void; onUploadingChange: (key: string, pending: boolean) => void }) {
+  const [activeTab, setTab] = useState<BlockTab>("content");
+  const commonLayout = itemSelection?.path === "hero.layout";
+  const commonSettings = itemSelection?.path === "component.settings";
+  const tab = commonLayout ? "media" : commonSettings ? activeTab : itemSelection?.tab ?? activeTab;
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const collectionHeadings = JSON.stringify(builderItemCollections(block).map(collection => collection.heading));
+  useEffect(() => {
+    const body = bodyRef.current;
+    if (!body) return;
+    const reset = () => { body.classList.remove("admin-builder-editing-item"); body.querySelectorAll<HTMLElement>("[data-builder-filtered]").forEach(element => { element.hidden = false; element.removeAttribute("data-builder-filtered"); }); body.querySelectorAll<HTMLElement>("[data-builder-active-collection], [data-builder-item]").forEach(element => { element.removeAttribute("data-builder-active-collection"); element.hidden = false; }); };
+    reset();
+    if (commonSettings && tab === "content") {
+      const headings = JSON.parse(collectionHeadings) as string[];
+      body.querySelectorAll<HTMLElement>("[data-builder-collection]").forEach(element => {
+        if (headings.some(heading => element.dataset.builderCollection?.startsWith(heading))) { element.hidden = true; element.dataset.builderFiltered = "true"; }
+      });
+      return reset;
+    }
+    if (!itemSelection || commonSettings || itemSelection.path === "hero.layout") return;
+    const animation = requestAnimationFrame(() => {
+      const collection = Array.from(body.querySelectorAll<HTMLElement>("[data-builder-collection]")).find(element => element.dataset.builderCollection?.startsWith(itemSelection.heading));
+      if (!collection) return;
+      const group = itemSelection.parentIndex === undefined ? collection : collection.querySelector<HTMLElement>(`:scope > [data-builder-item="${itemSelection.parentIndex}"]`);
+      const target = itemSelection.path === "hero.primary" ? collection : group?.querySelector<HTMLElement>(`:scope > [data-builder-item="${itemSelection.index}"]`) ?? group?.querySelector<HTMLElement>(`[data-builder-item="${itemSelection.index}"]`);
+      if (!target) return;
+      const panel = body.querySelector(".admin-block-tabs__panel");
+      let top: HTMLElement = target;
+      while (top.parentElement && top.parentElement !== panel) top = top.parentElement;
+      top.setAttribute("data-builder-active-collection", "true");
+      body.classList.add("admin-builder-editing-item");
+      body.querySelectorAll<HTMLElement>("[data-builder-item]").forEach(element => { element.hidden = element !== target && !element.contains(target) && !target.contains(element); });
+      let branch: HTMLElement = target;
+      while (branch.parentElement && branch.parentElement !== panel) {
+        for (const sibling of Array.from(branch.parentElement.children)) {
+          if (sibling instanceof HTMLElement && sibling !== branch && sibling.tagName !== "LEGEND" && !sibling.classList.contains("admin-list-item__head")) { sibling.hidden = true; sibling.dataset.builderFiltered = "true"; }
+        }
+        branch = branch.parentElement;
+      }
+      if (itemSelection.focus !== false) target.querySelector<HTMLElement>("input:not(:disabled),textarea:not(:disabled),select:not(:disabled)")?.focus();
+    });
+    return () => { cancelAnimationFrame(animation); reset(); };
+  }, [itemSelection, tab, commonSettings, collectionHeadings]);
   const [uploading, setUploading] = useState(0);
   const id = useId();
   const hero = block.type === "hero" ? block : null;
-  const tabs: Array<[BlockTab, string]> = hero ? [["content", "Nội dung"], ["media", "Bố cục & ảnh"], ["appearance", "Giao diện"]] : [["content", "Nội dung"], ["appearance", "Giao diện"]];
+  const tabs: Array<[BlockTab, string]> = commonLayout ? [["media", "Bố cục chung"]] : itemSelection && !commonSettings ? [["content", "Nội dung"]] : hero ? [["content", "Nội dung"], ["media", "Bố cục chung"]] : [["content", commonSettings ? "Thông tin chung" : "Nội dung"], ["appearance", "Bố cục chung"]];
   const track = (key: string) => (pending: boolean) => { setUploading((count) => Math.max(0, count + (pending ? 1 : -1))); onUploadingChange(key, pending); };
-  return <div className="admin-block__body">
-    <div aria-label="Nhóm thiết lập của thành phần" className="admin-block-tabs" role="tablist">{tabs.map(([key, label]) => <button aria-controls={`${id}-panel`} aria-selected={tab === key} className="admin-block-tabs__tab" disabled={Boolean(uploading) && tab !== key} id={`${id}-${key}`} key={key} onClick={() => setTab(key)} role="tab" title={uploading && tab !== key ? "Đang tải ảnh, đợi xong rồi chuyển tab" : undefined} type="button">{label}</button>)}</div>
-    <div aria-labelledby={`${id}-${tab}`} className="admin-block-tabs__panel" id={`${id}-panel`} role="tabpanel">
+  return <div className="admin-block__body" ref={bodyRef}>
+    <div aria-label="Nhóm thiết lập của thành phần" className="admin-block-tabs" role="tablist">{tabs.map(([key, label]) => <button aria-controls={`${id}-panel`} aria-selected={tab === key} className="admin-block-tabs__tab" disabled={Boolean(uploading || (itemSelection && !commonLayout && !commonSettings)) && tab !== key} id={`${id}-${key}`} key={key} onClick={() => setTab(key)} role="tab" title={uploading && tab !== key ? "Đang tải ảnh, đợi xong rồi chuyển tab" : undefined} type="button">{label}</button>)}</div>
+    <fieldset disabled={disabled} aria-labelledby={`${id}-${tab}`} className="admin-block-tabs__panel" id={`${id}-panel`} role="tabpanel">
       {tab === "content" ? <BlockFields block={block} disabled={disabled} onUploadingChange={track("content")} onChange={onChange} /> : null}
-      {tab === "media" && hero ? <HeroFields block={hero} disabled={disabled} onChange={onChange} onUploadingChange={track("media")} part="media" /> : null}
-      {tab === "appearance" ? <>
-        {hero ? <HeroToneField block={hero} disabled={disabled} onChange={onChange} /> : null}
+      {tab === "media" || tab === "appearance" ? <>
+        <BlockLayoutFields block={block} disabled={disabled} onChange={onChange} onUploadingChange={track("appearance")} />
         <BlockAppearanceFields block={block} disabled={disabled} onChange={onChange} onUploadingChange={track("appearance")} />
       </> : null}
-    </div>
+    </fieldset>
   </div>;
 }
 
-export function PageBlocksEditor({ blocks, onChange, disabled, onUploadingChange, listing = false, openIndex: openIndexProp, onOpenIndexChange }: PageBlocksEditorProps) {
+export function PageBlocksEditor({ blocks, onChange, disabled, onUploadingChange, listing = false, showGroupPicker = false, readOnly = false, allowedTypes, layout = "accordion", preview, openIndex: openIndexProp, onOpenIndexChange }: PageBlocksEditorProps) {
+  const locked = disabled || readOnly;
   const uploads = useRef(new Set<string>());
+  const blockList = useRef<HTMLOListElement>(null);
+  const [itemSelection, setItemSelection] = useState<{ section: number; item: BuilderItemSelection } | null>(null);
   const { confirm } = useAdminConfirm();
   const [internalOpen, setInternalOpen] = useState<number | null>(blocks.length ? 0 : null);
   const controlled = openIndexProp !== undefined;
-  const openIndex = controlled ? openIndexProp : internalOpen;
+  const requestedIndex = controlled ? openIndexProp : internalOpen;
+  const openIndex = layout !== "accordion" && blocks.length ? Math.min(requestedIndex ?? 0, blocks.length - 1) : requestedIndex;
   const setOpenIndex = (next: number | null | ((current: number | null) => number | null)) => {
+    setItemSelection(null);
     const value = typeof next === "function" ? next(openIndex) : next;
     if (controlled) onOpenIndexChange?.(value); else setInternalOpen(value);
   };
   const pinnedHero = listing && blocks[0]?.type === "hero";
   const hasHero = blocks.some((block) => block.type === "hero");
-  const libraryItems = blockOptions.filter((option) => !option.legacy && option.group && (!listing || option.value === "hero" || listingBlockTypes.has(option.value))).map((option) => ({ value: option.value, label: option.label, description: option.description, group: option.group, disabledReason: option.value === "hero" && hasHero ? "Trang đã có phần đầu trang." : undefined }));
+  const canAddType = (type: BlockType) => (!allowedTypes || allowedTypes.includes(type)) && (!listing || type === "hero" || listingBlockTypes.has(type));
+  const presets = pageBlockPresets.filter((preset) => preset.types.some(canAddType));
+  const libraryItems = libraryBlockOptions.filter((option) => canAddType(option.type)).map((option) => ({ value: option.id, label: option.label, description: option.description, group: option.group, thumbnail: option.id, disabledReason: option.type === "hero" && hasHero ? "Trang đã có phần đầu trang." : undefined }));
 
   function reportUploading(key: string, pending: boolean) {
     if (pending) uploads.current.add(key);
     else uploads.current.delete(key);
     onUploadingChange?.(uploads.current.size > 0);
   }
-  function update(index: number, block: PageBlock) { onChange(blocks.map((item, itemIndex) => itemIndex === index ? block : item)); }
+  function update(index: number, block: PageBlock) {
+    // Form khóa trong lúc tải ảnh; vẫn nhận kết quả tải của đúng thành phần đang chờ.
+    const attachingUpload = Array.from(uploads.current).some(key => key.startsWith(`${index}:`));
+    if (readOnly || (disabled && !attachingUpload)) return;
+    onChange(blocks.map((item, itemIndex) => itemIndex === index ? block : item));
+  }
   function move(index: number, direction: -1 | 1) {
-    if (uploads.current.size) return;
     const target = index + direction;
+    if (locked || uploads.current.size || target < 0 || target >= blocks.length || (pinnedHero && (index === 0 || target === 0))) return;
     onChange(changePosition(blocks, index, direction));
     setOpenIndex((current) => current === index ? target : current === target ? index : current);
+    requestAnimationFrame(() => blockList.current?.children[target]?.querySelector<HTMLElement>("[data-drag-handle]")?.focus());
   }
   // Kéo thả: khối mở đang chỉnh vẫn mở sau khi đổi chỗ; khối mở đầu cố định không kéo và không thả lên trước nó.
   const drag = useDragReorder({
-    canDrag: (index) => !disabled && !(pinnedHero && index === 0),
+    touch: true,
+    canDrag: (index) => !locked && !(pinnedHero && index === 0),
     canDropOn: (_from, target, position) => !(pinnedHero && target === 0 && position === "before"),
     onDrop: (from, target, position) => {
       if (uploads.current.size) return;
@@ -588,23 +752,49 @@ export function PageBlocksEditor({ blocks, onChange, disabled, onUploadingChange
     onChange([...blocks.slice(0, index + 1), duplicateBlock(blocks[index]), ...blocks.slice(index + 1)]);
     setOpenIndex(index + 1);
   }
-  function add(type: BlockType) {
+  function addLibraryItem(id: string) {
     if (uploads.current.size) return;
-    const next = type === "hero" ? [newBlock(type), ...blocks] : [...blocks, newBlock(type)];
+    const option = libraryBlockOptions.find((item) => item.id === id);
+    if (!option || !canAddType(option.type)) return;
+    const block = libraryBlock(id);
+    const next = option.type === "hero" ? [block, ...blocks] : [...blocks, block];
     onChange(next);
-    setOpenIndex(type === "hero" ? 0 : next.length - 1);
+    setOpenIndex(option.type === "hero" ? 0 : next.length - 1);
+  }
+  function addPreset(preset: PageBlockPreset) {
+    if (uploads.current.size) return;
+    const types = preset.types.filter((type) => canAddType(type) && (type !== "hero" || !hasHero));
+    const hero = types.includes("hero") ? newBlock("hero") : null;
+    const rest = types.filter((type) => type !== "hero").map((type) => newBlock(type));
+    const next = hero ? [hero, ...blocks, ...rest] : [...blocks, ...rest];
+    onChange(next);
+    setOpenIndex(hero ? 0 : blocks.length);
   }
 
-  return <section className="admin-blocks">
-    <ol className="admin-blocks__list">
+  function renderActions(block: PageBlock, index: number) {
+    const pinned = pinnedHero && index === 0;
+    return <div className="admin-block__actions">
+              <button aria-label={block.isEnabled ? `Ẩn ${blockLabel(block.type)}` : `Hiện ${blockLabel(block.type)}`} aria-pressed={!block.isEnabled} className="admin-content-actions__button" disabled={locked || pinned} onClick={() => update(index, { ...block, isEnabled: !block.isEnabled })} title={block.isEnabled ? "Ẩn khỏi website" : "Hiện trên website"} type="button">{block.isEnabled ? <Eye aria-hidden="true" /> : <EyeOff aria-hidden="true" />}</button>
+              <button aria-label={`Nhân bản ${blockLabel(block.type)}`} className="admin-content-actions__button" disabled={locked || block.type === "hero"} onClick={() => duplicate(index)} title={block.type === "hero" ? "Mỗi trang chỉ có một phần đầu trang" : "Nhân bản (chèn bản sao ngay dưới)"} type="button"><CopyPlus aria-hidden="true" /></button>
+              <button aria-label={`Xóa ${blockLabel(block.type)}`} className="admin-content-actions__button admin-content-actions__delete" disabled={locked || pinned} onClick={() => void remove(index)} title="Xóa thành phần" type="button"><Trash2 aria-hidden="true" /></button>
+            </div>;
+  }
+  const selectedBlock = openIndex === null ? undefined : blocks[openIndex];
+  return <section className={layout === "builder" ? "admin-blocks admin-blocks--split admin-blocks--builder" : layout === "split" ? "admin-blocks admin-blocks--split" : "admin-blocks"}>
+    <div className="admin-blocks__navigation">
+    {layout !== "accordion" ? <h3>Thành phần ({blocks.length})</h3> : null}
+    {showGroupPicker && layout !== "builder" && blocks.length === 0 ? <section aria-label="Mẫu bố cục nhanh" className="admin-page-presets">
+      <div className="admin-page-presets__heading"><strong>Bố cục nhanh</strong><small>Thêm sẵn một nhóm thành phần theo mục đích trang. Bạn có thể sửa, đổi thứ tự hoặc xóa từng phần sau đó.</small></div>
+      <div className="admin-page-presets__grid">{presets.map((preset) => <button disabled={locked} key={preset.id} onClick={() => addPreset(preset)} type="button"><strong>{preset.label}</strong><small>{preset.description}</small><span>{preset.types.filter((type) => canAddType(type) && (type !== "hero" || !hasHero)).length} thành phần</span></button>)}</div>
+    </section> : null}
+    <ol className="admin-blocks__list" ref={blockList}>
       {blocks.map((block, index) => {
         const pinned = pinnedHero && index === 0;
         const open = openIndex === index;
-        const lockedAbove = pinnedHero && index === 1;
         return <li className={open ? "admin-block admin-block--open" : "admin-block"} id={`page-block-${index}`} key={`${block.type}-${index}`} {...drag.itemProps(index)}>
           <div className="admin-block__head">
-            {pinned ? <span className="admin-drag-handle admin-drag-handle--disabled" /> : <span aria-hidden="true" className="admin-drag-handle" {...drag.handleProps(index)}><GripVertical size={15} /></span>}
-            <button aria-expanded={open} className="admin-block__toggle" onClick={() => setOpenIndex(open ? null : index)} type="button">
+            {pinned ? <span className="admin-drag-handle admin-drag-handle--disabled" /> : <button aria-label={`Sắp xếp ${blockLabel(block.type)} ${index + 1}`} className="admin-drag-handle" disabled={locked} {...drag.handleProps(index)} onKeyDown={event => { if (event.altKey && (event.key === "ArrowUp" || event.key === "ArrowDown")) { event.preventDefault(); move(index, event.key === "ArrowUp" ? -1 : 1); } }} title="Kéo để sắp xếp; bàn phím dùng Alt + phím lên/xuống" type="button"><GripVertical aria-hidden="true" size={15} /></button>}
+            <button aria-current={layout !== "accordion" && open ? "true" : undefined} aria-expanded={layout === "accordion" ? open : undefined} className="admin-block__toggle" onClick={() => setOpenIndex(layout !== "accordion" ? index : open ? null : index)} type="button">
               <ChevronRight aria-hidden="true" className="admin-block__chevron" size={16} />
               <span className="admin-block__index">{index + 1}</span>
               <strong>{blockLabel(block.type)}</strong>
@@ -613,19 +803,20 @@ export function PageBlocksEditor({ blocks, onChange, disabled, onUploadingChange
               {pinned ? <small>Cố định đầu trang</small> : null}
               {!block.isEnabled ? <AdminStatusBadge>Đang ẩn</AdminStatusBadge> : null}
             </button>
-            <div className="admin-block__actions">
-              <button aria-label={`Đưa ${blockLabel(block.type)} lên`} className="admin-content-actions__button" disabled={disabled || pinned || index === 0 || lockedAbove} onClick={() => move(index, -1)} title="Đưa lên" type="button"><ArrowUp aria-hidden="true" /></button>
-              <button aria-label={`Đưa ${blockLabel(block.type)} xuống`} className="admin-content-actions__button" disabled={disabled || pinned || index === blocks.length - 1} onClick={() => move(index, 1)} title="Đưa xuống" type="button"><ArrowDown aria-hidden="true" /></button>
-              <button aria-label={block.isEnabled ? `Ẩn ${blockLabel(block.type)}` : `Hiện ${blockLabel(block.type)}`} aria-pressed={!block.isEnabled} className="admin-content-actions__button" disabled={disabled || pinned} onClick={() => update(index, { ...block, isEnabled: !block.isEnabled })} title={block.isEnabled ? "Ẩn khỏi website" : "Hiện trên website"} type="button">{block.isEnabled ? <Eye aria-hidden="true" /> : <EyeOff aria-hidden="true" />}</button>
-              <button aria-label={`Nhân bản ${blockLabel(block.type)}`} className="admin-content-actions__button" disabled={disabled || block.type === "hero"} onClick={() => duplicate(index)} title={block.type === "hero" ? "Mỗi trang chỉ có một phần đầu trang" : "Nhân bản (chèn bản sao ngay dưới)"} type="button"><CopyPlus aria-hidden="true" /></button>
-              <button aria-label={`Xóa ${blockLabel(block.type)}`} className="admin-content-actions__button admin-content-actions__delete" disabled={disabled || pinned} onClick={() => void remove(index)} title="Xóa thành phần" type="button"><Trash2 aria-hidden="true" /></button>
-            </div>
+            {layout === "accordion" ? renderActions(block, index) : null}
           </div>
-          {open ? <BlockBody block={block} disabled={disabled} onChange={next => update(index, next)} onUploadingChange={(key, pending) => reportUploading(`${index}:${key}`, pending)} /> : null}
+          {open && layout === "builder" ? <BuilderItemsTree block={block} active={itemSelection?.section === index ? itemSelection.item : null} disabled={disabled} readOnly={readOnly} onChange={next => update(index, next)} onSelect={item => setItemSelection(item ? { section: index, item } : null)} /> : null}
+          {open && layout === "accordion" ? <BlockBody block={block} disabled={locked} onChange={next => update(index, next)} onUploadingChange={(key, pending) => reportUploading(`${index}:${key}`, pending)} /> : null}
         </li>;
       })}
     </ol>
     {blocks.length === 0 ? <p className="admin-help">Trang chưa có thành phần nào.</p> : null}
-    <BlockLibrary disabled={disabled} groups={blockGroups} items={libraryItems} onPick={add} />
+    <BlockLibrary disabled={locked} groups={blockGroups} items={libraryItems} onPick={addLibraryItem} showGroupPicker={showGroupPicker && layout !== "builder"} />
+    </div>
+    {preview}
+    {layout !== "accordion" ? <section aria-label="Chỉnh sửa thành phần" className="admin-blocks__detail">{selectedBlock && openIndex !== null ? <>
+      <header><h3>{blockLabel(selectedBlock.type)}</h3>{renderActions(selectedBlock, openIndex)}{itemSelection?.section === openIndex ? <button className="admin-link" onClick={() => setItemSelection(null)} type="button">Thuộc tính thành phần</button> : null}</header>
+      <BlockBody itemSelection={itemSelection?.section === openIndex ? itemSelection.item : selectedBlock.type === "hero" ? heroLayoutSelection : componentSettingsSelection} key={`${selectedBlock.type}-${openIndex}`} block={selectedBlock} disabled={locked} onChange={next => update(openIndex, next)} onUploadingChange={(key, pending) => reportUploading(`${openIndex}:${key}`, pending)} />
+    </> : <p className="admin-help">Thêm thành phần để bắt đầu nhập nội dung.</p>}</section> : null}
   </section>;
 }

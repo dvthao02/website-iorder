@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
-// Tab của màn "Trang tĩnh" → bộ lọc `kind` của Backend. "Tất cả" = mọi trang trừ Trang chủ (Trang chủ có mục riêng).
+// Tab của màn "Trang website" → bộ lọc `kind` của Backend. "Tất cả" = mọi trang trừ Trang chủ (Trang chủ có mục riêng).
 const kindOfType = { all: "static", standard: "standard", listing: "listing", custom: "custom" } as const;
 
 export default async function PagesManagerPage({ searchParams }: { searchParams: Promise<{ page?: string; pageSize?: string; query?: string; status?: string; sort?: string; dir?: string; type?: string }> }) {

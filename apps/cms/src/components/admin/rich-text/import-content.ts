@@ -145,7 +145,7 @@ export async function normalizeImportedHtml(html: string, uploadImage: UploadIma
     image.remove();
     dropped++;
   }
-  if (uploaded) warnings.push(`Đã tải ${uploaded} ảnh trong file vào Thư viện media.`);
+  if (uploaded) warnings.push(`Đã tải ${uploaded} ảnh trong file vào Thư viện hình ảnh & tệp.`);
   if (unsupported) warnings.push(`Bỏ ${unsupported} ảnh có định dạng chưa hỗ trợ (chỉ nhận PNG, JPEG, WebP).`);
   if (dropped) warnings.push(`Bỏ ${dropped} ảnh nằm ngoài website hoặc tải lên thất bại; hãy chèn lại bằng nút Ảnh.`);
   return { html: document.body.innerHTML, title, warnings };

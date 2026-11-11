@@ -149,7 +149,7 @@ export function CheckList({ items, className = "mt-7", dark = false }: { items: 
 
 // Câu hỏi thường gặp dạng mở/đóng (khối FAQ của trang và trang chi tiết sản phẩm dùng chung).
 export function FaqList({ items }: { items: { question: string; answer: string }[] }) {
-  return <div className="grid gap-3">{items.map((item, index) => <details className="group rounded-card border border-line bg-white px-6 py-1 shadow-card open:border-brand-200" key={`${item.question}-${index}`}>
+  return <div className="grid gap-3">{items.map((item, index) => <details data-faq-index={index} data-testid="faq-item" className="group rounded-card border border-line bg-white px-6 py-1 shadow-card open:border-brand-200" key={`${item.question}-${index}`}>
     <summary className="flex cursor-pointer list-none items-center justify-between gap-4 py-4 text-lead font-semibold text-ink [&::-webkit-details-marker]:hidden">{item.question}<span aria-hidden className="text-h3 leading-none text-brand-700 transition group-open:rotate-45">+</span></summary>
     <p className="pb-5 text-body whitespace-pre-line text-muted">{item.answer}</p>
   </details>)}</div>;

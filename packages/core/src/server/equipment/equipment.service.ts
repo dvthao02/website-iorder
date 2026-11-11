@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { equipmentGroupInputSchema, equipmentInputSchema } from "./equipment.contract";
 import { deleteArchivedEquipment, deleteEquipmentGroup, findEquipmentById, findEquipmentGroupVisibility, listEquipment, listEquipmentGroups, listEquipmentPage, saveEquipment, saveEquipmentGroup } from "./equipment.repository";
-import { validateCoverMedia } from "@iorder/core/server/media/media.service";
+import { validateCoverMedia, validateSeoMedia } from "@iorder/core/server/media/media.service";
 import { mediaPath } from "@iorder/core/server/media/storage";
 import type { AdminListPage, AdminListQuery } from "@iorder/core/server/shared/admin-list.contract";
 import { changeEquipmentState } from "./equipment.repository";
@@ -46,6 +46,7 @@ export async function writeEquipment(kind: "groups" | "items", id: string | null
     return saveEquipmentGroup(id, values, userId, undefined, { ...options, expectedVersion });
   }
   const values = equipmentInputSchema.parse(input);
+  await validateSeoMedia(values.seo);
   await validateCoverMedia(values.coverMediaId);
   // Repository kiểm tra nhóm trong cùng transaction ghi, tránh race với soft-delete.
   return saveEquipment(id, values, userId, changeNote, expectedVersion);

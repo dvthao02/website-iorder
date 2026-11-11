@@ -60,6 +60,7 @@ export function requiredAdminPermissions(pathname: string, method: string): CmsP
   const segments = pathname.replace(/^\/api\/admin\/?/, "").split("/").filter(Boolean);
   const resource = segments[0] ?? "";
   if (resource === "session" || resource === "account") return null;
+  if (resource === "builder-preview") return method.toUpperCase() === "POST" ? [...permissionsFor("pages", ["view", "create"]), ...permissionsFor("offerings", ["view", "create"]), ...permissionsFor("equipment", ["view", "create"]), ...listingPageOwnerModules.flatMap(module => permissionsFor(module, ["view"]))] : [];
   // Xem trước bản nháp: route tự kiểm quyền xem đúng module của nội dung; ở đây chỉ cần có quyền xem một trong các module đó.
   if (resource === "preview") return method.toUpperCase() === "POST" ? [...permissionsFor("posts", ["view"]), ...permissionsFor("pages", ["view"]), ...permissionsFor("offerings", ["view"]), ...listingPageOwnerModules.flatMap((module) => permissionsFor(module, ["view"]))] : [];
 

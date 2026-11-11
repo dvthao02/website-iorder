@@ -26,6 +26,11 @@ function defaultSpacing(block: PageBlock): SectionSpacing {
   return "md";
 }
 
+/** Chỉ dùng nhịp toàn màn hình cho khoảng cách Tự động; lựa chọn cụ thể từ CMS được ưu tiên. */
+export function blockUsesScreenHeight(block: PageBlock, screens: boolean) {
+  return screens && block.type !== "hero" && (!block.appearance?.spacing || block.appearance.spacing === "auto") && defaultSpacing(block) !== "sm";
+}
+
 /** Mã neo của khối: vỏ chung trước, rồi trường cũ của "Kêu gọi hành động" và "Danh sách nội dung". */
 export function blockAnchor(block: PageBlock): string | null {
   if (block.appearance?.anchor) return block.appearance.anchor;

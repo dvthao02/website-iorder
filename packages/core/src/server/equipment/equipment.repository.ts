@@ -1,3 +1,5 @@
+import { contentSeoSchema } from "../shared/content-seo";
+import { equipmentInputSchema } from "./equipment.contract";
 import { and, asc, count, desc, eq, ilike, isNull, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@iorder/core/db/client";
@@ -87,7 +89,7 @@ export function saveEquipment(id: string | null, values: EquipmentInput, userId:
     if (id && !before) return undefined;
     if (before) assertEquipmentVersion(before.draftVersion, expectedVersion);
     const draftVersion = (before?.draftVersion ?? 0) + 1;
-    const data = { ...values, draftVersion, publishedAt: equipmentPublishedAt(values, before, new Date()) };
+    const data = { ...values, seo: contentSeoSchema.parse(values.seo ?? before?.seo ?? {}), blocks: values.blocks === undefined ? equipmentInputSchema.shape.blocks.parse(before?.blocks ?? null) : values.blocks, draftVersion, publishedAt: equipmentPublishedAt(values, before, new Date()) };
     const [row] = id ? await tx.update(salesEquipment).set({ ...data, updatedAt: new Date() }).where(eq(salesEquipment.id, id)).returning()
       : await tx.insert(salesEquipment).values(data).returning();
     const pathChange = contentPathChange(before && { status: before.status, scheduledAt: before.scheduledAt, path: equipmentPublicPath(before.slug) }, { status: row.status, scheduledAt: row.scheduledAt, path: equipmentPublicPath(row.slug) });

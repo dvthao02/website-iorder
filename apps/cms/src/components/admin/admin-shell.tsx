@@ -8,7 +8,6 @@ import { AdminToastProvider } from "@/components/admin/ui/admin-feedback";
 import { AdminConfirmProvider } from "@/components/admin/ui/admin-confirm-dialog";
 import { AdminPermissionsProvider } from "@/components/admin/ui/admin-permissions";
 import {
-  Archive,
   ArrowRightLeft,
   BarChart3,
   BookOpen,
@@ -22,7 +21,6 @@ import {
   FileText,
   FolderTree,
   Globe,
-  Handshake,
   History,
   Home,
   Image,
@@ -34,7 +32,6 @@ import {
   Newspaper,
   Package,
   PanelsTopLeft,
-  Settings,
   ShieldCheck,
   Star,
   Users,
@@ -80,68 +77,56 @@ function ensureUniqueNavigationPaths(groups: NavigationGroup[]) {
 }
 
 const navigationGroups = ensureUniqueNavigationPaths([
-  // Thứ tự theo tần suất dùng: việc nội dung hằng ngày ở trên, quản trị hệ thống rồi cài đặt ở dưới cùng.
-  // Mọi loại nội dung chung một nhóm: cấu trúc website (đường dẫn, menu) do admin đặt trong CMS nên sidebar không tách theo nó.
-  { id: "overview", label: "Tổng quan", icon: LayoutDashboard, items: [{ href: "/admin", label: "Bảng điều khiển", icon: Home }, { href: "/admin/analytics", label: "Thống kê truy cập", icon: BarChart3, permission: "dashboard.view" }, { href: "/admin/seo/publish-check", label: "Kiểm tra xuất bản", icon: ClipboardCheck, permission: "settings.view" }] },
+  // Thứ tự theo công việc của người vận hành: việc cần xử lý → nội dung → sản phẩm → cấu trúc website → hệ thống.
+  { id: "work", label: "Công việc", icon: LayoutDashboard, items: [
+    { href: "/admin", label: "Bảng điều khiển", icon: Home },
+    { href: "/admin/leads", label: "Khách hàng tiềm năng", icon: UsersRound, permission: "leads.view" },
+    { href: "/admin/seo/publish-check", label: "Kiểm tra trước xuất bản", icon: ClipboardCheck, permission: "settings.view" },
+    { href: "/admin/analytics", label: "Thống kê truy cập", icon: BarChart3, permission: "dashboard.view" },
+  ] },
   {
     id: "content",
-    label: "Nội dung",
+    label: "Nội dung website",
     icon: FileText,
     items: [
       { href: "/admin/homepage", label: "Trang chủ", icon: LayoutTemplate, permission: "pages.view" },
+      { href: "/admin/pages", label: "Trang website", icon: PanelsTopLeft, matchesChildRoutes: true, permission: "pages.view" },
       { href: "/admin/news", label: "Bài viết & Tin tức", icon: Newspaper, matchesChildRoutes: true, permission: "posts.view", subPages: [{ href: "/admin/taxonomy", label: "Chuyên mục & Thẻ" }], fallback: { href: "/admin/taxonomy", label: "Chuyên mục & Thẻ", permission: "taxonomy.view" } },
-      { href: "/admin/pages", label: "Trang tĩnh", icon: PanelsTopLeft, matchesChildRoutes: true, permission: "pages.view" },
+      { href: "/admin/guides", label: "Hướng dẫn sử dụng", icon: BookOpen, matchesChildRoutes: true, permission: "posts.view" },
+      { href: "/admin/media", label: "Thư viện hình ảnh & tệp", icon: Image, permission: "media.view" },
+    ],
+  },
+  {
+    id: "catalog",
+    label: "Sản phẩm & tài nguyên",
+    icon: Package,
+    items: [
       { href: "/admin/products", label: "Sản phẩm & Dịch vụ", icon: Package, matchesChildRoutes: true, permission: "offerings.view", subPages: [{ href: "/admin/solutions" }, { href: "/admin/services" }] },
       { href: "/admin/equipment", label: "Thiết bị", icon: Laptop, matchesChildRoutes: true, permission: "equipment.view" },
-      { href: "/admin/partners", label: "Đối tác & Đánh giá", icon: Star, permission: "supporting.view" },
-      { href: "/admin/guides", label: "Hướng dẫn sử dụng", icon: BookOpen, matchesChildRoutes: true, permission: "posts.view" },
-    ],
-  },
-  {
-    // Tệp tải lên dùng chung (ảnh, tài liệu) và tệp cài đặt cho khách tải về: tách khỏi việc viết nội dung hằng ngày.
-    id: "storage",
-    label: "Tệp & Media",
-    icon: Archive,
-    items: [
-      { href: "/admin/media", label: "Thư viện media", icon: Image, permission: "media.view" },
       { href: "/admin/resources", label: "Tệp cài đặt", icon: Download, matchesChildRoutes: true, permission: "support_downloads.view" },
-    ],
-  },
-  {
-    id: "customers",
-    label: "Khách hàng",
-    icon: Handshake,
-    items: [
-      { href: "/admin/leads", label: "Khách hàng tiềm năng", icon: UsersRound, permission: "leads.view" },
+      { href: "/admin/partners", label: "Đối tác & Đánh giá", icon: Star, permission: "supporting.view" },
     ],
   },
   {
     id: "structure",
-    label: "Điều hướng & URL",
+    label: "Cấu trúc website",
     icon: FolderTree,
     items: [
       { href: "/admin/menu", label: "Menu & Điều hướng", icon: Menu, permission: "navigation.view" },
       { href: "/admin/redirects", label: "Chuyển hướng URL", icon: ArrowRightLeft, permission: "redirects.view" },
+      { href: "/admin/company-profile", label: "Thông tin doanh nghiệp", icon: Building2, permission: "settings.view" },
+      { href: "/admin/seo", label: "Tên miền & SEO", icon: Globe, permission: "settings.view" },
+      { href: "/admin/external-links", label: "Liên kết & Mạng xã hội", icon: LinkIcon, permission: "settings.view" },
     ],
   },
   {
-    id: "administration",
-    label: "Quản trị hệ thống",
+    id: "system",
+    label: "Hệ thống",
     icon: ShieldCheck,
     items: [
       { href: "/admin/users", label: "Người dùng & vai trò", icon: Users, permission: ["users.view", "roles.view"] },
       { href: "/admin/audit-log", label: "Nhật ký hoạt động", icon: History, permission: "audit.view" },
       { href: "/admin/backup", label: "Sao lưu & phục hồi", icon: DatabaseBackup, permission: "settings.view" },
-    ],
-  },
-  {
-    id: "settings",
-    label: "Cài đặt website",
-    icon: Settings,
-    items: [
-      { href: "/admin/company-profile", label: "Thông tin doanh nghiệp", icon: Building2, permission: "settings.view" },
-      { href: "/admin/seo", label: "Tên miền & SEO", icon: Globe, permission: "settings.view" },
-      { href: "/admin/external-links", label: "Liên kết & Mạng xã hội", icon: LinkIcon, permission: "settings.view" },
     ],
   },
 ]);

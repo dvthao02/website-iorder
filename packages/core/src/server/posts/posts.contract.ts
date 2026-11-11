@@ -1,3 +1,4 @@
+import { contentSeoSchema, contentSeoVisibilitySchema } from "../shared/content-seo";
 import { z } from "zod";
 import { richDocumentSchema, type RichDocument, type RichNode } from "../shared/rich-text";
 
@@ -41,6 +42,7 @@ export const publicPostSummarySchema = z
     type: publicPostTypeSchema,
     title: z.string(),
     slug: z.string(),
+    seo: contentSeoVisibilitySchema.optional(),
     excerpt: z.string().nullable(),
     publishedAt: z.date().nullable(),
     createdAt: z.date(),
@@ -55,6 +57,7 @@ export const publicPostDetailSchema = publicPostSummarySchema.extend({
   seoTitle: z.string().nullable(),
   seoDescription: z.string().nullable(),
   canonicalUrl: z.string().url().nullable(),
+  seo: contentSeoSchema.optional(),
 });
 
 export const adminPostInputSchema = z
@@ -69,6 +72,7 @@ export const adminPostInputSchema = z
     seoTitle: z.string().trim().min(1).max(70).nullable(),
     seoDescription: z.string().trim().min(1).max(180).nullable(),
     canonicalUrl: z.string().url().nullable(),
+    seo: contentSeoSchema.optional(),
     promotionStartAt: z.coerce.date().nullable(),
     promotionEndAt: z.coerce.date().nullable(),
     ctaLabel: z.string().trim().min(1).max(80).nullable(),

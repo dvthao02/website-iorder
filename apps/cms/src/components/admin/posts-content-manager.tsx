@@ -1,4 +1,5 @@
 "use client";
+import { ContentSeoEditor } from "./content-seo-editor";
 import { useAdminPermissions } from "./ui/admin-permissions";
 import { requestAdminJson } from "@/lib/admin-api";
 import { formatDisplayDateTime, formatLocalDateTime } from "@/lib/local-date-time";
@@ -10,6 +11,7 @@ import { MediaPicker } from "./media-picker";
 import { RevisionHistory } from "./revision-history";
 import { PublishedPreviewLink } from "./published-preview-link";
 import { AdminEditorActions } from "./ui/admin-editor-actions";
+import { AdminEditorSection } from "./ui/admin-editor-section";
 import { useUnsavedChanges } from "./ui/use-unsaved-changes";
 import { AdminButton } from "./ui/admin-button";
 import { AdminInlineCreate } from "./ui/admin-inline-create";
@@ -34,7 +36,7 @@ const inputClassName = "admin-input";
 const labelClassName = "admin-field";
 
 function EditorSection({ children, description, title }: { children: ReactNode; description?: string; title: string }) {
-  return <section className="admin-content-section"><header><h3>{title}</h3>{description ? <p>{description}</p> : null}</header>{children}</section>;
+  return <AdminEditorSection description={description} title={title}>{children}</AdminEditorSection>;
 }
 
 function nullableText(value: string) {
@@ -63,6 +65,7 @@ function postToForm(post: AdminPost | undefined, defaultType: AdminPost["type"] 
     seoTitle: post?.seoTitle ?? "",
     seoDescription: post?.seoDescription ?? "",
     canonicalUrl: post?.canonicalUrl ?? "",
+    seo: post?.seo ?? {},
     promotionStartAt: dateTimeInputValue(post?.promotionStartAt ?? null),
     promotionEndAt: dateTimeInputValue(post?.promotionEndAt ?? null),
     ctaLabel: post?.ctaLabel ?? "",
@@ -86,6 +89,7 @@ function formToPayload(form: ReturnType<typeof postToForm>) {
     seoTitle: nullableText(form.seoTitle),
     seoDescription: nullableText(form.seoDescription),
     canonicalUrl: nullableText(form.canonicalUrl),
+    seo: form.seo,
     promotionStartAt: dateTimeOrNull(form.promotionStartAt),
     promotionEndAt: dateTimeOrNull(form.promotionEndAt),
     ctaLabel: nullableText(form.ctaLabel),
@@ -195,10 +199,12 @@ export function PostEditor({ post, taxonomy, onSaved, onError, contentType, onDi
   const [slugTouched, setSlugTouched] = useState(Boolean(post));
   const publicPath = `${form.type === "guide" ? "/ho-tro/huong-dan" : "/tin-tuc"}/${form.slug || "duong-dan"}`;
   function changeTitle(title: string) {
-    if (saving.current || restore.pending.current) return;
+    if (!canEdit || saving.current || restore.pending.current) return;
     setForm((current) => ({ ...current, title, ...(slugTouched ? {} : { slug: toSlug(title, 80) }) }));
   }
-  const canPublish = useAdminPermissions().can("posts.publish");
+  const { can } = useAdminPermissions();
+  const canPublish = can("posts.publish");
+  const canEdit = can(post ? "posts.update" : "posts.create") && (canPublish || !["published", "scheduled"].includes(post?.status ?? "draft"));
   const { isDirty, markSaved } = useUnsavedChanges(form);
   useEffect(() => onDirtyChange?.(isDirty), [isDirty, onDirtyChange]);
 
@@ -222,7 +228,7 @@ export function PostEditor({ post, taxonomy, onSaved, onError, contentType, onDi
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (saving.current || uploading.current || restore.pending.current) return;
+    if (!canEdit || saving.current || uploading.current || restore.pending.current) return;
     saving.current = true;
     setIsSaving(true);
 
@@ -258,22 +264,24 @@ export function PostEditor({ post, taxonomy, onSaved, onError, contentType, onDi
   // Bố cục 2 cột: trái để viết (tiêu đề → nội dung → tóm tắt → SEO), phải là thiết lập luôn nhìn thấy.
   return (
     <form className="admin-post-editor" onSubmit={submit} ref={formRef}>
-      <fieldset disabled={processing} className="contents">
+      {!canEdit ? <div className="col-span-full"><AdminNotice tone="info">Bạn chỉ có quyền xem nội dung này. Nội dung đang hiển thị cần thêm quyền xuất bản để sửa.</AdminNotice></div> : null}
+      <fieldset disabled={processing || !canEdit} className="contents">
       <div className="admin-post-editor__main">
         <section className="admin-content-section admin-post-editor__writing" id="post-content">
           <label className="admin-post-editor__title-field"><span className="sr-only">Tiêu đề</span><input className="admin-post-editor__title" onChange={(event) => changeTitle(event.target.value)} placeholder="Nhập tiêu đề bài viết…" required value={form.title} /></label>
           {editingSlug ? <div className="admin-post-editor__slug-edit">
-            <div className={labelClassName}><label className="admin-seo__label" htmlFor="post-slug">Đường dẫn (slug)<span className="admin-help">{publicPath}</span></label><span className="admin-post-editor__slug"><input autoFocus className={inputClassName} id="post-slug" onChange={(event) => { setSlugTouched(true); update("slug", event.target.value); }} pattern="[a-z0-9]+(-[a-z0-9]+)*" required value={form.slug} /><AdminButton disabled={!form.title.trim() || toSlug(form.title, 80) === form.slug} onClick={() => { setSlugTouched(true); update("slug", toSlug(form.title, 80)); }} size="sm" variant="secondary">Tạo từ tiêu đề</AdminButton><AdminButton onClick={() => setEditingSlug(false)} size="sm" variant="ghost">Xong</AdminButton></span></div>
+            <div className={labelClassName}><label className="admin-seo__label" htmlFor="post-slug">Đường dẫn<span className="admin-help">Địa chỉ không dấu trên website: {publicPath}</span></label><span className="admin-post-editor__slug"><input autoFocus className={inputClassName} id="post-slug" onChange={(event) => { setSlugTouched(true); update("slug", event.target.value); }} pattern="[a-z0-9]+(-[a-z0-9]+)*" required value={form.slug} /><AdminButton disabled={!form.title.trim() || toSlug(form.title, 80) === form.slug} onClick={() => { setSlugTouched(true); update("slug", toSlug(form.title, 80)); }} size="sm" variant="secondary">Tạo từ tiêu đề</AdminButton><AdminButton onClick={() => setEditingSlug(false)} size="sm" variant="ghost">Xong</AdminButton></span></div>
             {savedStatus === "published" && form.status === "published" ? <small className="admin-help">Bài đã xuất bản: khi lưu với đường dẫn mới, đường dẫn cũ tự chuyển hướng (301) sang đường dẫn mới.</small> : savedStatus === "published" ? <small className="admin-help admin-text-warning">Sau lần lưu này nội dung chưa hiện ngay trên website nên đổi đường dẫn sẽ không tạo chuyển hướng từ đường dẫn cũ.</small> : <small className="admin-help">Chỉ dùng chữ thường không dấu, số và dấu gạch ngang.</small>}
           </div> : <p className="admin-post-editor__slug-line"><span className="admin-help">Đường dẫn:</span> <span className="admin-post-editor__path">{publicPath}</span><button className="admin-post-editor__link" onClick={() => setEditingSlug(true)} type="button">Sửa</button>{!slugTouched ? <span className="admin-help"> · tự tạo theo tiêu đề</span> : null}</p>}
-          <RichTextEditor disabled={processing} onChange={(richDoc) => update("content", { version: 2, doc: richDoc })} onImportTitle={(title) => { if (!form.title.trim()) changeTitle(title); }} placeholder="Viết nội dung bài… Dùng Tiêu đề H2/H3 để chia mục, website tự tạo mục lục." value={form.content.version === 2 ? form.content.doc : postContentToRichDocument(form.content)} />
+          <RichTextEditor disabled={processing || !canEdit} onChange={(richDoc) => update("content", { version: 2, doc: richDoc })} onImportTitle={(title) => { if (!form.title.trim()) changeTitle(title); }} placeholder="Viết nội dung bài… Dùng Tiêu đề H2/H3 để chia mục, website tự tạo mục lục." value={form.content.version === 2 ? form.content.doc : postContentToRichDocument(form.content)} />
         </section>
         <EditorSection description="1–2 câu giới thiệu. Hiện ở danh sách tin, khi chia sẻ Facebook/Zalo và làm đoạn mô tả trên Google." title="Tóm tắt"><div className="admin-seo__label"><span className={form.excerpt.trim().length > 200 ? "admin-seo__count admin-seo__count--over" : "admin-seo__count"}>{form.excerpt.trim().length}/200 ký tự</span>{firstParagraph ? <button className="admin-post-editor__link" onClick={() => update("excerpt", truncateAtWord(firstParagraph, 200))} type="button">Lấy từ đoạn đầu bài</button> : null}</div><label className={labelClassName}><span className="sr-only">Tóm tắt</span><textarea className={inputClassName} id="post-excerpt" onChange={(event) => update("excerpt", event.target.value)} placeholder="Ví dụ: Danh mục sản phẩm, bảng giá và tài khoản nhân viên là những phần nên chuẩn bị trước khi triển khai." rows={3} value={form.excerpt} /></label></EditorSection>
         <details className="admin-post-editor__panel">
           <summary><span><strong>Google &amp; chia sẻ mạng xã hội</strong><small>Mặc định lấy từ tiêu đề và tóm tắt — chỉ mở khi muốn đặt riêng.</small></span><AdminStatusBadge tone={seoPassed === checks.length ? "success" : "warning"}>SEO {seoPassed}/{checks.length} đạt</AdminStatusBadge></summary>
           <div className="admin-post-editor__panel-body">
             <SeoAssistant content={form.content} excerpt={form.excerpt} hasCover={Boolean(form.coverMediaId)} onChange={(field, value) => update(field, value)} path={publicPath} seoDescription={form.seoDescription} seoTitle={form.seoTitle} slug={form.slug} title={form.title} />
-            <label className={labelClassName}>URL chuẩn (canonical)<input className={inputClassName} onChange={(event) => update("canonicalUrl", event.target.value)} placeholder="https://… — chỉ điền khi bài này là bản sao của trang khác" type="url" value={form.canonicalUrl} /></label>
+            <ContentSeoEditor value={form.seo} onChange={seo => update("seo", seo)} title={form.seoTitle || form.title} description={form.seoDescription || form.excerpt} disabled={processing || !canEdit} onUploadingChange={handleUploadingChange} />
+            <label className={labelClassName}>Địa chỉ chính thức của nội dung (nâng cao)<input className={inputClassName} onChange={(event) => update("canonicalUrl", event.target.value)} placeholder="Chỉ điền khi nội dung này được sao chép từ một địa chỉ khác" type="url" value={form.canonicalUrl} /></label>
           </div>
         </details>
         {/* Phần ít dùng đặt cuối cột viết để hai cột cân nhau. */}
@@ -309,12 +317,12 @@ export function PostEditor({ post, taxonomy, onSaved, onError, contentType, onDi
         <section className="admin-content-section">
           <header><h3>Phân loại</h3></header>
           <label className={labelClassName}>Loại bài viết<select className={inputClassName} disabled={Boolean(contentType)} onChange={(event) => update("type", event.target.value as typeof form.type)} value={form.type}><option value="news">Tin tức</option><option value="promotion">Khuyến mãi</option><option value="case_study">Câu chuyện khách hàng</option><option value="announcement">Thông báo</option>{contentType === "guide" ? <option value="guide">Hướng dẫn</option> : null}</select></label>
-          <fieldset className="admin-post-editor__group" id="post-categories"><legend>Chuyên mục</legend><TaxonomyChecklist emptyText="Chưa có chuyên mục." searchLabel="Tìm chuyên mục" items={categories} onChange={(ids) => update("categoryIds", ids)} selected={form.categoryIds} /><AdminInlineCreate disabled={processing} label="chuyên mục" onCreate={(name, slug) => createTaxonomy("categories", name, slug)} permission="taxonomy.create" /></fieldset>
-          <fieldset className="admin-post-editor__group"><legend>Thẻ</legend><TaxonomyChecklist emptyText="Chưa có thẻ nào." searchLabel="Tìm thẻ" items={tags} onChange={(ids) => update("tagIds", ids)} selected={form.tagIds} /><AdminInlineCreate disabled={processing} label="thẻ" onCreate={(name, slug) => createTaxonomy("tags", name, slug)} permission="taxonomy.create" /></fieldset>
+          <fieldset className="admin-post-editor__group" id="post-categories"><legend>Chuyên mục</legend><TaxonomyChecklist emptyText="Chưa có chuyên mục." searchLabel="Tìm chuyên mục" items={categories} onChange={(ids) => update("categoryIds", ids)} selected={form.categoryIds} /><AdminInlineCreate disabled={processing || !canEdit} label="chuyên mục" onCreate={(name, slug) => createTaxonomy("categories", name, slug)} permission="taxonomy.create" /></fieldset>
+          <fieldset className="admin-post-editor__group"><legend>Thẻ</legend><TaxonomyChecklist emptyText="Chưa có thẻ nào." searchLabel="Tìm thẻ" items={tags} onChange={(ids) => update("tagIds", ids)} selected={form.tagIds} /><AdminInlineCreate disabled={processing || !canEdit} label="thẻ" onCreate={(name, slug) => createTaxonomy("tags", name, slug)} permission="taxonomy.create" /></fieldset>
         </section>
       </aside>
 
-      <AdminEditorActions><p className={isDirty ? "admin-help admin-text-warning" : "admin-help"} role="status">{isDirty ? "Có thay đổi chưa lưu." : post ? `Đã lưu · ${statusBadge[post.status].label}` : "Bài mới chưa lưu."}</p><AdminButton disabled={isSaving} permission={post ? "posts.update" : "posts.create"} title="Phím tắt: Ctrl+S" type="submit">{isSaving ? "Đang lưu..." : contentSubmitLabel(form.status, savedStatus, postNoun)}</AdminButton></AdminEditorActions>
+      <AdminEditorActions><p className={isDirty ? "admin-help admin-text-warning" : "admin-help"} role="status">{isDirty ? "Có thay đổi chưa lưu." : post ? `Đã lưu · ${statusBadge[post.status].label}` : "Bài mới chưa lưu."}</p><AdminButton disabled={isSaving || !canEdit} permission={post ? "posts.update" : "posts.create"} title="Phím tắt: Ctrl+S" type="submit">{isSaving ? "Đang lưu..." : contentSubmitLabel(form.status, savedStatus, postNoun)}</AdminButton></AdminEditorActions>
       </fieldset>
     </form>
   );

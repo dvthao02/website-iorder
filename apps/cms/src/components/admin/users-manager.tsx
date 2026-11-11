@@ -25,6 +25,7 @@ import { AdminListPage } from "./ui/admin-list-page";
 import { AdminSearchField } from "./ui/admin-search-field";
 import { AdminSidePanel } from "./ui/admin-side-panel";
 import { AdminPagination } from "./ui/admin-pagination";
+import { useAdminFormValidation } from "./ui/use-admin-form-validation";
 import { useNavigationGuard } from "./ui/use-navigation-guard";
 
 type CmsUser = Omit<CmsUserInput, "password"> & UserAccess;
@@ -59,6 +60,15 @@ export function UsersManager({ canAssignSuperAdmin, currentUserId, initialPage, 
   const [initialValues, setInitialValues] = useState<CmsUserInput | null>(null);
   const [busy, setBusy] = useState(false);
   const mutationPending = useRef(false);
+  const [saveError, setSaveError] = useState("");
+  const validation = useAdminFormValidation("cms-user", {
+    username: { label: "Tên đăng nhập", message: "Nhập 3–80 ký tự, chỉ gồm chữ không dấu, số, dấu chấm, gạch dưới hoặc gạch ngang." },
+    fullName: { label: "Họ và tên", message: "Nhập họ và tên từ 1 đến 180 ký tự." },
+    email: { label: "Email", message: "Nhập địa chỉ email hợp lệ, tối đa 320 ký tự, hoặc để trống." },
+    role: { label: "Vai trò", message: "Chọn một vai trò hợp lệ." },
+    status: { label: "Trạng thái", message: "Chọn trạng thái tài khoản hợp lệ." },
+    password: { label: "Mật khẩu", message: "Nhập mật khẩu từ 10 đến 1.024 ký tự." },
+  });
   const [query, setQuery] = useState(initialQuery.query);
   const statusFilter = initialQuery.status;
   const chips: AdminFilterChip[] = [
@@ -93,6 +103,8 @@ export function UsersManager({ canAssignSuperAdmin, currentUserId, initialPage, 
     const values = user ? valuesOf(user) : { ...blank, role: assignableRoles.find((role) => !role.isSystem)?.code ?? blank.role };
     setActiveId(user?.id ?? null);
     setActive(user ?? null);
+    validation.reset();
+    setSaveError("");
     setForm(values);
     setInitialValues(values);
   }
@@ -107,6 +119,8 @@ export function UsersManager({ canAssignSuperAdmin, currentUserId, initialPage, 
 
   function discardChanges() {
     if (mutationPending.current) return;
+    validation.reset();
+    setSaveError("");
     setForm(initialValues);
     showToast("Đã bỏ các thay đổi chưa lưu.", "info");
   }
@@ -115,10 +129,12 @@ export function UsersManager({ canAssignSuperAdmin, currentUserId, initialPage, 
     event.preventDefault();
     if (!form || !dirty || mutationPending.current) return;
     const parsed = cmsUserRequestSchema.safeParse({ id: activeId, values: form });
+    setSaveError("");
     if (!parsed.success) {
-      showToast("Kiểm tra tên đăng nhập, họ tên, email, vai trò và mật khẩu trước khi lưu.", "error");
+      validation.report(parsed.error.issues, "values");
       return;
     }
+    validation.reset();
     mutationPending.current = true;
     setBusy(true);
     try {
@@ -140,7 +156,9 @@ export function UsersManager({ canAssignSuperAdmin, currentUserId, initialPage, 
       showToast(active ? "Đã lưu tài khoản CMS." : "Đã tạo tài khoản CMS.", "success");
       router.refresh();
     } catch (error) {
-      showToast(error instanceof Error ? error.message : "Không kết nối được máy chủ.", "error");
+      const message = error instanceof Error ? error.message : "Không kết nối được máy chủ.";
+      setSaveError(message);
+      showToast(message, "error");
     } finally {
       mutationPending.current = false;
       setBusy(false);
@@ -166,13 +184,15 @@ export function UsersManager({ canAssignSuperAdmin, currentUserId, initialPage, 
       <AdminListHeader actions={<><AdminButton hideWithoutPermission permission="users.create" leadingIcon={<Plus aria-hidden="true" size={16} />} onClick={() => select()}>Tạo tài khoản</AdminButton></>} description={loading ? "Đang tải danh sách…" : `${initialPage.counts.all} tài khoản · ${activeCount} đang hoạt động · ${adminCount} quản trị viên`} headingLevel={1} title="Người dùng CMS" />
       {tabs}
       <AdminFilterBar onSubmit={(event) => { event.preventDefault(); navigate({ page: 1, query: query.trim() }); }} chips={chips} onClearAll={() => { setQuery(""); navigate({ page: 1, query: "", status: "all", role: "all" }); }} search={<AdminSearchField disabled={busy || loading} id="cms-user-search" label="Tìm người dùng" onChange={(event) => setQuery(event.target.value)} placeholder="Tìm họ tên, tên đăng nhập hoặc email" value={query} />}><select aria-label="Lọc trạng thái" disabled={busy || loading} id="cms-user-status" onChange={(event) => navigate({ page: 1, status: event.target.value as UserStatusFilter })} value={statusFilter}><option value="all">Tất cả trạng thái</option><option value="active">Đang hoạt động</option><option value="disabled">Đã khóa</option></select><select aria-label="Lọc vai trò" disabled={busy || loading} className="admin-input" id="cms-user-role" value={initialQuery.role} onChange={event => navigate({ page: 1, role: event.target.value as CmsUserListQuery["role"] })}><option value="all">Tất cả vai trò</option>{roles.map((role) => <option key={role.code} value={role.code}>{role.name}</option>)}</select></AdminFilterBar>
-      <AdminDataTable columns={columns} emptyMessage={initialPage.counts.all ? "Không có người dùng phù hợp với bộ lọc." : "Chưa có tài khoản CMS."} getRowId={(user) => user.id} onRowClick={select} onSettingsOpenChange={setIsColumnSettingsOpen} onSortChange={(next) => navigate({ page: 1, sort: next?.key, dir: next?.dir })} rows={visibleRows} settingsOpen={isColumnSettingsOpen} sort={initialQuery.sort ? { key: initialQuery.sort, dir: initialQuery.dir ?? "desc" } : null} tableId="cms-users" />
+      <AdminDataTable columns={columns} emptyAction={initialQuery.query || statusFilter !== "all" || initialQuery.role !== "all" ? <AdminButton disabled={busy || loading} onClick={() => { setQuery(""); navigate({ page: 1, query: "", status: "all", role: "all" }); }} variant="secondary">Xóa bộ lọc</AdminButton> : undefined} emptyMessage={initialPage.counts.all ? "Không có người dùng phù hợp với bộ lọc." : "Chưa có tài khoản CMS."} getRowId={(user) => user.id} onRowClick={select} onSettingsOpenChange={setIsColumnSettingsOpen} onSortChange={(next) => navigate({ page: 1, sort: next?.key, dir: next?.dir })} rows={visibleRows} settingsOpen={isColumnSettingsOpen} sort={initialQuery.sort ? { key: initialQuery.sort, dir: initialQuery.dir ?? "desc" } : null} tableId="cms-users" />
       <AdminPagination unit="tài khoản" disabled={busy || loading} label="Phân trang người dùng" onChange={(page) => navigate({ page })} onPageSizeChange={(pageSize) => navigate({ page: 1, pageSize })} page={initialPage.page} pageSize={initialPage.pageSize} total={initialPage.total} totalPages={initialPage.totalPages} />
     </AdminCard>
-    <AdminSidePanel footer={footer} isOpen={form !== null} onClose={closeEditor}>
+    <AdminSidePanel footer={footer} isOpen={form !== null} label={active ? "Chỉnh sửa tài khoản CMS" : "Tạo tài khoản CMS"} onClose={closeEditor}>
       <header className="admin-list-manager__panel-header"><span className="admin-list-manager__panel-icon"><UserRound aria-hidden="true" size={18} /></span><div><p>{active ? "Chỉnh sửa tài khoản" : "Tạo tài khoản"}</p><h2>{active?.fullName || "Tài khoản CMS mới"}</h2><small className={dirty ? "admin-list-manager__dirty" : undefined}>{dirty ? "Có thay đổi chưa lưu." : active ? `@${active.username}` : "Điền thông tin để tạo tài khoản mới."}</small></div></header>
-      {form ? <form className="admin-list-manager__form" id="cms-user-editor" onSubmit={save}>
-        <fieldset disabled={busy}><div className="admin-list-manager__form-grid"><Field label="Tên đăng nhập"><input className="admin-input" minLength={3} onChange={(event) => setForm({ ...form, username: event.target.value })} pattern="[A-Za-z0-9._-]+" required value={form.username} /></Field><Field label="Họ và tên"><input className="admin-input" onChange={(event) => setForm({ ...form, fullName: event.target.value })} required value={form.fullName} /></Field></div><Field label="Email"><input className="admin-input" onChange={(event) => setForm({ ...form, email: event.target.value || null })} type="email" value={form.email ?? ""} /></Field><div className="admin-list-manager__form-grid"><Field label="Vai trò"><select className="admin-input" onChange={(event) => setForm({ ...form, role: event.target.value as CmsUserInput["role"] })} value={form.role}>{assignableRoles.filter((role) => role.code !== form.role).concat(roles.filter((role) => role.code === form.role)).map((role) => <option key={role.code} value={role.code}>{role.name}</option>)}</select></Field><Field label="Trạng thái"><select className="admin-input" onChange={(event) => setForm({ ...form, status: event.target.value as CmsUserInput["status"] })} value={form.status}><option value="active">Đang hoạt động</option><option value="disabled">Đã khóa</option></select></Field></div><div className="admin-list-manager__field"><label htmlFor="cms-user-password">{active ? "Mật khẩu mới — để trống nếu không đổi" : "Mật khẩu ban đầu"}</label><AdminPasswordInput autoComplete="new-password" id="cms-user-password" minLength={10} onChange={(event) => setForm({ ...form, password: event.target.value || null })} required={!active} value={form.password ?? ""} /></div></fieldset>
+      {form ? <form className="admin-list-manager__form" id="cms-user-editor" noValidate onSubmit={save}>
+        {validation.summary}
+        {saveError ? <AdminNotice tone="error">{saveError}</AdminNotice> : null}
+        <fieldset disabled={busy}><div className="admin-list-manager__form-grid"><Field id="cms-user-username" label="Tên đăng nhập"><input {...validation.props("username")} className="admin-input" minLength={3} onChange={(event) => setForm({ ...form, username: event.target.value })} pattern="[A-Za-z0-9._-]+" required value={form.username} />{validation.message("username")}</Field><Field id="cms-user-fullName" label="Họ và tên"><input {...validation.props("fullName")} className="admin-input" onChange={(event) => setForm({ ...form, fullName: event.target.value })} required value={form.fullName} />{validation.message("fullName")}</Field></div><Field id="cms-user-email" label="Email"><input {...validation.props("email")} className="admin-input" onChange={(event) => setForm({ ...form, email: event.target.value || null })} type="email" value={form.email ?? ""} />{validation.message("email")}</Field><div className="admin-list-manager__form-grid"><Field id="cms-user-role" label="Vai trò"><select {...validation.props("role")} className="admin-input" onChange={(event) => setForm({ ...form, role: event.target.value as CmsUserInput["role"] })} value={form.role}>{assignableRoles.filter((role) => role.code !== form.role).concat(roles.filter((role) => role.code === form.role)).map((role) => <option key={role.code} value={role.code}>{role.name}</option>)}</select>{validation.message("role")}</Field><Field id="cms-user-status" label="Trạng thái"><select {...validation.props("status")} className="admin-input" onChange={(event) => setForm({ ...form, status: event.target.value as CmsUserInput["status"] })} value={form.status}><option value="active">Đang hoạt động</option><option value="disabled">Đã khóa</option></select>{validation.message("status")}</Field></div><div className="admin-list-manager__field"><label htmlFor="cms-user-password">{active ? "Mật khẩu mới — để trống nếu không đổi" : "Mật khẩu ban đầu"}</label><AdminPasswordInput {...validation.props("password")} autoComplete="new-password" minLength={10} onChange={(event) => setForm({ ...form, password: event.target.value || null })} required={!active} value={form.password ?? ""} />{validation.message("password")}</div></fieldset>
         <AdminNotice tone="warning">Khóa tài khoản sẽ thu hồi phiên đăng nhập. Hệ thống luôn bảo vệ tài khoản đang đăng nhập và quản trị viên cuối cùng.</AdminNotice>
       </form> : <AdminEmptyState action={<AdminButton hideWithoutPermission permission="users.create" onClick={() => select()}>Tạo tài khoản</AdminButton>} description="Chọn một tài khoản trong danh sách để chỉnh sửa." icon={<UserRound aria-hidden="true" size={20} />} title="Chưa chọn tài khoản" />}
       {active ? <UserAccessSummary user={active} /> : null}
@@ -180,6 +200,6 @@ export function UsersManager({ canAssignSuperAdmin, currentUserId, initialPage, 
   </AdminListPage>;
 }
 
-function Field({ children, label }: { children: ReactNode; label: string }) {
-  return <label className="admin-list-manager__field"><span>{label}</span>{children}</label>;
+function Field({ children, id, label }: { children: ReactNode; id: string; label: string }) {
+  return <div className="admin-list-manager__field"><label htmlFor={id}>{label}</label>{children}</div>;
 }

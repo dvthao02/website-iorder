@@ -69,12 +69,14 @@ test("Trình sửa trang chỉ có một thanh cuộn; ảnh của phần đầu
   const home = pages.result.items.find((item) => item.slug === "home");
   test.skip(!home, "Cần trang chủ có sẵn khối");
   await page.goto(`/admin/pages/${home!.id}`);
-  const hero = page.locator(".admin-block").filter({ has: page.locator(".admin-block__toggle > strong", { hasText: "Phần đầu trang" }) }).first();
-  if (!(await hero.evaluate((element) => element.classList.contains("admin-block--open")))) await hero.locator(".admin-block__toggle").click();
+  const heroRow = page.locator(".admin-block").filter({ has: page.locator(".admin-block__toggle > strong", { hasText: "Phần đầu trang" }) }).first();
+  await heroRow.locator(".admin-block__toggle").click();
+  const hero = page.getByRole("region", { name: "Chỉnh sửa thành phần" });
   // Trang chủ có thể đang dùng kiểu khác (ví dụ trượt ảnh): chọn kiểu chữ – ảnh trên form (không lưu) để có ô ảnh minh họa.
-  // Kiểu bố cục và ảnh nằm ở tab "Bố cục & ảnh" của thành phần.
-  await hero.getByRole("tab", { name: "Bố cục & ảnh" }).click();
+  // Kiểu bố cục dùng chung; ảnh nằm trong nội dung Mục trượt 1.
+  await hero.getByRole("tab", { name: "Bố cục chung" }).click();
   await hero.getByRole("group", { name: "Kiểu bố cục" }).getByText("Chữ trái, ảnh phải").click();
+  await page.locator(".admin-blocks__navigation").getByRole("button", { name: "Mục trượt 1", exact: true }).click();
   // Ảnh của phần đầu trang nằm trong một nhóm "Ảnh bên phải (tùy chọn) (n/…)", mỗi ảnh là một mục phẳng (không khung thẻ)
   // có dòng đầu đánh số "1 Ảnh" và bộ chọn ảnh ngay bên dưới.
   const images = hero.locator(".admin-block-group").filter({ has: page.locator("legend", { hasText: "Ảnh bên phải (tùy chọn)" }) }).first();
@@ -83,12 +85,12 @@ test("Trình sửa trang chỉ có một thanh cuộn; ảnh của phần đầu
   await expect(firstImage.locator(".admin-list-item__head")).toContainText("Ảnh");
   const picker = firstImage.locator(".media-picker");
   await expect(picker).toBeVisible();
-  // Bộ chọn ảnh nằm thẳng trong nhóm ảnh, không lồng thêm khung nhóm thứ hai.
+  // Hai cấp rõ ràng: Mục trượt 1 → nhóm ảnh; bộ chọn ảnh không tạo nhóm phụ.
   expect(await picker.evaluate((element) => {
     let groups = 0;
     for (let parent = element.parentElement; parent && !parent.classList.contains("admin-block"); parent = parent.parentElement) if (parent.classList.contains("admin-block-group")) groups++;
     return groups;
-  })).toBe(1);
+  })).toBe(2);
   await hero.screenshot({ path: "test-results/page-editor-hero.png" });
 
   // Chỉ phần thân cuộn, nằm gọn giữa thanh tiêu đề và thanh lưu (thanh cuộn không chui dưới hai thanh).
@@ -135,10 +137,13 @@ test("Danh sách khối: nhãn giao diện trên dòng gập, Nhân bản chèn 
   const count = await blocks.count();
   test.skip(count < 2, "Trang chủ cần ít nhất hai khối");
   // Phần đầu trang không nhân bản được (mỗi trang một phần đầu trang).
-  await expect(blocks.first().getByRole("button", { name: /^Nhân bản/ })).toBeDisabled();
+  const detail = page.getByRole("region", { name: "Chỉnh sửa thành phần" });
+  await blocks.first().locator(".admin-block__toggle").click();
+  await expect(detail.getByRole("button", { name: /^Nhân bản/ })).toBeDisabled();
   const source = blocks.nth(1);
   const label = await source.locator(".admin-block__toggle > strong").textContent();
-  await source.getByRole("button", { name: /^Nhân bản/ }).click();
+  await source.locator(".admin-block__toggle").click();
+  await detail.getByRole("button", { name: /^Nhân bản/ }).click();
   await expect(blocks).toHaveCount(count + 1);
   await expect(blocks.nth(2)).toHaveClass(/admin-block--open/);
   await expect(blocks.nth(2).locator(".admin-block__toggle > strong")).toHaveText(label!);

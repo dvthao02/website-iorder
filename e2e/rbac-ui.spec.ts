@@ -47,7 +47,7 @@ test("Tài khoản giới hạn chỉ thấy đúng thao tác được phép", a
   await expect(page.getByRole("link", { name: "Vai trò & quyền" })).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Người dùng CMS" })).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Người dùng & vai trò" })).toHaveCount(0);
-  await expect(page.getByRole("link", { name: "Thư viện media" })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Thư viện hình ảnh & tệp" })).toHaveCount(0);
 
   await page.goto("/admin/news");
   await expect(page.locator("table, [role='table'], .admin-data-table").first()).toBeVisible();

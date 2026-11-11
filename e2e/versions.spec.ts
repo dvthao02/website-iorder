@@ -58,7 +58,7 @@ test("Thẻ vừa tạo lưu tiếp ngay được (không thiếu hoặc lệch 
   await page.getByRole("button", { name: "Thêm thẻ" }).first().click();
   const suffix = Date.now().toString(36);
   await page.getByLabel("Tên thẻ").fill(`Thẻ kiểm thử ${suffix}`);
-  await page.getByLabel("Slug").fill(`the-kiem-thu-${suffix}`);
+  await page.getByLabel("Đường dẫn", { exact: true }).fill(`the-kiem-thu-${suffix}`);
   const save = page.getByRole("button", { name: "Lưu phân loại" });
   await save.click();
   await expect(page.getByText("Đã tạo thẻ.").first()).toBeVisible();

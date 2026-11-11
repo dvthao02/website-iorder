@@ -28,15 +28,15 @@ export type StaticPageType = "all" | "standard" | "listing" | "custom";
 const statusLabels: Record<PageStatus, string> = { draft: "Bản nháp", review: "Chờ duyệt", scheduled: "Hẹn giờ", published: "Đã xuất bản", archived: "Lưu trữ" };
 const typeTabs: Array<{ value: StaticPageType; label: string }> = [
   { value: "all", label: "Tất cả" },
-  { value: "standard", label: "Trang nội dung" },
-  { value: "listing", label: "Trang danh sách" },
+  { value: "standard", label: "Trang có sẵn" },
+  { value: "listing", label: "Trang danh sách tự động" },
   { value: "custom", label: "Trang tự tạo" },
 ];
 const emptyMessages: Record<StaticPageType, string> = {
   all: "Chưa có trang nào.",
-  standard: "Chưa có trang nội dung.",
-  listing: "Chưa có trang danh sách.",
-  custom: "Chưa có trang tự tạo. Dùng “Tạo trang” cho trang landing, khuyến mãi… (hiện ở /trang/<đường dẫn>), rồi thêm vào Menu.",
+  standard: "Chưa có trang có sẵn nào.",
+  listing: "Chưa có trang danh sách tự động nào.",
+  custom: "Chưa có trang tự tạo. Hãy tạo trang mới, sau đó thêm trang vào Menu để khách truy cập.",
 };
 const dateFormatter = new Intl.DateTimeFormat("vi-VN", { dateStyle: "medium" });
 
@@ -50,8 +50,8 @@ function pageStateRequest(page: AdminPage, action: ContentStateAction) {
 
 // Loại trang, một dòng: trang danh sách kèm module cấp nội dung (bấm để sang module đó).
 function PageKind({ page }: { page: AdminPage }) {
-  if (isListingPageSlug(page.slug)) return <span className="admin-page-kind">Danh sách <span aria-hidden="true">·</span> <Link href={listingPageModuleHref[page.slug]} title={`Nội dung lấy từ ${listingPageModuleLabel[page.slug]}`}>{listingPageModuleLabel[page.slug]}</Link></span>;
-  return <span className="admin-page-kind">{isCustomPage(page) ? "Tự tạo" : "Nội dung"}</span>;
+  if (isListingPageSlug(page.slug)) return <span className="admin-page-kind">Danh sách tự động <span aria-hidden="true">·</span> <Link href={listingPageModuleHref[page.slug]} title={`Nội dung lấy từ ${listingPageModuleLabel[page.slug]}`}>{listingPageModuleLabel[page.slug]}</Link></span>;
+  return <span className="admin-page-kind">{isCustomPage(page) ? "Tự tạo" : "Có sẵn"}</span>;
 }
 
 // Trang có sẵn (đường dẫn thuộc code): chỉ xem và sửa nội dung, không lưu trữ hay xóa được.
@@ -71,7 +71,7 @@ type PagesManagerProps = {
 };
 
 /**
- * Màn "Trang tĩnh": mọi trang trừ Trang chủ (có mục riêng) trong một bảng — trang nội dung có sẵn (Giới thiệu, Liên hệ,
+ * Màn "Trang website": mọi trang trừ Trang chủ (có mục riêng) trong một bảng — trang nội dung có sẵn (Giới thiệu, Liên hệ,
  * Chính sách…), trang danh sách (phần đầu và SEO của /tin-tuc, /thiet-bi…) và trang tự tạo; tab lọc theo loại.
  * Chọn nhiều dòng để xuất bản / chuyển về nháp / khôi phục; lưu trữ và xóa chỉ áp dụng cho trang tự tạo (trang có sẵn do code quản lý đường dẫn).
  */
@@ -101,7 +101,7 @@ export function PagesManager({ counts, initialQuery, initialStatus, initialType,
 
   return <AdminListPage variant="dense">
     <AdminCard>
-      <AdminListHeader actions={<AdminButton hideWithoutPermission href="/admin/pages/new" leadingIcon={<Plus aria-hidden="true" size={16} />} permission="pages.create">Tạo trang</AdminButton>} description={`${result.total} trang${filtered ? " khớp bộ lọc" : ""}`} title="Trang tĩnh" />
+      <AdminListHeader actions={<AdminButton hideWithoutPermission href="/admin/pages/new" leadingIcon={<Plus aria-hidden="true" size={16} />} permission="pages.create">Tạo trang mới</AdminButton>} description={`${result.total} trang${filtered ? " khớp bộ lọc" : ""}`} title="Trang website" />
       <AdminFilterTabs<StaticPageType> restoreNavigationFocus ariaLabel="Loại trang" items={typeTabs.map((tab) => ({ value: tab.value, label: `${tab.label} (${counts[tab.value]})` }))} onValueChange={(value) => { clear(); setFilter("type", value === "all" ? undefined : value); }} value={initialType} />
       <AdminFilterBar onSubmit={submitSearch} chips={chips} onClearAll={() => { setQuery(""); navigate({ page: undefined, query: undefined, status: undefined }); }} search={<AdminSearchField label="Tìm trang" onChange={(event) => setQuery(event.target.value)} placeholder="Tìm theo tên hoặc đường dẫn" value={query} />}>
         <select aria-label="Lọc theo trạng thái" onChange={(event) => setFilter("status", event.target.value === "all" ? undefined : event.target.value)} value={initialStatus}>
@@ -110,7 +110,7 @@ export function PagesManager({ counts, initialQuery, initialStatus, initialType,
         </select>
       </AdminFilterBar>
       <ContentBulkBar archiveBlockedReason="Trang có sẵn của website không lưu trữ hay xóa được; chuyển về nháp nếu cần ẩn tạm." canArchive={isCustomPage} deleteRequest={(page) => ({ method: "DELETE", url: `/api/admin/pages/${page.id}`, body: { expectedVersion: page.draftVersion } })} items={result.items} module="pages" noun="trang" onClear={clear} request={pageStateRequest} selectedIds={selectedIds} />
-      <AdminDataTable columns={columns} emptyMessage={filtered ? "Không có trang khớp bộ lọc." : emptyMessages[initialType]} getRowId={(page) => page.id} onSelectionChange={setSelectedIds} onSortChange={setSort} rows={result.items} selectedIds={selectedIds} sort={sort} tableId="static-pages" />
+      <AdminDataTable columns={columns} emptyMessage={filtered ? "Không có trang khớp bộ lọc." : emptyMessages[initialType]} getRowId={(page) => page.id} getRowLabel={(page) => page.title} onSelectionChange={setSelectedIds} onSortChange={setSort} rows={result.items} selectedIds={selectedIds} sort={sort} tableId="static-pages" />
       <AdminPagination unit="trang" page={result.page} pageSize={result.pageSize} total={result.total} totalPages={result.totalPages} {...pagination} />
     </AdminCard>
   </AdminListPage>;

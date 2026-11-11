@@ -70,7 +70,7 @@ export function ImageView({ node, editor, selected, updateAttributes }: NodeView
   const className = ["admin-rte-image", `admin-rte-image--${align}`, selected ? "is-selected" : "", dragWidth !== null ? "is-resizing" : ""].filter(Boolean).join(" ");
   return <NodeViewWrapper className={className} data-align={align} data-width={shown} style={{ width: `${shown}%` }}>
     {/* eslint-disable-next-line @next/next/no-img-element -- ảnh trong vùng soạn thảo, website dùng next/image */}
-    {missing ? <span className="admin-rte-image__missing" contentEditable={false}><ImageOff aria-hidden size={22} /><strong>Ảnh không còn trong Thư viện media</strong><small>Bấm chọn khung này rồi nhấn Delete để xóa, sau đó chèn ảnh khác.</small></span> : <img alt={alt ?? ""} draggable={false} onError={() => setMissingSrc(src)} src={src} />}
+    {missing ? <span className="admin-rte-image__missing" contentEditable={false}><ImageOff aria-hidden size={22} /><strong>Ảnh không còn trong Thư viện hình ảnh & tệp</strong><small>Bấm chọn khung này rồi nhấn Delete để xóa, sau đó chèn ảnh khác.</small></span> : <img alt={alt ?? ""} draggable={false} onError={() => setMissingSrc(src)} src={src} />}
     {title ? <span className="admin-rte-image__caption">{title}</span> : null}
     {editable ? <>
       <span className="admin-rte-image__bar" contentEditable={false}>

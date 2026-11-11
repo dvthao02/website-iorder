@@ -241,14 +241,19 @@ export function BlockAppearanceFields({ block, onChange, disabled, onUploadingCh
   // Phần đầu trang: nền chọn ở ô "Nền" của chính nó (sáng / xanh nhạt / tối theo kiểu bố cục); ở đây chỉ ghi đè bằng màu tự chọn.
   // Kiểu ảnh nền và trượt ảnh đã có ảnh riêng nên không thêm ảnh nền; trượt ảnh chiếm trọn bề ngang nên không chỉnh độ rộng.
   const hero = block.type === "hero" ? block : null;
+  if (hero?.data.layout === "slider") return <fieldset className="admin-block-group">
+    <legend>Giao diện phần đầu trang</legend>
+    <p className="admin-help">Kiểu trượt nhiều ảnh luôn hiển thị ảnh toàn chiều ngang với lớp phủ tối. Màu nền và độ rộng riêng không áp dụng cho kiểu này. Sửa chữ, ảnh và nút của từng mục ở tab Nội dung.</p>
+    {anchorField}
+  </fieldset>;
   const options: AppearanceEditorOptions = hero ? {
     tones: ["auto", "custom"],
     toneSelect: false,
     autoPreview: heroPreview[heroToneOf(hero.data)],
     spacing: false,
-    image: hero.data.layout !== "background" && hero.data.layout !== "slider",
-    imageNote: hero.data.layout === "slider" ? "Kiểu trượt nhiều ảnh dùng ảnh của từng slide làm nền, nên màu tự chọn và độ rộng không áp dụng." : "Kiểu ảnh nền đã dùng ảnh chính làm nền; màu tự chọn thay cho lớp phủ màu trên ảnh.",
-    width: hero.data.layout !== "slider",
+    image: hero.data.layout !== "background",
+    imageNote: "Kiểu ảnh nền đã dùng ảnh chính làm nền; màu tự chọn thay cho lớp phủ màu trên ảnh.",
+    width: true,
   } : { darkAllowed: blockSupportsDarkTone(block.type) };
 
   return <fieldset className="admin-block-group">

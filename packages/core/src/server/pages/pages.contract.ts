@@ -1,3 +1,4 @@
+import { contentSeoSchema } from "../shared/content-seo";
 import { z } from "zod";
 import { richDocumentSchema } from "../shared/rich-text";
 import { adminListQuerySchema } from "../shared/admin-list.contract";
@@ -120,22 +121,25 @@ export function heroToneOf(data: { layout: HeroLayout; tone?: HeroTone | null })
 // Một slide của kiểu "Trượt nhiều ảnh": ảnh bắt buộc; chữ và nút tùy chọn (ảnh đã có chữ thì để trống).
 // Khối nội dung trượt của các kiểu chữ – ảnh, ảnh nền, chữ ở giữa: mỗi khối có chữ, nút và ảnh riêng;
 // khối 1 là nội dung chính của phần đầu trang (tiêu đề là h1), các khối này trượt nối tiếp.
-const heroPanelSchema = z.object({
+const heroHighlightSchema = z.object({ isEnabled: z.boolean().optional(), title: z.string().trim().min(1).max(120), note: z.string().trim().max(160).nullable() }).strict();
+const heroPanelSchema = z.object({ isEnabled: z.boolean().optional(),
   eyebrow: z.string().trim().max(160).nullable(),
   title: z.string().trim().min(1).max(220),
   description: z.string().trim().max(10_000).nullable(),
   primaryAction: actionSchema.nullable(),
   secondaryAction: actionSchema.nullable(),
   mediaId: z.string().uuid().nullable(),
+  // Thiếu trường này: giữ cách hiển thị cũ, dùng điểm nổi bật chung của phần đầu trang.
+  highlights: z.array(heroHighlightSchema).max(4).optional(),
 }).strict();
 export type HeroPanel = z.infer<typeof heroPanelSchema>;
-const heroSlideSchema = z.object({ mediaId: z.string().uuid(), title: z.string().trim().max(220).nullable(), description: z.string().trim().max(2_000).nullable(), action: actionSchema.nullable() }).strict();
+const heroSlideSchema = z.object({ isEnabled: z.boolean().optional(), mediaId: z.string().uuid(), title: z.string().trim().max(220).nullable(), description: z.string().trim().max(2_000).nullable(), action: actionSchema.nullable() }).strict();
 // Thẻ của "Lưới thẻ": có biểu tượng thì hiện biểu tượng, không thì hiện số thứ tự (dữ liệu cũ chưa có trường này).
 // `mediaId`: ảnh đầu thẻ (ảnh người dùng, cửa hàng, sản phẩm…); có ảnh thì thẻ chuyển sang kiểu thẻ ảnh (website quyết giao diện).
 // `background`: màu nền riêng của thẻ (màu tối thì chữ trắng); thiếu = thẻ trắng.
-const cardSchema = z.object({ title: z.string().trim().min(1).max(220), description: z.string().trim().max(10_000), href: z.string().trim().max(1000).nullable(), icon: blockIconSchema.nullable().optional(), mediaId: z.string().uuid().nullable().optional(), background: cardBackgroundSchema }).strict();
-const groupedListItemSchema = z.object({ label: z.string().trim().min(1).max(120), icon: blockIconSchema.nullable(), href: z.string().trim().max(1000).nullable() }).strict();
-const groupedListGroupSchema = z.object({
+const cardSchema = z.object({ isEnabled: z.boolean().optional(), title: z.string().trim().min(1).max(220), description: z.string().trim().max(10_000), href: z.string().trim().max(1000).nullable(), icon: blockIconSchema.nullable().optional(), mediaId: z.string().uuid().nullable().optional(), background: cardBackgroundSchema }).strict();
+const groupedListItemSchema = z.object({ isEnabled: z.boolean().optional(), label: z.string().trim().min(1).max(120), icon: blockIconSchema.nullable(), href: z.string().trim().max(1000).nullable() }).strict();
+const groupedListGroupSchema = z.object({ isEnabled: z.boolean().optional(),
   title: z.string().trim().min(1).max(120),
   icon: blockIconSchema.nullable(),
   items: z.array(groupedListItemSchema).max(30),
@@ -162,7 +166,7 @@ export const pageBlockInputSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("hero"), data: z.object({ eyebrow: z.string().trim().max(160).nullable(), title: z.string().trim().min(1).max(220), description: z.string().trim().max(10_000).nullable(), primaryAction: actionSchema.nullable(), secondaryAction: actionSchema.nullable(), mediaId: z.string().uuid().nullable().optional(),
     // Kiểu bố cục; dữ liệu cũ (chưa có trường này) giữ bố cục chữ trái – ảnh phải.
     layout: heroLayoutSchema.default("split"),
-    highlights: z.array(z.object({ title: z.string().trim().min(1).max(120), note: z.string().trim().max(160).nullable() }).strict()).max(4).default([]),
+    highlights: z.array(heroHighlightSchema).max(4).default([]),
     footnote: z.string().trim().max(220).nullable().default(null),
     slides: z.array(heroSlideSchema).max(8).default([]),
     // Ảnh thứ 2 trở đi của các kiểu có ảnh (trừ "Trượt nhiều ảnh"): có từ 2 ảnh thì website tự chuyển ảnh.
@@ -172,12 +176,12 @@ export const pageBlockInputSchema = z.discriminatedUnion("type", [
     // Khối nội dung thứ 2 trở đi (trừ kiểu "Trượt nhiều ảnh"); có khối thì phần đầu trang tự trượt cả chữ và ảnh.
     panels: z.array(heroPanelSchema).max(7).default([]),
   }).strict(), isEnabled: z.boolean(), appearance: blockAppearanceSchema.optional() }).strict(),
-  z.object({ type: z.literal("stats"), data: z.object({ eyebrow: z.string().trim().max(160).nullable(), title: z.string().trim().max(220).nullable(), items: z.array(z.object({ value: z.string().trim().min(1).max(120), label: z.string().trim().min(1).max(220), note: z.string().trim().max(500).nullable() }).strict()).min(1).max(12) }).strict(), isEnabled: z.boolean(), appearance: blockAppearanceSchema.optional() }).strict(),
+  z.object({ type: z.literal("stats"), data: z.object({ eyebrow: z.string().trim().max(160).nullable(), title: z.string().trim().max(220).nullable(), items: z.array(z.object({ isEnabled: z.boolean().optional(), value: z.string().trim().min(1).max(120), label: z.string().trim().min(1).max(220), note: z.string().trim().max(500).nullable() }).strict()).min(1).max(12) }).strict(), isEnabled: z.boolean(), appearance: blockAppearanceSchema.optional() }).strict(),
   z.object({ type: z.enum(["features", "industries", "ecosystem", "process"]), data: cardBlockDataSchema, isEnabled: z.boolean(), appearance: blockAppearanceSchema.optional() }).strict(),
   z.object({ type: z.literal("testimonials"), data: z.object({ eyebrow: z.string().trim().max(160).nullable(), title: z.string().trim().min(1).max(220), limit: z.number().int().min(1).max(30) }).strict(), isEnabled: z.boolean(), appearance: blockAppearanceSchema.optional() }).strict(),
-  z.object({ type: z.literal("partners"), data: z.object({ eyebrow: z.string().trim().max(160).nullable(), title: z.string().trim().min(1).max(220), kind: z.enum(["partner", "customer", "all"]), limit: z.number().int().min(1).max(60) }).strict(), isEnabled: z.boolean(), appearance: blockAppearanceSchema.optional() }).strict(),
+  z.object({ type: z.literal("partners"), data: z.object({ description: z.string().trim().max(2000).nullable().optional(), eyebrow: z.string().trim().max(160).nullable(), title: z.string().trim().min(1).max(220), kind: z.enum(["partner", "customer", "all"]), limit: z.number().int().min(1).max(60) }).strict(), isEnabled: z.boolean(), appearance: blockAppearanceSchema.optional() }).strict(),
   z.object({ type: z.literal("featured_posts"), data: z.object({ eyebrow: z.string().trim().max(160).nullable(), title: z.string().trim().min(1).max(220), limit: z.number().int().min(1).max(12) }).strict(), isEnabled: z.boolean(), appearance: blockAppearanceSchema.optional() }).strict(),
-  z.object({ type: z.literal("faq"), data: z.object({ eyebrow: z.string().trim().max(160).nullable(), title: z.string().trim().min(1).max(220), items: z.array(z.object({ question: z.string().trim().min(1).max(500), answer: z.string().trim().min(1).max(10_000) }).strict()).min(1).max(40) }).strict(), isEnabled: z.boolean(), appearance: blockAppearanceSchema.optional() }).strict(),
+  z.object({ type: z.literal("faq"), data: z.object({ eyebrow: z.string().trim().max(160).nullable(), title: z.string().trim().min(1).max(220), items: z.array(z.object({ isEnabled: z.boolean().optional(), question: z.string().trim().min(1).max(500), answer: z.string().trim().min(1).max(10_000) }).strict()).min(1).max(40) }).strict(), isEnabled: z.boolean(), appearance: blockAppearanceSchema.optional() }).strict(),
   z.object({ type: z.literal("cta"), data: z.object({ id: z.string().trim().max(100).nullable(), eyebrow: z.string().trim().max(160).nullable(), title: z.string().trim().min(1).max(220), action: actionSchema }).strict(), isEnabled: z.boolean(), appearance: blockAppearanceSchema.optional() }).strict(),
   // `trialTitle`/`trialLabel`: chữ của thẻ Đăng ký dùng thử cạnh biểu mẫu (null = chữ mặc định của website).
   z.object({ type: z.literal("lead_form"), data: z.object({ title: z.string().trim().min(1).max(220), description: z.string().trim().max(2_000).nullable(), submitLabel: z.string().trim().min(1).max(120), needOptions: z.array(z.string().trim().min(1).max(200)).max(20), trialTitle: z.string().trim().max(160).nullable().optional(), trialLabel: z.string().trim().max(60).nullable().optional() }).strict(), isEnabled: z.boolean(), appearance: blockAppearanceSchema.optional() }).strict(),
@@ -209,7 +213,7 @@ export const pageBlockInputSchema = z.discriminatedUnion("type", [
 
 export const pageInputSchema = z.object({
   title: z.string().trim().min(1).max(220), slug: z.string().trim().min(1).max(180).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/), template: z.string().trim().min(1).max(80),
-  status: z.enum(["draft", "review", "scheduled", "published", "archived"]), seoTitle: z.string().trim().max(70).nullable(), seoDescription: z.string().trim().max(180).nullable(), canonicalUrl: z.string().url().nullable(), scheduledAt: z.coerce.date().nullable(), blocks: z.array(pageBlockInputSchema).max(100),
+  status: z.enum(["draft", "review", "scheduled", "published", "archived"]), seoTitle: z.string().trim().max(70).nullable(), seoDescription: z.string().trim().max(180).nullable(), canonicalUrl: z.string().url().nullable(), seo: contentSeoSchema.optional(), scheduledAt: z.coerce.date().nullable(), blocks: z.array(pageBlockInputSchema).max(100),
 }).strict().superRefine((value, ctx) => {
   if (value.status === "scheduled" && !value.scheduledAt) ctx.addIssue({ code: "custom", path: ["scheduledAt"], message: "Trang hẹn giờ cần thời điểm xuất bản." });
 });
@@ -221,7 +225,7 @@ export const adminPageSchema = pageInputSchema.safeExtend(adminPageMetaShape);
 const pageShape = pageInputSchema.shape;
 export const adminPageListItemSchema = z.object({
   title: pageShape.title, slug: pageShape.slug, template: pageShape.template, status: pageShape.status, seoTitle: pageShape.seoTitle,
-  seoDescription: pageShape.seoDescription, canonicalUrl: pageShape.canonicalUrl, scheduledAt: pageShape.scheduledAt, ...adminPageMetaShape,
+  seoDescription: pageShape.seoDescription, canonicalUrl: pageShape.canonicalUrl, seo: pageShape.seo, scheduledAt: pageShape.scheduledAt, ...adminPageMetaShape,
 });
 export type AdminPageListItem = z.infer<typeof adminPageListItemSchema>;
 export const adminPagesPageSchema = z.object({
@@ -238,6 +242,7 @@ export type AdminPage = z.infer<typeof adminPageSchema>;
 export const publicPageSchema = z.object({
   title: z.string(), slug: z.string(), template: z.string(),
   seoTitle: z.string().nullable(), seoDescription: z.string().nullable(), canonicalUrl: z.string().nullable(),
+  seo: contentSeoSchema.optional(),
   blocks: z.array(pageBlockInputSchema),
 }).strict();
 export type PublicPage = z.infer<typeof publicPageSchema>;
@@ -263,7 +268,7 @@ export const defaultListingCollections: Record<ListingPageSlug, CollectionListDa
   "listing-service": [{ source: "service", eyebrow: null, title: null, description: null, limit: null, anchor: null }],
 };
 
-export type ListingLayout = { header: ListingHeader; blocks: PageBlock[] };
+export type ListingLayout = { header: ListingHeader; hero?: Extract<PageBlock, { type: "hero" }>; blocks: PageBlock[] };
 
 // Trang danh sách = khối "Mở đầu" đầu tiên làm phần đầu trang + các khối còn lại theo thứ tự.
 // Nếu không có khối danh sách nào đang bật, thêm danh sách mặc định của trang vào cuối.
@@ -274,5 +279,5 @@ export function listingLayoutFromBlocks(slug: ListingPageSlug, blocks: readonly 
   if (!header) return undefined;
   const rest = blocks.filter((block, index) => index !== heroIndex && block.isEnabled);
   const hasCollection = rest.some(block => block.type === "collection_list");
-  return { header, blocks: hasCollection ? rest : [...rest, ...defaultListingCollections[slug].map(data => ({ type: "collection_list" as const, isEnabled: true, data }))] };
+  return { header, ...(heroIndex >= 0 ? { hero: blocks[heroIndex] as Extract<PageBlock, { type: "hero" }> } : {}), blocks: hasCollection ? rest : [...rest, ...defaultListingCollections[slug].map(data => ({ type: "collection_list" as const, isEnabled: true, data }))] };
 }

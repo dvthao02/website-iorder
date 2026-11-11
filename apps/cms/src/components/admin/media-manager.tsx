@@ -261,12 +261,12 @@ export function MediaManager({ initialPage, initialQuery }: { initialPage: { ass
     { id: "alt", label: "Mô tả ảnh", defaultWidth: 260, cell: (asset) => !isImage(asset) ? <span className="admin-field__hint">—</span> : asset.altText ? <span className="admin-media-row__alt" title={asset.altText}>{asset.altText}</span> : <AdminStatusBadge tone="warning">Thiếu mô tả ảnh</AdminStatusBadge> },
     { id: "caption", label: "Chú thích", defaultWidth: 220, cell: (asset) => asset.caption ? <span className="admin-media-row__alt" title={asset.caption}>{asset.caption}</span> : <span className="admin-field__hint">—</span> },
   ];
-  const emptyTitle = filter === "all" && !query && total === 0 ? "Thư viện chưa có tệp" : "Không có kết quả";
-  const emptyDescription = filter === "all" && !query && total === 0 ? "Kéo thả hoặc chọn tệp ở trên để tải ảnh và tài liệu lên." : "Thử từ khóa hoặc bộ lọc khác; nếu trang hiện tại đã hết dữ liệu, hãy quay về trang trước.";
+  const emptyTitle = loading ? "Đang tải thư viện…" : filter === "all" && !query && total === 0 ? "Thư viện chưa có tệp" : "Không có kết quả";
+  const emptyDescription = loading ? "Vui lòng chờ trong giây lát." : filter === "all" && !query && total === 0 ? "Kéo thả hoặc chọn tệp ở trên để tải ảnh và tài liệu lên." : "Thử từ khóa hoặc bộ lọc khác; nếu trang hiện tại đã hết dữ liệu, hãy quay về trang trước.";
 
   return <AdminListPage>
     <AdminCard>
-      <AdminListHeader description={`${total} tệp`} title="Thư viện media" />
+      <AdminListHeader description={`${total} tệp`} title="Thư viện hình ảnh & tệp" />
       <form className={dragging ? "admin-list-toolbar admin-media-upload admin-media-upload--drop" : "admin-list-toolbar admin-media-upload"} onDragLeave={() => setDragging(false)} onDragOver={(event) => { if (event.dataTransfer.types.includes("Files")) { event.preventDefault(); setDragging(true); } }} onDrop={drop} onSubmit={upload}>
         {/* Ô chọn tệp gốc của trình duyệt hiện chữ tiếng Anh; dùng nút riêng và hiện tên tệp đã chọn. */}
         <input accept="image/png,image/jpeg,image/webp,application/pdf,application/zip" aria-label="Chọn ảnh hoặc tài liệu" className="sr-only" id="media-upload-file" multiple name="file" onChange={(event) => { const picked = Array.from(event.target.files ?? []); setPickedName(picked.length > 1 ? `Đã chọn ${picked.length} tệp` : picked[0]?.name ?? ""); }} required type="file" />
@@ -287,7 +287,7 @@ export function MediaManager({ initialPage, initialQuery }: { initialPage: { ass
       </AdminBulkBar>
       {listError ? <div className="admin-list-toolbar"><AdminNotice tone="error">{listError}</AdminNotice><AdminButton disabled={loading} onClick={() => void loadPage(page)} size="sm" variant="secondary">Thử lại</AdminButton></div> : null}
       <fieldset className="min-w-0" disabled={loading || busy}>
-        {visibleAssets.length === 0 ? <div className="p-[var(--cms-card-padding)]"><AdminEmptyState description={emptyDescription} icon={<ImageIcon aria-hidden="true" size={21} />} title={emptyTitle} /></div>
+        {listError && visibleAssets.length === 0 ? null : visibleAssets.length === 0 ? <div className="p-[var(--cms-card-padding)]"><AdminEmptyState action={(filter !== "all" || Boolean(query)) && !listError ? <AdminButton disabled={loading || busy} onClick={() => { setSearchDraft(""); void loadPage(1, "all", ""); }} variant="secondary">Xóa bộ lọc</AdminButton> : undefined} description={emptyDescription} icon={<ImageIcon aria-hidden="true" size={21} />} title={emptyTitle} /></div>
           : view === "grid" ? <>
           <label className="admin-media-select-all"><input checked={allSelected} onChange={(event) => setSelectedIds(event.target.checked ? visibleAssets.map((asset) => asset.id) : [])} type="checkbox" />Chọn tất cả trên trang</label>
           <ul aria-label="Tệp trong thư viện" className="admin-media-grid">{visibleAssets.map((asset) => <li className={selectedIds.includes(asset.id) ? "admin-media-grid__item admin-media-grid__item--selected" : "admin-media-grid__item"} key={asset.id}>
@@ -298,7 +298,7 @@ export function MediaManager({ initialPage, initialQuery }: { initialPage: { ass
               <span className="admin-media-tile__meta">{formatFileSize(asset.fileSize)}{isImage(asset) && !asset.altText ? <AdminStatusBadge tone="warning">Thiếu mô tả</AdminStatusBadge> : null}</span>
             </button>
           </li>)}</ul></>
-          : <AdminDataTable columns={columns} emptyMessage="Không có tệp." getRowId={(asset) => asset.id} onRowClick={(asset) => setActiveId(asset.id)} onSortChange={(next) => void loadPage(1, filter, query, next ? `${next.key}:${next.dir}` : "createdAt:desc")} onSelectionChange={setSelectedIds} rows={visibleAssets} selectedIds={selectedIds} sort={sortKey === "createdAt" ? null : { key: sortKey, dir: sortDir }} tableId="media" />}
+          : <AdminDataTable columns={columns} emptyMessage="Không có tệp." getRowId={(asset) => asset.id} getRowLabel={(asset) => asset.originalName} onRowClick={(asset) => setActiveId(asset.id)} onSortChange={(next) => void loadPage(1, filter, query, next ? `${next.key}:${next.dir}` : "createdAt:desc")} onSelectionChange={setSelectedIds} rows={visibleAssets} selectedIds={selectedIds} sort={sortKey === "createdAt" ? null : { key: sortKey, dir: sortDir }} tableId="media" />}
       </fieldset>
       {page > totalPages ? <div className="admin-list-toolbar"><AdminButton disabled={loading || busy} onClick={() => void loadPage(totalPages)} size="sm" variant="secondary">Về trang cuối có dữ liệu</AdminButton></div> : null}
       <AdminPagination unit="tệp" disabled={loading || busy} onChange={(next) => void loadPage(next)} onPageSizeChange={(size) => void loadPage(1, filter, query, order, size)} page={page} pageSize={pageSize} total={total} totalPages={totalPages} />

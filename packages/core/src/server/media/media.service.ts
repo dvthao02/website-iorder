@@ -34,6 +34,20 @@ export async function validateCoverMedia(id: string | null | undefined) {
   }
 }
 
+export async function validateSeoMedia(seo: import("../shared/content-seo").ContentSeo | undefined) {
+  if (!seo) return;
+  const references: Array<{ id: string | null | undefined; path: Array<string | number> }> = [
+    { id: seo.openGraph?.imageMediaId, path: ["seo", "openGraph", "imageMediaId"] },
+    { id: seo.twitter?.imageMediaId, path: ["seo", "twitter", "imageMediaId"] },
+    ...(seo.structuredData ?? []).map((document, index) => ({ id: document.imageMediaId, path: ["seo", "structuredData", index, "imageMediaId"] })),
+  ];
+  for (const reference of references) {
+    if (!reference.id) continue;
+    const asset = await findMediaAsset(reference.id);
+    if (!asset || !asset.mimeType.startsWith("image/")) throw new z.ZodError([{ code: "custom", path: reference.path, message: "Ảnh SEO không tồn tại hoặc không phải định dạng ảnh." }]);
+  }
+}
+
 export async function uploadAdminMedia(file: File, userId: string) {
   if (!file.size || file.size > 20 * 1024 * 1024) throw new InvalidMediaError("Tệp phải có dữ liệu và không vượt quá 20 MB.");
   const body = Buffer.from(await file.arrayBuffer());

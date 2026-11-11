@@ -1,6 +1,8 @@
+import { contentSeoSchema, contentSeoVisibilitySchema } from "../shared/content-seo";
 import { z } from "zod";
 import { blockAppearanceSchema } from "../shared/appearance";
 import { pricingDataSchema } from "../shared/pricing.contract";
+import { pageBlockInputSchema } from "../pages/pages.contract";
 
 const shortTextSchema = z.string().trim().min(1).max(500);
 
@@ -20,7 +22,7 @@ export const offeringSlugSchema = z.string().trim().min(1).max(180);
 
 export const offeringContentSchema = z
   .object({
-    description: z.string().trim().min(1).max(20_000),
+    description: z.string().trim().max(20_000),
     tags: z.array(shortTextSchema).max(50),
     bestFor: z.string().trim().min(1).max(500).nullable(),
     keyValue: z.string().trim().min(1).max(500).nullable(),
@@ -33,8 +35,15 @@ export const offeringContentSchema = z
     // Bảng giá trên trang chi tiết (thường chỉ phần mềm có); dữ liệu cũ không có trường này → null.
     pricing: pricingDataSchema.nullable().default(null),
     appearance: offeringSectionAppearanceSchema.default({}),
+    // Thành phần trang chi tiết theo cùng schema/trình render với trang chủ; optional để đọc nguyên dữ liệu cũ.
+    blocks: z.array(pageBlockInputSchema).max(100).optional(),
   })
-  .strict();
+  .strict()
+  .superRefine((content, context) => {
+    if (!content.description && !content.blocks?.length) {
+      context.addIssue({ code: "custom", path: ["description"], message: "Thêm mô tả hoặc ít nhất một thành phần nội dung." });
+    }
+  });
 
 // Trường chung của bản tóm tắt và bản chi tiết.
 const publicOfferingBaseSchema = z
@@ -43,6 +52,7 @@ const publicOfferingBaseSchema = z
     type: publicOfferingTypeSchema,
     title: z.string(),
     slug: z.string(),
+    seo: contentSeoVisibilitySchema.optional(),
     summary: z.string().nullable(),
     icon: z.string().nullable(),
     isFeatured: z.boolean(),
@@ -75,6 +85,7 @@ export const publicOfferingDetailSchema = publicOfferingBaseSchema
     seoTitle: z.string().nullable(),
     seoDescription: z.string().nullable(),
     canonicalUrl: z.string().url().nullable(),
+    seo: contentSeoSchema.optional(),
   })
   .strict();
 
@@ -94,6 +105,7 @@ export const adminOfferingInputSchema = z
     seoTitle: z.string().trim().min(1).max(70).nullable(),
     seoDescription: z.string().trim().min(1).max(180).nullable(),
     canonicalUrl: z.string().url().nullable(),
+    seo: contentSeoSchema.optional(),
   })
   .strict()
   .superRefine((value, context) => {

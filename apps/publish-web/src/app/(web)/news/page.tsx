@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { ConsultBand } from "@/components/site/consult-band";
 import { NewsFeatured, NewsGrid, NewsPagination, NewsTopics } from "@/components/site/news";
 import { PageBlockRenderer } from "@/components/site/page-block-renderer";
-import { PageHero } from "@/components/site/page-hero";
+import { ListingPageHeader } from "@/components/site/listing-page-header";
 import { SiteHeader } from "@/components/site/site-header";
 import { SupportSearch } from "@/components/site/support-search";
 import { Container } from "@/components/ui";
@@ -38,9 +38,9 @@ export default async function NewsPage({ searchParams }: NewsPageProps) {
   return <>
     <SiteHeader />
     <main id="noi-dung">
-      <PageHero crumbs={[{ name: "Tin tức", path: "/tin-tuc" }]} description={header.description} eyebrow={header.eyebrow} title={header.title}>
+      <ListingPageHeader hero={content?.hero} header={header} crumbs={[{ name: "Tin tức", path: "/tin-tuc" }]}>
         {searchItems.length ? <div className="mt-6 max-w-xl"><SupportSearch items={searchItems} label="Tìm bài viết" placeholder="Tìm bài viết…" suggestions={[]} /></div> : null}
-      </PageHero>
+      </ListingPageHeader>
       <NewsTopics active={null} topics={index.topics} />
       {featured.length ? <NewsFeatured posts={featured} /> : null}
       {grid.length ? <section aria-labelledby="bai-viet-moi" className="news-section"><Container>

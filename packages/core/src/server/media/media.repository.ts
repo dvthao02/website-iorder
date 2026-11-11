@@ -129,7 +129,7 @@ export async function collectMediaUsage(mediaId: string): Promise<MediaUsage[]> 
     // Ảnh bìa, hoặc ảnh nền của một phần trang chi tiết (nằm trong nội dung JSON).
     getDb().select({ id: offerings.id, label: offerings.title }).from(offerings).where(and(or(eq(offerings.coverMediaId, mediaId), sql<boolean>`position(${mediaId} in ${offerings.content}::text) > 0`), isNull(offerings.deletedAt))),
     getDb().select({ id: equipmentGroups.id, label: equipmentGroups.name }).from(equipmentGroups).where(and(eq(equipmentGroups.coverMediaId, mediaId), isNull(equipmentGroups.deletedAt))),
-    getDb().select({ id: salesEquipment.id, label: salesEquipment.name }).from(salesEquipment).where(and(eq(salesEquipment.coverMediaId, mediaId), isNull(salesEquipment.deletedAt))),
+    getDb().select({ id: salesEquipment.id, label: salesEquipment.name }).from(salesEquipment).where(and(or(eq(salesEquipment.coverMediaId, mediaId), sql<boolean>`position(${mediaId} in coalesce(${salesEquipment.blocks}::text, '')) > 0`), isNull(salesEquipment.deletedAt))),
     getDb().select({ id: partners.id, label: partners.name }).from(partners).where(and(eq(partners.logoMediaId, mediaId), isNull(partners.deletedAt))),
     getDb().select({ id: testimonials.id, label: testimonials.authorName }).from(testimonials).where(and(eq(testimonials.avatarMediaId, mediaId), isNull(testimonials.deletedAt))),
     getDb().select({ id: siteProfile.id, label: siteProfile.companyName }).from(siteProfile).where(eq(siteProfile.logoMediaId, mediaId)),
@@ -137,7 +137,14 @@ export async function collectMediaUsage(mediaId: string): Promise<MediaUsage[]> 
     listPublishingMediaUsage(mediaId),
   ]);
 
+  const seoRows = await Promise.all([
+    getDb().select({ id: pages.id, label: pages.title }).from(pages).where(and(isNull(pages.deletedAt), sql<boolean>`position(${mediaId} in ${pages.seo}::text) > 0`)),
+    getDb().select({ id: posts.id, label: posts.title }).from(posts).where(and(isNull(posts.deletedAt), sql<boolean>`position(${mediaId} in ${posts.seo}::text) > 0`)),
+    getDb().select({ id: offerings.id, label: offerings.title }).from(offerings).where(and(isNull(offerings.deletedAt), sql<boolean>`position(${mediaId} in ${offerings.seo}::text) > 0`)),
+    getDb().select({ id: salesEquipment.id, label: salesEquipment.name }).from(salesEquipment).where(and(isNull(salesEquipment.deletedAt), sql<boolean>`position(${mediaId} in ${salesEquipment.seo}::text) > 0`)),
+  ]);
   return [
+    ...seoRows.flatMap((rows, index) => rows.map(row => ({ entityType: ["page", "post", "offering", "equipment"][index], entityId: row.id, label: row.label, location: "Ảnh SEO, chia sẻ hoặc dữ liệu cấu trúc" }))),
     ...pageRows.map((row) => ({ entityType: "page_block", entityId: row.id, label: row.label, location: "Khối hình ảnh của trang" })),
     ...postRows.map((row) => ({ entityType: "post", entityId: row.id, label: row.label, location: "Ảnh bìa bài viết" })),
     ...offeringRows.map((row) => ({ entityType: "offering", entityId: row.id, label: row.label, location: "Ảnh bìa catalog" })),

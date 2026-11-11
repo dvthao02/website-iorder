@@ -14,7 +14,7 @@ import type { getPartners as getPartnersFromService, getTestimonials as getTesti
 import type { getTaxonomy as getTaxonomyFromService } from "@iorder/core/server/taxonomy/taxonomy.service";
 import { publicContentCacheTag } from "@iorder/core/server/publishing/cache-invalidation";
 import { cache } from "react";
-import { cookies, draftMode } from "next/headers";
+import { cookies, draftMode, headers } from "next/headers";
 
 type SharedContent = {
   settings: {
@@ -65,8 +65,10 @@ const fetchPublicResource = cache(async (resource: string, encodedParams = "") =
 
 // Chế độ xem trước (Draft Mode + cookie token do /api/preview đặt): chỉ trang, bài viết và catalog nhận bản nháp.
 export const previewCookieName = "iorder_preview";
-const previewableResources = new Set(["page", "post", "offering"]);
+const previewableResources = new Set(["page", "post", "offering", "equipment"]);
 async function previewToken() {
+  const builderToken = (await headers()).get("x-iorder-builder-preview");
+  if (builderToken) return builderToken;
   if (!(await draftMode()).isEnabled) return undefined;
   return (await cookies()).get(previewCookieName)?.value;
 }

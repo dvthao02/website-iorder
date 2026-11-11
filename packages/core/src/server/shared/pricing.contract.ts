@@ -12,6 +12,7 @@ export const pricingDataSchema = z.object({
   description: z.string().trim().max(2_000).nullable(),
   note: z.string().trim().max(300).nullable(),
   plans: z.array(z.object({
+    isEnabled: z.boolean().optional(),
     name: z.string().trim().min(1).max(120),
     price: z.string().trim().min(1).max(60),
     period: z.string().trim().max(60).nullable(),

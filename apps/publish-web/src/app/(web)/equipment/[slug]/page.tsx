@@ -8,7 +8,8 @@ import { Section, SectionHeading, TextLink } from "@/components/ui";
 import { ConsultBand } from "@/components/site/consult-band";
 import { EquipmentCard } from "@/components/site/collection-list";
 import { getEquipment, getPublishingConfig, getSiteProfile } from "@/lib/backend";
-import { JsonLd } from "@/components/site/json-ld";
+import { ContentJsonLd } from "@/components/site/content-json-ld";
+import { PageBlockRenderer } from "@/components/site/page-block-renderer";
 import { breadcrumbJsonLd, productJsonLd } from "@/lib/structured-data";
 export const revalidate = 0;
 type Props = { params: Promise<{ slug: string }> };
@@ -16,7 +17,7 @@ const priceFormatter = new Intl.NumberFormat("vi-VN", { style: "currency", curre
 export async function generateMetadata({ params }: Props, parent: ResolvingMetadata) {
   const { slug } = await params;
   const item = (await getEquipment(true)).find(row => row.slug === slug);
-  return item ? contentMetadata({ title: item.seoTitle || `${item.name} | Thiết bị bán hàng iOrder`, description: item.seoDescription || item.summary, path: `/thiet-bi/${item.slug}`, canonicalUrl: item.canonicalUrl, image: item.coverUrl ? { url: item.coverUrl, alt: item.coverAlt } : null }, parent) : { title: "Không tìm thấy thiết bị | iOrder" };
+  return item ? contentMetadata({ title: item.seoTitle || `${item.name} | Thiết bị bán hàng iOrder`, description: item.seoDescription || item.summary, path: `/thiet-bi/${item.slug}`, canonicalUrl: item.canonicalUrl, seo: item.seo, image: item.coverUrl ? { url: item.coverUrl, alt: item.coverAlt } : null }, parent) : { title: "Không tìm thấy thiết bị | iOrder" };
 }
 // Trang chi tiết thiết bị: phần đầu một màn hình (ảnh trong khung, giá, bảo hành, nút liên hệ) → thông số kỹ thuật theo nhóm
 // → thiết bị khác (ưu tiên cùng nhóm, tối đa 4) → dải tư vấn chọn thiết bị (hotline từ Cài đặt).
@@ -28,7 +29,7 @@ export default async function EquipmentDetail({ params }: Props) {
   const others = [...all.filter(row => row.id !== item.id && row.groupName === item.groupName), ...all.filter(row => row.id !== item.id && row.groupName !== item.groupName)].slice(0, 4);
   const [config, profile] = await Promise.all([getPublishingConfig(), getSiteProfile()]);
   const site = config.siteUrl;
-  return <><SiteHeader />{site ? <JsonLd data={[productJsonLd(site, { name: item.name, description: item.seoDescription || item.summary, path: `/thiet-bi/${item.slug}`, imagePath: item.coverUrl ?? null, sku: item.modelCode, priceVnd: item.priceVnd, brand: profile?.companyName ?? "iOrder" }), breadcrumbJsonLd(site, [{ name: "Trang chủ", path: "/" }, { name: "Thiết bị", path: "/thiet-bi" }, { name: item.name, path: `/thiet-bi/${item.slug}` }])]} /> : null}
+  return <><SiteHeader />{site ? <ContentJsonLd seo={item.seo} title={item.name} description={item.seoDescription || item.summary} path={`/thiet-bi/${item.slug}`} defaults={[productJsonLd(site, { name: item.name, description: item.seoDescription || item.summary, path: `/thiet-bi/${item.slug}`, imagePath: item.coverUrl ?? null, sku: item.modelCode, priceVnd: item.priceVnd, brand: profile?.companyName ?? "iOrder" }), breadcrumbJsonLd(site, [{ name: "Trang chủ", path: "/" }, { name: "Thiết bị", path: "/thiet-bi" }, { name: item.name, path: `/thiet-bi/${item.slug}` }])]} /> : null}
     <main id="noi-dung">
       <DetailHero back={{ href: "/thiet-bi", label: "Tất cả thiết bị" }} image={item.coverUrl ? { url: item.coverUrl, alt: item.coverAlt ?? item.name } : null} imageStyle="product" label={item.groupName} primary={{ label: "Liên hệ mua hàng", href: "/lien-he" }} secondary={{ label: "Xem thiết bị khác", href: "/thiet-bi" }} summary={item.summary} title={item.name}>
         <p className="mt-6 mb-0 text-3xl font-bold tracking-tight text-brand-700">{priceFormatter.format(item.priceVnd)}</p>
@@ -47,6 +48,7 @@ export default async function EquipmentDetail({ params }: Props) {
           })}</dl>
         </section>)}</div>
       </Section> : null}
+      {item.blocks?.length ? <PageBlockRenderer blocks={item.blocks} /> : null}
       {others.length ? <Section tone="tinted">
         <div className="mb-10 flex flex-col gap-5 sm:mb-12 md:flex-row md:items-end md:justify-between">
           <SectionHeading align="left" className="" eyebrow="Thiết bị" title="Thiết bị khác" />
