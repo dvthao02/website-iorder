@@ -10,6 +10,9 @@
     font-size: var(--cms-font-size);
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
+    /* Chuỗi dài không khoảng trắng (URL, tiêu đề dán vào) được bẻ dòng thay vì nong rộng card/panel.
+       Không ảnh hưởng các dòng ellipsis vì white-space: nowrap vẫn thắng. */
+    overflow-wrap: break-word;
     /* Khi trình duyệt bật duyệt bằng con trỏ (F7), con nháy hiện trên cả chữ tĩnh; chỉ giữ nó trong vùng nhập. */
     caret-color: transparent;
   }
