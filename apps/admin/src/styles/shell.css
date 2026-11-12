@@ -139,6 +139,12 @@
   .admin-shell--collapsed .admin-navigation__group--compact-open .admin-navigation__group-toggle { background: var(--cms-hover); color: var(--cms-text); }
   .admin-shell--collapsed .admin-navigation__group:has(.admin-navigation__link--active) .admin-navigation__group-toggle { color: var(--cms-primary); }
   .admin-shell--collapsed .admin-navigation__items { justify-items: center; }
+  /* Thu gọn giữ nguyên cấu trúc nhóm: mỗi nhóm là một nút biểu tượng kèm các biểu tượng mục con bên dưới (tên hiện khi rê chuột);
+     nhóm đang gập thì nút nhóm mờ đi và ẩn các mục con, bấm để mở lại như khi thanh bên mở rộng. */
+  @media (min-width: 1101px) {
+    .admin-shell--collapsed .admin-navigation__group + .admin-navigation__group { margin-top: 6px; border-top: 1px solid var(--cms-border); padding-top: 6px; }
+    .admin-shell--collapsed .admin-navigation__group--collapsed .admin-navigation__group-toggle { opacity: .55; }
+  }
   .admin-shell--collapsed .admin-navigation__link { width: 36px; justify-content: center; padding: 0; }
   .admin-shell--collapsed .admin-navigation__label { display: none; }
   .admin-sidebar-tooltip {

@@ -180,23 +180,7 @@ export function AdminShell({ administrator, children, notifications }: { adminis
   const [mobileNavigationPath, setMobileNavigationPath] = useState<string | null>(null);
   const isMobileNavigationOpen = mobileNavigationPath === pathname;
   const [collapsedNavigationGroups, setCollapsedNavigationGroups] = useState<Set<string>>(() => new Set());
-  const [compactNavigationGroups, setCompactNavigationGroups] = useState<Set<string>>(() => new Set());
   const [sidebarTooltip, setSidebarTooltip] = useState<{ label: string; top: number } | null>(null);
-  // Menu nhóm của thanh bên thu gọn: bấm ra ngoài thanh bên hoặc Esc thì đóng.
-  const hasCompactGroupOpen = compactNavigationGroups.size > 0;
-  useEffect(() => {
-    if (!hasCompactGroupOpen) return;
-    const close = (event: PointerEvent | KeyboardEvent) => {
-      if (event instanceof KeyboardEvent ? event.key !== "Escape" : event.target instanceof Node && document.querySelector(".admin-sidebar")?.contains(event.target)) return;
-      setCompactNavigationGroups(new Set());
-    };
-    document.addEventListener("pointerdown", close);
-    document.addEventListener("keydown", close);
-    return () => {
-      document.removeEventListener("pointerdown", close);
-      document.removeEventListener("keydown", close);
-    };
-  }, [hasCompactGroupOpen]);
   // Thanh dọc đánh dấu mục đang chọn: trượt tới mục mới (ngay khi bấm, rồi theo trang thật sự mở). Đặt vị trí bằng
   // style trực tiếp (không qua state) vì chỉ là hiệu ứng; ẩn khi thanh bên thu gọn hoặc nhóm chứa mục đang gập.
   const navigationRef = useRef<HTMLElement>(null);
@@ -232,7 +216,6 @@ export function AdminShell({ administrator, children, notifications }: { adminis
     if (!isMobileNavigationOpen) {
       const activeGroupId = currentNavigation?.group.id;
       setIsSidebarCollapsed(false);
-      setCompactNavigationGroups(new Set());
       setCollapsedNavigationGroups(new Set(navigationGroups.filter((group) => group.id !== activeGroupId).map((group) => group.id)));
     }
     setMobileNavigationPath(isMobileNavigationOpen ? null : pathname);
@@ -247,14 +230,9 @@ export function AdminShell({ administrator, children, notifications }: { adminis
     });
   }
 
+  // Thanh bên thu gọn hay mở rộng đều giữ cùng cấu trúc nhóm: bấm nút nhóm thì gập/mở nhóm đó.
   function openNavigationGroup(groupId: string) {
-    if (!isSidebarCollapsed) {
-      toggleNavigationGroup(groupId);
-      return;
-    }
-
-    // Thanh bên thu gọn: mỗi lần chỉ mở một nhóm (menu nổi), như các menu thả xuống khác.
-    setCompactNavigationGroups(current => current.has(groupId) ? new Set() : new Set([groupId]));
+    toggleNavigationGroup(groupId);
   }
 
   function showSidebarTooltip(label: string, target: HTMLElement) {
@@ -317,7 +295,7 @@ export function AdminShell({ administrator, children, notifications }: { adminis
             aria-expanded={!isSidebarCollapsed}
             aria-label={isSidebarCollapsed ? "Mở rộng thanh điều hướng" : "Thu gọn thanh điều hướng"}
             className="admin-sidebar-toggle"
-            onClick={() => { setIsSidebarCollapsed(value => !value); setCompactNavigationGroups(new Set()); setSidebarTooltip(null); }}
+            onClick={() => { setIsSidebarCollapsed(value => !value); setSidebarTooltip(null); }}
           >
             {isSidebarCollapsed ? <ChevronRight aria-hidden="true" size={18} /> : <ChevronLeft aria-hidden="true" size={18} />}
           </AdminIconButton>
@@ -332,18 +310,16 @@ export function AdminShell({ administrator, children, notifications }: { adminis
               const items = visibleNavigationItems(administrator, group.items);
               if (!items.length) return null;
               const isGroupCollapsed = collapsedNavigationGroups.has(group.id);
-              const isCompactGroupOpen = compactNavigationGroups.has(group.id);
               const GroupIcon = group.icon;
               const groupClassName = [
                 "admin-navigation__group",
                 isGroupCollapsed ? "admin-navigation__group--collapsed" : "",
-                isCompactGroupOpen ? "admin-navigation__group--compact-open" : "",
               ].filter(Boolean).join(" ");
               return <section className={groupClassName} key={group.id}>
                 <button
                   aria-controls={`admin-navigation-group-${group.id}`}
-                  aria-expanded={isSidebarCollapsed ? isCompactGroupOpen : !isGroupCollapsed}
-                  aria-label={isSidebarCollapsed ? `Mở nhóm ${group.label}` : undefined}
+                  aria-expanded={!isGroupCollapsed}
+                  aria-label={isSidebarCollapsed ? `${isGroupCollapsed ? "Mở" : "Gập"} nhóm ${group.label}` : undefined}
                   className="admin-navigation__group-toggle"
                   onClick={() => openNavigationGroup(group.id)}
                   onBlur={() => setSidebarTooltip(null)}
@@ -356,7 +332,7 @@ export function AdminShell({ administrator, children, notifications }: { adminis
                   <span>{group.label}</span>
                   <ChevronDown aria-hidden="true" size={14} />
                 </button>
-                <div className="admin-navigation__items" hidden={isSidebarCollapsed ? !isCompactGroupOpen : isGroupCollapsed} id={`admin-navigation-group-${group.id}`} onClick={isSidebarCollapsed ? (event) => { if (event.target instanceof Element && event.target.closest("a")) setCompactNavigationGroups(new Set()); } : undefined}>
+                <div className="admin-navigation__items" hidden={isGroupCollapsed} id={`admin-navigation-group-${group.id}`}>
                   {items.map(item => {
                   const active = isActive(pathname, item);
                   const ItemIcon = item.icon;

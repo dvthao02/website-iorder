@@ -25,7 +25,7 @@
   :where(button, summary, select, nav a, [role="button"], [role="tab"], [role="menuitem"], [role="menuitemradio"], [role="option"], .admin-button, .admin-view-tabs__tab, .admin-filter-chip) { -webkit-user-select: none; user-select: none; }
   :focus-visible { outline: 2px solid var(--cms-primary); outline-offset: 2px; }
 
-  * { scrollbar-color: color-mix(in srgb, var(--cms-muted) 40%, transparent) transparent; scrollbar-width: thin; }
+  /* Thanh cuộn: Chrome/Edge dùng quy tắc ::-webkit-scrollbar ở cuối tệp (đặt scrollbar-width/scrollbar-color ở đây sẽ vô hiệu hóa chúng); Firefox: xem @supports ở cuối tệp. */
 
   h1, h2, h3, h4 { margin: 0; color: var(--cms-text); font-weight: 600; letter-spacing: -0.01em; }
   h1 { font-size: 20px; line-height: 1.3; }
@@ -79,4 +79,15 @@
   .admin-shell button:not([class]):disabled { opacity: 0.45; }
   .admin-shell legend { margin-bottom: 6px; font-size: var(--cms-text-sm); font-weight: 500; }
   table { border-collapse: collapse; }
+}
+
+/* Thanh cuộn rất mảnh (3px, nền trong suốt) cho cửa sổ và mọi khung cuộn bên trong CMS: thanh bên, vùng nội dung, bảng, hộp thoại, trình dựng.
+   Chrome/Edge dùng ::-webkit-scrollbar (không đặt scrollbar-width vì sẽ vô hiệu hóa chúng);
+   Firefox dùng scrollbar-width: thin. Để ngoài layer nên thắng các quy tắc theo layer. */
+*::-webkit-scrollbar { width: 3px; height: 3px; }
+*::-webkit-scrollbar-thumb { border-radius: 999px; background: var(--cms-border-strong, #c3ccd8); }
+*::-webkit-scrollbar-thumb:hover { background: var(--cms-muted, #8794a6); }
+*::-webkit-scrollbar-track, *::-webkit-scrollbar-corner { background: transparent; }
+@supports (-moz-appearance: none) {
+  html, body * { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--cms-muted) 40%, transparent) transparent; }
 }

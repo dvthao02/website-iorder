@@ -1,21 +1,35 @@
 "use client";
 
 import { apiErrorMessage } from "@/lib/admin-api";
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 
+import { AdminToastProvider, useAdminToast } from "@/components/admin/ui/admin-feedback";
 import { AdminPasswordInput } from "@/components/admin/ui/admin-password-input";
 
 type LoginFormProps = {
   initialError?: string;
 };
 
-export function LoginForm({ initialError }: LoginFormProps) {
-  const [error, setError] = useState<string | undefined>(initialError);
+export function LoginForm(props: LoginFormProps) {
+  return (
+    <AdminToastProvider>
+      <LoginFormContent {...props} />
+    </AdminToastProvider>
+  );
+}
+
+function LoginFormContent({ initialError }: LoginFormProps) {
+  const toast = useAdminToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (initialError) toast.show(initialError, "error");
+    // Chỉ hiện một lần khi trang mở với tham số lỗi.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setError(undefined);
     setIsSubmitting(true);
 
     const formData = new FormData(event.currentTarget);
@@ -32,7 +46,7 @@ export function LoginForm({ initialError }: LoginFormProps) {
 
     if (!response?.ok) {
       const payload = await response?.json().catch(() => undefined);
-      setError(apiErrorMessage(payload, "Không thể đăng nhập. Vui lòng thử lại."));
+      toast.show(apiErrorMessage(payload, "Không thể đăng nhập. Vui lòng thử lại."), "error");
       return;
     }
 
@@ -60,7 +74,6 @@ export function LoginForm({ initialError }: LoginFormProps) {
           required
         />
       </div>
-      {error ? <p className="admin-help admin-text-error">{error}</p> : null}
       <button
         className="admin-button admin-button--primary w-full"
         disabled={isSubmitting}

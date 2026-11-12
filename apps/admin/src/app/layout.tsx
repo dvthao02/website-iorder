@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { DM_Sans, Inter, Manrope, Plus_Jakarta_Sans } from "next/font/google";
 import type { ReactNode } from "react";
 
+import { VietnameseValidation } from "@/components/admin/ui/vietnamese-validation";
+
 import "./globals.css";
 
 const inter = Inter({ display: "swap", subsets: ["latin", "vietnamese"], variable: "--font-inter" });
@@ -22,7 +24,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       lang="vi"
       suppressHydrationWarning
     >
-      <body suppressHydrationWarning>{children}</body>
+      <body suppressHydrationWarning>
+        <VietnameseValidation />
+        {children}
+      </body>
     </html>
   );
 }
