@@ -105,7 +105,7 @@ export function RolesManager({ roles, modules, actionLabels, tabs }: RolesManage
     mutationPending.current = true;
     setBusy(true);
     try {
-      const payload = cmsRoleSaveResponseSchema.safeParse(await requestAdminJson("/api/admin/roles", "POST", { id: activeId, values: parsed.data }, "Không thể lưu vai trò."));
+      const payload = cmsRoleSaveResponseSchema.safeParse(await requestAdminJson("/api/v1/admin/roles", "POST", { id: activeId, values: parsed.data }, "Không thể lưu vai trò."));
       if (!payload.success) throw new Error("Phản hồi lưu vai trò không hợp lệ. Vui lòng tải lại để kiểm tra.");
       const saved = { name: parsed.data.name, description: parsed.data.description ?? "", permissions: parsed.data.permissions };
       setActiveId(payload.data.id);
@@ -129,7 +129,7 @@ export function RolesManager({ roles, modules, actionLabels, tabs }: RolesManage
     mutationPending.current = true;
     setBusy(true);
     try {
-      const response = await fetch("/api/admin/roles", { method: "DELETE", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: active.id }) });
+      const response = await fetch("/api/v1/admin/roles", { method: "DELETE", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: active.id }) });
       const payload: unknown = await response.json().catch(() => null);
       if (!response.ok) throw new Error(apiErrorMessage(payload, "Không thể xóa vai trò."));
       setActiveId(null);

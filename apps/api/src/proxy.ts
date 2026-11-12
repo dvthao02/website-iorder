@@ -19,7 +19,7 @@ export async function proxy(request: NextRequest) {
   const pass = () => tagged(NextResponse.next({ request: { headers: forwarded } }));
   const logged = { headers: forwarded, method: request.method, url: request.url };
 
-  if (!request.nextUrl.pathname.startsWith("/api/admin")) return pass();
+  if (!request.nextUrl.pathname.startsWith("/api/v1/admin")) return pass();
 
   if (
     mutationMethods.has(request.method)
@@ -64,6 +64,6 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // Toàn bộ API và media nhận request id; kiểm tra quyền chỉ áp dụng cho /api/admin.
+  // Toàn bộ API và media nhận request id; kiểm tra quyền chỉ áp dụng cho /api/v1/admin.
   matcher: ["/api/:path*", "/media/:path*"],
 };

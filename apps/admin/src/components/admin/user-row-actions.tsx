@@ -34,8 +34,8 @@ export function UserRowActions({ isSelf, user }: { isSelf: boolean; user: RowUse
     setBusy(kind);
     try {
       const response = kind === "delete"
-        ? await fetch(`/api/admin/users?id=${encodeURIComponent(user.id)}`, { method: "DELETE" })
-        : await fetch("/api/admin/users", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: user.id, values: { username: user.username, email: user.email, fullName: user.fullName, role: user.role, status: locked ? "active" : "disabled", password: null } }) });
+        ? await fetch(`/api/v1/admin/users?id=${encodeURIComponent(user.id)}`, { method: "DELETE" })
+        : await fetch("/api/v1/admin/users", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: user.id, values: { username: user.username, email: user.email, fullName: user.fullName, role: user.role, status: locked ? "active" : "disabled", password: null } }) });
       const payload = await readAdminJson(response);
       if (!response.ok) throw adminApiError(payload, kind === "delete" ? "Không thể xóa tài khoản." : "Không thể đổi trạng thái tài khoản.");
       show(kind === "delete" ? `Đã xóa tài khoản ${user.fullName}.` : locked ? `Đã mở khóa ${user.fullName}.` : `Đã khóa ${user.fullName} và đăng xuất mọi thiết bị.`, "success");

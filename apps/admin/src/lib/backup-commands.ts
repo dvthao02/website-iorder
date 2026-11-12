@@ -1,5 +1,5 @@
 // Lệnh sao lưu/phục hồi thủ công cho máy chủ thật (VPS — chưa triển khai, xem docs/ROADMAP.md). Trên máy
-// Windows (môi trường đang chạy), CMS tự làm qua nút bấm (xem backup-manager.tsx, API /api/admin/backup),
+// Windows (môi trường đang chạy), CMS tự làm qua nút bấm (xem backup-manager.tsx, API /api/v1/admin/backup),
 // không cần các lệnh này. Phải khớp scripts/backup.sh và mục Production trong docs/PROJECT.md.
 
 export type RestorableVpsBackup = { location: string; repoDir: string; stamp: string; database: string };

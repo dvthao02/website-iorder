@@ -16,7 +16,7 @@ export async function GET(request: Request) {
   if (!token) return invalid("Thiếu mã xem trước. Hãy bấm lại nút “Xem trước” trong CMS.", 400);
   let preview: { path: string; exp: number } | undefined;
   try {
-    const response = await fetch(`${backendUrl}/api/public/preview?token=${encodeURIComponent(token)}`, { cache: "no-store" });
+    const response = await fetch(`${backendUrl}/api/v1/public/preview?token=${encodeURIComponent(token)}`, { cache: "no-store" });
     if (response.ok) preview = (await response.json() as { preview: { path: string; exp: number } }).preview;
   } catch {
     return invalid("Không kết nối được máy chủ nội dung. Vui lòng thử lại.", 502);

@@ -104,7 +104,7 @@ export function MediaManager({ initialPage, initialQuery }: { initialPage: { ass
     try {
       const [sort, dir] = nextOrder.split(":");
       const params = new URLSearchParams({ page: String(nextPage), pageSize: String(nextPageSize), type: nextFilter, query: nextQuery, sort, dir });
-      const response = await fetch(`/api/admin/media?${params}`);
+      const response = await fetch(`/api/v1/admin/media?${params}`);
       const body = await readAdminJson(response);
       if (!response.ok) throw adminApiError(body, "Không tải được danh sách tệp.");
       const result = mediaListResponseSchema.safeParse(body);
@@ -173,7 +173,7 @@ export function MediaManager({ initialPage, initialQuery }: { initialPage: { ass
     const failed: string[] = [];
     for (const asset of targets) {
       try {
-        const response = await fetch(`/api/admin/media/${asset.id}`, { method: "DELETE" });
+        const response = await fetch(`/api/v1/admin/media/${asset.id}`, { method: "DELETE" });
         const result = await readAdminJson(response);
         if (response.ok && result.queuedId === asset.id) deleted.push(asset.id);
         else if (response.status === 409) inUse.push(asset.originalName);
@@ -213,7 +213,7 @@ export function MediaManager({ initialPage, initialQuery }: { initialPage: { ass
         try {
           const body = new FormData();
           body.set("file", file);
-          const response = await fetch("/api/admin/media", { method: "POST", body });
+          const response = await fetch("/api/v1/admin/media", { method: "POST", body });
           const result = await readAdminJson(response);
           if (!response.ok || !result.asset?.id) throw adminApiError(result, "Không thể tải tệp lên.");
           const parsed = mediaAssetSchema.safeParse(result.asset);
@@ -334,7 +334,7 @@ function MediaDetail({ asset, navigation, onDeleted, onSaved, onStateChange }: {
   useNavigationGuard(busy, () => showToast("Đang xử lý thông tin tệp. Vui lòng chờ trước khi rời trang.", "info"));
   useEffect(() => {
     const controller = new AbortController();
-    fetch(`/api/admin/media/${asset.id}/usage`, { signal: controller.signal }).then(async (response) => {
+    fetch(`/api/v1/admin/media/${asset.id}/usage`, { signal: controller.signal }).then(async (response) => {
       const payload = await readAdminJson(response);
       if (!response.ok) throw adminApiError(payload, "Không kiểm tra được nơi sử dụng tệp.");
       const parsed = mediaUsageSchema.safeParse(payload);
@@ -354,7 +354,7 @@ function MediaDetail({ asset, navigation, onDeleted, onSaved, onStateChange }: {
     mutating.current = true;
     setBusy(true);
     try {
-      const response = await fetch(`/api/admin/media/${asset.id}`, {
+      const response = await fetch(`/api/v1/admin/media/${asset.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ altText: metadata.altText.trim() || null, caption: metadata.caption.trim() || null, expectedVersion: asset.version }),
@@ -382,7 +382,7 @@ function MediaDetail({ asset, navigation, onDeleted, onSaved, onStateChange }: {
     mutating.current = true;
     setBusy(true);
     try {
-      const response = await fetch(`/api/admin/media/${asset.id}`, { method: "DELETE" });
+      const response = await fetch(`/api/v1/admin/media/${asset.id}`, { method: "DELETE" });
       const result = await readAdminJson(response);
       if (!response.ok) throw adminApiError(result, "Không thể xóa tệp.");
       if (result.queuedId !== asset.id) throw new Error("Phản hồi xóa tệp không hợp lệ. Hãy tải lại thư viện để kiểm tra.");

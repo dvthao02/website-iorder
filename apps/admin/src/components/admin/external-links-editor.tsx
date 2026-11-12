@@ -47,7 +47,7 @@ export function ExternalLinksEditor({ initial, initialVersion }: { initial: Exte
     saving.current = true;
     setBusy(true);
     try {
-      const response = await fetch("/api/admin/external-links", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ values: parsed.data, expectedVersion: version.current }) });
+      const response = await fetch("/api/v1/admin/external-links", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ values: parsed.data, expectedVersion: version.current }) });
       const body: unknown = await readAdminJson(response);
       if (!response.ok) throw adminApiError(body, "Không thể lưu liên kết ngoài.");
       const saved = saveResponseSchema.safeParse(body);

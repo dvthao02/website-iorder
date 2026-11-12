@@ -221,7 +221,7 @@ export const pageInputSchema = z.object({
 const adminPageMetaShape = { id: z.string().uuid(), draftVersion: z.number().int().nonnegative(), publishedAt: z.date().nullable(), updatedAt: z.date() };
 export const adminPageSchema = pageInputSchema.safeExtend(adminPageMetaShape);
 // Dòng danh sách trang: không kèm khối (có thể hàng chục KB mỗi trang). Đổi trạng thái từ danh sách dùng
-// PATCH /api/admin/pages/[id] { action }, server tự đọc trang đầy đủ nên không cần gửi khối lên.
+// PATCH /api/v1/admin/pages/[id] { action }, server tự đọc trang đầy đủ nên không cần gửi khối lên.
 const pageShape = pageInputSchema.shape;
 export const adminPageListItemSchema = z.object({
   title: pageShape.title, slug: pageShape.slug, template: pageShape.template, status: pageShape.status, seoTitle: pageShape.seoTitle,

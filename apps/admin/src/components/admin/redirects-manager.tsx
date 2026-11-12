@@ -91,13 +91,13 @@ export function RedirectsManager({ initialRedirects }: { initialRedirects: Redir
   const setEnabled = (items: Redirect[], isEnabled: boolean) => () => void runBulk({
     items, verb: isEnabled ? "Bật" : "Tắt", noun: "chuyển hướng", onDone: selection.clear,
     confirmMessage: isEnabled ? undefined : "Đường dẫn cũ sẽ không còn tự chuyển sang trang mới (có thể trả 404).",
-    request: (item) => ({ method: "POST", url: "/api/admin/redirects", body: { id: item.id, values: { sourcePath: item.sourcePath, destinationPath: item.destinationPath, statusCode: item.statusCode, isEnabled }, expectedVersion: item.version } }),
+    request: (item) => ({ method: "POST", url: "/api/v1/admin/redirects", body: { id: item.id, values: { sourcePath: item.sourcePath, destinationPath: item.destinationPath, statusCode: item.statusCode, isEnabled }, expectedVersion: item.version } }),
   });
   const bulkActions: AdminBulkMenuAction[] = [
     { key: "enable", label: "Bật", icon: <ToggleRight aria-hidden="true" />, count: disabledChosen.length, disabledReason: updateDenied, onSelect: setEnabled(disabledChosen, true) },
     { key: "disable", label: "Tắt", icon: <ToggleLeft aria-hidden="true" />, count: enabledChosen.length, disabledReason: updateDenied, onSelect: setEnabled(enabledChosen, false) },
-    { key: "export", label: "Xuất Excel", icon: <AdminFileIcon action="export" kind="excel" size="sm" />, count: chosen.length, href: `/api/admin/data-transfer/redirects?format=xlsx&ids=${chosen.map((item) => item.id).join(",")}` },
-    { key: "delete", label: "Xóa", icon: <Trash2 aria-hidden="true" />, count: chosen.length, tone: "danger", disabledReason: can("redirects.delete") ? undefined : "Cần quyền xóa chuyển hướng.", onSelect: () => void runBulk({ items: chosen, verb: "Xóa", noun: "chuyển hướng", confirmMessage: "Đường dẫn cũ của các mục này sẽ không còn tự chuyển hướng. Thao tác không thể hoàn tác.", tone: "danger", onDone: selection.clear, request: (item) => ({ method: "DELETE", url: `/api/admin/redirects?id=${item.id}&expectedVersion=${item.version}` }) }) },
+    { key: "export", label: "Xuất Excel", icon: <AdminFileIcon action="export" kind="excel" size="sm" />, count: chosen.length, href: `/api/v1/admin/data-transfer/redirects?format=xlsx&ids=${chosen.map((item) => item.id).join(",")}` },
+    { key: "delete", label: "Xóa", icon: <Trash2 aria-hidden="true" />, count: chosen.length, tone: "danger", disabledReason: can("redirects.delete") ? undefined : "Cần quyền xóa chuyển hướng.", onSelect: () => void runBulk({ items: chosen, verb: "Xóa", noun: "chuyển hướng", confirmMessage: "Đường dẫn cũ của các mục này sẽ không còn tự chuyển hướng. Thao tác không thể hoàn tác.", tone: "danger", onDone: selection.clear, request: (item) => ({ method: "DELETE", url: `/api/v1/admin/redirects?id=${item.id}&expectedVersion=${item.version}` }) }) },
   ];
 
   function allowSelectionChange() {
@@ -149,7 +149,7 @@ export function RedirectsManager({ initialRedirects }: { initialRedirects: Redir
     mutationPending.current = true;
     setBusy(true);
     try {
-      const response = await fetch("/api/admin/redirects", {
+      const response = await fetch("/api/v1/admin/redirects", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ id: activeId, values, ...(active ? { expectedVersion: active.version } : {}) }),
@@ -185,7 +185,7 @@ export function RedirectsManager({ initialRedirects }: { initialRedirects: Redir
     mutationPending.current = true;
     setBusy(true);
     try {
-      const response = await fetch(`/api/admin/redirects?id=${active.id}&expectedVersion=${active.version}`, { method: "DELETE" });
+      const response = await fetch(`/api/v1/admin/redirects?id=${active.id}&expectedVersion=${active.version}`, { method: "DELETE" });
       const body = await readAdminJson(response);
       if (!response.ok) throw adminApiError(body, "Không thể xóa chuyển hướng.");
       if (body.deletedId !== active.id) throw new Error("Phản hồi xóa chuyển hướng không hợp lệ. Hãy tải lại danh sách để kiểm tra.");

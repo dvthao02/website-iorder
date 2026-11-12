@@ -1,6 +1,6 @@
 import { revalidatePath } from "@/lib/publish-cache-revalidation";
 import { NextResponse } from "next/server";
-import { adminDetailResponse } from "../../../../../lib/admin-detail-response";
+import { adminDetailResponse } from "../../../../../../lib/admin-detail-response";
 import { z } from "zod";
 
 import { getRequestAdministrator } from "@iorder/shared/server/auth/request-administrator";

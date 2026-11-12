@@ -85,7 +85,7 @@ function useMediaUrl(id: string | null) {
   useEffect(() => {
     if (!id) return;
     const controller = new AbortController();
-    fetch(`/api/admin/media/${encodeURIComponent(id)}`, { signal: controller.signal }).then(async (response) => {
+    fetch(`/api/v1/admin/media/${encodeURIComponent(id)}`, { signal: controller.signal }).then(async (response) => {
       const payload = await readAdminJson(response);
       const parsed = mediaAssetSchema.safeParse(payload?.asset);
       if (!controller.signal.aborted) setResult({ id, url: response.ok && parsed.success && parsed.data.mimeType.startsWith("image/") ? parsed.data.url : null });

@@ -11,7 +11,7 @@ test("Route bọc withRequestContext thấy IP, thiết bị, mã request; ngoà
     await new Promise(resolve => setTimeout(resolve, 5));
     return currentRequestContext();
   });
-  const request = (ip: string, id: string) => new Request("http://backend/api/admin/pages", { headers: { "x-forwarded-for": ip, "user-agent": "Mozilla/5.0 Test", "x-request-id": id } });
+  const request = (ip: string, id: string) => new Request("http://backend/api/v1/admin/pages", { headers: { "x-forwarded-for": ip, "user-agent": "Mozilla/5.0 Test", "x-request-id": id } });
   // Hai request chạy song song không được lẫn ngữ cảnh của nhau.
   const [first, second] = await Promise.all([handler(request("203.0.113.7", "req-aaaaaaaa")), handler(request("198.51.100.9", "req-bbbbbbbb"))]);
   assert.deepEqual(first, { ipAddress: "203.0.113.7", userAgent: "Mozilla/5.0 Test", requestId: "req-aaaaaaaa" });

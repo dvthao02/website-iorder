@@ -4,7 +4,7 @@ import { cmsModules, cmsPermissions, hasAnyCmsPermission, isSuperAdmin, type Cms
 
 export const adminMutationMethods = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 
-// First path segment after /api/admin → permission module.
+// First path segment after /api/v1/admin → permission module.
 const resourceModules: Record<string, CmsModuleKey> = {
   dashboard: "dashboard",
   "tim-kiem": "dashboard",
@@ -57,7 +57,7 @@ function permissionsFor(module: CmsModuleKey, actions: CmsAction[]): CmsPermissi
 // Returns null for endpoints that handle their own auth: session (login/logout) and account (any signed-in user
 // changes their own password).
 export function requiredAdminPermissions(pathname: string, method: string): CmsPermissionCode[] | null {
-  const segments = pathname.replace(/^\/api\/admin\/?/, "").split("/").filter(Boolean);
+  const segments = pathname.replace(/^\/api\/v1\/admin\/?/, "").split("/").filter(Boolean);
   const resource = segments[0] ?? "";
   if (resource === "session" || resource === "account") return null;
   if (resource === "builder-preview") return method.toUpperCase() === "POST" ? [...permissionsFor("pages", ["view", "create"]), ...permissionsFor("offerings", ["view", "create"]), ...permissionsFor("equipment", ["view", "create"]), ...listingPageOwnerModules.flatMap(module => permissionsFor(module, ["view"]))] : [];

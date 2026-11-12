@@ -6,25 +6,25 @@ import { adminCredentials, loginAsAdmin } from "./helpers";
 // phiên bản cũ nhận 409, dữ liệu không bị ghi đè âm thầm. Dữ liệu được trả lại như cũ.
 test("Liên kết ngoài: lưu với phiên bản cũ bị từ chối 409", async ({ request, baseURL }) => {
   const headers = { origin: baseURL!, "content-type": "application/json" };
-  expect((await request.post("/api/admin/session", { headers, data: adminCredentials() })).status()).toBe(200);
+  expect((await request.post("/api/v1/admin/session", { headers, data: adminCredentials() })).status()).toBe(200);
 
-  const initial = await (await request.get("/api/admin/external-links")).json() as { links: Record<string, string | null> | null; version: number };
+  const initial = await (await request.get("/api/v1/admin/external-links")).json() as { links: Record<string, string | null> | null; version: number };
   const original = initial.links ?? { appLogin: null, trial: null, facebook: null, zalo: null, youtube: null, appStore: null, googlePlay: null };
   const changed = { ...original, youtube: `https://www.youtube.com/@iorder-kiem-thu-${Date.now()}` };
 
-  const first = await request.put("/api/admin/external-links", { headers, data: { values: changed, expectedVersion: initial.version } });
+  const first = await request.put("/api/v1/admin/external-links", { headers, data: { values: changed, expectedVersion: initial.version } });
   expect(first.status()).toBe(200);
   const firstBody = await first.json() as { version: number };
   expect(firstBody.version).toBe(initial.version + 1);
 
   try {
-    const stale = await request.put("/api/admin/external-links", { headers, data: { values: original, expectedVersion: initial.version } });
+    const stale = await request.put("/api/v1/admin/external-links", { headers, data: { values: original, expectedVersion: initial.version } });
     expect(stale.status()).toBe(409);
     expect((await stale.json()).error.code).toBe("VERSION_CONFLICT");
-    const current = await (await request.get("/api/admin/external-links")).json() as { links: typeof changed };
+    const current = await (await request.get("/api/v1/admin/external-links")).json() as { links: typeof changed };
     expect(current.links.youtube).toBe(changed.youtube);
   } finally {
-    expect((await request.put("/api/admin/external-links", { headers, data: { values: original, expectedVersion: firstBody.version } })).status()).toBe(200);
+    expect((await request.put("/api/v1/admin/external-links", { headers, data: { values: original, expectedVersion: firstBody.version } })).status()).toBe(200);
   }
 });
 
@@ -78,15 +78,15 @@ test("Thẻ vừa tạo lưu tiếp ngay được (không thiếu hoặc lệch 
 
 test("Lưu khi người khác vừa cập nhật: hiện thanh xung đột và tải được bản mới nhất", async ({ page, request, baseURL }) => {
   const headers = { origin: baseURL!, "content-type": "application/json" };
-  expect((await request.post("/api/admin/session", { headers, data: adminCredentials() })).status()).toBe(200);
+  expect((await request.post("/api/v1/admin/session", { headers, data: adminCredentials() })).status()).toBe(200);
   await loginAsAdmin(page);
   await page.goto("/admin/external-links");
   const youtube = page.getByLabel("YouTube");
   const original = await youtube.inputValue();
   const remote = `https://www.youtube.com/@iorder-phien-khac-${Date.now()}`;
 
-  const current = await (await request.get("/api/admin/external-links")).json() as { links: Record<string, string | null>; version: number };
-  expect((await request.put("/api/admin/external-links", { headers, data: { values: { ...current.links, youtube: remote }, expectedVersion: current.version } })).status()).toBe(200);
+  const current = await (await request.get("/api/v1/admin/external-links")).json() as { links: Record<string, string | null>; version: number };
+  expect((await request.put("/api/v1/admin/external-links", { headers, data: { values: { ...current.links, youtube: remote }, expectedVersion: current.version } })).status()).toBe(200);
   try {
     await youtube.fill("https://www.youtube.com/@iorder-phien-cu");
     await page.getByRole("button", { name: /^Lưu/ }).click();
@@ -97,7 +97,7 @@ test("Lưu khi người khác vừa cập nhật: hiện thanh xung đột và t
     await expect(page.getByLabel("YouTube")).toHaveValue(remote);
     await expect(banner).toBeHidden();
   } finally {
-    const latest = await (await request.get("/api/admin/external-links")).json() as { links: Record<string, string | null>; version: number };
-    expect((await request.put("/api/admin/external-links", { headers, data: { values: { ...latest.links, youtube: original || null }, expectedVersion: latest.version } })).status()).toBe(200);
+    const latest = await (await request.get("/api/v1/admin/external-links")).json() as { links: Record<string, string | null>; version: number };
+    expect((await request.put("/api/v1/admin/external-links", { headers, data: { values: { ...latest.links, youtube: original || null }, expectedVersion: latest.version } })).status()).toBe(200);
   }
 });

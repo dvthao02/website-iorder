@@ -326,7 +326,7 @@ export function NavigationEditor({ menus, targets }: { menus: Record<NavigationL
     setBusy(true);
     const selectedPosition = selectedIndex;
     try {
-      const response = await fetch("/api/admin/navigation", {
+      const response = await fetch("/api/v1/admin/navigation", {
         method: "PUT",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({

@@ -7,19 +7,19 @@ export function validateContentStateResponse(payload: unknown, requestUrl: strin
   const pathname = new URL(requestUrl, "http://cms.local").pathname;
   const status = action === "archive" ? "archived" : "draft";
   const version = request.data.expectedVersion + 1;
-  if (pathname === "/api/admin/equipment") {
+  if (pathname === "/api/v1/admin/equipment") {
     const saved = z.object({ id: z.string().uuid(), version: z.literal(version) }).safeParse(payload);
     if (!request.data.id || !saved.success || saved.data.id !== request.data.id) return fail();
     // Equipment POST returns only ID/version; its response does not expose status.
     return;
   }
-  if (pathname.startsWith("/api/admin/equipment/")) {
+  if (pathname.startsWith("/api/v1/admin/equipment/")) {
     const saved = z.object({ id: z.string().uuid(), status: z.literal(status), version: z.literal(version) }).safeParse(payload && typeof payload === "object" ? Reflect.get(payload, "equipment") : undefined);
     const expectedId = pathname.split("/").at(-1);
     if (!expectedId || !saved.success || saved.data.id !== expectedId) return fail();
     return;
   }
-  const key = pathname === "/api/admin/pages" ? "page" : pathname.startsWith("/api/admin/posts/") ? "post" : pathname.startsWith("/api/admin/offerings/") ? "offering" : undefined;
+  const key = pathname === "/api/v1/admin/pages" ? "page" : pathname.startsWith("/api/v1/admin/posts/") ? "post" : pathname.startsWith("/api/v1/admin/offerings/") ? "offering" : undefined;
   const expectedId = key === "page" ? request.data.id : pathname.split("/").at(-1);
   const entity = payload && typeof payload === "object" && key ? Reflect.get(payload, key) : undefined;
   const saved = z.object({ id: z.string().uuid(), draftVersion: z.literal(version), status: z.literal(status) }).safeParse(entity);

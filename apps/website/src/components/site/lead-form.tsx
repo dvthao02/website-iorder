@@ -32,7 +32,7 @@ export function LeadForm({ title, description, submitLabel, needOptions, trialTi
     const formElement = event.currentTarget;
     const payload = Object.fromEntries(new FormData(formElement).entries());
     try {
-      const response = await fetch("/api/leads", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) });
+      const response = await fetch("/api/v1/leads", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) });
       const body = await response.json().catch(() => null) as { message?: string; error?: { message?: string } } | null;
       if (response.ok) {
         formElement.reset();

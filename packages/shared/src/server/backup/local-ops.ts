@@ -206,7 +206,7 @@ async function restoreMedia(root: string) {
   return { uploaded };
 }
 
-// --- Điều phối: hai hành động CMS gọi qua POST /api/admin/backup. ---
+// --- Điều phối: hai hành động CMS gọi qua POST /api/v1/admin/backup. ---
 
 export type LocalBackupOutcome = { ok: true; stamp: string; databaseBytes: number; verified: boolean; users: number | null; mediaAssets: number | null; mediaCopied: number } | { ok: false; message: string };
 type LocalBackupSuccess = Extract<LocalBackupOutcome, { ok: true }>;

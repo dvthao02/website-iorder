@@ -26,7 +26,7 @@ const liveStatuses = new Set(["published", "scheduled"]);
 const fileTitle = (name: string) => name.replace(/\.docx$/i, "").replace(/[_-]+/g, " ").trim();
 
 async function findPostBySlug(slug: string): Promise<Existing | null> {
-  const response = await fetch(`/api/admin/posts?view=summary&pageSize=25&query=${encodeURIComponent(slug)}`);
+  const response = await fetch(`/api/v1/admin/posts?view=summary&pageSize=25&query=${encodeURIComponent(slug)}`);
   const payload = await readAdminJson(response);
   if (!response.ok) throw adminApiError(payload, "Không kiểm tra được bài viết đã có.");
   const items: Array<Existing & { slug: string }> = payload?.result?.items ?? [];
@@ -101,18 +101,18 @@ export function WordImportPanel({ kind, onClose }: { kind: "posts" | "guides"; o
           const content = { version: 2 as const, doc: doc as RichDocument };
           if (row.existing) {
             // Thay nội dung bài đã có: đọc bản mới nhất để gửi đúng phiên bản (máy chủ trả 409 nếu vừa có người sửa).
-            const current = await readAdminJson(await fetch(`/api/admin/posts/${row.existing.id}`));
+            const current = await readAdminJson(await fetch(`/api/v1/admin/posts/${row.existing.id}`));
             const post = current?.post as (AdminPostInput & { draftVersion: number }) | undefined;
             if (!post) throw new Error("Không đọc được bài viết đã có.");
             const values = Object.fromEntries(Object.keys(adminPostInputSchema.shape).map((key) => [key, Reflect.get(post, key)]));
-            const response = await fetch(`/api/admin/posts/${row.existing.id}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ ...values, content, expectedVersion: post.draftVersion }) });
+            const response = await fetch(`/api/v1/admin/posts/${row.existing.id}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ ...values, content, expectedVersion: post.draftVersion }) });
             const payload = await readAdminJson(response);
             if (!response.ok) throw adminApiError(payload, "Không cập nhật được nội dung.");
             results.push({ name: row.file.name, ok: true, message: "Đã thay nội dung (tạo phiên bản mới).", href: `/admin/${guides ? "guides" : "news"}/${row.existing.id}` });
           } else {
             const input: AdminPostInput = { coverMediaId: null, type: guides ? "guide" : type, title: row.title.slice(0, 220), slug: row.slug, excerpt: null, content, status: "draft", seoTitle: null, seoDescription: null, canonicalUrl: null,
               promotionStartAt: null, promotionEndAt: null, ctaLabel: null, ctaUrl: null, badgeText: null, scheduledAt: null, categoryIds: [], tagIds: [] };
-            const response = await fetch("/api/admin/posts", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(input) });
+            const response = await fetch("/api/v1/admin/posts", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(input) });
             const payload = await readAdminJson(response);
             if (!response.ok || typeof payload?.post?.id !== "string") throw adminApiError(payload, "Không tạo được bài nháp.");
             results.push({ name: row.file.name, ok: true, message: "Đã tạo bản nháp.", href: `/admin/${guides ? "guides" : "news"}/${payload.post.id}` });

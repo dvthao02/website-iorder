@@ -77,7 +77,7 @@ export function LeadsManager({ initialPage, initialQuery }: { initialPage: ListR
     pending.current.add(id);
     setBusy(new Set(pending.current));
     try {
-      const response = await fetch(`/api/admin/leads/${id}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ status }) });
+      const response = await fetch(`/api/v1/admin/leads/${id}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ status }) });
       const payload = await readAdminJson(response);
       if (!response.ok) throw adminApiError(payload, "Không thể cập nhật liên hệ.");
       const parsed = leadStatusUpdateResponseSchema.safeParse(payload.lead);
@@ -118,7 +118,7 @@ export function LeadsManager({ initialPage, initialQuery }: { initialPage: ListR
   function bulkStatus(status: LeadStatus) {
     const items = selectedLeads.filter((lead) => lead.status !== status);
     if (!items.length) { showToast(`Các liên hệ đã chọn đều đang ở “${statusLabel[status]}”.`, "info"); return; }
-    void run({ items, request: (lead) => ({ method: "PATCH", url: `/api/admin/leads/${lead.id}`, body: { status } }), verb: "Cập nhật", noun: "liên hệ", onDone: clear });
+    void run({ items, request: (lead) => ({ method: "PATCH", url: `/api/v1/admin/leads/${lead.id}`, body: { status } }), verb: "Cập nhật", noun: "liên hệ", onDone: clear });
   }
 
   const chips: AdminFilterChip[] = [
@@ -129,8 +129,8 @@ export function LeadsManager({ initialPage, initialQuery }: { initialPage: ListR
   return <AdminListPage variant="dense">
     <AdminCard>
       <AdminListHeader actions={counts.all ? <>
-        <a className="admin-button admin-button--export admin-file-tone--excel" download href={`/api/admin/leads/export?${exportParams("xlsx")}`} title="Tải Excel theo bộ lọc đang xem"><FileSpreadsheet aria-hidden="true" size={16} />Xuất Excel</a>
-        <a className="admin-button admin-button--ghost admin-file-tone--csv" download href={`/api/admin/leads/export?${exportParams("csv")}`} title="Tải CSV theo bộ lọc đang xem"><FileSpreadsheet aria-hidden="true" size={16} />CSV</a>
+        <a className="admin-button admin-button--export admin-file-tone--excel" download href={`/api/v1/admin/leads/export?${exportParams("xlsx")}`} title="Tải Excel theo bộ lọc đang xem"><FileSpreadsheet aria-hidden="true" size={16} />Xuất Excel</a>
+        <a className="admin-button admin-button--ghost admin-file-tone--csv" download href={`/api/v1/admin/leads/export?${exportParams("csv")}`} title="Tải CSV theo bộ lọc đang xem"><FileSpreadsheet aria-hidden="true" size={16} />CSV</a>
       </> : undefined} description={loading ? "Đang tải danh sách liên hệ…" : `${initialPage.total} liên hệ${filtered ? " khớp bộ lọc" : ""} · ${counts.new} mới cần xử lý`} title="Khách hàng tiềm năng" />
       <AdminFilterTabs ariaLabel="Lọc liên hệ" disabled={loading || busy.size > 0} items={filterItems} onValueChange={value => navigate(value)} value={filter} />
       <AdminFilterBar chips={chips} onClearAll={() => { setSearch(""); navigate(filter, 1, "", { from: undefined, to: undefined }); }} onSubmit={(event) => { event.preventDefault(); navigate(filter, 1, search.trim()); }} search={<AdminSearchField disabled={loading || busy.size > 0} label="Tìm liên hệ" onChange={event => setSearch(event.target.value)} placeholder="Tên, điện thoại, email hoặc nhu cầu" value={search} />}>

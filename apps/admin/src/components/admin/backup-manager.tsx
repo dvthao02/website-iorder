@@ -80,7 +80,7 @@ export function BackupManager({ canOperate, history, scheduled: initialScheduled
   async function runNow() {
     setRunning(true);
     try {
-      await requestAdminJson("/api/admin/backup", "POST", { action: "run" }, "Không sao lưu được lúc này.");
+      await requestAdminJson("/api/v1/admin/backup", "POST", { action: "run" }, "Không sao lưu được lúc này.");
       show("Đã sao lưu xong.", "success");
       router.refresh();
     } catch (error) {
@@ -94,7 +94,7 @@ export function BackupManager({ canOperate, history, scheduled: initialScheduled
     setScheduling(true);
     const next = !scheduled;
     try {
-      await requestAdminJson("/api/admin/backup", "POST", { action: next ? "schedule-on" : "schedule-off" }, "Không đổi được lịch tự động.");
+      await requestAdminJson("/api/v1/admin/backup", "POST", { action: next ? "schedule-on" : "schedule-off" }, "Không đổi được lịch tự động.");
       setScheduled(next);
       show(next ? "Đã bật tự động sao lưu mỗi đêm lúc 21:00." : "Đã tắt tự động sao lưu.", "success");
     } catch (error) {
@@ -108,7 +108,7 @@ export function BackupManager({ canOperate, history, scheduled: initialScheduled
     if (!confirmRow) return;
     setRestoring(true);
     try {
-      await requestAdminJson("/api/admin/backup", "POST", { action: "restore", stamp: confirmRow.stamp }, "Không phục hồi được lúc này.");
+      await requestAdminJson("/api/v1/admin/backup", "POST", { action: "restore", stamp: confirmRow.stamp }, "Không phục hồi được lúc này.");
       show("Đã phục hồi xong.", "success");
       setConfirmRow(null);
       router.refresh();

@@ -33,7 +33,7 @@ const v1ResponseSchema = z.object({ items: z.array(v1OfferingSchema) }).strict()
 type V1Offering = z.infer<typeof v1OfferingSchema>;
 
 async function fetchV1Offerings(type: (typeof offeringTypes)[number]) {
-  const response = await fetch(`${v1BaseUrl}/api/public/offerings?type=${type}`, {
+  const response = await fetch(`${v1BaseUrl}/api/v1/public/offerings?type=${type}`, {
     signal: AbortSignal.timeout(15_000),
   });
 

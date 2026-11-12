@@ -25,7 +25,7 @@ export function ChangePasswordForm() {
     pending.current = true;
     setBusy(true);
     try {
-      const payload = await requestAdminJson("/api/admin/account/password", "POST", { currentPassword: values.currentPassword, newPassword: values.newPassword }, "Không thể đổi mật khẩu.");
+      const payload = await requestAdminJson("/api/v1/admin/account/password", "POST", { currentPassword: values.currentPassword, newPassword: values.newPassword }, "Không thể đổi mật khẩu.");
       const revoked = payload && typeof payload === "object" && "revokedSessions" in payload && typeof payload.revokedSessions === "number" ? payload.revokedSessions : 0;
       setValues(blank);
       showToast(revoked ? `Đã đổi mật khẩu và đăng xuất ${revoked} phiên khác.` : "Đã đổi mật khẩu.", "success");

@@ -117,18 +117,18 @@ async function getDetail<S extends z.ZodType<{ id: string }>>(path: string, key:
   const payload = await getData<unknown>(path);
   return payload === undefined ? undefined : parseAdminDetailPayload(payload, key, schema as unknown as z.ZodType<z.output<S>>, id);
 }
-async function getDashboard() { return getData<DashboardPayload>("/api/admin/dashboard"); }
-async function getEquipmentPayload(query = "") { return getData<EquipmentPayload>(`/api/admin/equipment${query}`); }
-async function getEquipmentGroupsPayload() { return getData<EquipmentGroupsPayload>("/api/admin/equipment?groupsOnly=1"); }
+async function getDashboard() { return getData<DashboardPayload>("/api/v1/admin/dashboard"); }
+async function getEquipmentPayload(query = "") { return getData<EquipmentPayload>(`/api/v1/admin/equipment${query}`); }
+async function getEquipmentGroupsPayload() { return getData<EquipmentGroupsPayload>("/api/v1/admin/equipment?groupsOnly=1"); }
 
-export async function getCurrentAdministrator(token?: string): Promise<Administrator | null> { void token; return (await getData<{ administrator: Administrator }>("/api/admin/session"))?.administrator ?? null; }
+export async function getCurrentAdministrator(token?: string): Promise<Administrator | null> { void token; return (await getData<{ administrator: Administrator }>("/api/v1/admin/session"))?.administrator ?? null; }
 export async function getRequestAdministrator() { return getCurrentAdministrator(); }
 export async function getAnalyticsOverview(): Promise<AnalyticsOverview> { return (await getDashboard())?.analytics ?? { connection: "not_connected", periodDays: 7 }; }
 // Chuông thông báo: endpoint nhẹ, không tải cả dashboard ở mỗi lần điều hướng.
 // Chuông thông báo là phần phụ của layout: lỗi ở đây không được làm hỏng mọi trang CMS.
 export async function getAdminNotifications(): Promise<AdminNotifications> {
   try {
-    return (await getData<{ notifications: AdminNotifications }>("/api/admin/notifications"))?.notifications ?? [];
+    return (await getData<{ notifications: AdminNotifications }>("/api/v1/admin/notifications"))?.notifications ?? [];
   } catch {
     return [];
   }
@@ -137,13 +137,13 @@ export async function getAdminNotifications(): Promise<AdminNotifications> {
 export async function getBackupStatus(): Promise<BackupStatus | null> { return (await getDashboard())?.backup ?? null; }
 type BackupOverview = Awaited<ReturnType<typeof getBackupOverviewFromCore>>;
 export async function getBackupOverview(): Promise<(BackupOverview & { scheduled: boolean }) | null> {
-  const payload = await getData<{ backup: BackupOverview; scheduled: boolean }>("/api/admin/backup");
+  const payload = await getData<{ backup: BackupOverview; scheduled: boolean }>("/api/v1/admin/backup");
   return payload ? { ...payload.backup, scheduled: payload.scheduled } : null;
 }
 export async function getPublishingReadiness(): Promise<PublishingReadiness> { return (await getDashboard())?.readiness ?? []; }
 // null: người xem không có quyền (403) — màn chỉ ẩn phần kiểm tra SEO.
 export async function getSeoAudit(): Promise<SeoAuditResult | null> {
-  const payload = await getData<{ audit: unknown }>("/api/admin/seo-audit");
+  const payload = await getData<{ audit: unknown }>("/api/v1/admin/seo-audit");
   if (!payload) return null;
   const parsed = seoAuditResultSchema.safeParse(payload.audit);
   if (!parsed.success) throw new Error("Phản hồi kiểm tra SEO không hợp lệ. Vui lòng tải lại.");
@@ -160,7 +160,7 @@ function listParams(query: Record<string, unknown>, extra: Record<string, string
 export async function getAuditLogsPage(input: AuditListQuery): Promise<Awaited<ReturnType<typeof getAuditLogsPageFromCore>> & { actors: z.infer<typeof auditActorSchema>[] }> {
   const query = auditListQuerySchema.parse(input);
   const params = listParams(query);
-  const data = await getData<{ result: Awaited<ReturnType<typeof getAuditLogsPageFromCore>>; actors?: unknown }>(`/api/admin/audit?${params}`);
+  const data = await getData<{ result: Awaited<ReturnType<typeof getAuditLogsPageFromCore>>; actors?: unknown }>(`/api/v1/admin/audit?${params}`);
   if (!data?.result || !Array.isArray(data.result.items)) throw new Error("Không tải được nhật ký. Vui lòng đăng nhập lại hoặc thử lại.");
   const parsed = auditListPageSchema.safeParse(data.result);
   if (!parsed.success || parsed.data.page !== query.page || parsed.data.pageSize !== query.pageSize || (query.entityType && parsed.data.items.some(row => row.entityType !== query.entityType))) throw new Error("Dữ liệu phân trang nhật ký không hợp lệ. Vui lòng thử lại.");
@@ -173,42 +173,42 @@ export async function getAdminOfferingsPage(params: { page?: string | number; pa
   const query = new URLSearchParams();
   Object.entries(input).forEach(([key, value]) => { if (value !== undefined && value !== "") query.set(key, String(value)); });
   query.set("view", "summary");
-  const payload = await getData<{ result: unknown }>(`/api/admin/offerings?${query.toString()}`);
+  const payload = await getData<{ result: unknown }>(`/api/v1/admin/offerings?${query.toString()}`);
   const parsed = createAdminListPageSchema(adminOfferingListItemSchema).safeParse(payload?.result);
   if (!parsed.success || parsed.data.page !== input.page || parsed.data.pageSize !== input.pageSize || parsed.data.items.some(item => (input.status && item.status !== input.status) || (input.type && item.type !== input.type))) throw new Error("Phản hồi danh sách sản phẩm, giải pháp hoặc dịch vụ không hợp lệ. Vui lòng thử lại.");
   return parsed.data;
 }
-export async function getAdminOfferingById(id: string) { return getDetail(`/api/admin/offerings/${encodeURIComponent(id)}`, "offering", adminOfferingSchema, id); }
+export async function getAdminOfferingById(id: string) { return getDetail(`/api/v1/admin/offerings/${encodeURIComponent(id)}`, "offering", adminOfferingSchema, id); }
 export async function getAdminPages(): Promise<AdminPagesPage["items"]> { return (await getAdminPagesPage())?.items ?? []; }
 export async function getAdminPagesPage(params: { page?: string | number; pageSize?: string | number; query?: string; status?: string; kind?: PageKindFilter; sort?: string; dir?: string } = {}): Promise<AdminPagesPage> {
   const input = pageListQuerySchema.parse({ ...params, status: params.status || undefined });
   const query = new URLSearchParams();
   Object.entries(input).forEach(([key, value]) => { if (value !== undefined && value !== "") query.set(key, String(value)); });
-  const payload = await getData<{ result: unknown }>(`/api/admin/pages?${query.toString()}`);
+  const payload = await getData<{ result: unknown }>(`/api/v1/admin/pages?${query.toString()}`);
   const parsed = adminPagesPageSchema.safeParse(payload?.result);
   if (!parsed.success || parsed.data.page !== input.page || parsed.data.pageSize !== input.pageSize || (input.status && parsed.data.items.some(page => page.status !== input.status))) throw new Error("Phản hồi danh sách trang không hợp lệ. Vui lòng thử lại.");
   return parsed.data;
 }
 // Trang hệ thống theo slug (ví dụ trang danh sách mở từ module). null: chưa tạo hoặc không có quyền xem.
 export async function getAdminSystemPageBySlug(slug: string) {
-  const payload = await getData<{ page: unknown }>(`/api/admin/pages?slug=${encodeURIComponent(slug)}`);
+  const payload = await getData<{ page: unknown }>(`/api/v1/admin/pages?slug=${encodeURIComponent(slug)}`);
   if (!payload?.page) return null;
   const parsed = adminPageSchema.safeParse(payload.page);
   if (!parsed.success || parsed.data.slug !== slug) throw new Error("Phản hồi trang hệ thống không hợp lệ. Vui lòng tải lại.");
   return parsed.data;
 }
-export async function getAdminPageById(id: string) { return getDetail(`/api/admin/pages/${encodeURIComponent(id)}`, "page", adminPageSchema, id); }
+export async function getAdminPageById(id: string) { return getDetail(`/api/v1/admin/pages/${encodeURIComponent(id)}`, "page", adminPageSchema, id); }
 export async function getAdminPostsPage(params: { excludeType?: string; page?: string | number; pageSize?: string | number; query?: string; status?: string; type?: string; sort?: string; dir?: string; categoryId?: string; tagId?: string } = {}): Promise<AdminPostsPage> {
   const input = pageListQuerySchema.extend({ type: publicPostTypeSchema.optional(), excludeType: publicPostTypeSchema.optional(), categoryId: z.string().uuid().optional().catch(undefined), tagId: z.string().uuid().optional().catch(undefined) }).parse({ ...params, status: params.status || undefined, type: params.type || undefined, excludeType: params.excludeType || undefined });
   const query = new URLSearchParams();
   Object.entries(input).forEach(([key, value]) => { if (value !== undefined && value !== "") query.set(key, String(value)); });
   query.set("view", "summary");
-  const payload = await getData<{ result: unknown }>(`/api/admin/posts?${query.toString()}`);
+  const payload = await getData<{ result: unknown }>(`/api/v1/admin/posts?${query.toString()}`);
   const parsed = createAdminListPageSchema(adminPostListItemSchema).safeParse(payload?.result);
   if (!parsed.success || parsed.data.page !== input.page || parsed.data.pageSize !== input.pageSize || parsed.data.items.some(item => (input.status && item.status !== input.status) || (input.type && item.type !== input.type) || (input.excludeType && item.type === input.excludeType))) throw new Error("Phản hồi danh sách bài viết không hợp lệ. Vui lòng thử lại.");
   return parsed.data;
 }
-export async function getAdminPostById(id: string) { return getDetail(`/api/admin/posts/${encodeURIComponent(id)}`, "post", adminPostSchema, id); }
+export async function getAdminPostById(id: string) { return getDetail(`/api/v1/admin/posts/${encodeURIComponent(id)}`, "post", adminPostSchema, id); }
 export async function getEquipment(publicOnly = false): Promise<Equipment> { void publicOnly; return (await getEquipmentPage({ pageSize: 100 })).items; }
 export async function getEquipmentPage(params: { groupId?: string; page?: string | number; pageSize?: string | number; query?: string; status?: string; sort?: string; dir?: string } = {}): Promise<EquipmentPage> {
   return (await getEquipmentPageWithGroups(params)).result;
@@ -218,38 +218,38 @@ export async function getEquipmentPageWithGroups(params: { groupId?: string; pag
   Object.entries(params).forEach(([key, value]) => { if (value !== undefined && value !== "") query.set(key, String(value)); });
   return (await getEquipmentPayload(`?${query.toString()}`)) ?? { result: { items: [], page: 1, pageSize: 25, total: 0, totalPages: 1 }, equipmentGroups: [] };
 }
-export async function getEquipmentById(id: string): Promise<Equipment[number] | undefined> { return (await getData<{ equipment: Equipment[number] }>(`/api/admin/equipment/${encodeURIComponent(id)}`))?.equipment; }
+export async function getEquipmentById(id: string): Promise<Equipment[number] | undefined> { return (await getData<{ equipment: Equipment[number] }>(`/api/v1/admin/equipment/${encodeURIComponent(id)}`))?.equipment; }
 export async function getEquipmentGroups(): Promise<EquipmentGroups> { return (await getEquipmentGroupsPayload())?.equipmentGroups ?? []; }
 export async function getLeadsPage(input: LeadListQuery): Promise<LeadsPage> {
   const query = leadListQuerySchema.parse(input);
   const params = listParams(query);
-  const data = await getData<{ result: LeadsPage }>(`/api/admin/leads?${params}`);
+  const data = await getData<{ result: LeadsPage }>(`/api/v1/admin/leads?${params}`);
   if (!data?.result || !Array.isArray(data.result.items)) throw new Error("Không tải được danh sách liên hệ. Vui lòng đăng nhập lại hoặc thử lại.");
   const parsed = leadListPageSchema.safeParse(data.result);
   if (!parsed.success || parsed.data.total !== parsed.data.counts[query.status] || parsed.data.page !== query.page || parsed.data.pageSize !== query.pageSize || (query.status !== "all" && parsed.data.items.some(row => row.status !== query.status))) throw new Error("Dữ liệu phân trang liên hệ không hợp lệ. Vui lòng thử lại.");
   return parsed.data;
 }
 export async function getAdminSupportDownloads(): Promise<SupportDownloads> {
-  const parsed = supportDownloadListResponseSchema.safeParse(await getData<unknown>("/api/admin/support-downloads"));
+  const parsed = supportDownloadListResponseSchema.safeParse(await getData<unknown>("/api/v1/admin/support-downloads"));
   if (!parsed.success) throw new Error("Phản hồi danh sách tài nguyên không hợp lệ. Vui lòng tải lại.");
   return parsed.data.downloads;
 }
-export async function getTaxonomy(): Promise<Taxonomy> { return (await getData<{ taxonomy: Taxonomy }>("/api/admin/taxonomy"))?.taxonomy ?? { categories: [], tags: [] }; }
-export async function getAdminNavigation(location = "header"): Promise<Navigation> { return (await getData<{ menu: Navigation }>(`/api/admin/navigation?location=${encodeURIComponent(location)}`))?.menu ?? { id: null, location: "header", version: 0, items: [] }; }
-export async function getPublishedNavigationTargets(): Promise<NavigationTargets> { return (await getData<{ targets: NavigationTargets }>("/api/admin/navigation/targets"))?.targets ?? []; }
-export async function getSiteProfile(): Promise<SiteProfile> { return (await getData<{ profile: SiteProfile }>("/api/admin/profile"))?.profile ?? null; }
-export async function getPublishingConfig(): Promise<PublishingConfig> { return (await getData<{ config: PublishingConfig }>("/api/admin/publishing-config"))?.config ?? { siteUrl: null, defaultTitle: null, defaultDescription: null, defaultOgMediaId: null, allowSearchIndexing: false }; }
-export async function getExternalLinks(): Promise<ExternalLinks> { return (await getData<{ links: ExternalLinks }>("/api/admin/external-links"))?.links ?? null; }
+export async function getTaxonomy(): Promise<Taxonomy> { return (await getData<{ taxonomy: Taxonomy }>("/api/v1/admin/taxonomy"))?.taxonomy ?? { categories: [], tags: [] }; }
+export async function getAdminNavigation(location = "header"): Promise<Navigation> { return (await getData<{ menu: Navigation }>(`/api/v1/admin/navigation?location=${encodeURIComponent(location)}`))?.menu ?? { id: null, location: "header", version: 0, items: [] }; }
+export async function getPublishedNavigationTargets(): Promise<NavigationTargets> { return (await getData<{ targets: NavigationTargets }>("/api/v1/admin/navigation/targets"))?.targets ?? []; }
+export async function getSiteProfile(): Promise<SiteProfile> { return (await getData<{ profile: SiteProfile }>("/api/v1/admin/profile"))?.profile ?? null; }
+export async function getPublishingConfig(): Promise<PublishingConfig> { return (await getData<{ config: PublishingConfig }>("/api/v1/admin/publishing-config"))?.config ?? { siteUrl: null, defaultTitle: null, defaultDescription: null, defaultOgMediaId: null, allowSearchIndexing: false }; }
+export async function getExternalLinks(): Promise<ExternalLinks> { return (await getData<{ links: ExternalLinks }>("/api/v1/admin/external-links"))?.links ?? null; }
 // Phiên bản dữ liệu cấu hình cho optimistic concurrency; dùng lại response đã cache ở cùng request.
 async function getSettingVersion(path: string) { const version = (await getData<{ version?: unknown }>(path))?.version; return typeof version === "number" ? version : 0; }
-export async function getSiteProfileVersion() { return getSettingVersion("/api/admin/profile"); }
-export async function getPublishingConfigVersion() { return getSettingVersion("/api/admin/publishing-config"); }
-export async function getExternalLinksVersion() { return getSettingVersion("/api/admin/external-links"); }
-export async function getRedirects(): Promise<Redirects> { return (await getData<{ redirects: Redirects }>("/api/admin/redirects"))?.redirects ?? []; }
+export async function getSiteProfileVersion() { return getSettingVersion("/api/v1/admin/profile"); }
+export async function getPublishingConfigVersion() { return getSettingVersion("/api/v1/admin/publishing-config"); }
+export async function getExternalLinksVersion() { return getSettingVersion("/api/v1/admin/external-links"); }
+export async function getRedirects(): Promise<Redirects> { return (await getData<{ redirects: Redirects }>("/api/v1/admin/redirects"))?.redirects ?? []; }
 export async function getPartnersPage(input: PartnerListQuery) {
   const query = partnerListQuerySchema.parse(input);
   const params = listParams(query, { kind: "partners" });
-  const data = await getData<{ kind: string; result: unknown }>(`/api/admin/supporting?${params}`);
+  const data = await getData<{ kind: string; result: unknown }>(`/api/v1/admin/supporting?${params}`);
   const parsed = partnerListPageSchema.safeParse(data?.result);
   if (data?.kind !== "partners" || !parsed.success || parsed.data.page !== query.page || parsed.data.pageSize !== query.pageSize || parsed.data.items.some(row => (query.visibility !== "all" && row.isEnabled !== (query.visibility === "enabled")) || (query.partnerKind !== "all" && row.kind !== query.partnerKind))) {
     throw new Error("Không tải được trang đối tác hợp lệ. Vui lòng đăng nhập lại hoặc thử lại.");
@@ -259,7 +259,7 @@ export async function getPartnersPage(input: PartnerListQuery) {
 export async function getTestimonialsPage(input: TestimonialListQuery) {
   const query = testimonialListQuerySchema.parse(input);
   const params = listParams(query, { kind: "testimonials" });
-  const data = await getData<{ kind: string; result: unknown }>(`/api/admin/supporting?${params}`);
+  const data = await getData<{ kind: string; result: unknown }>(`/api/v1/admin/supporting?${params}`);
   const parsed = testimonialListPageSchema.safeParse(data?.result);
   if (data?.kind !== "testimonials" || !parsed.success || parsed.data.page !== query.page || parsed.data.pageSize !== query.pageSize || parsed.data.items.some(row => query.visibility !== "all" && row.isEnabled !== (query.visibility === "enabled"))) {
     throw new Error("Không tải được trang đánh giá hợp lệ. Vui lòng đăng nhập lại hoặc thử lại.");
@@ -269,7 +269,7 @@ export async function getTestimonialsPage(input: TestimonialListQuery) {
 export async function getAdminMediaPage(input: Partial<MediaListQuery> = {}) {
   const query = mediaListQuerySchema.parse(input);
   const params = listParams(query);
-  const result = await getData<{ assets: AdminMedia; page: number; pageSize: number; total: number; totalPages: number }>(`/api/admin/media?${params}`);
+  const result = await getData<{ assets: AdminMedia; page: number; pageSize: number; total: number; totalPages: number }>(`/api/v1/admin/media?${params}`);
   if (!result) throw new Error("Không tải được trang thư viện tệp.");
   const parsed = mediaListResponseSchema.safeParse(result);
   if (!parsed.success) throw new Error("Dữ liệu trang thư viện tệp không hợp lệ.");
@@ -278,7 +278,7 @@ export async function getAdminMediaPage(input: Partial<MediaListQuery> = {}) {
 export async function getCmsUsersPage(input: CmsUserListQuery) {
   const query = cmsUserListQuerySchema.parse(input);
   const params = listParams(query);
-  const data = await getData<{ result: unknown; roles: unknown }>(`/api/admin/users?${params}`);
+  const data = await getData<{ result: unknown; roles: unknown }>(`/api/v1/admin/users?${params}`);
   const parsed = cmsUserListPageSchema.safeParse(data?.result);
   if (!parsed.success || parsed.data.page !== query.page || parsed.data.pageSize !== query.pageSize || parsed.data.items.some(user => (query.status !== "all" && user.status !== query.status) || (query.role !== "all" && user.role !== query.role))) {
     throw new Error("Không tải được trang tài khoản hợp lệ. Vui lòng đăng nhập lại hoặc thử lại.");
@@ -289,7 +289,7 @@ export async function getCmsUsersPage(input: CmsUserListQuery) {
 }
 
 export async function getCmsRolesPayload() {
-  const data = await getData<{ roles: unknown; modules: unknown; actionLabels: unknown }>("/api/admin/roles");
+  const data = await getData<{ roles: unknown; modules: unknown; actionLabels: unknown }>("/api/v1/admin/roles");
   const roles = cmsRoleListSchema.safeParse(data?.roles);
   if (!roles.success || !Array.isArray(data?.modules) || !data?.actionLabels || typeof data.actionLabels !== "object") {
     throw new Error("Không tải được danh sách vai trò. Vui lòng đăng nhập lại hoặc thử lại.");

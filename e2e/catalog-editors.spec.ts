@@ -54,7 +54,7 @@ test("Sản phẩm: soạn tính năng, FAQ, lưu nháp rồi mở lại đúng 
     await expect(page).toHaveURL(/\/admin\/products\/[0-9a-f-]{36}$/);
     offeringId = page.url().split("/").pop();
 
-    const saved = await (await page.request.get(`/api/admin/offerings/${offeringId}`)).json() as { offering: { content: { features: string[]; faq: [string, string][] } } };
+    const saved = await (await page.request.get(`/api/v1/admin/offerings/${offeringId}`)).json() as { offering: { content: { features: string[]; faq: [string, string][] } } };
     expect(saved.offering.content.features).toEqual(["Báo bếp tức thì", "Gọi món bằng QR"]);
     expect(saved.offering.content.faq).toEqual([["Có dùng thử không?", "Có, 14 ngày | miễn phí."]]);
 
@@ -65,9 +65,9 @@ test("Sản phẩm: soạn tính năng, FAQ, lưu nháp rồi mở lại đúng 
     await expect(page.getByRole("status").filter({ hasText: "Đã lưu · Bản nháp" })).toBeVisible();
   } finally {
     if (offeringId) {
-      const current = await (await page.request.get(`/api/admin/offerings/${offeringId}`)).json() as { offering: { draftVersion: number } };
-      const archived = await (await page.request.patch(`/api/admin/offerings/${offeringId}`, { headers: { origin }, data: { action: "archive", expectedVersion: current.offering.draftVersion } })).json() as { offering?: { draftVersion: number } };
-      expect((await page.request.delete(`/api/admin/offerings/${offeringId}`, { headers: { origin }, data: { expectedVersion: archived.offering?.draftVersion ?? current.offering.draftVersion + 1 } })).status()).toBe(200);
+      const current = await (await page.request.get(`/api/v1/admin/offerings/${offeringId}`)).json() as { offering: { draftVersion: number } };
+      const archived = await (await page.request.patch(`/api/v1/admin/offerings/${offeringId}`, { headers: { origin }, data: { action: "archive", expectedVersion: current.offering.draftVersion } })).json() as { offering?: { draftVersion: number } };
+      expect((await page.request.delete(`/api/v1/admin/offerings/${offeringId}`, { headers: { origin }, data: { expectedVersion: archived.offering?.draftVersion ?? current.offering.draftVersion + 1 } })).status()).toBe(200);
     }
   }
 });
@@ -78,7 +78,7 @@ test("Thiết bị: nhóm thông số, giá hiển thị, lưu nháp rồi mở 
   await page.goto("/admin/equipment/new");
   const origin = new URL(page.url()).origin;
   const groupName = `Nhóm thử editor ${stamp()}`;
-  const group = await (await page.request.post("/api/admin/equipment", { headers: { origin }, data: { kind: "groups", id: null, values: { name: groupName, slug: `nhom-thu-editor-${stamp()}`, description: null, coverMediaId: null, sortOrder: 0, isEnabled: false } } })).json() as { id: string };
+  const group = await (await page.request.post("/api/v1/admin/equipment", { headers: { origin }, data: { kind: "groups", id: null, values: { name: groupName, slug: `nhom-thu-editor-${stamp()}`, description: null, coverMediaId: null, sortOrder: 0, isEnabled: false } } })).json() as { id: string };
   let itemId: string | undefined;
 
   try {
@@ -102,7 +102,7 @@ test("Thiết bị: nhóm thông số, giá hiển thị, lưu nháp rồi mở 
     await expect(page).toHaveURL(/\/admin\/equipment\/[0-9a-f-]{36}$/);
     itemId = page.url().split("/").pop();
 
-    const saved = await (await page.request.get(`/api/admin/equipment/${itemId}`)).json() as { equipment: { priceVnd: number; groupId: string; specificationGroups: unknown } };
+    const saved = await (await page.request.get(`/api/v1/admin/equipment/${itemId}`)).json() as { equipment: { priceVnd: number; groupId: string; specificationGroups: unknown } };
     expect(saved.equipment.priceVnd).toBe(12_500_000);
     expect(saved.equipment.groupId).toBe(group.id);
     expect(saved.equipment.specificationGroups).toEqual([{ title: "Kết nối", items: [{ label: "Cổng USB", value: "2 cổng" }, { label: "Wi-Fi", value: "2.4/5 GHz" }] }]);
@@ -112,10 +112,10 @@ test("Thiết bị: nhóm thông số, giá hiển thị, lưu nháp rồi mở 
     await expect(page.getByRole("status").filter({ hasText: "Đã lưu · Bản nháp" })).toBeVisible();
   } finally {
     if (itemId) {
-      const current = await (await page.request.get(`/api/admin/equipment/${itemId}`)).json() as { equipment: { version: number } };
-      const archived = await (await page.request.patch(`/api/admin/equipment/${itemId}`, { headers: { origin }, data: { action: "archive", expectedVersion: current.equipment.version } })).json() as { equipment?: { version: number } };
-      expect((await page.request.delete(`/api/admin/equipment/${itemId}?expectedVersion=${archived.equipment?.version ?? current.equipment.version + 1}`, { headers: { origin } })).status()).toBe(200);
+      const current = await (await page.request.get(`/api/v1/admin/equipment/${itemId}`)).json() as { equipment: { version: number } };
+      const archived = await (await page.request.patch(`/api/v1/admin/equipment/${itemId}`, { headers: { origin }, data: { action: "archive", expectedVersion: current.equipment.version } })).json() as { equipment?: { version: number } };
+      expect((await page.request.delete(`/api/v1/admin/equipment/${itemId}?expectedVersion=${archived.equipment?.version ?? current.equipment.version + 1}`, { headers: { origin } })).status()).toBe(200);
     }
-    expect((await page.request.delete(`/api/admin/equipment/${group.id}?kind=groups`, { headers: { origin } })).status()).toBe(200);
+    expect((await page.request.delete(`/api/v1/admin/equipment/${group.id}?kind=groups`, { headers: { origin } })).status()).toBe(200);
   }
 });

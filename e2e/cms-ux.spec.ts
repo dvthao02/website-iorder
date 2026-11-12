@@ -17,7 +17,7 @@ test.describe("UX CMS với Backend mô phỏng", () => {
     const errors: string[] = [];
     hydrationErrors.set(page, errors);
     page.on("console", (message) => { if (/hydrated|hydration/i.test(message.text())) errors.push(message.text()); });
-    const response = await request.get("/api/admin/session");
+    const response = await request.get("/api/v1/admin/session");
     expect(response.headers()["x-iorder-ux-fixture"], "CMS phải trỏ tới Backend mô phỏng trước khi chạy audit.").toBe("1");
   });
   test.afterEach(async ({ page }) => { expect(hydrationErrors.get(page)).toEqual([]); });
@@ -45,7 +45,7 @@ test.describe("UX CMS với Backend mô phỏng", () => {
 
   test("Trang chủ gửi đủ dữ liệu của thành phần đang sửa khi lưu", async ({ page }) => {
     let values: typeof uxHomePage | undefined;
-    await page.route("**/api/admin/pages", async route => {
+    await page.route("**/api/v1/admin/pages", async route => {
       const body = route.request().postDataJSON();
       expect(body.expectedVersion).toBe(uxHomePage.draftVersion);
       values = { ...uxHomePage, ...body.values, draftVersion: uxHomePage.draftVersion + 1 };
@@ -88,7 +88,7 @@ test.describe("UX CMS với Backend mô phỏng", () => {
     test.skip(process.env.E2E_CMS_UX_WEB !== "1", "Cần publish-web riêng trỏ tới Backend mô phỏng.");
     expect(process.env.E2E_WEB_URL).toBe("http://127.0.0.1:3100");
     const original = structuredClone(uxHomePage);
-    await page.route("**/api/admin/pages", async route => {
+    await page.route("**/api/v1/admin/pages", async route => {
       const body = route.request().postDataJSON();
       Object.assign(uxHomePage, body.values, { draftVersion: uxHomePage.draftVersion + 1 });
       await route.fulfill({ json: { page: uxHomePage } });
@@ -118,7 +118,7 @@ test.describe("UX CMS với Backend mô phỏng", () => {
   test("Tệp cài đặt chỉ rõ lỗi, chặn hiển thị thiếu tệp và giữ bản nhập khi API lỗi", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     let attempts = 0;
-    await page.route("**/api/admin/support-downloads", async route => {
+    await page.route("**/api/v1/admin/support-downloads", async route => {
       if (route.request().method() === "GET") return route.continue();
       attempts++;
       await route.fulfill({ status: 409, json: { error: { code: "VERSION_CONFLICT", message: "Tệp đã được cập nhật ở phiên khác." } } });
@@ -149,7 +149,7 @@ test.describe("UX CMS với Backend mô phỏng", () => {
   test("Tệp cài đặt kiểm tra phản hồi và giữ phiên bản bản nhập qua refresh danh sách", async ({ page }) => {
     const requests: Array<{ values: { title: string }; expectedVersion?: number }> = [];
     let attempt = 0;
-    await page.route("**/api/admin/support-downloads**", async route => {
+    await page.route("**/api/v1/admin/support-downloads**", async route => {
       if (route.request().method() === "GET") return route.continue();
       const body = route.request().postDataJSON();
       requests.push(body);
@@ -177,10 +177,10 @@ test.describe("UX CMS với Backend mô phỏng", () => {
   test("Tệp mới tải lên còn được chọn khi tự lưu thất bại và có thể lưu lại", async ({ page }) => {
     const asset = { id: "10000000-0000-4000-8000-000000000010", originalName: "huong-dan.pdf", mimeType: "application/pdf", fileSize: 10, url: "/media/ux.pdf", version: 0, altText: null, caption: null };
     let attempts = 0;
-    await page.route("**/api/admin/media", async route => route.request().method() === "POST" ? route.fulfill({ json: { asset } }) : route.continue());
-    await page.route(`**/api/admin/media/${asset.id}`, route => route.fulfill({ json: { asset } }));
-    await page.route(`**/api/admin/media/${asset.id}/usage`, route => route.fulfill({ json: { items: [], total: 0, canDelete: true } }));
-    await page.route("**/api/admin/support-downloads", async route => {
+    await page.route("**/api/v1/admin/media", async route => route.request().method() === "POST" ? route.fulfill({ json: { asset } }) : route.continue());
+    await page.route(`**/api/v1/admin/media/${asset.id}`, route => route.fulfill({ json: { asset } }));
+    await page.route(`**/api/v1/admin/media/${asset.id}/usage`, route => route.fulfill({ json: { items: [], total: 0, canDelete: true } }));
+    await page.route("**/api/v1/admin/support-downloads", async route => {
       if (route.request().method() === "GET") return route.continue();
       const body = route.request().postDataJSON();
       expect(body.values.fileMediaId).toBe(asset.id);
@@ -220,7 +220,7 @@ test.describe("UX CMS với Backend mô phỏng", () => {
 
   test("Nhóm thiết bị tự tạo đường dẫn, chỉ rõ lỗi và giữ bản nhập khi xung đột", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.route("**/api/admin/equipment", route => route.fulfill({ status: 409, json: { error: { code: "VERSION_CONFLICT", message: "Nhóm đã thay đổi. Hãy tải lại trước khi lưu." } } }));
+    await page.route("**/api/v1/admin/equipment", route => route.fulfill({ status: 409, json: { error: { code: "VERSION_CONFLICT", message: "Nhóm đã thay đổi. Hãy tải lại trước khi lưu." } } }));
     await page.goto("/admin/equipment/groups?create=1");
     const name = page.getByRole("textbox", { name: "Tên nhóm", exact: true });
     const slug = page.getByRole("textbox", { name: "Đường dẫn", exact: true });
@@ -246,7 +246,7 @@ test.describe("UX CMS với Backend mô phỏng", () => {
   test("Nhóm thiết bị lưu tiếp dùng id vừa tạo và đúng phiên bản", async ({ page }) => {
     const requests: Array<{ id: string | null; expectedVersion?: number }> = [];
     const id = "10000000-0000-4000-8000-000000000008";
-    await page.route("**/api/admin/equipment", async route => {
+    await page.route("**/api/v1/admin/equipment", async route => {
       requests.push(route.request().postDataJSON());
       await route.fulfill({ json: { id } });
     });
@@ -277,7 +277,7 @@ test.describe("UX CMS với Backend mô phỏng", () => {
   });
 
   test("Editor trang giữ lỗi lưu trên form dù bản nhập vẫn chưa lưu", async ({ page }) => {
-    await page.route("**/api/admin/pages", route => route.fulfill({ status: 409, json: { error: { code: "VERSION_CONFLICT", message: "Trang đã thay đổi từ phiên làm việc khác." } } }));
+    await page.route("**/api/v1/admin/pages", route => route.fulfill({ status: 409, json: { error: { code: "VERSION_CONFLICT", message: "Trang đã thay đổi từ phiên làm việc khác." } } }));
     await page.goto("/admin/pages/new");
     const title = page.getByRole("textbox", { name: "Tên trang", exact: true });
     await title.fill("Trang cần lưu");
@@ -294,7 +294,7 @@ test.describe("UX CMS với Backend mô phỏng", () => {
 
   test("Tìm kiếm tách lỗi, thử lại và mở kết quả bằng bàn phím", async ({ page }) => {
     let attempt = 0;
-    await page.route("**/api/admin/tim-kiem?*", async (route) => {
+    await page.route("**/api/v1/admin/tim-kiem?*", async (route) => {
       attempt++;
       if (attempt === 1) return route.fulfill({ status: 503, json: { error: { code: "UNAVAILABLE", message: "Tạm lỗi" } } });
       return route.fulfill({ json: { items: [{ id: "redirects", label: "Chuyển hướng URL", type: "Điều hướng CMS", slug: "/admin/redirects", href: "/admin/redirects" }] } });
@@ -316,7 +316,7 @@ test.describe("UX CMS với Backend mô phỏng", () => {
   });
 
   test("Tìm kiếm không dùng phản hồi cũ cho từ khóa mới; từ khóa rỗng và Escape đóng kết quả", async ({ page }) => {
-    await page.route("**/api/admin/tim-kiem?*", async (route) => {
+    await page.route("**/api/v1/admin/tim-kiem?*", async (route) => {
       const keyword = new URL(route.request().url()).searchParams.get("q");
       if (keyword === "từ cũ") await new Promise((resolve) => setTimeout(resolve, 700));
       await route.fulfill({ json: { items: keyword === "từ cũ" ? [{ id: "old", label: "Kết quả cũ", type: "Trang", slug: "/cu", href: "/admin/pages" }] : [] } }).catch(() => undefined);
@@ -324,7 +324,7 @@ test.describe("UX CMS với Backend mô phỏng", () => {
     await page.goto("/admin/users");
     const input = page.getByRole("combobox", { name: "Tìm nội dung CMS" });
     await input.fill("từ cũ");
-    await page.waitForRequest("**/api/admin/tim-kiem?*");
+    await page.waitForRequest("**/api/v1/admin/tim-kiem?*");
     await input.fill("từ mới");
     await expect(page.getByText(/Không có nội dung khớp/)).toBeVisible();
     await page.waitForTimeout(800);
@@ -379,7 +379,7 @@ test.describe("UX CMS với Backend mô phỏng", () => {
     await dialog.getByLabel("Tên đăng nhập", { exact: true }).fill("kiem-tra-ux");
     await dialog.getByLabel("Họ và tên", { exact: true }).fill("Người dùng kiểm tra");
     await dialog.getByLabel("Mật khẩu ban đầu", { exact: true }).fill("MatKhauThuNghiem123");
-    await page.route("**/api/admin/users", (route) => route.fulfill({ status: 500, json: { error: { code: "UNAVAILABLE", message: "Không lưu được tài khoản thử nghiệm." } } }));
+    await page.route("**/api/v1/admin/users", (route) => route.fulfill({ status: 500, json: { error: { code: "UNAVAILABLE", message: "Không lưu được tài khoản thử nghiệm." } } }));
     await dialog.getByRole("button", { name: "Lưu", exact: true }).click();
     await expect(dialog.getByText("Không lưu được tài khoản thử nghiệm.", { exact: true })).toBeVisible();
     await expect(dialog.getByLabel("Họ và tên", { exact: true })).toHaveValue("Người dùng kiểm tra");
@@ -394,7 +394,7 @@ test.describe("UX CMS với Backend mô phỏng", () => {
     await dialog.getByRole("button", { name: "Lưu", exact: true }).click();
     await expect(dialog.getByLabel("Đường dẫn mới", { exact: true })).toHaveAttribute("aria-invalid", "true");
     await dialog.getByLabel("Đường dẫn mới", { exact: true }).fill("/dich-moi");
-    await page.route("**/api/admin/redirects", (route) => route.fulfill({ status: 409, json: { error: { code: "VERSION_CONFLICT", message: "Phiên bản đã thay đổi." } } }));
+    await page.route("**/api/v1/admin/redirects", (route) => route.fulfill({ status: 409, json: { error: { code: "VERSION_CONFLICT", message: "Phiên bản đã thay đổi." } } }));
     await dialog.getByRole("button", { name: "Lưu", exact: true }).click();
     await expect(dialog.getByText("Phiên bản đã thay đổi.", { exact: true })).toBeVisible();
     await expect(dialog.getByLabel("Đường dẫn mới", { exact: true })).toHaveValue("/dich-moi");
@@ -421,7 +421,7 @@ test.describe("UX CMS với Backend mô phỏng", () => {
     await expect(panel.locator(".admin-form-errors")).toBeFocused();
     await expect(panel.getByLabel("Tên vai trò", { exact: true })).toHaveAttribute("aria-invalid", "true");
     await panel.getByLabel("Tên vai trò", { exact: true }).fill("Nhóm kiểm tra");
-    await page.route("**/api/admin/roles", (route) => route.fulfill({ status: 500, json: { error: { code: "UNAVAILABLE", message: "Không lưu được vai trò thử nghiệm." } } }));
+    await page.route("**/api/v1/admin/roles", (route) => route.fulfill({ status: 500, json: { error: { code: "UNAVAILABLE", message: "Không lưu được vai trò thử nghiệm." } } }));
     await panel.getByRole("button", { name: "Lưu vai trò", exact: true }).click();
     await expect(panel.getByText("Không lưu được vai trò thử nghiệm.", { exact: true })).toBeVisible();
     await panel.getByRole("button", { name: "Bỏ thay đổi", exact: true }).click();
@@ -432,7 +432,7 @@ test.describe("UX CMS với Backend mô phỏng", () => {
 
   test("Chuyên mục tự tạo đường dẫn, giữ đường dẫn sửa tay và gửi đúng version khi lưu liên tiếp", async ({ page }) => {
     const writes: Array<{ id: string | null; expectedVersion?: number; values: { name: string; slug: string } }> = [];
-    await page.route("**/api/admin/taxonomy", async (route) => {
+    await page.route("**/api/v1/admin/taxonomy", async (route) => {
       writes.push(route.request().postDataJSON());
       await route.fulfill({ json: { id: "10000000-0000-4000-8000-000000000009" } });
     });
@@ -480,7 +480,7 @@ test.describe("UX CMS với Backend mô phỏng", () => {
     expect(await panel.locator(".admin-side-panel__content").evaluate((element) => element.scrollWidth - element.clientWidth)).toBeLessThanOrEqual(1);
     await page.screenshot({ animations: "disabled", path: `test-results/cms-ux-${kind}-390.png` });
     await field.fill(kind === "partners" ? "https://example.com" : "Nhận xét dùng để kiểm thử giao diện.");
-    await page.route("**/api/admin/supporting", (route) => route.fulfill({ status: 409, json: { error: { code: "VERSION_CONFLICT", message: "Nội dung thử nghiệm vừa thay đổi." } } }));
+    await page.route("**/api/v1/admin/supporting", (route) => route.fulfill({ status: 409, json: { error: { code: "VERSION_CONFLICT", message: "Nội dung thử nghiệm vừa thay đổi." } } }));
     await panel.getByRole("button", { name: "Lưu thay đổi", exact: true }).click();
     await expect(panel.getByText("Nội dung thử nghiệm vừa thay đổi.", { exact: true })).toBeVisible();
     await expect(name).toHaveValue("Người kiểm tra UX");
@@ -493,7 +493,7 @@ test.describe("UX CMS với Backend mô phỏng", () => {
   ];
   for (const entry of settingsCases) test(`Cài đặt ${entry.api}: lỗi tại trường, phản hồi sai và lưu đúng phiên bản`, async ({ page }) => {
     const writes: Array<{ values: Record<string, unknown>; expectedVersion: number }> = [];
-    await page.route(`**/api/admin/${entry.api}`, async (route) => {
+    await page.route(`**/api/v1/admin/${entry.api}`, async (route) => {
       const body = route.request().postDataJSON(); writes.push(body);
       if (writes.length === 1) return route.fulfill({ json: { [entry.key]: body.values } });
       return route.fulfill({ json: { [entry.key]: body.values, version: 7 } });

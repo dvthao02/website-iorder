@@ -218,7 +218,7 @@ export function PostEditor({ post, taxonomy, onSaved, onError, contentType, onDi
   const tags = [...taxonomy.tags, ...createdTaxonomy.tags.filter((item) => !taxonomy.tags.some((existing) => existing.id === item.id))];
   async function createTaxonomy(kind: "categories" | "tags", name: string, slug: string) {
     const values = kind === "categories" ? { parentId: null, name, slug, description: null, sortOrder: 0 } : { name, slug };
-    const payload = await requestAdminJson("/api/admin/taxonomy", "POST", { kind, id: null, values }, kind === "categories" ? "Không thể tạo chuyên mục." : "Không thể tạo thẻ.");
+    const payload = await requestAdminJson("/api/v1/admin/taxonomy", "POST", { kind, id: null, values }, kind === "categories" ? "Không thể tạo chuyên mục." : "Không thể tạo thẻ.");
     const id = payload && typeof payload === "object" && "id" in payload && typeof payload.id === "string" ? payload.id : null;
     if (!id) throw new Error("Phản hồi tạo phân loại không hợp lệ.");
     setCreatedTaxonomy((current) => ({ ...current, [kind]: [...current[kind], { id, name }] }));
@@ -234,7 +234,7 @@ export function PostEditor({ post, taxonomy, onSaved, onError, contentType, onDi
 
     try {
       const payload = formToPayload(form);
-      const result = await requestJson(post ? `/api/admin/posts/${post.id}` : "/api/admin/posts", post ? "PATCH" : "POST", post ? { ...payload, expectedVersion: savedVersion } : payload);
+      const result = await requestJson(post ? `/api/v1/admin/posts/${post.id}` : "/api/v1/admin/posts", post ? "PATCH" : "POST", post ? { ...payload, expectedVersion: savedVersion } : payload);
       if (!result.post || (post && result.post.id !== post.id) || !Number.isSafeInteger(result.post.draftVersion) || result.post.draftVersion !== (savedVersion ?? 0) + 1) throw new Error("Phản hồi phiên bản bài viết không hợp lệ. Kiểm tra danh sách trước khi thử lại.");
       setSavedVersion(result.post.draftVersion);
       markSaved();
@@ -306,7 +306,7 @@ export function PostEditor({ post, taxonomy, onSaved, onError, contentType, onDi
           {post && isDirty ? <p className="admin-help">Xem trước hiển thị bản đã lưu — lưu trước để thấy thay đổi mới.</p> : null}
           {post ? <p className="admin-post-editor__state"><AdminStatusBadge tone={statusBadge[post.status].tone}>{statusBadge[post.status].label}</AdminStatusBadge>{post.publishedAt ? <small className="admin-help">Đăng lúc {formatDisplayDateTime(post.publishedAt)}</small> : null}</p> : <p className="admin-help">Bài mới — chưa lưu.</p>}
           {/* Bản đã lưu (không gồm thay đổi đang gõ dở) dưới dạng Word để gửi duyệt/chỉnh ngoài CMS rồi nhập lại. */}
-          {post ? <a className="admin-link admin-post-editor__word admin-file-tone--word" download href={`/api/admin/posts/${post.id}/word`}><FileText aria-hidden="true" size={14} />Tải bản Word (.docx){isDirty ? " — bản đã lưu" : ""}</a> : null}
+          {post ? <a className="admin-link admin-post-editor__word admin-file-tone--word" download href={`/api/v1/admin/posts/${post.id}/word`}><FileText aria-hidden="true" size={14} />Tải bản Word (.docx){isDirty ? " — bản đã lưu" : ""}</a> : null}
           <ContentStatusChoice canPublish={canPublish} noun={postNoun} onChange={(status) => update("status", status)} savedStatus={savedStatus} value={form.status} />
           {form.status === "scheduled" ? <label className={labelClassName}>Thời điểm đăng<input className={inputClassName} onChange={(event) => update("scheduledAt", event.target.value)} required type="datetime-local" value={form.scheduledAt} /></label> : null}
           {goingLive ? <PrepublishHints missing={missing} /> : null}

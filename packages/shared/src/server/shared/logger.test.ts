@@ -25,11 +25,11 @@ test("không ghi tham số SQL và giữ thông tin lỗi Postgres", () => {
 });
 
 test("dòng log có requestId, method, path không kèm query string", () => {
-  const request = { headers: new Headers({ "x-request-id": "req-12345678" }), method: "GET", url: "http://backend/api/admin/leads?query=0901234567" };
+  const request = { headers: new Headers({ "x-request-id": "req-12345678" }), method: "GET", url: "http://backend/api/v1/admin/leads?query=0901234567" };
   const entry = buildLogEntry("error", "Tải thất bại.", { request, error: new Error("boom"), userId: "u1" }, "backend");
   assert.equal(entry.service, "backend");
   assert.equal(entry.requestId, "req-12345678");
-  assert.equal(entry.path, "/api/admin/leads");
+  assert.equal(entry.path, "/api/v1/admin/leads");
   assert.equal(entry.userId, "u1");
   assert.equal((entry.err as { message: string }).message, "boom");
   assert.ok(!JSON.stringify(entry).includes("0901234567"));

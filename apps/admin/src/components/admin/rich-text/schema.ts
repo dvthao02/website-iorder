@@ -27,7 +27,7 @@ export function htmlToRichDocument(html: string): RichDocument {
 export async function uploadContentImage(file: File) {
   const body = new FormData();
   body.set("file", file);
-  const response = await fetch("/api/admin/media", { method: "POST", body });
+  const response = await fetch("/api/v1/admin/media", { method: "POST", body });
   const payload = await readAdminJson(response);
   const url = payload?.asset?.url;
   if (!response.ok || typeof url !== "string") throw adminApiError(payload, "Không tải được ảnh lên.");

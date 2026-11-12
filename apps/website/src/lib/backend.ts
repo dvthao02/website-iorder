@@ -58,7 +58,7 @@ const fetchPublicResource = cache(async (resource: string, encodedParams = "") =
   query.set("resource", resource);
   // Bản nháp đang xem trước không bao giờ đi qua cache.
   const signal = AbortSignal.timeout(contentTimeoutMs);
-  const response = await fetch(`${backendUrl}/api/public/content?${query.toString()}`, query.has("preview") ? { cache: "no-store", signal } : { ...publicCacheOptions, signal });
+  const response = await fetch(`${backendUrl}/api/v1/public/content?${query.toString()}`, query.has("preview") ? { cache: "no-store", signal } : { ...publicCacheOptions, signal });
   if (!response.ok) throw new Error("Không thể tải dữ liệu website từ Backend.");
   return reviveDates(await response.json() as unknown);
 });
@@ -113,7 +113,7 @@ export async function getTestimonials(_enabledOnly = false): Promise<PublicTesti
 // Logo/OG image are decorative: a failed lookup renders the page without them.
 export async function getMediaById(id: string) {
   try {
-    const response = await fetch(`${backendUrl}/api/public/media/${encodeURIComponent(id)}`, { ...publicCacheOptions, signal: AbortSignal.timeout(contentTimeoutMs) });
+    const response = await fetch(`${backendUrl}/api/v1/public/media/${encodeURIComponent(id)}`, { ...publicCacheOptions, signal: AbortSignal.timeout(contentTimeoutMs) });
     if (!response.ok) return null;
     return (await response.json() as { asset: PublicMedia }).asset;
   } catch {
@@ -121,7 +121,7 @@ export async function getMediaById(id: string) {
   }
 }
 export async function getEnabledRedirect(path: string): Promise<{ destinationPath: string; statusCode: 301 | 308 } | null> {
-  const response = await fetch(`${backendUrl}/api/public/redirect?path=${encodeURIComponent(path)}`, { ...publicCacheOptions, signal: AbortSignal.timeout(redirectTimeoutMs) });
+  const response = await fetch(`${backendUrl}/api/v1/public/redirect?path=${encodeURIComponent(path)}`, { ...publicCacheOptions, signal: AbortSignal.timeout(redirectTimeoutMs) });
   if (!response.ok) return null;
   return (await response.json()).redirect;
 }

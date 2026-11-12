@@ -125,7 +125,7 @@ export function PageEditorDetail({ page }: { page?: AdminPage }) {
         if (blockIssue) setOpenBlock(blockIssue.path[1] as number);
         throw new Error(pageValidationMessage(validated.error.issues));
       }
-      const response = await fetch("/api/admin/pages", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: page?.id ?? null, expectedVersion: savedVersion, values: validated.data }) });
+      const response = await fetch("/api/v1/admin/pages", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: page?.id ?? null, expectedVersion: savedVersion, values: validated.data }) });
       const payload = await readAdminJson(response);
       if (!response.ok) throw adminApiError(payload, "Không thể lưu trang.");
       const savedId = payload.page?.id;

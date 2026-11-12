@@ -30,7 +30,7 @@ const bodySchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("schedule-off") }),
 ]);
 
-// Chỉ Super Admin gọi được (admin-permission.ts: POST /api/admin/backup không map permission nào).
+// Chỉ Super Admin gọi được (admin-permission.ts: POST /api/v1/admin/backup không map permission nào).
 // "run"/"restore" chỉ chạy một cú bấm khi database đang ở localhost (local-ops.ts tự kiểm tra lại).
 async function handlePOST(request: Request) {
   const administrator = await getRequestAdministrator();

@@ -168,7 +168,7 @@ export function OfferingEditor({ offering, offeringType, offeringTypeLabel, onSa
     try {
       const payload = offeringFormToInput(form);
       const typeGuard = offeringType ? `?type=${offeringType}` : "";
-      const result = await requestJson(offering ? `/api/admin/offerings/${offering.id}${typeGuard}` : `/api/admin/offerings${typeGuard}`, offering ? "PATCH" : "POST", offering ? { ...payload, expectedVersion: savedVersion } : payload) as { offering: AdminOffering };
+      const result = await requestJson(offering ? `/api/v1/admin/offerings/${offering.id}${typeGuard}` : `/api/v1/admin/offerings${typeGuard}`, offering ? "PATCH" : "POST", offering ? { ...payload, expectedVersion: savedVersion } : payload) as { offering: AdminOffering };
       if (!result.offering || (offering && result.offering.id !== offering.id) || !Number.isSafeInteger(result.offering.draftVersion) || result.offering.draftVersion !== (savedVersion ?? 0) + 1) throw new Error("Phản hồi phiên bản nội dung không hợp lệ. Kiểm tra danh sách trước khi thử lại.");
       setSavedVersion(result.offering.draftVersion);
       markSaved();

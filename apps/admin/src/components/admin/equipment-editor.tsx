@@ -114,7 +114,7 @@ export function EquipmentEditor({ groups, item, onDirtyChange, onError, onSaved 
   const allGroups = [...groups, ...createdGroups.filter((group) => !groups.some((existing) => existing.id === group.id))];
   async function createGroup(name: string, slug: string) {
     const values: EquipmentGroupInput = { ...blankGroup, name, slug, isEnabled: canPublish };
-    const payload = await requestAdminJson("/api/admin/equipment", "POST", { kind: "groups", id: null, values }, "Không thể tạo nhóm thiết bị.");
+    const payload = await requestAdminJson("/api/v1/admin/equipment", "POST", { kind: "groups", id: null, values }, "Không thể tạo nhóm thiết bị.");
     const groupId = parseSavedEntityId(payload, undefined);
     setCreatedGroups((current) => [...current, { id: groupId, version: 0, ...values }]);
     setForm((current) => ({ ...current, groupId }));
@@ -126,7 +126,7 @@ export function EquipmentEditor({ groups, item, onDirtyChange, onError, onSaved 
     saving.current = true;
     setIsSaving(true);
     try {
-      const response = await fetch("/api/admin/equipment", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ kind: "items", id, values: form, ...(id ? { expectedVersion: version } : {}) }) });
+      const response = await fetch("/api/v1/admin/equipment", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ kind: "items", id, values: form, ...(id ? { expectedVersion: version } : {}) }) });
       const payload = await readAdminJson(response);
       if (!response.ok) throw new Error(adminApiError(payload, "Không thể lưu thiết bị.").message);
       const savedId = parseSavedEntityId(payload, id ?? undefined);

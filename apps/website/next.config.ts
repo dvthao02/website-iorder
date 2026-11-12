@@ -34,7 +34,7 @@ const nextConfig: NextConfig = {
       // URL public là tiếng Việt không dấu; thư mục route trong mã nguồn là tiếng Anh.
       beforeFiles: publicRewrites(),
       afterFiles: [
-        { source: "/api/leads", destination: `${process.env.BACKEND_URL ?? "http://localhost:3002"}/api/leads` },
+        { source: "/api/v1/leads", destination: `${process.env.BACKEND_URL ?? "http://localhost:3002"}/api/v1/leads` },
         { source: "/media/:path*", destination: `${process.env.BACKEND_URL ?? "http://localhost:3002"}/media/:path*` },
         // Local: chuyển script và sự kiện thống kê sang Umami. Production để Caddy chuyển tiếp
         // (giữ đúng X-Forwarded-For), nên image không đặt UMAMI_URL.

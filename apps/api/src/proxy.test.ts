@@ -6,8 +6,8 @@ import { NextRequest } from "next/server";
 import { proxy } from "./proxy";
 
 test("Proxy yêu cầu phiên đăng nhập cho API admin", async () => {
-  const getResponse = await proxy(new NextRequest("https://cms.example/api/admin/pages"));
-  const mutationResponse = await proxy(new NextRequest("http://backend:3000/api/admin/pages", {
+  const getResponse = await proxy(new NextRequest("https://cms.example/api/v1/admin/pages"));
+  const mutationResponse = await proxy(new NextRequest("http://backend:3000/api/v1/admin/pages", {
     method: "POST",
     headers: { origin: "https://cms.example", "x-forwarded-host": "cms.example" },
   }));
@@ -17,7 +17,7 @@ test("Proxy yêu cầu phiên đăng nhập cho API admin", async () => {
 });
 
 test("Proxy chặn Origin khác host cho toàn bộ mutation admin", async () => {
-  const response = await proxy(new NextRequest("https://cms.example/api/admin/pages", {
+  const response = await proxy(new NextRequest("https://cms.example/api/v1/admin/pages", {
     method: "PATCH",
     headers: { origin: "https://khac.example" },
   }));
@@ -29,22 +29,22 @@ test("Proxy chặn Origin khác host cho toàn bộ mutation admin", async () =>
 });
 
 test("Proxy giữ tương thích cho client không gửi Origin khi đăng nhập", async () => {
-  const response = await proxy(new NextRequest("https://cms.example/api/admin/session", { method: "POST" }));
+  const response = await proxy(new NextRequest("https://cms.example/api/v1/admin/session", { method: "POST" }));
 
   assert.equal(response.status, 200);
 });
 
 test("Proxy gắn mã request cho mọi phản hồi, giữ mã hợp lệ và thay mã lạ", async () => {
-  const kept = await proxy(new NextRequest("https://cms.example/api/admin/pages", { headers: { "x-request-id": "3f2b9c1e-1111-4a2b-9c3d-123456789abc" } }));
+  const kept = await proxy(new NextRequest("https://cms.example/api/v1/admin/pages", { headers: { "x-request-id": "3f2b9c1e-1111-4a2b-9c3d-123456789abc" } }));
   assert.equal(kept.status, 401);
   assert.equal(kept.headers.get("x-request-id"), "3f2b9c1e-1111-4a2b-9c3d-123456789abc");
 
-  const replaced = await proxy(new NextRequest("https://cms.example/api/admin/pages", { headers: { "x-request-id": "bad id <script>" } }));
+  const replaced = await proxy(new NextRequest("https://cms.example/api/v1/admin/pages", { headers: { "x-request-id": "bad id <script>" } }));
   assert.match(replaced.headers.get("x-request-id") ?? "", /^[0-9a-f-]{36}$/);
 });
 
 test("Proxy không kiểm tra quyền hay Origin cho API public nhưng vẫn gắn mã request", async () => {
-  const response = await proxy(new NextRequest("https://example.com/api/public/leads", { method: "POST", headers: { origin: "https://khac.example" } }));
+  const response = await proxy(new NextRequest("https://example.com/api/v1/public/leads", { method: "POST", headers: { origin: "https://khac.example" } }));
   assert.equal(response.status, 200);
   assert.match(response.headers.get("x-request-id") ?? "", /^[0-9a-f-]{36}$/);
   assert.equal(response.headers.get("x-middleware-request-x-request-id"), response.headers.get("x-request-id"));

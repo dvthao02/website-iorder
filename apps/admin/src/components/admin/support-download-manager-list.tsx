@@ -250,13 +250,13 @@ export function SupportDownloadManagerList({
     setBusy(true);
     try {
       const download = active
-        ? await requestJson(`/api/admin/support-downloads/${active.id}`, "PATCH", {
+        ? await requestJson(`/api/v1/admin/support-downloads/${active.id}`, "PATCH", {
             action: "save",
             values: parsed.data,
             expectedVersion: active.draftVersion,
             changeNote: "Cập nhật từ trình biên tập tệp cài đặt",
           })
-        : await requestJson("/api/admin/support-downloads", "POST", {
+        : await requestJson("/api/v1/admin/support-downloads", "POST", {
             values: parsed.data,
             changeNote: "Tạo từ trình biên tập tệp cài đặt",
           });
@@ -294,13 +294,13 @@ export function SupportDownloadManagerList({
     setBusy(true);
     try {
       const download = active
-        ? await requestJson(`/api/admin/support-downloads/${active.id}`, "PATCH", {
+        ? await requestJson(`/api/v1/admin/support-downloads/${active.id}`, "PATCH", {
             action: "save",
             values: parsed.data,
             expectedVersion: active.draftVersion,
             changeNote: "Tải tệp mới từ trình biên tập tệp cài đặt",
           })
-        : await requestJson("/api/admin/support-downloads", "POST", {
+        : await requestJson("/api/v1/admin/support-downloads", "POST", {
             values: parsed.data,
             changeNote: "Tải tệp lên và tạo bản nháp tự động",
           });
@@ -326,7 +326,7 @@ export function SupportDownloadManagerList({
     saving.current = true;
     setBusy(true);
     try {
-      const download = await requestJson(`/api/admin/support-downloads/${active.id}`, "PATCH", {
+      const download = await requestJson(`/api/v1/admin/support-downloads/${active.id}`, "PATCH", {
         action: archived ? "restore" : "archive",
         expectedVersion: active.draftVersion,
       });
@@ -358,12 +358,12 @@ export function SupportDownloadManagerList({
       <AdminListHeader actions={<AdminButton disabled={!clientReady} hideWithoutPermission permission="support_downloads.create" leadingIcon={<Plus aria-hidden="true" size={16} />} onClick={create}>Thêm</AdminButton>} description={`${rows.length} tệp tải xuống`} headingLevel={1} title="Tệp cài đặt" />
       <AdminFilterBar onSubmit={(event) => event.preventDefault()} chips={chips} onClearAll={() => { setQuery(""); setFilter("all"); }} search={<AdminSearchField id="support-download-search" label="Tìm tệp cài đặt" onChange={(event) => setQuery(event.target.value)} placeholder="Tìm tên hoặc tệp" value={query} />}><select aria-label="Lọc trạng thái" onChange={(event) => setFilter(event.target.value as Filter)} value={filter}>{filterItems.map((item) => <option key={item.value} value={item.value}>{item.value === "all" ? "Tất cả trạng thái" : item.label}</option>)}</select></AdminFilterBar>
     <ContentBulkBar
-      deleteRequest={(item) => ({ method: "DELETE", url: `/api/admin/support-downloads/${item.id}?version=${item.draftVersion}` })}
+      deleteRequest={(item) => ({ method: "DELETE", url: `/api/v1/admin/support-downloads/${item.id}?version=${item.draftVersion}` })}
       items={visibleRows}
       module="support_downloads"
       noun="tệp cài đặt"
       onClear={selection.clear}
-      request={(item, action) => ({ method: "PATCH", url: `/api/admin/support-downloads/${item.id}`, body: action === "publish" || action === "unpublish"
+      request={(item, action) => ({ method: "PATCH", url: `/api/v1/admin/support-downloads/${item.id}`, body: action === "publish" || action === "unpublish"
         ? { action: "save", values: { ...valuesOf(item), isEnabled: action === "publish" }, expectedVersion: item.draftVersion }
         : { action, expectedVersion: item.draftVersion } })}
       selectedIds={selection.selectedIds}

@@ -30,17 +30,17 @@ export async function startCmsUxBackend() {
       return send({ error: { code: "FIXTURE_READ_ONLY", message: "Dữ liệu mô phỏng chỉ cho phép đọc." } });
     }
     switch (url.pathname) {
-      case "/api/admin/session": {
+      case "/api/v1/admin/session": {
         const viewOnly = request.headers.cookie?.includes("ux-view-only=1");
         const downloadEditor = request.headers.cookie?.includes("ux-download-editor=1");
         return send({ administrator: { userId: "10000000-0000-4000-8000-000000000001", username: "ux-fixture", fullName: "Kiểm tra giao diện", role: viewOnly || downloadEditor ? "editor" : "admin", permissions: viewOnly ? ["users.view", "roles.view", "settings.view", "supporting.view", "taxonomy.view", "media.view", "redirects.view", "equipment.view", "support_downloads.view"] : downloadEditor ? ["support_downloads.view", "support_downloads.create", "support_downloads.update", "media.view"] : [] } });
       }
-      case "/api/admin/notifications": return send({ notifications: [] });
-      case "/api/admin/equipment": return send({ equipmentGroups: [] });
-      case "/api/admin/support-downloads": return send({ downloads: [request.headers.cookie?.includes("ux-download-published=1") ? { ...uxDownload, isEnabled: true, status: "published" } : uxDownload] });
-      case "/api/admin/pages": return send({ page: url.searchParams.get("slug") === "home" ? uxHomePage : null });
-      case "/api/public/redirect": return send({ redirect: null });
-      case "/api/public/content": {
+      case "/api/v1/admin/notifications": return send({ notifications: [] });
+      case "/api/v1/admin/equipment": return send({ equipmentGroups: [] });
+      case "/api/v1/admin/support-downloads": return send({ downloads: [request.headers.cookie?.includes("ux-download-published=1") ? { ...uxDownload, isEnabled: true, status: "published" } : uxDownload] });
+      case "/api/v1/admin/pages": return send({ page: url.searchParams.get("slug") === "home" ? uxHomePage : null });
+      case "/api/v1/public/redirect": return send({ redirect: null });
+      case "/api/v1/public/content": {
         switch (url.searchParams.get("resource")) {
           case "shared": return send({ settings: { config: { siteUrl: null, defaultTitle: "iOrder", defaultDescription: "Giải pháp cho doanh nghiệp", defaultOgMediaId: null, allowSearchIndexing: false }, profile: null, externalLinks: null, catalogContent: {}, listingContent: {} }, navigation: { header: [], headerCta: [], footer: [] } });
           case "page": return send({ page: uxHomePage });
@@ -49,20 +49,20 @@ export async function startCmsUxBackend() {
           default: return send({ posts: [], offerings: [], equipment: [], testimonials: [] });
         }
       }
-      case "/api/admin/redirects": return send({ redirects: [{ id: "10000000-0000-4000-8000-000000000002", sourcePath: "/duong-dan-cu", destinationPath: "/duong-dan-moi", statusCode: 301, isEnabled: true, version: 1 }] });
-      case "/api/admin/users": return send({ result: { ...pageOf(url), counts: { all: 0, active: 0, admins: 0 } }, roles: [{ code: "editor", name: "Biên tập viên", isSystem: false }] });
-      case "/api/admin/roles": return send({ roles: [{ id: "10000000-0000-4000-8000-000000000005", code: "editor", name: "Biên tập viên", description: "Vai trò thử nghiệm", isSystem: false, permissions: ["posts.view"], userCount: 0 }], modules: [{ key: "posts", name: "Bài viết", actions: ["view", "create", "update", "delete", "publish"] }], actionLabels: { view: "Xem", create: "Tạo", update: "Sửa", delete: "Xóa", publish: "Xuất bản" } });
-      case "/api/admin/taxonomy": return send({ taxonomy: { categories: [{ id: "10000000-0000-4000-8000-000000000006", parentId: null, name: "Chuyên mục có sẵn", slug: "chuyen-muc-co-san", description: null, sortOrder: 0, version: 1 }], tags: [] } });
-      case "/api/admin/profile": return send({ profile: null, version: 2 });
-      case "/api/admin/external-links": return send({ links: null, version: 3 });
-      case "/api/admin/publishing-config": return send({ config: { siteUrl: null, defaultTitle: null, defaultDescription: null, defaultOgMediaId: null, allowSearchIndexing: false }, version: 4 });
-      case "/api/admin/supporting": {
+      case "/api/v1/admin/redirects": return send({ redirects: [{ id: "10000000-0000-4000-8000-000000000002", sourcePath: "/duong-dan-cu", destinationPath: "/duong-dan-moi", statusCode: 301, isEnabled: true, version: 1 }] });
+      case "/api/v1/admin/users": return send({ result: { ...pageOf(url), counts: { all: 0, active: 0, admins: 0 } }, roles: [{ code: "editor", name: "Biên tập viên", isSystem: false }] });
+      case "/api/v1/admin/roles": return send({ roles: [{ id: "10000000-0000-4000-8000-000000000005", code: "editor", name: "Biên tập viên", description: "Vai trò thử nghiệm", isSystem: false, permissions: ["posts.view"], userCount: 0 }], modules: [{ key: "posts", name: "Bài viết", actions: ["view", "create", "update", "delete", "publish"] }], actionLabels: { view: "Xem", create: "Tạo", update: "Sửa", delete: "Xóa", publish: "Xuất bản" } });
+      case "/api/v1/admin/taxonomy": return send({ taxonomy: { categories: [{ id: "10000000-0000-4000-8000-000000000006", parentId: null, name: "Chuyên mục có sẵn", slug: "chuyen-muc-co-san", description: null, sortOrder: 0, version: 1 }], tags: [] } });
+      case "/api/v1/admin/profile": return send({ profile: null, version: 2 });
+      case "/api/v1/admin/external-links": return send({ links: null, version: 3 });
+      case "/api/v1/admin/publishing-config": return send({ config: { siteUrl: null, defaultTitle: null, defaultDescription: null, defaultOgMediaId: null, allowSearchIndexing: false }, version: 4 });
+      case "/api/v1/admin/supporting": {
         const kind = url.searchParams.get("kind") ?? "partners";
         const items = kind === "partners" && request.headers.cookie?.includes("ux-view-only=1") ? [{ id: "10000000-0000-4000-8000-000000000007", name: "Đối tác có sẵn", kind: "partner", logoMediaId: null, logo: null, description: null, websiteUrl: null, sortOrder: 0, isEnabled: true, version: 1 }] : [];
         return send({ kind, result: pageOf(url, items) });
       }
-      case "/api/admin/media": return send({ ...pageOf(url), assets: [], items: undefined });
-      case "/api/admin/tim-kiem": return send({ items: [] });
+      case "/api/v1/admin/media": return send({ ...pageOf(url), assets: [], items: undefined });
+      case "/api/v1/admin/tim-kiem": return send({ items: [] });
       default: response.statusCode = 404; return send({ error: { code: "FIXTURE_NOT_FOUND", message: "Chưa có dữ liệu mô phỏng cho đường dẫn này." } });
     }
   });

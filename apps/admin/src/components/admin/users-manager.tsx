@@ -138,7 +138,7 @@ export function UsersManager({ canAssignSuperAdmin, currentUserId, initialPage, 
     mutationPending.current = true;
     setBusy(true);
     try {
-      const response = await fetch("/api/admin/users", {
+      const response = await fetch("/api/v1/admin/users", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify(parsed.data),

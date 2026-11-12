@@ -17,7 +17,7 @@ export function LogoutButton() {
     setIsSubmitting(true);
     setError("");
     try {
-      const response = await fetch("/api/admin/session", { method: "DELETE" });
+      const response = await fetch("/api/v1/admin/session", { method: "DELETE" });
       if (!response.ok) throw new Error("Không thể đăng xuất lúc này. Vui lòng thử lại.");
       clearTransientDrafts();
       router.replace("/admin/login");

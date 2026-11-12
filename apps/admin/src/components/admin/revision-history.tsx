@@ -46,7 +46,7 @@ export function RevisionHistory({ target, id, disabled = false, expectedVersion,
   const [message, setMessage] = useState("Đang tải lịch sử…");
   const [busy, setBusy] = useState(true);
   const pending = useRef(false);
-  const url = `/api/admin/revisions/${target}/${id}`;
+  const url = `/api/v1/admin/revisions/${target}/${id}`;
   // Tự tải khi hiện ra; bỏ kết quả nếu component đã bị gỡ.
   useEffect(() => {
     let active = true;

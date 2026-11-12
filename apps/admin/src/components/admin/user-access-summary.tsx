@@ -39,7 +39,7 @@ export function UserAccessSummary({ user }: { user: UserAccess }) {
   useEffect(() => {
     if (!canReadAudit) return;
     const controller = new AbortController();
-    fetch(`/api/admin/audit?userId=${encodeURIComponent(user.id)}&pageSize=5`, { signal: controller.signal }).then(async (response) => {
+    fetch(`/api/v1/admin/audit?userId=${encodeURIComponent(user.id)}&pageSize=5`, { signal: controller.signal }).then(async (response) => {
       const payload = await readAdminJson(response);
       if (!response.ok) throw adminApiError(payload, "Không tải được hoạt động gần đây.");
       const parsed = recentSchema.safeParse(payload);

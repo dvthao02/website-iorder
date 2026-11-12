@@ -7,17 +7,17 @@ const username = "e2e-doi-mat-khau";
 // Tài khoản kiểm thử riêng: tạo mới hoặc đặt lại mật khẩu qua quyền admin, cuối test khóa lại.
 async function resetTestUser(request: APIRequestContext, origin: string, password: string, status: "active" | "disabled") {
   const headers = { origin, "content-type": "application/json" };
-  const list = await (await request.get(`/api/admin/users?query=${username}`)).json() as { result: { items: Array<{ id: string; username: string }> }; roles: Array<{ code: string }> };
+  const list = await (await request.get(`/api/v1/admin/users?query=${username}`)).json() as { result: { items: Array<{ id: string; username: string }> }; roles: Array<{ code: string }> };
   const existing = list.result.items.find((item) => item.username === username);
   const role = list.roles.find((item) => item.code !== "admin")?.code ?? list.roles[0].code;
-  const response = await request.post("/api/admin/users", { headers, data: { id: existing?.id ?? null, values: { username, email: null, fullName: "Kiểm thử đổi mật khẩu", role, status, password } } });
+  const response = await request.post("/api/v1/admin/users", { headers, data: { id: existing?.id ?? null, values: { username, email: null, fullName: "Kiểm thử đổi mật khẩu", role, status, password } } });
   expect(response.status()).toBe(200);
 }
 
 test("Tài khoản tự đổi mật khẩu: mật khẩu cũ hết hiệu lực, mật khẩu mới đăng nhập được", async ({ page, request, baseURL }) => {
   const origin = baseURL!;
   const headers = { origin, "content-type": "application/json" };
-  expect((await request.post("/api/admin/session", { headers, data: adminCredentials() })).status()).toBe(200);
+  expect((await request.post("/api/v1/admin/session", { headers, data: adminCredentials() })).status()).toBe(200);
   const oldPassword = `Cu-${Date.now()}-matkhau`;
   const newPassword = `Moi-${Date.now()}-matkhau`;
   await resetTestUser(request, origin, oldPassword, "active");
@@ -41,7 +41,7 @@ test("Tài khoản tự đổi mật khẩu: mật khẩu cũ hết hiệu lực
     await page.getByRole("button", { name: "Đổi mật khẩu" }).click();
     await expect(page.getByText(/Đã đổi mật khẩu/).first()).toBeVisible();
 
-    const login = (password: string) => page.request.post("/api/admin/session", { headers, data: { username, password } });
+    const login = (password: string) => page.request.post("/api/v1/admin/session", { headers, data: { username, password } });
     expect((await login(oldPassword)).status()).toBe(401);
     expect((await login(newPassword)).status()).toBe(200);
   } finally {

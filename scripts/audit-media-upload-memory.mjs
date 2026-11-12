@@ -25,7 +25,7 @@ function imageBytes(size) {
 }
 
 async function main() {
-  const session = await fetch(`${backendUrl}/api/admin/session`, {
+  const session = await fetch(`${backendUrl}/api/v1/admin/session`, {
     body: JSON.stringify({ username, password }),
     headers: { "content-type": "application/json" },
     method: "POST",
@@ -39,7 +39,7 @@ async function main() {
   const uploads = await Promise.all(Array.from({ length: concurrency }, async (_, index) => {
     const form = new FormData();
     form.set("file", new File([bytes], `audit-memory-${index}.png`, { type: "image/png" }));
-    const response = await fetch(`${backendUrl}/api/admin/media`, {
+    const response = await fetch(`${backendUrl}/api/v1/admin/media`, {
       body: form,
       headers: { cookie, origin: backendUrl },
       method: "POST",
@@ -51,7 +51,7 @@ async function main() {
   }));
 
   const deletions = await Promise.all(uploads.map(async (id) => {
-    const response = await fetch(`${backendUrl}/api/admin/media/${id}`, { headers: { cookie }, method: "DELETE" });
+    const response = await fetch(`${backendUrl}/api/v1/admin/media/${id}`, { headers: { cookie }, method: "DELETE" });
     requireOk(response, 200, `Danh dau xoa media ${id}`);
   }));
   void deletions;

@@ -264,8 +264,8 @@ async function importV1Media() {
   }
 
   await ensureMediaBucket();
-  const offeringGroups = await Promise.all(offeringTypes.map(async (type) => v1OfferingResponseSchema.parse(await fetchV1Json(`/api/public/offerings?type=${type}`)).items));
-  const downloads = v1DownloadResponseSchema.parse(await fetchV1Json("/api/public/downloads")).items;
+  const offeringGroups = await Promise.all(offeringTypes.map(async (type) => v1OfferingResponseSchema.parse(await fetchV1Json(`/api/v1/public/offerings?type=${type}`)).items));
+  const downloads = v1DownloadResponseSchema.parse(await fetchV1Json("/api/v1/public/downloads")).items;
   let linkedCoverCount = 0;
   let createdSupportCount = 0;
 

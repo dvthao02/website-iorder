@@ -81,7 +81,7 @@ export function EquipmentGroupEditorDetail({ group }: { group?: EquipmentGroupRe
     setBusy(true);
     setError(undefined);
     try {
-      const response = await fetch("/api/admin/equipment", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ kind: "groups", id: entityId ?? null, values: parsed.data, ...(entityId ? { expectedVersion: version.current } : {}) }) });
+      const response = await fetch("/api/v1/admin/equipment", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ kind: "groups", id: entityId ?? null, values: parsed.data, ...(entityId ? { expectedVersion: version.current } : {}) }) });
       const payload = await readAdminJson(response);
       if (!response.ok) throw adminApiError(payload, "Không thể lưu nhóm thiết bị.");
       const savedId = parseSavedEntityId(payload, entityId);

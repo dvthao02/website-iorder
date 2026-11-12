@@ -45,7 +45,7 @@ const isCustomPage = (page: AdminPage) => !getFixedWebsitePage(page.slug);
 
 // Server tự đọc trang đầy đủ (kèm khối) rồi lưu với trạng thái mới; danh sách không cần giữ khối.
 function pageStateRequest(page: AdminPage, action: ContentStateAction) {
-  return { method: "PATCH" as const, url: `/api/admin/pages/${page.id}`, body: { action, expectedVersion: page.draftVersion } };
+  return { method: "PATCH" as const, url: `/api/v1/admin/pages/${page.id}`, body: { action, expectedVersion: page.draftVersion } };
 }
 
 // Loại trang, một dòng: trang danh sách kèm module cấp nội dung (bấm để sang module đó).
@@ -90,7 +90,7 @@ export function PagesManager({ counts, initialQuery, initialStatus, initialType,
     { id: "status", label: "Trạng thái", defaultWidth: 140, minWidth: 120, sortKey: "status", cell: (page) => <StatusBadge status={page.status} /> },
     { id: "updatedAt", label: "Cập nhật", defaultWidth: 140, minWidth: 120, sortKey: "updatedAt", sortFirst: "desc", cell: (page) => <span className="admin-text-muted">{dateFormatter.format(new Date(page.updatedAt))}</span> },
     { id: "actions", label: "Thao tác", defaultWidth: 120, minWidth: 120, align: "right", cell: (page) => isCustomPage(page) || page.status === "archived"
-      ? <AdminContentActions module="pages" deleteMutation={page.status === "archived" && isCustomPage(page) ? { method: "DELETE", url: `/api/admin/pages/${page.id}`, body: { expectedVersion: page.draftVersion } } : undefined} editHref={`/admin/pages/${page.id}`} isArchived={page.status === "archived"} label="trang" mutation={pageStateRequest(page, page.status === "archived" ? "restore" : "archive")} viewHref={page.status === "published" ? getPublicPath(page) : undefined} />
+      ? <AdminContentActions module="pages" deleteMutation={page.status === "archived" && isCustomPage(page) ? { method: "DELETE", url: `/api/v1/admin/pages/${page.id}`, body: { expectedVersion: page.draftVersion } } : undefined} editHref={`/admin/pages/${page.id}`} isArchived={page.status === "archived"} label="trang" mutation={pageStateRequest(page, page.status === "archived" ? "restore" : "archive")} viewHref={page.status === "published" ? getPublicPath(page) : undefined} />
       : <FixedPageActions page={page} /> },
   ], []);
 
@@ -109,7 +109,7 @@ export function PagesManager({ counts, initialQuery, initialStatus, initialType,
           {Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
         </select>
       </AdminFilterBar>
-      <ContentBulkBar archiveBlockedReason="Trang có sẵn của website không lưu trữ hay xóa được; chuyển về nháp nếu cần ẩn tạm." canArchive={isCustomPage} deleteRequest={(page) => ({ method: "DELETE", url: `/api/admin/pages/${page.id}`, body: { expectedVersion: page.draftVersion } })} items={result.items} module="pages" noun="trang" onClear={clear} request={pageStateRequest} selectedIds={selectedIds} />
+      <ContentBulkBar archiveBlockedReason="Trang có sẵn của website không lưu trữ hay xóa được; chuyển về nháp nếu cần ẩn tạm." canArchive={isCustomPage} deleteRequest={(page) => ({ method: "DELETE", url: `/api/v1/admin/pages/${page.id}`, body: { expectedVersion: page.draftVersion } })} items={result.items} module="pages" noun="trang" onClear={clear} request={pageStateRequest} selectedIds={selectedIds} />
       <AdminDataTable columns={columns} emptyMessage={filtered ? "Không có trang khớp bộ lọc." : emptyMessages[initialType]} getRowId={(page) => page.id} getRowLabel={(page) => page.title} onSelectionChange={setSelectedIds} onSortChange={setSort} rows={result.items} selectedIds={selectedIds} sort={sort} tableId="static-pages" />
       <AdminPagination unit="trang" page={result.page} pageSize={result.pageSize} total={result.total} totalPages={result.totalPages} {...pagination} />
     </AdminCard>

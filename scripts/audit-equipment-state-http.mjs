@@ -24,7 +24,7 @@ async function requestJson(path, cookie, method, body) {
 }
 
 async function main() {
-  const session = await fetch(`${backendUrl}/api/admin/session`, {
+  const session = await fetch(`${backendUrl}/api/v1/admin/session`, {
     body: JSON.stringify({ username, password }),
     headers: { "content-type": "application/json" },
     method: "POST",
@@ -35,7 +35,7 @@ async function main() {
   if (!cookie?.startsWith("iorder_admin_session=")) throw new Error("Dang nhap CMS khong tra session cookie.");
 
   const suffix = Date.now().toString(36);
-  const { payload: groupPayload, response: groupResponse } = await requestJson("/api/admin/equipment", cookie, "POST", {
+  const { payload: groupPayload, response: groupResponse } = await requestJson("/api/v1/admin/equipment", cookie, "POST", {
     id: null,
     kind: "groups",
     values: { coverMediaId: null, description: null, isEnabled: true, name: `Nhom audit ${suffix}`, slug: `nhom-audit-${suffix}`, sortOrder: 0 },
@@ -43,7 +43,7 @@ async function main() {
   requireOk(groupResponse, 200, "Tao nhom thiet bi audit");
   if (typeof groupPayload?.id !== "string") throw new Error("Tao nhom thiet bi khong tra ID hop le.");
 
-  const { payload: itemPayload, response: itemResponse } = await requestJson("/api/admin/equipment", cookie, "POST", {
+  const { payload: itemPayload, response: itemResponse } = await requestJson("/api/v1/admin/equipment", cookie, "POST", {
     id: null,
     kind: "items",
     values: {
@@ -69,21 +69,21 @@ async function main() {
   if (typeof itemPayload?.id !== "string" || itemPayload.version !== 1) throw new Error("Tao thiet bi khong tra ID/phien ban mong doi.");
 
   const id = itemPayload.id;
-  const archive = await requestJson(`/api/admin/equipment/${id}`, cookie, "PATCH", { action: "archive", expectedVersion: 1 });
+  const archive = await requestJson(`/api/v1/admin/equipment/${id}`, cookie, "PATCH", { action: "archive", expectedVersion: 1 });
   requireOk(archive.response, 200, "Luu tru thiet bi qua PATCH");
   if (archive.payload?.equipment?.id !== id || archive.payload.equipment.status !== "archived" || archive.payload.equipment.version !== 2) throw new Error("PATCH luu tru tra trang thai hoac phien ban sai.");
 
-  const staleRestore = await requestJson(`/api/admin/equipment/${id}`, cookie, "PATCH", { action: "restore", expectedVersion: 1 });
+  const staleRestore = await requestJson(`/api/v1/admin/equipment/${id}`, cookie, "PATCH", { action: "restore", expectedVersion: 1 });
   requireOk(staleRestore.response, 409, "Tu choi PATCH dung phien ban cu");
 
-  const restore = await requestJson(`/api/admin/equipment/${id}`, cookie, "PATCH", { action: "restore", expectedVersion: 2 });
+  const restore = await requestJson(`/api/v1/admin/equipment/${id}`, cookie, "PATCH", { action: "restore", expectedVersion: 2 });
   requireOk(restore.response, 200, "Khoi phuc thiet bi qua PATCH");
   if (restore.payload?.equipment?.id !== id || restore.payload.equipment.status !== "draft" || restore.payload.equipment.version !== 3) throw new Error("PATCH khoi phuc tra trang thai hoac phien ban sai.");
 
-  const archiveAgain = await requestJson(`/api/admin/equipment/${id}`, cookie, "PATCH", { action: "archive", expectedVersion: 3 });
+  const archiveAgain = await requestJson(`/api/v1/admin/equipment/${id}`, cookie, "PATCH", { action: "archive", expectedVersion: 3 });
   requireOk(archiveAgain.response, 200, "Luu tru lai thiet bi qua PATCH");
 
-  const deletion = await requestJson(`/api/admin/equipment/${id}?expectedVersion=4`, cookie, "DELETE");
+  const deletion = await requestJson(`/api/v1/admin/equipment/${id}?expectedVersion=4`, cookie, "DELETE");
   requireOk(deletion.response, 200, "Xoa thiet bi da luu tru");
   if (deletion.payload?.deletedId !== id) throw new Error("Xoa thiet bi khong tra dung ID.");
 

@@ -1,6 +1,6 @@
 # Audit CMS V2: nghiệp vụ, dữ liệu và UI/UX
 
-Ngày: 21/10/2026. Phạm vi: `apps/admin`, `apps/api/src/app/api/admin`, `apps/api/src/proxy.ts`, `packages/shared/src/server`, phần `apps/website` liên quan đến dữ liệu CMS.
+Ngày: 21/10/2026. Phạm vi: `apps/admin`, `apps/api/src/app/api/v1/admin`, `apps/api/src/proxy.ts`, `packages/shared/src/server`, phần `apps/website` liên quan đến dữ liệu CMS.
 
 Phương pháp: đọc code trên working tree hiện tại (gồm cả các thay đổi chưa commit), đối chiếu với `docs/PROJECT.md` và `docs/ROADMAP.md`. Mỗi vấn đề dưới đây có file/dòng làm bằng chứng. Chưa chạy lại cổng chất lượng, E2E hay thử trên trình duyệt cho đợt audit này. Những gì chưa kiểm chứng được ghi ở mục 7.
 
@@ -19,7 +19,7 @@ Trình duyệt → Caddy → cms (3001) ──rewrite /api──→ api (3002) �
 
 | Lớp | Vị trí | Ghi chú |
 |---|---|---|
-| Phân quyền thô | `apps/api/src/proxy.ts` + `lib/admin-permission.ts` | Ánh xạ `segment đầu của /api/admin` × method → `module.action`. Tài nguyên lạ thì chỉ Super Admin được gọi |
+| Phân quyền thô | `apps/api/src/proxy.ts` + `lib/admin-permission.ts` | Ánh xạ `segment đầu của /api/v1/admin` × method → `module.action`. Tài nguyên lạ thì chỉ Super Admin được gọi |
 | Phân quyền chi tiết | Route handler (`lib/admin-access.ts`: `denyUnless`, `denyPublishUnless`) | Nội dung đang/sẽ công khai cần `<module>.publish` |
 | Nghiệp vụ | `packages/shared/src/server/<domain>/*.service.ts` | Zod parse đầu vào/đầu ra |
 | Dữ liệu | `*.repository.ts` (Drizzle) | Transaction, `for update`, kiểm `draft_version`/`version` |
@@ -38,7 +38,7 @@ Danh mục quyền (`packages/shared/src/server/auth/permissions.ts`) có 16 mod
   - **Trang hệ thống** (`fixedWebsitePages`): route do code giữ, không tạo/xóa/đổi slug.
   - **Trang danh sách** (`kind: listing`): `/tin-tuc`, `/thiet-bi`… Module sở hữu (`ownerModule`) cũng sửa được.
   - **Trang tự tạo**: `/trang/[slug]`.
-- **API:** `GET/POST /api/admin/pages` (POST là upsert, bắt buộc `expectedVersion` khi sửa), `GET/DELETE /api/admin/pages/[id]` (chỉ xóa trang đang lưu trữ, không xóa trang hệ thống).
+- **API:** `GET/POST /api/v1/admin/pages` (POST là upsert, bắt buộc `expectedVersion` khi sửa), `GET/DELETE /api/v1/admin/pages/[id]` (chỉ xóa trang đang lưu trữ, không xóa trang hệ thống).
 - **Đổi trạng thái** (lưu trữ/khôi phục/xuất bản hàng loạt): gửi lại **toàn bộ** trang qua POST (`pages-manager.tsx:30` `pageStateRequest`). Bài viết, sản phẩm, thiết bị thì dùng `PATCH { action }` riêng.
 - **CMS:**
   - "Trang chủ" (`/admin/trang-chu`) nằm ở nhóm Nội dung.
@@ -48,7 +48,7 @@ Danh mục quyền (`packages/shared/src/server/auth/permissions.ts`) có 16 mod
 ### 2.2 Bài viết & Hướng dẫn (Posts)
 
 - **Mô hình:** `posts` (type: news/promotion/case_study/announcement/guide) + chuyên mục/thẻ (`post_categories`, `post_tags`), nội dung rich text v2 được làm sạch ở server.
-- **API:** `GET/POST /api/admin/posts`, `GET/PATCH/DELETE /api/admin/posts/[id]` (`PATCH { action: archive|restore|publish }` hoặc cập nhật nội dung kèm `expectedVersion`).
+- **API:** `GET/POST /api/v1/admin/posts`, `GET/PATCH/DELETE /api/v1/admin/posts/[id]` (`PATCH { action: archive|restore|publish }` hoặc cập nhật nội dung kèm `expectedVersion`).
 - **Phân luồng:** cùng một bảng nhưng hiển thị ở hai nơi.
   - Tin tức nằm ở `/admin/tin-tuc`.
   - Hướng dẫn nằm ở `/admin/tai-nguyen?tab=guides`; `/admin/tin-tuc/[id]` của bài hướng dẫn chuyển hướng sang `/admin/tai-nguyen/huong-dan/[id]`.
@@ -65,22 +65,22 @@ Danh mục quyền (`packages/shared/src/server/auth/permissions.ts`) có 16 mod
 
 ### 2.4 Người dùng
 
-- `GET/POST /api/admin/users` (POST là upsert). Không có xóa, chỉ khóa (`status=disabled`); khóa thì thu hồi mọi session.
+- `GET/POST /api/v1/admin/users` (POST là upsert). Không có xóa, chỉ khóa (`status=disabled`); khóa thì thu hồi mọi session.
 - Chặn tự đổi role/tự khóa mình. Chỉ Super Admin được động tới tài khoản Super Admin. Không mất Super Admin cuối cùng.
 - Không có quên mật khẩu/TOTP (đã nằm trong ROADMAP P1.7).
 
 ### 2.5 Vai trò & quyền
 
-- `GET/POST/DELETE /api/admin/roles`. Ma trận checkbox. Chống leo thang: người không phải Super Admin chỉ được **thêm** quyền mà mình có (`assertCanGrant`), không sửa role của chính mình, không xóa role đang có người dùng.
+- `GET/POST/DELETE /api/v1/admin/roles`. Ma trận checkbox. Chống leo thang: người không phải Super Admin chỉ được **thêm** quyền mà mình có (`assertCanGrant`), không sửa role của chính mình, không xóa role đang có người dùng.
 - 7 role mặc định chỉ tạo một lần. Sau đó admin tự quản lý role.
 
 ### 2.6 Cài đặt website
 
 | Màn | API | Dữ liệu |
 |---|---|---|
-| Thông tin doanh nghiệp | `PUT /api/admin/profile` | `site_profile`: tên, pháp nhân, hotline, email, địa chỉ, giờ làm, logo |
-| Tên miền & SEO | `PUT /api/admin/publishing-config` | `siteUrl`, tiêu đề/mô tả mặc định, ảnh OG, cho phép index |
-| Liên kết & Mạng xã hội | `PUT /api/admin/external-links` | appLogin, trial, facebook, zalo, youtube, appStore, googlePlay |
+| Thông tin doanh nghiệp | `PUT /api/v1/admin/profile` | `site_profile`: tên, pháp nhân, hotline, email, địa chỉ, giờ làm, logo |
+| Tên miền & SEO | `PUT /api/v1/admin/publishing-config` | `siteUrl`, tiêu đề/mô tả mặc định, ảnh OG, cho phép index |
+| Liên kết & Mạng xã hội | `PUT /api/v1/admin/external-links` | appLogin, trial, facebook, zalo, youtube, appStore, googlePlay |
 | Kiểm tra xuất bản | `GET` readiness | Checklist, lọc theo quyền xem |
 
 Cả ba màn ghi đều dùng `{ values, expectedVersion }`. Quyền là `settings.view/update`.
@@ -141,7 +141,7 @@ Cả ba màn ghi đều dùng `{ values, expectedVersion }`. Quyền là `settin
 
 **P0-1. Người có `users.update` chiếm được tài khoản có quyền cao hơn mình (leo thang quyền)**
 
-- **File:** `packages/shared/src/server/users/users.repository.ts:62-64`; route `POST /api/admin/users`.
+- **File:** `packages/shared/src/server/users/users.repository.ts:62-64`; route `POST /api/v1/admin/users`.
 - **Hiện trạng:** `assertCanGrant` chỉ chạy khi **đổi role** (`if (roleChanged)`). Kịch bản:
   1. A không phải Super Admin, có `users.update`.
   2. B có role R với các quyền A không có (ví dụ `roles.*`, `settings.update`).
@@ -193,7 +193,7 @@ Cả ba màn ghi đều dùng `{ values, expectedVersion }`. Quyền là `settin
 
 - **File:** `apps/admin/src/lib/backend.ts:235` (403 thì trả danh sách rỗng), `posts-content-manager.tsx:309`, `permissions.ts:66` (role Marketing không có `taxonomy`).
 - **Hiện trạng:** bài đang có chuyên mục vẫn hiện "Chưa có chuyên mục.", người dùng không thấy và không đổi được. Dữ liệu không mất vì `categoryIds` được giữ, nhưng giao diện nói sai sự thật.
-- **Hướng xử lý:** cho `GET /api/admin/taxonomy` nhận thêm `posts.view` (đọc danh mục là một phần của việc sửa bài). Tạo/sửa/xóa chuyên mục vẫn cần `taxonomy.*`. Sửa trong `admin-permission.ts`, thêm test.
+- **Hướng xử lý:** cho `GET /api/v1/admin/taxonomy` nhận thêm `posts.view` (đọc danh mục là một phần của việc sửa bài). Tạo/sửa/xóa chuyên mục vẫn cần `taxonomy.*`. Sửa trong `admin-permission.ts`, thêm test.
 
 **P1-6. Cấu trúc sidebar khiến trang hệ thống khó tìm**
 
@@ -213,7 +213,7 @@ Cả ba màn ghi đều dùng `{ values, expectedVersion }`. Quyền là `settin
 |---|---|---|---|---|
 | P2-1 | `media.service.ts:20` | Kiểm "còn được dùng" nằm ngoài transaction xóa, nên ai đó gắn ảnh vào nội dung đúng lúc đó thì ảnh vẫn bị xóa mềm | Kiểm lại trong transaction của `queueMediaAssetDeletion`, hoặc khi lưu nội dung từ chối media đã xóa mềm | Hiếm, nhưng gây ảnh vỡ trên website |
 | P2-2 | `revisions/[target]/[id]/route.ts:35` | Khôi phục phiên bản luôn cần `.publish`, kể cả với bản nháp chưa từng xuất bản | Dùng `denyPublishUnless` theo trạng thái hiện tại/sau khôi phục như route sửa | Biên tập viên không khôi phục được bản nháp của chính mình |
-| P2-3 | `pages-manager.tsx:30`, `pages.service.ts` | Lưu trữ/xuất bản trang từ danh sách gửi lại toàn bộ trang (kể cả khối); API danh sách trả cả khối của mọi trang | Thêm `PATCH /api/admin/pages/[id] { action }` dùng `contentStateRequestSchema` như các module khác; danh sách trả projection gọn | Nhất quán API, giảm payload |
+| P2-3 | `pages-manager.tsx:30`, `pages.service.ts` | Lưu trữ/xuất bản trang từ danh sách gửi lại toàn bộ trang (kể cả khối); API danh sách trả cả khối của mọi trang | Thêm `PATCH /api/v1/admin/pages/[id] { action }` dùng `contentStateRequestSchema` như các module khác; danh sách trả projection gọn | Nhất quán API, giảm payload |
 | P2-4 | `(protected)/page.tsx:43, 78`; `dashboard/route.ts:21` | Ô "Trang website" lệch số; người thiếu `dashboard.view` thấy thống kê "chưa kết nối" và nút dẫn tới màn không có quyền; nút chính là "Tạo trang" | Đếm riêng trang tự tạo/trang có sẵn hoặc trỏ tới màn gộp; ẩn khối thống kê khi thiếu quyền; nút chính theo quyền (Viết bài) | Dashboard là màn đầu tiên |
 | P2-5 | `permissions.ts:15-30` | Nhãn module khác sidebar, còn chữ "ngành" | Đồng bộ nhãn: Trang website, Bài viết & Tin tức, Sản phẩm & Dịch vụ, Hỗ trợ cài đặt (tệp tải về)… | Ma trận quyền khó hiểu |
 | P2-6 | `cms-content-manager.tsx:185` | Nhóm "Thông tin bổ sung" không hiện trên website | Hoặc hiển thị trên trang chi tiết sản phẩm, hoặc ẩn khỏi CMS tới khi có giao diện | Tránh nhập dữ liệu vô ích |

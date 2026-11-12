@@ -7,16 +7,16 @@ const created: { pageId?: string; mediaId?: string } = {};
 
 async function cleanup(request: APIRequestContext, origin: string) {
   if (created.pageId) {
-    const current = await (await request.get(`/api/admin/pages/${created.pageId}`)).json() as { page?: Record<string, unknown> & { draftVersion: number } };
+    const current = await (await request.get(`/api/v1/admin/pages/${created.pageId}`)).json() as { page?: Record<string, unknown> & { draftVersion: number } };
     if (current.page) {
       const { id, draftVersion, publishedAt, updatedAt, ...values } = current.page;
       void publishedAt; void updatedAt;
-      const archived = await (await request.post("/api/admin/pages", { headers: { origin }, data: { id, values: { ...values, status: "archived" }, expectedVersion: draftVersion } })).json() as { page?: { draftVersion: number } };
-      await request.delete(`/api/admin/pages/${id}`, { headers: { origin }, data: { expectedVersion: archived.page?.draftVersion ?? draftVersion + 1 } });
+      const archived = await (await request.post("/api/v1/admin/pages", { headers: { origin }, data: { id, values: { ...values, status: "archived" }, expectedVersion: draftVersion } })).json() as { page?: { draftVersion: number } };
+      await request.delete(`/api/v1/admin/pages/${id}`, { headers: { origin }, data: { expectedVersion: archived.page?.draftVersion ?? draftVersion + 1 } });
     }
     created.pageId = undefined;
   }
-  if (created.mediaId) { await request.delete(`/api/admin/media/${created.mediaId}`, { headers: { origin } }); created.mediaId = undefined; }
+  if (created.mediaId) { await request.delete(`/api/v1/admin/media/${created.mediaId}`, { headers: { origin } }); created.mediaId = undefined; }
 }
 
 test.afterEach(async ({ page, baseURL }) => { await cleanup(page.request, baseURL!); });
@@ -27,7 +27,7 @@ test("Ảnh + chữ xen kẽ và Bảng giá hiển thị trên website; thư vi
   await loginAsAdmin(page);
   const origin = new URL(page.url()).origin;
   const stamp = Date.now();
-  const upload = await page.request.post("/api/admin/media", { headers: { origin }, multipart: { file: { name: `e2e-section-${stamp}.png`, mimeType: "image/png", buffer: tinyPng } } });
+  const upload = await page.request.post("/api/v1/admin/media", { headers: { origin }, multipart: { file: { name: `e2e-section-${stamp}.png`, mimeType: "image/png", buffer: tinyPng } } });
   created.mediaId = ((await upload.json()) as { asset: { id: string } }).asset.id;
 
   const slug = `e2e-section-${stamp}`;
@@ -37,7 +37,7 @@ test("Ảnh + chữ xen kẽ và Bảng giá hiển thị trên website; thư vi
     { name: "Chuyên nghiệp", price: "399.000đ", period: "/tháng", description: null, features: ["3 cửa hàng", "Báo cáo nâng cao"], action: { label: "Đăng ký", href: "/lien-he" }, highlighted: true, badge: "Phổ biến" },
     { name: "Doanh nghiệp", price: "Liên hệ", period: null, description: null, features: ["Không giới hạn"], action: { label: "Liên hệ", href: "/lien-he" }, highlighted: false, badge: null },
   ] } };
-  const response = await page.request.post("/api/admin/pages", { headers: { origin }, data: { id: null, values: { title: "Thử thành phần", slug, template: "default", status: "published", seoTitle: null, seoDescription: null, canonicalUrl: null, scheduledAt: null, blocks: [mediaText("image_right", "Báo cáo trực quan"), mediaText("image_left", "Quản lý kho"), pricing] } } });
+  const response = await page.request.post("/api/v1/admin/pages", { headers: { origin }, data: { id: null, values: { title: "Thử thành phần", slug, template: "default", status: "published", seoTitle: null, seoDescription: null, canonicalUrl: null, scheduledAt: null, blocks: [mediaText("image_right", "Báo cáo trực quan"), mediaText("image_left", "Quản lý kho"), pricing] } } });
   expect(response.ok(), await response.text()).toBe(true);
   created.pageId = ((await response.json()) as { page: { id: string } }).page.id;
 

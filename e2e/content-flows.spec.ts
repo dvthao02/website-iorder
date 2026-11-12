@@ -21,10 +21,10 @@ test("Thư viện media: tải ảnh lên, sửa mô tả (chặn ghi đè bản
 
   // Gửi lại với phiên bản cũ (0) như một phiên khác chưa tải lại → 409.
   const origin = new URL(page.url()).origin;
-  const list = await (await page.request.get(`/api/admin/media?query=${encodeURIComponent(name)}`)).json() as { assets: Array<{ id: string; version: number; originalName: string }> };
+  const list = await (await page.request.get(`/api/v1/admin/media?query=${encodeURIComponent(name)}`)).json() as { assets: Array<{ id: string; version: number; originalName: string }> };
   const asset = list.assets.find((item) => item.originalName === name)!;
   expect(asset.version).toBe(1);
-  const stale = await page.request.patch(`/api/admin/media/${asset.id}`, { headers: { origin }, data: { altText: "Ghi đè", caption: null, expectedVersion: 0 } });
+  const stale = await page.request.patch(`/api/v1/admin/media/${asset.id}`, { headers: { origin }, data: { altText: "Ghi đè", caption: null, expectedVersion: 0 } });
   expect(stale.status()).toBe(409);
   expect(((await stale.json()) as { error: { code: string } }).error.code).toBe("VERSION_CONFLICT");
 
@@ -35,14 +35,14 @@ test("Thư viện media: tải ảnh lên, sửa mô tả (chặn ghi đè bản
 });
 
 async function removePost(request: APIRequestContext, origin: string, id: string) {
-  const current = await (await request.get(`/api/admin/posts/${id}`)).json() as { post?: { status: string; draftVersion: number } };
+  const current = await (await request.get(`/api/v1/admin/posts/${id}`)).json() as { post?: { status: string; draftVersion: number } };
   if (!current.post) return;
   let version = current.post.draftVersion;
   if (current.post.status !== "archived") {
-    const archived = await (await request.patch(`/api/admin/posts/${id}`, { headers: { origin }, data: { action: "archive", expectedVersion: version } })).json() as { post?: { draftVersion: number } };
+    const archived = await (await request.patch(`/api/v1/admin/posts/${id}`, { headers: { origin }, data: { action: "archive", expectedVersion: version } })).json() as { post?: { draftVersion: number } };
     version = archived.post?.draftVersion ?? version + 1;
   }
-  await request.delete(`/api/admin/posts/${id}`, { headers: { origin }, data: { expectedVersion: version } });
+  await request.delete(`/api/v1/admin/posts/${id}`, { headers: { origin }, data: { expectedVersion: version } });
 }
 
 const createdPosts: string[] = [];
@@ -55,7 +55,7 @@ test("Xuất bản bài viết trong CMS rồi thấy ngay trên website", async
   const origin = new URL(page.url()).origin;
   const slug = `e2e-xuat-ban-${Date.now()}`;
   const title = `Bài kiểm thử xuất bản ${slug}`;
-  const response = await page.request.post("/api/admin/posts", { headers: { origin }, data: {
+  const response = await page.request.post("/api/v1/admin/posts", { headers: { origin }, data: {
     type: "news", title, slug, excerpt: "Tóm tắt kiểm thử.", content: { version: 1, blocks: [{ type: "paragraph", text: "Đoạn nội dung hiển thị trên website." }] },
     status: "published", seoTitle: null, seoDescription: null, canonicalUrl: null, promotionStartAt: null, promotionEndAt: null,
     ctaLabel: null, ctaUrl: null, badgeText: null, scheduledAt: null, categoryIds: [], tagIds: [],
@@ -75,7 +75,7 @@ test("Xem trước bản nháp: chỉ người có liên kết từ CMS thấy, 
   const origin = new URL(page.url()).origin;
   const slug = `e2e-xem-truoc-${Date.now()}`;
   const title = `Bản nháp xem trước ${slug}`;
-  const response = await page.request.post("/api/admin/posts", { headers: { origin }, data: {
+  const response = await page.request.post("/api/v1/admin/posts", { headers: { origin }, data: {
     type: "news", title, slug, excerpt: null, content: { version: 1, blocks: [{ type: "paragraph", text: "Nội dung nháp chưa công khai." }] },
     status: "draft", seoTitle: null, seoDescription: null, canonicalUrl: null, promotionStartAt: null, promotionEndAt: null,
     ctaLabel: null, ctaUrl: null, badgeText: null, scheduledAt: null, categoryIds: [], tagIds: [],

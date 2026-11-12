@@ -7,7 +7,7 @@ test("archive/restore kiểm đúng entity, trạng thái và phiên bản theo 
   const id = "12345678-1234-4123-8123-123456789012";
   for (const action of ["archive", "restore"] as const) {
     for (const [resource, key] of [["posts", "post"], ["offerings", "offering"], ["pages", "page"]]) {
-      const url = `/api/admin/${resource}${resource === "pages" ? "" : `/${id}?type=software`}`;
+      const url = `/api/v1/admin/${resource}${resource === "pages" ? "" : `/${id}?type=software`}`;
       const body = { id, expectedVersion: 3 };
       const item = { id, draftVersion: 4, status: action === "archive" ? "archived" : "draft" };
       assert.doesNotThrow(() => validateContentStateResponse({ [key]: item }, url, body, action));
@@ -15,13 +15,13 @@ test("archive/restore kiểm đúng entity, trạng thái và phiên bản theo 
         assert.throws(() => validateContentStateResponse(wrong, url, body, action));
       }
     }
-    assert.doesNotThrow(() => validateContentStateResponse({ id, version: 4 }, "/api/admin/equipment", { id, expectedVersion: 3 }, action));
-    assert.throws(() => validateContentStateResponse({ id, version: 3 }, "/api/admin/equipment", { id, expectedVersion: 3 }, action));
-    assert.throws(() => validateContentStateResponse({ id, version: 4 }, "/api/admin/equipment", { id }, action));
+    assert.doesNotThrow(() => validateContentStateResponse({ id, version: 4 }, "/api/v1/admin/equipment", { id, expectedVersion: 3 }, action));
+    assert.throws(() => validateContentStateResponse({ id, version: 3 }, "/api/v1/admin/equipment", { id, expectedVersion: 3 }, action));
+    assert.throws(() => validateContentStateResponse({ id, version: 4 }, "/api/v1/admin/equipment", { id }, action));
     const item = { id, status: action === "archive" ? "archived" : "draft", version: 4 };
-    assert.doesNotThrow(() => validateContentStateResponse({ equipment: item }, `/api/admin/equipment/${id}`, { action, expectedVersion: 3 }, action));
+    assert.doesNotThrow(() => validateContentStateResponse({ equipment: item }, `/api/v1/admin/equipment/${id}`, { action, expectedVersion: 3 }, action));
     for (const wrong of [null, {}, { equipment: { ...item, id: "87654321-1234-4123-8123-123456789012" } }, { equipment: { ...item, status: "published" } }, { equipment: { ...item, version: 3 } }]) {
-      assert.throws(() => validateContentStateResponse(wrong, `/api/admin/equipment/${id}`, { action, expectedVersion: 3 }, action));
+      assert.throws(() => validateContentStateResponse(wrong, `/api/v1/admin/equipment/${id}`, { action, expectedVersion: 3 }, action));
     }
   }
 });
@@ -29,13 +29,13 @@ test("archive/restore kiểm đúng entity, trạng thái và phiên bản theo 
 test("xóa chỉ xác nhận ID khớp URL, không nhận JSON thiếu hoặc ID khác", () => {
   const id = "12345678-1234-4123-8123-123456789012";
   for (const resource of ["posts", "offerings", "pages", "equipment"]) {
-    const url = `/api/admin/${resource}/${id}?expectedVersion=3`;
+    const url = `/api/v1/admin/${resource}/${id}?expectedVersion=3`;
     assert.equal(parseDeletedEntityId({ deletedId: id }, url), id);
     for (const payload of [null, {}, { deletedId: 12 }, { deletedId: "invalid" }, { deletedId: "87654321-1234-4123-8123-123456789012" }]) {
       assert.throws(() => parseDeletedEntityId(payload, url), /Chưa xác nhận/);
     }
   }
-  assert.throws(() => parseDeletedEntityId({ deletedId: id }, "/api/admin/pages"));
+  assert.throws(() => parseDeletedEntityId({ deletedId: id }, "/api/v1/admin/pages"));
 });
 
 test("version phản hồi phải đúng bước tạo mới/cập nhật, không nhận version cũ hoặc nhảy bước", () => {

@@ -68,9 +68,9 @@ test.describe("CMS", () => {
     await page.getByRole("alertdialog").getByRole("button", { name: "Xóa" }).click();
     await expect(page.getByText(source)).toHaveCount(0);
     } finally {
-      const list = await page.request.get("/api/admin/redirects");
+      const list = await page.request.get("/api/v1/admin/redirects");
       const leftover = list.ok() ? ((await list.json()).redirects as Array<{ id: string; sourcePath: string }>).find((item) => item.sourcePath === source) : undefined;
-      if (leftover) await page.request.delete(`/api/admin/redirects?id=${leftover.id}`, { headers: { origin: baseURL! } });
+      if (leftover) await page.request.delete(`/api/v1/admin/redirects?id=${leftover.id}`, { headers: { origin: baseURL! } });
     }
   });
 

@@ -54,7 +54,7 @@ export function BuilderLivePreview({ document, documentId, selectedIndex, onSele
       setMessage("");
       try {
         previewId.current ??= createPreviewId();
-        const response = await fetch("/api/admin/builder-preview", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ previewId: previewId.current, documentId, sequence: current, parentOrigin: window.location.origin, document: parsed.data }), signal: controller.signal });
+        const response = await fetch("/api/v1/admin/builder-preview", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ previewId: previewId.current, documentId, sequence: current, parentOrigin: window.location.origin, document: parsed.data }), signal: controller.signal });
         const body: unknown = await readAdminJson(response);
         if (!response.ok) throw adminApiError(body, "Không cập nhật được bản xem trước.");
         const parsedResponse = builderPreviewResponseSchema.safeParse(body);

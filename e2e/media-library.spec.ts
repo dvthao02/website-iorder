@@ -14,10 +14,10 @@ test("Thư viện media: lưới/danh sách, ảnh trong nội dung bài viết 
   let postId: string | undefined;
   let assetId: string | undefined;
   try {
-    const upload = await page.request.post("/api/admin/media", { headers: { origin }, multipart: { file: { name, mimeType: "image/png", buffer: tinyPng } } });
+    const upload = await page.request.post("/api/v1/admin/media", { headers: { origin }, multipart: { file: { name, mimeType: "image/png", buffer: tinyPng } } });
     const asset = ((await upload.json()) as { asset: { id: string; url: string } }).asset;
     assetId = asset.id;
-    const created = await page.request.post("/api/admin/posts", { headers: { origin }, data: {
+    const created = await page.request.post("/api/v1/admin/posts", { headers: { origin }, data: {
       type: "news", title: `Bài có ảnh ${stamp}`, slug: `e2e-bai-co-anh-${stamp}`, excerpt: null, status: "draft", seoTitle: null, seoDescription: null, canonicalUrl: null,
       promotionStartAt: null, promotionEndAt: null, ctaLabel: null, ctaUrl: null, badgeText: null, scheduledAt: null, categoryIds: [], tagIds: [], coverMediaId: null,
       content: { version: 2, doc: { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "Có ảnh bên dưới." }] }, { type: "image", attrs: { src: asset.url, width: 50, align: "center" } }] } },
@@ -26,7 +26,7 @@ test("Thư viện media: lưới/danh sách, ảnh trong nội dung bài viết 
     postId = ((await created.json()) as { post: { id: string } }).post.id;
 
     // Máy chủ chặn xóa vì ảnh đang nằm trong nội dung bài.
-    const blocked = await page.request.delete(`/api/admin/media/${asset.id}`, { headers: { origin } });
+    const blocked = await page.request.delete(`/api/v1/admin/media/${asset.id}`, { headers: { origin } });
     expect(blocked.status()).toBe(409);
 
     await page.goto(`/admin/media?query=${encodeURIComponent(`e2e-trong-bai-${stamp}`)}`);
@@ -53,13 +53,13 @@ test("Thư viện media: lưới/danh sách, ảnh trong nội dung bài viết 
     await page.getByRole("button", { name: "Lưới", exact: true }).click();
   } finally {
     if (postId) {
-      const current = await (await page.request.get(`/api/admin/posts/${postId}`)).json() as { post?: { draftVersion: number } };
+      const current = await (await page.request.get(`/api/v1/admin/posts/${postId}`)).json() as { post?: { draftVersion: number } };
       if (current.post) {
-        const archived = await (await page.request.patch(`/api/admin/posts/${postId}`, { headers: { origin }, data: { action: "archive", expectedVersion: current.post.draftVersion } })).json() as { post?: { draftVersion: number } };
-        await page.request.delete(`/api/admin/posts/${postId}`, { headers: { origin }, data: { expectedVersion: archived.post?.draftVersion ?? current.post.draftVersion + 1 } });
+        const archived = await (await page.request.patch(`/api/v1/admin/posts/${postId}`, { headers: { origin }, data: { action: "archive", expectedVersion: current.post.draftVersion } })).json() as { post?: { draftVersion: number } };
+        await page.request.delete(`/api/v1/admin/posts/${postId}`, { headers: { origin }, data: { expectedVersion: archived.post?.draftVersion ?? current.post.draftVersion + 1 } });
       }
     }
-    if (assetId) await page.request.delete(`/api/admin/media/${assetId}`, { headers: { origin } });
+    if (assetId) await page.request.delete(`/api/v1/admin/media/${assetId}`, { headers: { origin } });
   }
 });
 
@@ -117,7 +117,7 @@ test("Thư viện media: tải nhiều tệp, lọc ảnh thiếu mô tả, xem 
     await expect(tiles).toHaveCount(1);
     await page.screenshot({ path: "test-results/media-features.png" });
   } finally {
-    const media = await (await page.request.get(`/api/admin/media?query=${encodeURIComponent(`e2e-nhieu-${stamp}`)}`)).json() as { assets: Array<{ id: string }> };
-    for (const asset of media.assets) await page.request.delete(`/api/admin/media/${asset.id}`, { headers: { origin: baseURL! } });
+    const media = await (await page.request.get(`/api/v1/admin/media?query=${encodeURIComponent(`e2e-nhieu-${stamp}`)}`)).json() as { assets: Array<{ id: string }> };
+    for (const asset of media.assets) await page.request.delete(`/api/v1/admin/media/${asset.id}`, { headers: { origin: baseURL! } });
   }
 });

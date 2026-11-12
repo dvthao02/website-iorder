@@ -19,7 +19,7 @@ export function LoginForm({ initialError }: LoginFormProps) {
     setIsSubmitting(true);
 
     const formData = new FormData(event.currentTarget);
-    const response = await fetch("/api/admin/session", {
+    const response = await fetch("/api/v1/admin/session", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -40,7 +40,7 @@ export function LoginForm({ initialError }: LoginFormProps) {
   }
 
   return (
-    <form action="/api/admin/session" className="grid gap-4" method="post" onSubmit={handleSubmit}>
+    <form action="/api/v1/admin/session" className="grid gap-4" method="post" onSubmit={handleSubmit}>
       <label className="admin-field">
         Tên đăng nhập
         <input

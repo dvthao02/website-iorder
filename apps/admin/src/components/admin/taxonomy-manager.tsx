@@ -119,8 +119,8 @@ export function TaxonomyManager({ categories, tags }: { categories: Category[]; 
   const chosen = (kind === "categories" ? categories : tags).filter((item) => selection.selectedIds.includes(item.id));
   const bulkNoun = kind === "categories" ? "chuyên mục" : "thẻ";
   const bulkActions: AdminBulkMenuAction[] = [
-    { key: "export", label: "Xuất Excel", icon: <AdminFileIcon action="export" kind="excel" size="sm" />, count: chosen.length, href: `/api/admin/data-transfer/${kind}?format=xlsx&ids=${chosen.map((item) => item.id).join(",")}` },
-    { key: "delete", label: "Xóa", icon: <Trash2 aria-hidden="true" />, count: chosen.length, tone: "danger", disabledReason: can("taxonomy.delete") ? undefined : "Cần quyền xóa phân loại.", onSelect: () => void runBulk({ items: chosen, verb: "Xóa", noun: bulkNoun, confirmMessage: "Các mục đã chọn sẽ bị xóa khỏi CMS. Thao tác không thể hoàn tác.", tone: "danger", onDone: selection.clear, request: (item) => ({ method: "DELETE", url: `/api/admin/taxonomy?kind=${kind}&id=${item.id}` }) }) },
+    { key: "export", label: "Xuất Excel", icon: <AdminFileIcon action="export" kind="excel" size="sm" />, count: chosen.length, href: `/api/v1/admin/data-transfer/${kind}?format=xlsx&ids=${chosen.map((item) => item.id).join(",")}` },
+    { key: "delete", label: "Xóa", icon: <Trash2 aria-hidden="true" />, count: chosen.length, tone: "danger", disabledReason: can("taxonomy.delete") ? undefined : "Cần quyền xóa phân loại.", onSelect: () => void runBulk({ items: chosen, verb: "Xóa", noun: bulkNoun, confirmMessage: "Các mục đã chọn sẽ bị xóa khỏi CMS. Thao tác không thể hoàn tác.", tone: "danger", onDone: selection.clear, request: (item) => ({ method: "DELETE", url: `/api/v1/admin/taxonomy?kind=${kind}&id=${item.id}` }) }) },
   ];
   const categoryColumns: AdminDataTableColumn<Category>[] = [
     { id: "name", label: "Tên", defaultWidth: 320, minWidth: 180, cell: (item) => <span className="block truncate" style={{ paddingLeft: `${Math.min(categoryDepth(categories, item), 3) * 16}px` }}>{item.name}</span> },
@@ -211,7 +211,7 @@ export function TaxonomyManager({ categories, tags }: { categories: Category[]; 
     mutationPending.current = true;
     setBusy(true);
     try {
-      const response = await fetch("/api/admin/taxonomy", {
+      const response = await fetch("/api/v1/admin/taxonomy", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ kind, id: activeId, values: parsed.data, ...(activeVersion !== undefined ? { expectedVersion: activeVersion } : {}) }),
@@ -251,7 +251,7 @@ export function TaxonomyManager({ categories, tags }: { categories: Category[]; 
     mutationPending.current = true;
     setBusy(true);
     try {
-      const response = await fetch(`/api/admin/taxonomy?kind=${kind}&id=${activeId}`, { method: "DELETE" });
+      const response = await fetch(`/api/v1/admin/taxonomy?kind=${kind}&id=${activeId}`, { method: "DELETE" });
       const body = await readAdminJson(response);
       if (!response.ok) throw adminApiError(body, `Không thể xóa ${label}.`);
       if (body.deletedId !== activeId) throw new Error("Phản hồi xóa phân loại không hợp lệ. Hãy tải lại danh sách để kiểm tra.");

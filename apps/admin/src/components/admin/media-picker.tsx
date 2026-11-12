@@ -70,7 +70,7 @@ export function MediaPicker({ disabled = false, value, onChange, files = false, 
   useEffect(() => {
     if (!value) return;
     const controller = new AbortController();
-    fetch(`/api/admin/media/${encodeURIComponent(value)}`, { signal: controller.signal }).then(async response => {
+    fetch(`/api/v1/admin/media/${encodeURIComponent(value)}`, { signal: controller.signal }).then(async response => {
       const payload = await readAdminJson(response);
       if (!response.ok) throw adminApiError(payload, "Không tải được thông tin tệp đang chọn.");
       const parsed = mediaAssetSchema.safeParse(payload.asset);
@@ -89,7 +89,7 @@ export function MediaPicker({ disabled = false, value, onChange, files = false, 
     if (!shouldLoadLibrary) return;
     const controller = new AbortController();
     const params = new URLSearchParams({ page: String(libraryPage), pageSize: "25", query: libraryQuery, type: files ? "documents" : "images" });
-    fetch(`/api/admin/media?${params}`, { signal: controller.signal }).then(async (response) => {
+    fetch(`/api/v1/admin/media?${params}`, { signal: controller.signal }).then(async (response) => {
       const payload = await readAdminJson(response);
       if (!response.ok) throw adminApiError(payload, "Không tải được thư viện tệp.");
       const parsed = mediaListResponseSchema.safeParse(payload);
@@ -110,7 +110,7 @@ export function MediaPicker({ disabled = false, value, onChange, files = false, 
   useEffect(() => {
     if (!value) return;
     const controller = new AbortController();
-    fetch(`/api/admin/media/${value}/usage`, { signal: controller.signal }).then(async (response) => {
+    fetch(`/api/v1/admin/media/${value}/usage`, { signal: controller.signal }).then(async (response) => {
       const payload = await readAdminJson(response);
       if (!response.ok) throw adminApiError(payload, "Không kiểm tra được nơi sử dụng tệp.");
       const parsed = mediaUsageSchema.safeParse(payload);
@@ -135,7 +135,7 @@ export function MediaPicker({ disabled = false, value, onChange, files = false, 
     try {
       const body = new FormData();
       body.set("file", file);
-      const response = await fetch("/api/admin/media", { method: "POST", body, signal: controller.signal });
+      const response = await fetch("/api/v1/admin/media", { method: "POST", body, signal: controller.signal });
       const payload = await response.json().catch(() => null) as { asset?: MediaAsset; error?: { message?: string } } | null;
       if (controller.signal.aborted) return;
       if (!response.ok || !payload?.asset) throw adminApiError(payload, "Không thể tải tệp lên.");

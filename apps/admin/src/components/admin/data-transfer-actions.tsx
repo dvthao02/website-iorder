@@ -36,7 +36,7 @@ const shown = (value: string) => !value ? "(trống)" : /^\d{4,}$/.test(value) ?
 export function DataTransferActions({ dataset, label, module, word }: { dataset: TransferDatasetId; label: string; module: CmsModuleKey; word?: "posts" | "guides" }) {
   const { can, canAny } = useAdminPermissions();
   const [panel, setPanel] = useState<"sheet" | "word" | null>(null);
-  const exportHref = (format: "xlsx" | "csv" | "word") => `/api/admin/data-transfer/${dataset}?format=${format}`;
+  const exportHref = (format: "xlsx" | "csv" | "word") => `/api/v1/admin/data-transfer/${dataset}?format=${format}`;
   const canImport = canAny([`${module}.create`, `${module}.update`] as Parameters<typeof canAny>[0]);
   const noun = label.toLocaleLowerCase("vi");
   if (!can(`${module}.view` as Parameters<typeof can>[0])) return null;
@@ -85,7 +85,7 @@ function ImportPanel({ dataset, exportHref, label, onClose }: { dataset: Transfe
     if (mode === "apply" && plan) body.set("expected", JSON.stringify(Object.fromEntries(plan.rows.filter((row) => row.action === "create" || row.action === "update").map((row) => [row.slug, row.version]))));
     setBusy(true); setError("");
     try {
-      const response = await fetch(`/api/admin/data-transfer/${dataset}`, { method: "POST", body });
+      const response = await fetch(`/api/v1/admin/data-transfer/${dataset}`, { method: "POST", body });
       const payload = await readAdminJson(response);
       if (!response.ok && response.status !== 207) throw adminApiError(payload, mode === "preview" ? "Không đọc được file." : "Không áp dụng được thay đổi.");
       if (mode === "preview") {

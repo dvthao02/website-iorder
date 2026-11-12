@@ -34,7 +34,7 @@
 
 	}
 
-	request_body /api/admin/media {
+	request_body /api/v1/admin/media {
 		max_size 21MB
 	}
 
@@ -66,7 +66,7 @@
 		Referrer-Policy "strict-origin-when-cross-origin"
 	}
 
-	request_body /api/admin/media {
+	request_body /api/v1/admin/media {
 		max_size 21MB
 	}
 

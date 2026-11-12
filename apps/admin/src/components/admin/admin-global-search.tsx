@@ -32,7 +32,7 @@ export function AdminGlobalSearch() {
     const controller = new AbortController();
     const timeout = window.setTimeout(async () => {
       try {
-        const response = await fetch(`/api/admin/tim-kiem?q=${encodeURIComponent(trimmedQuery)}`, { signal: controller.signal });
+        const response = await fetch(`/api/v1/admin/tim-kiem?q=${encodeURIComponent(trimmedQuery)}`, { signal: controller.signal });
         const payload: unknown = await readAdminJson(response);
         const parsed = searchResponseSchema.safeParse(payload);
         if (!response.ok || !parsed.success) throw new Error("Không tải được kết quả tìm kiếm.");
