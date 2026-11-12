@@ -20,7 +20,7 @@ function requireOk(response, expectedStatus, description) {
 }
 
 async function main() {
-  const session = await fetch(`${backendUrl}/api/admin/session`, {
+  const session = await fetch(`${backendUrl}/api/v1/admin/session`, {
     body: JSON.stringify({ username, password }),
     headers: { "content-type": "application/json" },
     method: "POST",
@@ -32,14 +32,14 @@ async function main() {
     throw new Error("Dang nhap CMS khong tra session cookie.");
   }
 
-  const list = await fetch(`${backendUrl}/api/admin/media?page=1&pageSize=5&type=all`, {
+  const list = await fetch(`${backendUrl}/api/v1/admin/media?page=1&pageSize=5&type=all`, {
     headers: { cookie },
   });
   requireOk(list, 200, "Doc thu vien media da xac thuc");
 
   const form = new FormData();
   form.set("file", new File([pngBytes], "audit-storage.png", { type: "image/png" }));
-  const upload = await fetch(`${backendUrl}/api/admin/media`, {
+  const upload = await fetch(`${backendUrl}/api/v1/admin/media`, {
     body: form,
     headers: { cookie, origin: backendUrl },
     method: "POST",
@@ -59,7 +59,7 @@ async function main() {
     throw new Error("Noi dung media doc qua Backend khong trung khop.");
   }
 
-  const deletion = await fetch(`${backendUrl}/api/admin/media/${asset.id}`, {
+  const deletion = await fetch(`${backendUrl}/api/v1/admin/media/${asset.id}`, {
     headers: { cookie },
     method: "DELETE",
   });

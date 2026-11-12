@@ -62,7 +62,7 @@ test("Soạn bài: tiêu đề và nội dung ở màn đầu, đường dẫn t
 test("Bài đã đăng: hiện trạng thái đang lưu và nút 'Cập nhật bài đã đăng'", async ({ page }) => {
   await page.setViewportSize({ width: 1600, height: 900 });
   await loginAsAdmin(page);
-  const list = await (await page.request.get("/api/admin/posts?status=published&excludeType=guide&view=summary&pageSize=5")).json() as { result: { items: Array<{ id: string }> } };
+  const list = await (await page.request.get("/api/v1/admin/posts?status=published&excludeType=guide&view=summary&pageSize=5")).json() as { result: { items: Array<{ id: string }> } };
   test.skip(!list.result.items.length, "Cần một bài đã xuất bản");
   await page.goto(`/admin/news/${list.result.items[0].id}`);
   const side = page.getByRole("complementary", { name: "Thiết lập bài viết" });
@@ -101,7 +101,7 @@ test("Lưu nháp rồi mở lại: định dạng, bảng, danh sách, ảnh gi�
     await page.getByRole("button", { name: "Lưu nháp", exact: true }).click();
     await expect(page).toHaveURL(/\/admin\/news\/[0-9a-f-]{36}$/);
     postId = page.url().split("/").pop();
-    const first = await (await page.request.get(`/api/admin/posts/${postId}`)).json() as { post: { content: unknown; draftVersion: number } };
+    const first = await (await page.request.get(`/api/v1/admin/posts/${postId}`)).json() as { post: { content: unknown; draftVersion: number } };
 
     // Mở lại: không bị coi là có thay đổi, nội dung hiển thị đủ.
     await page.reload();
@@ -114,8 +114,8 @@ test("Lưu nháp rồi mở lại: định dạng, bảng, danh sách, ảnh gi�
     await editor.locator("p").first().click();
     await page.keyboard.press("Control+s");
     await expect(page.locator(".admin-toast").filter({ hasText: "Đã lưu bản nháp." })).toBeVisible();
-    await expect.poll(async () => ((await (await page.request.get(`/api/admin/posts/${postId}`)).json()) as { post: { draftVersion: number } }).post.draftVersion).toBe(first.post.draftVersion + 1);
-    const second = await (await page.request.get(`/api/admin/posts/${postId}`)).json() as { post: { content: unknown } };
+    await expect.poll(async () => ((await (await page.request.get(`/api/v1/admin/posts/${postId}`)).json()) as { post: { draftVersion: number } }).post.draftVersion).toBe(first.post.draftVersion + 1);
+    const second = await (await page.request.get(`/api/v1/admin/posts/${postId}`)).json() as { post: { content: unknown } };
     expect(second.post.content).toEqual(first.post.content);
 
     // Lịch sử phiên bản tự tải khi mở: mỗi phiên bản một dòng dễ đọc, bản hiện tại có nhãn "Đang dùng", không hiện dữ liệu thô.
@@ -131,14 +131,14 @@ test("Lưu nháp rồi mở lại: định dạng, bảng, danh sách, ảnh gi�
     await expect(history.locator("pre")).toHaveCount(0);
   } finally {
     if (postId) {
-      const current = await (await page.request.get(`/api/admin/posts/${postId}`)).json() as { post?: { draftVersion: number } };
+      const current = await (await page.request.get(`/api/v1/admin/posts/${postId}`)).json() as { post?: { draftVersion: number } };
       if (current.post) {
-        const archived = await (await page.request.patch(`/api/admin/posts/${postId}`, { headers: { origin }, data: { action: "archive", expectedVersion: current.post.draftVersion } })).json() as { post?: { draftVersion: number } };
-        await page.request.delete(`/api/admin/posts/${postId}`, { headers: { origin }, data: { expectedVersion: archived.post?.draftVersion ?? current.post.draftVersion + 1 } });
+        const archived = await (await page.request.patch(`/api/v1/admin/posts/${postId}`, { headers: { origin }, data: { action: "archive", expectedVersion: current.post.draftVersion } })).json() as { post?: { draftVersion: number } };
+        await page.request.delete(`/api/v1/admin/posts/${postId}`, { headers: { origin }, data: { expectedVersion: archived.post?.draftVersion ?? current.post.draftVersion + 1 } });
       }
     }
-    const media = await (await page.request.get(`/api/admin/media?query=${encodeURIComponent(`e2e-luu-mo-${stamp}`)}`)).json() as { assets: Array<{ id: string }> };
-    for (const asset of media.assets) await page.request.delete(`/api/admin/media/${asset.id}`, { headers: { origin } });
+    const media = await (await page.request.get(`/api/v1/admin/media?query=${encodeURIComponent(`e2e-luu-mo-${stamp}`)}`)).json() as { assets: Array<{ id: string }> };
+    for (const asset of media.assets) await page.request.delete(`/api/v1/admin/media/${asset.id}`, { headers: { origin } });
   }
 });
 
@@ -207,7 +207,7 @@ test("Ảnh bìa: kéo thả để tải lên, chọn lại bằng lưới ảnh
     await expect(page.getByRole("note").getByRole("button", { name: "Ảnh bìa" })).toHaveCount(0);
     await cover.screenshot({ path: "test-results/post-cover.png" });
   } finally {
-    const media = await (await page.request.get(`/api/admin/media?query=${encodeURIComponent(`e2e-anh-bia-${stamp}`)}`)).json() as { assets: Array<{ id: string }> };
-    for (const asset of media.assets) await page.request.delete(`/api/admin/media/${asset.id}`, { headers: { origin: baseURL! } });
+    const media = await (await page.request.get(`/api/v1/admin/media?query=${encodeURIComponent(`e2e-anh-bia-${stamp}`)}`)).json() as { assets: Array<{ id: string }> };
+    for (const asset of media.assets) await page.request.delete(`/api/v1/admin/media/${asset.id}`, { headers: { origin: baseURL! } });
   }
 });

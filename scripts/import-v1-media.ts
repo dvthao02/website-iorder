@@ -3,9 +3,9 @@ import "dotenv/config";
 import { and, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 
-import { getDb } from "../packages/core/src/db/client";
-import { auditLogs, mediaAssets, offeringRevisions, offerings, supportDownloads, users } from "../packages/core/src/db/schema";
-import { ensureMediaBucket, hasStoredObject, putStoredObject } from "../packages/core/src/server/media/storage";
+import { getDb } from "../packages/shared/src/db/client";
+import { auditLogs, mediaAssets, offeringRevisions, offerings, supportDownloads, users } from "../packages/shared/src/db/schema";
+import { ensureMediaBucket, hasStoredObject, putStoredObject } from "../packages/shared/src/server/media/storage";
 
 const v1BaseUrl = "https://iwork.vn";
 const offeringTypes = ["software", "solution", "service"] as const;
@@ -264,8 +264,8 @@ async function importV1Media() {
   }
 
   await ensureMediaBucket();
-  const offeringGroups = await Promise.all(offeringTypes.map(async (type) => v1OfferingResponseSchema.parse(await fetchV1Json(`/api/public/offerings?type=${type}`)).items));
-  const downloads = v1DownloadResponseSchema.parse(await fetchV1Json("/api/public/downloads")).items;
+  const offeringGroups = await Promise.all(offeringTypes.map(async (type) => v1OfferingResponseSchema.parse(await fetchV1Json(`/api/v1/public/offerings?type=${type}`)).items));
+  const downloads = v1DownloadResponseSchema.parse(await fetchV1Json("/api/v1/public/downloads")).items;
   let linkedCoverCount = 0;
   let createdSupportCount = 0;
 

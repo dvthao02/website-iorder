@@ -2,9 +2,9 @@ import "dotenv/config";
 
 import { eq } from "drizzle-orm";
 
-import { getDb } from "../packages/core/src/db/client";
-import { users } from "../packages/core/src/db/schema";
-import { getPublishingConfig, updatePublishingConfig } from "../packages/core/src/server/settings/publishing.service";
+import { getDb } from "../packages/shared/src/db/client";
+import { users } from "../packages/shared/src/db/schema";
+import { getPublishingConfig, updatePublishingConfig } from "../packages/shared/src/server/settings/publishing.service";
 
 const v1Metadata = {
   defaultTitle: "iOrder - Phần mềm quản lý bán hàng",

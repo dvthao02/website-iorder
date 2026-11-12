@@ -3,13 +3,13 @@ import { randomUUID } from "node:crypto";
 import { config } from "dotenv";
 import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
-import * as schema from "../packages/core/src/db/schema";
-import { cmsPermissions, type CmsPermissionCode } from "../packages/core/src/server/auth/permissions";
-import { syncCmsPermissionCatalog } from "../packages/core/src/server/roles/roles.sync";
-import { deleteCmsRole, listCmsRoles, writeCmsRole } from "../packages/core/src/server/roles/roles.repository";
-import { CmsAccessError } from "../packages/core/src/server/roles/roles.errors";
-import { writeCmsUser } from "../packages/core/src/server/users/users.repository";
-import { savePartner } from "../packages/core/src/server/supporting/supporting.repository";
+import * as schema from "../packages/shared/src/db/schema";
+import { cmsPermissions, type CmsPermissionCode } from "../packages/shared/src/server/auth/permissions";
+import { syncCmsPermissionCatalog } from "../packages/shared/src/server/roles/roles.sync";
+import { deleteCmsRole, listCmsRoles, writeCmsRole } from "../packages/shared/src/server/roles/roles.repository";
+import { CmsAccessError } from "../packages/shared/src/server/roles/roles.errors";
+import { writeCmsUser } from "../packages/shared/src/server/users/users.repository";
+import { savePartner } from "../packages/shared/src/server/supporting/supporting.repository";
 
 config({ quiet: true });
 

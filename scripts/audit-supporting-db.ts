@@ -3,9 +3,9 @@ import { randomUUID } from "node:crypto";
 import { config } from "dotenv";
 import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
-import * as schema from "../packages/core/src/db/schema";
-import { deleteDisabledPartner, deleteDisabledTestimonial, listPartnersPage, listTestimonialsPage, savePartner, saveTestimonial } from "../packages/core/src/server/supporting/supporting.repository";
-import { partnerInputSchema, partnerListQuerySchema, testimonialInputSchema, testimonialListQuerySchema } from "../packages/core/src/server/supporting/supporting.contract";
+import * as schema from "../packages/shared/src/db/schema";
+import { deleteDisabledPartner, deleteDisabledTestimonial, listPartnersPage, listTestimonialsPage, savePartner, saveTestimonial } from "../packages/shared/src/server/supporting/supporting.repository";
+import { partnerInputSchema, partnerListQuerySchema, testimonialInputSchema, testimonialListQuerySchema } from "../packages/shared/src/server/supporting/supporting.contract";
 
 config({ quiet: true });
 const url = process.env.DATABASE_URL;

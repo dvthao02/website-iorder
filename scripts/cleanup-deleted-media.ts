@@ -2,8 +2,8 @@ import {
   collectMediaUsage,
   listQueuedMediaForCleanup,
   permanentlyDeleteQueuedMediaAsset,
-} from "@iorder/core/server/media/media.repository";
-import { removeStoredObject } from "@iorder/core/server/media/storage";
+} from "@iorder/shared/server/media/media.repository";
+import { removeStoredObject } from "@iorder/shared/server/media/storage";
 
 const retentionDays = 7;
 async function main() {

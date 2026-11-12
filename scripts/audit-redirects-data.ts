@@ -1,7 +1,7 @@
 import { config } from "dotenv";
 import postgres from "postgres";
-import { redirectInputSchema } from "../packages/core/src/server/redirects/redirects.contract";
-import { assertNoRedirectCycle } from "../packages/core/src/server/redirects/redirect-cycle";
+import { redirectInputSchema } from "../packages/shared/src/server/redirects/redirects.contract";
+import { assertNoRedirectCycle } from "../packages/shared/src/server/redirects/redirect-cycle";
 
 config({ quiet: true });
 async function main() {

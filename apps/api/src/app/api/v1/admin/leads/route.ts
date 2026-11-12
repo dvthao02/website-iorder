@@ -1,0 +1,26 @@
+import { NextResponse } from "next/server";
+
+import { getRequestAdministrator } from "@iorder/shared/server/auth/request-administrator";
+import { getLeadsPage } from "@iorder/shared/server/leads/leads.service";
+import { leadListQuerySchema } from "@iorder/shared/server/leads/leads.contract";
+import { withRequestContext } from "@/lib/request-context";
+
+export const runtime = "nodejs";
+
+async function handleGET(request: Request) {
+  const administrator = await getRequestAdministrator();
+  if (!administrator) {
+    return NextResponse.json({ error: { code: "UNAUTHORIZED", message: "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại." } }, { status: 401 });
+  }
+
+  const params = new URL(request.url).searchParams;
+  const parsed = leadListQuerySchema.safeParse(Object.fromEntries(params));
+  if (!parsed.success) return NextResponse.json({ error: { code: "INVALID_INPUT", message: "Bộ lọc liên hệ không hợp lệ." } }, { status: 400 });
+  try {
+    return NextResponse.json({ result: await getLeadsPage(parsed.data) });
+  } catch {
+    return NextResponse.json({ error: { code: "INTERNAL_ERROR", message: "Không thể tải danh sách liên hệ. Vui lòng thử lại." } }, { status: 500 });
+  }
+}
+
+export const GET = withRequestContext(handleGET);

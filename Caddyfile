@@ -34,7 +34,7 @@
 
 	}
 
-	request_body /api/admin/media {
+	request_body /api/v1/admin/media {
 		max_size 21MB
 	}
 
@@ -54,10 +54,10 @@
 		reverse_proxy umami:3000
 	}
 
-	reverse_proxy publish-web:3000
+	reverse_proxy website:3000
 }
 
-{$CMS_SITE_ADDRESS} {
+{$ADMIN_SITE_ADDRESS} {
 	import observability
 	encode zstd gzip
 	header {
@@ -66,7 +66,7 @@
 		Referrer-Policy "strict-origin-when-cross-origin"
 	}
 
-	request_body /api/admin/media {
+	request_body /api/v1/admin/media {
 		max_size 21MB
 	}
 
@@ -74,7 +74,7 @@
 		respond "Not Found" 404
 	}
 
-	reverse_proxy cms:3000
+	reverse_proxy admin:3000
 }
 
 {$ANALYTICS_SITE_ADDRESS} {

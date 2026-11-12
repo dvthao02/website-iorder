@@ -1,0 +1,81 @@
+import { revalidatePath } from "@/lib/publish-cache-revalidation";
+import { contentDeleteRequestSchema, contentStateRequestSchema, ContentVersionConflictError } from "@iorder/shared/server/shared/content-version";
+import { PageVersionConflictError } from "@iorder/shared/server/pages/page-version";
+import { NextResponse } from "next/server";
+import { z } from "zod";
+
+import { getRequestAdministrator } from "@iorder/shared/server/auth/request-administrator";
+import { changeAdminPageState, deleteArchivedAdminPage, FixedWebsitePageBindingError, getAdminPageById } from "@iorder/shared/server/pages/pages.service";
+import { pagePermissionCodes } from "@iorder/shared/server/pages/pages.contract";
+import { denyPublishUnless, denyUnless } from "@/lib/admin-access";
+import { logger } from "@iorder/shared/server/shared/logger";
+import { withRequestContext } from "@/lib/request-context";
+
+type PageRouteProps = { params: Promise<{ id: string }> };
+
+function fail(code: string, message: string, status: number) {
+  return NextResponse.json({ error: { code, message } }, { status });
+}
+
+async function handleGET(_: Request, { params }: PageRouteProps) {
+  const administrator = await getRequestAdministrator();
+  if (!administrator) return fail("UNAUTHORIZED", "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.", 401);
+  const { id } = await params;
+  if (!z.string().uuid().safeParse(id).success) return fail("INVALID_INPUT", "Trang cần xem không hợp lệ.", 400);
+  const page = await getAdminPageById(id);
+  if (!page) return fail("NOT_FOUND", "Không tìm thấy trang.", 404);
+  return denyUnless(administrator, pagePermissionCodes(page.slug, "view")) ?? NextResponse.json({ page });
+}
+
+// Lưu trữ / khôi phục / xuất bản từ danh sách: chỉ gửi { action, expectedVersion }, server tự đọc trang đầy đủ.
+async function handlePATCH(request: Request, { params }: PageRouteProps) {
+  const administrator = await getRequestAdministrator();
+  if (!administrator) return fail("UNAUTHORIZED", "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.", 401);
+  const { id } = await params;
+  if (!z.string().uuid().safeParse(id).success) return fail("INVALID_INPUT", "Trang cần cập nhật không hợp lệ.", 400);
+  const parsed = contentStateRequestSchema.safeParse(await request.json().catch(() => null));
+  if (!parsed.success) return fail("INVALID_INPUT", "Thao tác hoặc phiên bản trang không hợp lệ. Vui lòng tải lại danh sách.", 400);
+  const existing = await getAdminPageById(id);
+  if (!existing) return fail("NOT_FOUND", "Không tìm thấy trang cần cập nhật.", 404);
+  // Đổi trạng thái luôn chạm tới việc hiện/ẩn trên website nên cần cả quyền sửa lẫn quyền xuất bản (như các module khác).
+  const denied = denyUnless(administrator, pagePermissionCodes(existing.slug, "update"))
+    ?? denyPublishUnless(administrator, pagePermissionCodes(existing.slug, "publish"), { stateAction: parsed.data.action });
+  if (denied) return denied;
+
+  try {
+    const page = await changeAdminPageState(id, parsed.data.action, administrator.userId, parsed.data.expectedVersion);
+    if (!page) return fail("NOT_FOUND", "Không tìm thấy trang cần cập nhật.", 404);
+    revalidatePath("/", "layout");
+    return NextResponse.json({ page });
+  } catch (error) {
+    if (error instanceof ContentVersionConflictError || error instanceof PageVersionConflictError) return fail("VERSION_CONFLICT", error.message, 409);
+    if (error instanceof FixedWebsitePageBindingError) return fail("FIXED_PAGE_ROUTE", error.message, 400);
+    logger.error("Đổi trạng thái trang trong CMS thất bại.", { request, error });
+    return fail("INTERNAL_ERROR", "Không thể cập nhật trang lúc này. Vui lòng thử lại.", 500);
+  }
+}
+
+async function handleDELETE(request: Request, { params }: PageRouteProps) {
+  const administrator = await getRequestAdministrator();
+  if (!administrator) return fail("UNAUTHORIZED", "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.", 401);
+  const { id } = await params;
+  if (!z.string().uuid().safeParse(id).success) return fail("INVALID_INPUT", "Trang cần xóa không hợp lệ.", 400);
+  const version = contentDeleteRequestSchema.safeParse(await request.json().catch(() => null));
+  if (!version.success) return fail("INVALID_INPUT", "Vui lòng tải lại danh sách để lấy phiên bản trang mới nhất trước khi xóa.", 400);
+
+  try {
+    const deleted = await deleteArchivedAdminPage(id, administrator.userId, version.data.expectedVersion);
+    if (!deleted) return fail("NOT_FOUND", "Chỉ có thể xóa trang đang lưu trữ.", 404);
+    revalidatePath("/", "layout");
+    return NextResponse.json({ deletedId: deleted.id });
+  } catch (error) {
+    if (error instanceof FixedWebsitePageBindingError) return fail("FIXED_PAGE_ROUTE", error.message, 400);
+    if (error instanceof PageVersionConflictError) return fail("VERSION_CONFLICT", error.message, 409);
+    logger.error("Xóa trang trong CMS thất bại.", { request, error });
+    return fail("INTERNAL_ERROR", "Không thể xóa trang lúc này. Vui lòng thử lại.", 500);
+  }
+}
+
+export const GET = withRequestContext(handleGET);
+export const PATCH = withRequestContext(handlePATCH);
+export const DELETE = withRequestContext(handleDELETE);

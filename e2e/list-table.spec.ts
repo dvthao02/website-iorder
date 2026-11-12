@@ -9,14 +9,14 @@ function draftPost(title: string, slug: string) {
 
 async function removePost(request: APIRequestContext, origin: string, id: string) {
   const headers = { origin };
-  const current = await (await request.get(`/api/admin/posts/${id}`)).json() as { post?: { status: string; draftVersion: number } };
+  const current = await (await request.get(`/api/v1/admin/posts/${id}`)).json() as { post?: { status: string; draftVersion: number } };
   if (!current.post) return;
   let version = current.post.draftVersion;
   if (current.post.status !== "archived") {
-    const archived = await (await request.patch(`/api/admin/posts/${id}`, { headers, data: { action: "archive", expectedVersion: version } })).json() as { post?: { draftVersion: number } };
+    const archived = await (await request.patch(`/api/v1/admin/posts/${id}`, { headers, data: { action: "archive", expectedVersion: version } })).json() as { post?: { draftVersion: number } };
     version = archived.post?.draftVersion ?? version + 1;
   }
-  await request.delete(`/api/admin/posts/${id}`, { headers, data: { expectedVersion: version } });
+  await request.delete(`/api/v1/admin/posts/${id}`, { headers, data: { expectedVersion: version } });
 }
 
 // Dọn ở hook riêng (có thời gian chạy riêng) để bài thử không sót lại kể cả khi test hết giờ.
@@ -30,7 +30,7 @@ test("Bảng danh sách: sắp xếp, ghim cột ở tiêu đề, chọn nhiều
   const origin = new URL(page.url()).origin;
   {
     for (const [suffix, slug] of [["A", "a"], ["B", "b"]]) {
-      const response = await page.request.post("/api/admin/posts", { headers: { origin }, data: draftPost(`${marker} ${suffix}`, `e2e-bang-${Date.now()}-${slug}`) });
+      const response = await page.request.post("/api/v1/admin/posts", { headers: { origin }, data: draftPost(`${marker} ${suffix}`, `e2e-bang-${Date.now()}-${slug}`) });
       expect(response.status()).toBe(201);
       ids.push(((await response.json()) as { post: { id: string } }).post.id);
     }

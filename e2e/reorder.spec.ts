@@ -10,7 +10,7 @@ async function dragAfter(handle: Locator, target: Locator) {
 
 test("Kéo thả đổi thứ tự khối của trang", async ({ page }) => {
   await loginAsAdmin(page);
-  const pages = await (await page.request.get("/api/admin/pages?query=home&pageSize=25")).json() as { result: { items: Array<{ id: string; slug: string }> } };
+  const pages = await (await page.request.get("/api/v1/admin/pages?query=home&pageSize=25")).json() as { result: { items: Array<{ id: string; slug: string }> } };
   const home = pages.result.items.find((item) => item.slug === "home");
   test.skip(!home, "Cần trang chủ có sẵn khối");
   await page.goto(`/admin/pages/${home!.id}`);

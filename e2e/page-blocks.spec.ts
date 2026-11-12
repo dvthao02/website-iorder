@@ -7,16 +7,16 @@ const created: { pageId?: string; mediaId?: string } = {};
 
 async function cleanup(request: APIRequestContext, origin: string) {
   if (created.pageId) {
-    const current = await (await request.get(`/api/admin/pages/${created.pageId}`)).json() as { page?: Record<string, unknown> & { draftVersion: number } };
+    const current = await (await request.get(`/api/v1/admin/pages/${created.pageId}`)).json() as { page?: Record<string, unknown> & { draftVersion: number } };
     if (current.page) {
       const { id, draftVersion, publishedAt, updatedAt, ...values } = current.page;
       void publishedAt; void updatedAt;
-      const archived = await (await request.post("/api/admin/pages", { headers: { origin }, data: { id, values: { ...values, status: "archived" }, expectedVersion: draftVersion } })).json() as { page?: { draftVersion: number } };
-      await request.delete(`/api/admin/pages/${id}`, { headers: { origin }, data: { expectedVersion: archived.page?.draftVersion ?? draftVersion + 1 } });
+      const archived = await (await request.post("/api/v1/admin/pages", { headers: { origin }, data: { id, values: { ...values, status: "archived" }, expectedVersion: draftVersion } })).json() as { page?: { draftVersion: number } };
+      await request.delete(`/api/v1/admin/pages/${id}`, { headers: { origin }, data: { expectedVersion: archived.page?.draftVersion ?? draftVersion + 1 } });
     }
     created.pageId = undefined;
   }
-  if (created.mediaId) { await request.delete(`/api/admin/media/${created.mediaId}`, { headers: { origin } }); created.mediaId = undefined; }
+  if (created.mediaId) { await request.delete(`/api/v1/admin/media/${created.mediaId}`, { headers: { origin } }); created.mediaId = undefined; }
 }
 
 test.afterEach(async ({ page, baseURL }) => { await cleanup(page.request, baseURL!); });
@@ -25,7 +25,7 @@ test("Các khối trang hiển thị có bố cục: phần đầu có ảnh và
   await loginAsAdmin(page);
   const origin = new URL(page.url()).origin;
   const stamp = Date.now();
-  const upload = await page.request.post("/api/admin/media", { headers: { origin }, multipart: { file: { name: `e2e-hero-${stamp}.png`, mimeType: "image/png", buffer: tinyPng } } });
+  const upload = await page.request.post("/api/v1/admin/media", { headers: { origin }, multipart: { file: { name: `e2e-hero-${stamp}.png`, mimeType: "image/png", buffer: tinyPng } } });
   expect(upload.ok()).toBe(true);
   created.mediaId = ((await upload.json()) as { asset: { id: string } }).asset.id;
 
@@ -38,7 +38,7 @@ test("Các khối trang hiển thị có bố cục: phần đầu có ảnh và
     { type: "faq", isEnabled: true, data: { eyebrow: null, title: "Câu hỏi thường gặp", items: [{ question: "Có dùng thử không?", answer: "Có, 14 ngày miễn phí." }, { question: "Mất mạng có bán được không?", answer: "Vẫn bán được, dữ liệu đồng bộ lại khi có mạng." }] } },
     { type: "cta", isEnabled: true, data: { id: "tu-van", eyebrow: "Bắt đầu", title: "Cùng iOrder thiết kế cách vận hành", action: { label: "Trao đổi với chuyên gia", href: "/lien-he" } } },
   ];
-  const save = await page.request.post("/api/admin/pages", { headers: { origin }, data: { id: null, values: { title: "Kiểm tra khối trang", slug, template: "default", status: "published", seoTitle: null, seoDescription: null, canonicalUrl: null, scheduledAt: null, blocks } } });
+  const save = await page.request.post("/api/v1/admin/pages", { headers: { origin }, data: { id: null, values: { title: "Kiểm tra khối trang", slug, template: "default", status: "published", seoTitle: null, seoDescription: null, canonicalUrl: null, scheduledAt: null, blocks } } });
   expect(save.status()).toBe(201);
   created.pageId = ((await save.json()) as { page: { id: string } }).page.id;
 
@@ -65,7 +65,7 @@ test("Các khối trang hiển thị có bố cục: phần đầu có ảnh và
 test("Trình sửa trang chỉ có một thanh cuộn; ảnh của phần đầu trang không lồng hai khung", async ({ page }) => {
   await page.setViewportSize({ width: 1600, height: 900 });
   await loginAsAdmin(page);
-  const pages = await (await page.request.get("/api/admin/pages?query=home&pageSize=25")).json() as { result: { items: Array<{ id: string; slug: string }> } };
+  const pages = await (await page.request.get("/api/v1/admin/pages?query=home&pageSize=25")).json() as { result: { items: Array<{ id: string; slug: string }> } };
   const home = pages.result.items.find((item) => item.slug === "home");
   test.skip(!home, "Cần trang chủ có sẵn khối");
   await page.goto(`/admin/pages/${home!.id}`);
@@ -74,7 +74,7 @@ test("Trình sửa trang chỉ có một thanh cuộn; ảnh của phần đầu
   const hero = page.getByRole("region", { name: "Chỉnh sửa thành phần" });
   // Trang chủ có thể đang dùng kiểu khác (ví dụ trượt ảnh): chọn kiểu chữ – ảnh trên form (không lưu) để có ô ảnh minh họa.
   // Kiểu bố cục dùng chung; ảnh nằm trong nội dung Mục trượt 1.
-  await hero.getByRole("tab", { name: "Bố cục chung" }).click();
+  await hero.getByRole("tab", { name: "Bố cục khối" }).click();
   await hero.getByRole("group", { name: "Kiểu bố cục" }).getByText("Chữ trái, ảnh phải").click();
   await page.locator(".admin-blocks__navigation").getByRole("button", { name: "Mục trượt 1", exact: true }).click();
   // Ảnh của phần đầu trang nằm trong một nhóm "Ảnh bên phải (tùy chọn) (n/…)", mỗi ảnh là một mục phẳng (không khung thẻ)

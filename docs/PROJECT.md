@@ -8,17 +8,17 @@ Website doanh nghiệp iOrder gồm site public và CMS quản trị nội dung.
 
 | App | Cổng local | Vai trò |
 |---|---|---|
-| `apps/publish-web` | 3000 | Website public, render phía server, đọc dữ liệu qua Backend |
-| `apps/cms` | 3001 | Giao diện CMS `/admin`, gọi Backend qua rewrite `/api`, `/media` |
-| `apps/backend` | 3002 | Route handlers `/api/*`, `/media/*`; app duy nhất truy cập DB và S3 |
-| `packages/core` | — | Drizzle schema, contracts (Zod), services, repositories dùng chung |
+| `apps/website` | 3000 | Website public, render phía server, đọc dữ liệu qua Backend |
+| `apps/admin` | 3001 | Giao diện CMS `/admin`, gọi Backend qua rewrite `/api`, `/media` |
+| `apps/api` | 3002 | Route handlers `/api/*`, `/media/*`; app duy nhất truy cập DB và S3 |
+| `packages/shared` | — | Drizzle schema, contracts (Zod), services, repositories dùng chung |
 
 V1 (`D:\work\iorderwebsite\iorder-website`) chỉ là tài liệu tham khảo hành vi/dữ liệu; không copy kiến trúc hay source V1.
 
 ```text
-apps/{backend,cms,publish-web}/   ba app Next.js độc lập
-packages/core/src/db/             Drizzle client + schema theo domain
-packages/core/src/server/<domain> contract → service → repository
+apps/{api,admin,website}/   ba app Next.js độc lập
+packages/shared/src/db/             Drizzle client + schema theo domain
+packages/shared/src/server/<domain> contract → service → repository
 drizzle/                          migration SQL + snapshot
 scripts/                          seed, import V1, fixture audit, job dọn dẹp
 compose.yaml                      PostgreSQL + S3Mock cho local
@@ -29,13 +29,13 @@ Dockerfile, Caddyfile             build standalone đa stage, TLS/reverse proxy
 ### Luồng dữ liệu
 
 ```text
-Browser → Caddy → cms | publish-web ──rewrite/fetch──→ backend → service → repository → PostgreSQL
+Browser → Caddy → admin | website ──rewrite/fetch──→ api → service → repository → PostgreSQL
                                                           └──→ S3 (SeaweedFS)
 ```
 
-- CMS và publish-web không có credential DB/S3; chỉ Backend có.
-- publish-web chỉ proxy `/api/leads` và `/media/*` cho trình duyệt; dữ liệu render đọc thẳng `BACKEND_URL` từ server. API admin chỉ đi qua domain CMS.
-- Mutation admin gọi `revalidatePath` (wrapper ở `apps/backend/src/lib/publish-cache-revalidation.ts`). Wrapper gom lại và gửi **một** POST HMAC tới `publish-web/api/internal/revalidate`, làm mới tag `public-content`. Data Cache public có TTL 60 giây làm dự phòng.
+- CMS và website không có credential DB/S3; chỉ Backend có.
+- website chỉ proxy `/api/v1/leads` và `/media/*` cho trình duyệt; dữ liệu render đọc thẳng `BACKEND_URL` từ server. API admin chỉ đi qua domain CMS.
+- Mutation admin gọi `revalidatePath` (wrapper ở `apps/api/src/lib/publish-cache-revalidation.ts`). Wrapper gom lại và gửi **một** POST HMAC tới `website/api/internal/revalidate`, làm mới tag `public-content`. Data Cache public có TTL 60 giây làm dự phòng.
 
 ## 2. Mô hình dữ liệu
 
@@ -68,10 +68,10 @@ Quyết định thiết kế đáng nhớ:
 
 - Một mô hình trang duy nhất (`pages` + `page_blocks`). `page_blocks.type` là text + Zod discriminated union, nên thêm block không cần migration.
 - Header/footer/CTA đều là `menus` theo `location`.
-- `redirects` chỉ nhận đường dẫn nội bộ bắt đầu bằng `/`, mã 301/308, thực thi trong `apps/publish-web/src/proxy.ts`.
+- `redirects` chỉ nhận đường dẫn nội bộ bắt đầu bằng `/`, mã 301/308, thực thi trong `apps/website/src/proxy.ts`.
 - `site_settings` giữ cấu hình xuất bản và liên kết ngoài. Khi thêm key mới phải có default tương thích, và seed chỉ bổ sung key còn thiếu.
 - **Mọi URL public là một Trang.** Trang hệ thống (`fixedWebsitePages` trong `pages.contract.ts`) có route do code giữ; CMS sửa nội dung, SEO, trạng thái nhưng không tạo/xóa/đổi slug. Trang danh sách (`kind: "listing"`: `/tin-tuc`, `/thiet-bi`, `/ho-tro/cai-dat`, `/phan-mem`, `/giai-phap`, `/dich-vu`) lấy phần đầu từ khối "Mở đầu" đầu tiên và SEO của trang; các khối còn lại hiển thị theo thứ tự, danh sách là khối `collection_list` (nguồn: bài viết, hướng dẫn, tệp cài đặt, thiết bị, phần mềm, giải pháp, dịch vụ) đặt được ở mọi trang. Trang danh sách thiếu khối danh sách thì route tự thêm danh sách mặc định (`defaultListingCollections`). `featured_posts`/`download_list` là loại cũ: vẫn đọc và render qua `collection_list`, CMS không cho thêm mới. Người có quyền `update`/`publish` của module sở hữu (`ownerModule`) sửa được trang danh sách của module đó. Key cũ `listing_content`/`catalog_content` chỉ còn là dự phòng tới khi chạy `pnpm db:backfill-listing-pages`.
-- **Khối trang theo một hệ thống chung.** Mỗi khối có vỏ chung `appearance` (cột `page_blocks.appearance`: mã neo, nền `auto|white|tinted|dark|custom` — `custom` dùng `backgroundColor` #rrggbb, màu tối thì chữ trắng (`isDarkColor`), khoảng cách `auto|sm|md|lg`, `width` 40–100% độ rộng nội dung (`.block-width`, điện thoại rộng hết khung), ảnh nền `backgroundMediaId` phủ lớp màu nền `backgroundOverlay` %; CMS chỉnh ở `block-appearance-fields.tsx` có ô xem trước). Schema ở `shared/appearance.ts`; `sectionFrame()` (block-layout) tính khung cho một phần riêng lẻ — dùng cho phần đầu trang (chỉ ghi đè bằng màu tự chọn, ảnh nền, độ rộng) và 4 phần trang Sản phẩm (`offering content.appearance`). Thẻ con (thẻ lưới, gói giá, nhóm) có `background` tùy chọn, màu tối → `.card-on-dark`. CMS dùng `AppearanceEditor`/`ColorField` (`block-appearance-fields.tsx`, có ống hút EyeDropper). Trang Thiết bị dùng `sales_equipment.blocks` theo cùng schema và renderer. Khối `video` nhúng YouTube (`shared/youtube.ts`, khung `components/site/youtube-frame.tsx`); bài viết có node `youtube` trong nội dung soạn thảo. `resolveBlockFrames` (`pages/block-layout.ts`) quyết định nền/khoảng cách: "Tự động" xen kẽ trắng ↔ xanh nhạt với phần trước, nền tối chỉ cho khối có màu chữ riêng cho nền tối (số liệu, kêu gọi hành động, ảnh + chữ, quy trình, lưới thẻ, danh sách…; nền tối là xanh navy có hai vệt sáng góc, xem `tones` trong `components/ui/index.tsx`). Giao diện chỉ dùng token trong `apps/publish-web/src/app/globals.css` (thang chữ `text-display/h2/h3/lead/body/small/caption`, màu `ink/muted/faint/line/subtle/brand-*/accent-*`, bo góc `rounded-card/rounded-control`) và component nền `components/ui` (`FrameSection`, `SectionHeading`, `CardTitle`, `CardText`, `IconTile`, `gridColumns`). Chỉ phần đầu trang chiếm cả màn hình. Biểu tượng khối: mã trong `shared/block-icons.ts`. **Lưới thẻ** (`features`; `industries`/`ecosystem` là thành phần cũ vẽ giống lưới thẻ): mỗi thẻ có `icon` và `mediaId` (ảnh) tùy chọn; `cardStyle` `compact` (mặc định, thẻ gọn biểu tượng nhỏ) hoặc `visual` (thẻ ảnh: ảnh ngang 16:10 sát mép thẻ, thẻ chưa có ảnh dùng mảng màu nhấn với biểu tượng lớn). `bento` (đúng 5 thẻ: thẻ đầu to bên trái chiếm hai hàng — ảnh lớn phía trên, tiêu đề `h3` cỡ lớn phía dưới; bốn thẻ ảnh nhỏ xếp hai cột bên phải; khác 5 thẻ thì tự về `visual`). Thẻ ảnh chưa có ảnh dùng mảng xanh thương hiệu nhạt + biểu tượng. Lưới thẻ trên nền tối và không có ảnh vẽ thành hai cột (tiêu đề trái, các ý 2 cột ngăn bằng vạch mảnh, không đóng khung). Hai phần liền nhau cùng nền (chọn tay) có vạch ngăn mảnh trong khung nội dung. Chỉ cần một thẻ có ảnh là cả lưới tự thành thẻ ảnh. `Card` có `flush` cho thẻ không đệm (đừng ghi đè `p-*` bằng class: thua trong CSS sinh ra). Trang chủ (`PageBlockRenderer screens`): trên máy tính (≥ 1024px rộng, ≥ 640px cao) các phần dùng khoảng cách Tự động (trừ phần đầu trang và dải gọn) cao tối thiểu một màn hình, nội dung căn giữa dọc; khoảng cách, hàng bento, dòng danh sách nhóm, ảnh co giãn theo `svh` để vừa một màn từ 1280×720 tới 2560×1440 (`.screen-block` trong `globals.css`). Dải logo đối tác: dưới 8 logo là lưới ô cùng kích thước, số cột chia hết số logo (`logoGridClass`); từ 8 logo là dải chạy ngang (`.logo-marquee`).
+- **Khối trang theo một hệ thống chung.** Mỗi khối có vỏ chung `appearance` (cột `page_blocks.appearance`: mã neo, nền `auto|white|tinted|dark|custom` — `custom` dùng `backgroundColor` #rrggbb, màu tối thì chữ trắng (`isDarkColor`), khoảng cách `auto|sm|md|lg`, `width` 40–100% độ rộng nội dung (`.block-width`, điện thoại rộng hết khung), ảnh nền `backgroundMediaId` phủ lớp màu nền `backgroundOverlay` %; CMS chỉnh ở `block-appearance-fields.tsx` có ô xem trước). Schema ở `shared/appearance.ts`; `sectionFrame()` (block-layout) tính khung cho một phần riêng lẻ — dùng cho phần đầu trang (chỉ ghi đè bằng màu tự chọn, ảnh nền, độ rộng) và 4 phần trang Sản phẩm (`offering content.appearance`). Thẻ con (thẻ lưới, gói giá, nhóm) có `background` tùy chọn, màu tối → `.card-on-dark`. CMS dùng `AppearanceEditor`/`ColorField` (`block-appearance-fields.tsx`, có ống hút EyeDropper). Trang Thiết bị dùng `sales_equipment.blocks` theo cùng schema và renderer. Khối `video` nhúng YouTube (`shared/youtube.ts`, khung `components/site/youtube-frame.tsx`); bài viết có node `youtube` trong nội dung soạn thảo. `resolveBlockFrames` (`pages/block-layout.ts`) quyết định nền/khoảng cách: "Tự động" xen kẽ trắng ↔ xanh nhạt với phần trước, nền tối chỉ cho khối có màu chữ riêng cho nền tối (số liệu, kêu gọi hành động, ảnh + chữ, quy trình, lưới thẻ, danh sách…; nền tối là xanh navy có hai vệt sáng góc, xem `tones` trong `components/ui/index.tsx`). Giao diện chỉ dùng token trong `apps/website/src/app/globals.css` (thang chữ `text-display/h2/h3/lead/body/small/caption`, màu `ink/muted/faint/line/subtle/brand-*/accent-*`, bo góc `rounded-card/rounded-control`) và component nền `components/ui` (`FrameSection`, `SectionHeading`, `CardTitle`, `CardText`, `IconTile`, `gridColumns`). Chỉ phần đầu trang chiếm cả màn hình. Biểu tượng khối: mã trong `shared/block-icons.ts`. **Lưới thẻ** (`features`; `industries`/`ecosystem` là thành phần cũ vẽ giống lưới thẻ): mỗi thẻ có `icon` và `mediaId` (ảnh) tùy chọn; `cardStyle` `compact` (mặc định, thẻ gọn biểu tượng nhỏ) hoặc `visual` (thẻ ảnh: ảnh ngang 16:10 sát mép thẻ, thẻ chưa có ảnh dùng mảng màu nhấn với biểu tượng lớn). `bento` (đúng 5 thẻ: thẻ đầu to bên trái chiếm hai hàng — ảnh lớn phía trên, tiêu đề `h3` cỡ lớn phía dưới; bốn thẻ ảnh nhỏ xếp hai cột bên phải; khác 5 thẻ thì tự về `visual`). Thẻ ảnh chưa có ảnh dùng mảng xanh thương hiệu nhạt + biểu tượng. Lưới thẻ trên nền tối và không có ảnh vẽ thành hai cột (tiêu đề trái, các ý 2 cột ngăn bằng vạch mảnh, không đóng khung). Hai phần liền nhau cùng nền (chọn tay) có vạch ngăn mảnh trong khung nội dung. Chỉ cần một thẻ có ảnh là cả lưới tự thành thẻ ảnh. `Card` có `flush` cho thẻ không đệm (đừng ghi đè `p-*` bằng class: thua trong CSS sinh ra). Trang chủ (`PageBlockRenderer screens`): trên máy tính (≥ 1024px rộng, ≥ 640px cao) các phần dùng khoảng cách Tự động (trừ phần đầu trang và dải gọn) cao tối thiểu một màn hình, nội dung căn giữa dọc; khoảng cách, hàng bento, dòng danh sách nhóm, ảnh co giãn theo `svh` để vừa một màn từ 1280×720 tới 2560×1440 (`.screen-block` trong `globals.css`). Dải logo đối tác: dưới 8 logo là lưới ô cùng kích thước, số cột chia hết số logo (`logoGridClass`); từ 8 logo là dải chạy ngang (`.logo-marquee`).
 
 ### Quy tắc khi thêm nội dung public
 
@@ -94,8 +94,8 @@ Quyết định thiết kế đáng nhớ:
 |---|---|
 | Phiên đăng nhập | Token 32 byte ngẫu nhiên, DB chỉ lưu SHA-256; cookie `HttpOnly`, `SameSite=Lax`, `Secure` ở production, hạn 7 ngày |
 | Chống dò mật khẩu | Quota PostgreSQL nguyên tử: 5 lần/15 phút theo username, 10 lần/15 phút theo IP; HTTP 429 kèm `Retry-After`; DB chỉ lưu HMAC |
-| Chống request khác nguồn | `apps/backend/src/proxy.ts`: mutation `/api/admin/*` có `Origin` khác host public (theo `X-Forwarded-Host`) trả 403 |
-| Phân quyền | RBAC `module.action` (`view/create/update/delete`, thêm `publish` cho nội dung xuất bản). Danh mục quyền là code (`permissions.ts`), seed đồng bộ vào DB; role là dữ liệu do admin tạo/sửa ở trang Vai trò, mỗi user một role. Kiểm tra 2 lớp: `apps/backend/src/proxy.ts` theo module + method, route handler kiểm tra đúng hành động và `publish` (`lib/admin-access.ts`). Super Admin (`is_system`) không sửa/xóa được, luôn đủ quyền, không mất Super Admin cuối. Chống leo thang: chỉ cấp quyền mình có, không tự sửa role/khóa mình, chỉ Super Admin đụng tài khoản Super Admin. CMS dùng `useAdminPermissions().can()` chỉ để ẩn thao tác |
+| Chống request khác nguồn | `apps/api/src/proxy.ts`: mutation `/api/v1/admin/*` có `Origin` khác host public (theo `X-Forwarded-Host`) trả 403 |
+| Phân quyền | RBAC `module.action` (`view/create/update/delete`, thêm `publish` cho nội dung xuất bản). Danh mục quyền là code (`permissions.ts`), seed đồng bộ vào DB; role là dữ liệu do admin tạo/sửa ở trang Vai trò, mỗi user một role. Kiểm tra 2 lớp: `apps/api/src/proxy.ts` theo module + method, route handler kiểm tra đúng hành động và `publish` (`lib/admin-access.ts`). Super Admin (`is_system`) không sửa/xóa được, luôn đủ quyền, không mất Super Admin cuối. Chống leo thang: chỉ cấp quyền mình có, không tự sửa role/khóa mình, chỉ Super Admin đụng tài khoản Super Admin. CMS dùng `useAdminPermissions().can()` chỉ để ẩn thao tác |
 | Input | Zod strict ở mọi ranh giới; Drizzle tham số hóa truy vấn |
 | Media | Kiểm magic bytes (PNG/JPEG/WebP/PDF/ZIP), tối đa 20 MB, object đã xóa mềm trả 404 |
 | Lead | Honeypot, tối đa 1 lần/15 phút cho mỗi IP đã băm; khóa advisory chống request đồng thời |
@@ -110,8 +110,8 @@ Quyết định thiết kế đáng nhớ:
 ```sh
 docker compose up -d          # PostgreSQL 127.0.0.1:5433, S3Mock 127.0.0.1:9090
 pnpm db:migrate && pnpm db:seed:cms
-pnpm dev:backend              # 3002
-pnpm dev:cms                  # 3001
+pnpm dev:api              # 3002
+pnpm dev:admin                  # 3001
 pnpm dev                      # 3000
 ```
 
@@ -121,9 +121,9 @@ pnpm dev                      # 3000
 
 ### Production (VPS + Docker Compose)
 
-Dịch vụ: `proxy` (Caddy), `publish-web`, `cms`, `backend`, `db` (PostgreSQL 17), `s3` (SeaweedFS một node), `umami` (thống kê truy cập, database `umami` riêng trên cùng PostgreSQL), cùng các job chạy một lần `migrate`, `seed-admin`, `umami-db-init`. Image nền được ghim digest.
+Dịch vụ: `proxy` (Caddy), `website`, `admin`, `api`, `db` (PostgreSQL 17), `s3` (SeaweedFS một node), `umami` (thống kê truy cập, database `umami` riêng trên cùng PostgreSQL), cùng các job chạy một lần `migrate`, `seed-admin`, `umami-db-init`. Image nền được ghim digest.
 
-1. Trỏ DNS `SITE_ADDRESS`, `CMS_SITE_ADDRESS` và `ANALYTICS_SITE_ADDRESS` về VPS, mở cổng 80/443.
+1. Trỏ DNS `SITE_ADDRESS`, `ADMIN_SITE_ADDRESS` và `ANALYTICS_SITE_ADDRESS` về VPS, mở cổng 80/443.
 2. `cp .env.production.example .env.production && chmod 600 .env.production`, rồi thay mọi giá trị `replace_with_...`.
 3. `docker compose --env-file .env.production -f compose.production.yaml up -d --build`
 4. Kiểm tra `logs seed-admin`. Job này tạo hoặc nâng quyền tài khoản `INITIAL_ADMIN_*`, không ghi đè mật khẩu đã có.
@@ -150,16 +150,16 @@ Sao lưu (`scripts/backup.sh`, chạy trên host ở thư mục repo):
 
 Trang `/admin/backup` ("Sao lưu & phục hồi" trong nhóm Hệ thống; chỉ Super Admin thao tác, người khác có `settings.view` chỉ xem lịch sử):
 
-- **Một cú bấm trên máy Windows đang chạy** (`server/backup/local-ops.ts`, gọi từ `POST /api/admin/backup`, không cần PowerShell hay biết Docker): "Sao lưu ngay" — dump qua `docker compose exec db` (stdin/stdout nối thẳng tệp, không qua `/tmp` + `docker compose cp` như script), khôi phục thử, sao lưu media, dọn bản cũ, ghi trạng thái; "Phục hồi" — tự sao lưu dữ liệu hiện tại trước (không bỏ qua được), phục hồi thử bản chọn vào database tạm để chắc dùng được, rồi mới `dropdb`/`createdb`/`pg_restore` đè lên database thật và đưa lại media còn thiếu; "Bật/tắt tự động sao lưu mỗi đêm 21:00" đăng ký thẳng vào Task Scheduler bằng `schtasks.exe` (không cần quyền quản trị), tác vụ chạy `scripts/backup.ps1` nên vẫn chạy được khi không ai mở CMS.
+- **Một cú bấm trên máy Windows đang chạy** (`server/backup/local-ops.ts`, gọi từ `POST /api/v1/admin/backup`, không cần PowerShell hay biết Docker): "Sao lưu ngay" — dump qua `docker compose exec db` (stdin/stdout nối thẳng tệp, không qua `/tmp` + `docker compose cp` như script), khôi phục thử, sao lưu media, dọn bản cũ, ghi trạng thái; "Phục hồi" — tự sao lưu dữ liệu hiện tại trước (không bỏ qua được), phục hồi thử bản chọn vào database tạm để chắc dùng được, rồi mới `dropdb`/`createdb`/`pg_restore` đè lên database thật và đưa lại media còn thiếu; "Bật/tắt tự động sao lưu mỗi đêm 21:00" đăng ký thẳng vào Task Scheduler bằng `schtasks.exe` (không cần quyền quản trị), tác vụ chạy `scripts/backup.ps1` nên vẫn chạy được khi không ai mở CMS.
 - `site_settings` (nên cả lịch sử sao lưu) nằm trong chính database bị phục hồi: `pg_restore` sẽ viết đè nó về đúng như lúc tạo bản đang phục hồi. `snapshotBackupBookkeeping`/`restoreBackupBookkeeping` chụp lại ba khóa trước khi đụng tới database thật rồi ghi đè lại sau, để lịch sử không "lùi về quá khứ"; `recordBackupRestoreEvent` thêm một dòng "Đã phục hồi" (nguồn gốc `fromStamp`) vào lịch sử. Phục hồi lỗi SAU KHI đã xóa database cũ sẽ tự khôi phục khẩn cấp lại bản sao lưu an toàn vừa tạo, để CMS không rơi vào trạng thái không đọc được gì.
-- `GET`/`POST /api/admin/backup` không map permission module nào (Super Admin). Thao tác tay (không phải lịch tự động) được ghi vào `audit_logs` (`backup.run`/`backup.restore`, xem Nhật ký hoạt động) — `audit_logs` cũng nằm trong database bị phục hồi nên không được bảo vệ như `site_settings`, chỉ để tiện xem chứ không phải nguồn sự thật chính.
+- `GET`/`POST /api/v1/admin/backup` không map permission module nào (Super Admin). Thao tác tay (không phải lịch tự động) được ghi vào `audit_logs` (`backup.run`/`backup.restore`, xem Nhật ký hoạt động) — `audit_logs` cũng nằm trong database bị phục hồi nên không được bảo vệ như `site_settings`, chỉ để tiện xem chứ không phải nguồn sự thật chính.
 - **Máy chủ thật (VPS, chưa triển khai):** CMS không tự phục hồi hay lên lịch được từ xa; trang hiện các lệnh thủ công tương ứng (`lib/backup-commands.ts`, chỉ sinh lệnh để chép, không chạy gì).
 
 Sao lưu trên máy Windows (dev local): `pnpm backup:local` (`scripts/backup.ps1`) làm đúng các bước trên với container `db`/`storage` của `compose.yaml` (dump trong container rồi `docker compose cp`, không qua pipeline PowerShell vì làm hỏng dữ liệu nhị phân). Mặc định ghi vào `..\iorder-backups\db` và `..\iorder-backups\media` cạnh thư mục repo, giữ 14 bản; tùy chọn `-BackupDir`, `-Keep`, `-NoVerify`, `-NoMedia`, `-EnvFile`. Tệp khác trong thư mục sao lưu không bị đụng tới. Muốn chạy hằng ngày thì tạo Task Scheduler gọi lệnh trên (trang `/admin/backup` có sẵn lệnh `schtasks`).
 
 Khôi phục (phá hủy dữ liệu hiện tại, chỉ làm khi cần):
 
-1. Dừng ứng dụng: `... stop backend cms publish-web`.
+1. Dừng ứng dụng: `... stop api admin website`.
 2. Database: `... exec -T db sh -c 'dropdb -U "$POSTGRES_USER" "$POSTGRES_DB" && createdb -U "$POSTGRES_USER" "$POSTGRES_DB" && pg_restore -U "$POSTGRES_USER" --no-owner --exit-on-error -d "$POSTGRES_DB"' < BACKUP_DIR/db/<bản>/iorder_v2.dump` (thay tên tệp theo `POSTGRES_DB`).
 3. Media: `... run --rm --no-deps -v BACKUP_DIR/media:/backup/media backup-media node scripts/backup-media.mjs restore /backup/media` (chỉ đưa lên object còn thiếu, không ghi đè).
 4. `... up -d`, rồi kiểm tra website, đăng nhập CMS, mở vài ảnh.
@@ -170,7 +170,7 @@ Chuyển dữ liệu từ MinIO cũ: volume `seaweed-data` là volume mới. N�
 
 - **Mã request:** Caddy gắn `X-Request-Id` (UUID, thay giá trị client tự gửi) cho mọi request và trả lại trong response. CMS chuyển tiếp mã khi gọi Backend; proxy Backend nhận hoặc tạo mới cho `/api/*`, `/media/*`. Người dùng báo lỗi kèm mã này (DevTools → Network → header `x-request-id`) là tìm được đúng dòng log ở cả 3 tầng.
 - **Access log:** Caddy ghi JSON mỗi request (trạng thái, `duration`, IP, user agent, `uuid` = mã request). Cookie/Authorization bị che, tham số `query` (từ khóa tìm kiếm) bị bỏ khỏi URI.
-- **Log ứng dụng:** `logger` trong `packages/core/src/server/shared/logger.ts`. Production in một dòng JSON: `time`, `level`, `service`, `msg`, `requestId`, `method`, `path` (không query string), trường bổ sung, `err` (name, message, 12 frame stack, mã lỗi Postgres, chuỗi `cause`). Không ghi giá trị khóa nhạy cảm (password, token, cookie, hash, session…) và tham số SQL. Dev in dạng dễ đọc. `LOG_LEVEL` (debug/info/warn/error), `LOG_FORMAT=json` để ép JSON.
+- **Log ứng dụng:** `logger` trong `packages/shared/src/server/shared/logger.ts`. Production in một dòng JSON: `time`, `level`, `service`, `msg`, `requestId`, `method`, `path` (không query string), trường bổ sung, `err` (name, message, 12 frame stack, mã lỗi Postgres, chuỗi `cause`). Không ghi giá trị khóa nhạy cảm (password, token, cookie, hash, session…) và tham số SQL. Dev in dạng dễ đọc. `LOG_LEVEL` (debug/info/warn/error), `LOG_FORMAT=json` để ép JSON.
 - **Lỗi chưa xử lý:** `src/instrumentation.ts` (`onRequestError`) của cả 3 app ghi kèm route và requestId. Từ chối quyền (403) và mutation khác nguồn ghi mức `warn` kèm người thao tác.
 - **Giữ log:** Docker `json-file` xoay vòng 5 × 20 MB mỗi container.
 
@@ -178,7 +178,7 @@ Lệnh hay dùng (`dc` = `docker compose --env-file .env.production -f compose.p
 
 | Mục đích | Lệnh |
 |---|---|
-| Theo dõi lỗi trực tiếp | `dc logs -f --no-log-prefix backend cms publish-web | grep '"level":"error"'` |
+| Theo dõi lỗi trực tiếp | `dc logs -f --no-log-prefix api admin website | grep '"level":"error"'` |
 | Tìm theo mã request | `dc logs --no-log-prefix --since 24h | grep <mã>` |
 | Request chậm hơn 2 giây | `dc logs --no-log-prefix proxy | jq -c 'select(.duration > 2) | {uuid, status, duration, uri: .request.uri}'` |
 | Đếm lỗi 5xx theo đường dẫn | `dc logs --no-log-prefix --since 24h proxy | jq -r 'select(.status >= 500) | .request.uri' | sort | uniq -c` |
@@ -193,7 +193,7 @@ Chưa có: cảnh báo tự động khi healthcheck lỗi hoặc lỗi tăng đ�
 
 ### Thống kê truy cập (Umami)
 
-- Website chèn `/stats/script.js` khi có `UMAMI_WEBSITE_ID`; script và sự kiện (`/stats/api/send`) đi qua cùng domain website. Production: Caddy chỉ mở hai đường này tới `umami`; giao diện Umami ở `ANALYTICS_SITE_ADDRESS`. Local: rewrite của publish-web khi có `UMAMI_URL`, chạy `docker compose --profile analytics up -d` (cổng 3005).
+- Website chèn `/stats/script.js` khi có `UMAMI_WEBSITE_ID`; script và sự kiện (`/stats/api/send`) đi qua cùng domain website. Production: Caddy chỉ mở hai đường này tới `umami`; giao diện Umami ở `ANALYTICS_SITE_ADDRESS`. Local: rewrite của website khi có `UMAMI_URL`, chạy `docker compose --profile analytics up -d` (cổng 3005).
 - Backend đọc số liệu qua Umami API bằng API key (`Authorization: Bearer umami_…`), response kiểm bằng Zod; Umami lỗi thì CMS hiện trạng thái lỗi, không làm hỏng dashboard. Không dùng cookie nên không cần banner đồng ý.
 
 ## 5. Kiểm thử và cổng chất lượng
@@ -212,13 +212,13 @@ CI: `.github/workflows/quality.yml` chạy các cổng trên cho push `main` và
 
 ## 6. Quy chuẩn giao diện CMS
 
-- **Nội dung nhóm A:** dùng `CmsPageBuilder` chung cho Trang chủ, trang tĩnh/tự tạo, Phần mềm/Giải pháp/Dịch vụ và Thiết bị. Bố cục mới theo yêu cầu sau: Section/Item bên phải, form nội dung ở vùng chính rộng bên giữa; preview mở bằng nút Xem trước trang (dialog lớn, giao diện website 1:1, máy tính/điện thoại) hoặc Cửa sổ riêng để vừa sửa vừa xem; chọn một thành phần hoặc mục con để sửa, kéo thả bằng tay nắm (chuột/cảm ứng), bàn phím dùng Alt + phím lên/xuống, nhân bản, ẩn/hiện, thêm/xóa. Cột phải chỉ có cây nội dung và nút Thêm thành phần; thư viện kiểu hiển thị mở khi cần. Không thêm mục lục lặp. Preview bản đang nhập qua `/api/admin/builder-preview` → bảng tạm TTL 15 phút, chủ sở hữu và sequence → token HMAC → `/cms-preview` vẽ bằng chính route/`PageBlockRenderer` public; không tạo revision hay xuất bản. Khung preview chỉ cho origin CMS đã xác thực nhúng, noindex/no-store và chặn gửi form thật; cửa sổ riêng đồng bộ qua opener + postMessage kiểm origin/source. Chỉ tạo phiên preview khi mở xem trước, không chiếm một cột cố định. Tablet/mobile xếp lại các cột; dùng màu hệ thống, không thêm trang trí. Dữ liệu cũ chưa có blocks thiết bị giữ phần thông tin nghiệp vụ; catalog giữ nguồn nội dung cũ và chuyển qua form chung khi lưu. Nhóm B (bài viết/hướng dẫn) chỉ dùng một `RichTextEditor` qua `PostEditor`, không dùng Page Builder. Nhóm C giữ logic danh sách/hệ thống; các phần CMS và SEO có sẵn tiếp tục dùng nguồn hiện tại. Phần đầu trang danh sách có hero CMS được ListingPageHeader vẽ bằng PageBlockRenderer như homepage, giữ đầy đủ layout/panels/ảnh/nút/appearance. listingLayoutFromBlocks tách hero ra một slot riêng để không lặp trong thân trang; PageHero gọn chỉ là dự phòng khi thiếu hero. Breadcrumb nằm ngoài vùng phủ của hero, metadata/search/phân trang vẫn theo module sở hữu. Cây hero: Phần đầu trang → Bố cục chung + Mục trượt 1, Mục trượt 2…; mỗi mục chứa Điểm nổi bật của chính nó. Mục trượt 1 là nội dung hero chính hiện có, không thêm bản ghi DB. Nội dung từng mục gồm chữ/ảnh/CTA/điểm nổi bật; ảnh nằm ngay dưới tiêu đề. Trường panels[].highlights thiếu thì kế thừa điểm chung (tương thích dữ liệu cũ), mảng rỗng là không có điểm riêng. Có lựa chọn dùng điểm chung; nút thêm trong cây Item luôn hiện cả khi thu gọn nhóm, vô hiệu hóa khi đủ số lượng; Kiểu bố cục và giao diện chỉ chỉnh tại một mục Bố cục chung ở component cha; mục con chỉ có Nội dung. Ảnh chính sửa trong Mục trượt 1. Nhãn Thêm mục trượt khác Thêm thành phần cấp trang. Publish-web giữ mẫu component/font/responsive; cấu hình CMS được áp dụng cho các lựa chọn hỗ trợ, nhịp một màn hình chỉ dùng khi spacing Tự động và hero áp dụng mã neo. Kiểu trượt nhiều ảnh không cung cấp điều khiển màu nền/độ rộng vì renderer không hỗ trợ. Khối logo đối tác có mô tả tùy chọn trong `data.description`; logo/tên/liên kết lấy từ module Đối tác & Đánh giá.
+- **Nội dung nhóm A:** dùng `CmsPageBuilder` chung cho Trang chủ, trang tĩnh/tự tạo, Phần mềm/Giải pháp/Dịch vụ và Thiết bị. Bố cục mới theo yêu cầu sau: Section/Item bên phải, form nội dung ở vùng chính rộng bên giữa; preview mở bằng nút Xem trước trang (dialog lớn, giao diện website 1:1, máy tính/điện thoại) hoặc Cửa sổ riêng để vừa sửa vừa xem; chọn một thành phần hoặc mục con để sửa, kéo thả bằng tay nắm (chuột/cảm ứng), bàn phím dùng Alt + phím lên/xuống, nhân bản, ẩn/hiện, thêm/xóa. Cột phải chỉ có cây nội dung và nút Thêm thành phần; thư viện kiểu hiển thị mở khi cần. Không thêm mục lục lặp. Preview bản đang nhập qua `/api/v1/admin/builder-preview` → bảng tạm TTL 15 phút, chủ sở hữu và sequence → token HMAC → `/cms-preview` vẽ bằng chính route/`PageBlockRenderer` public; không tạo revision hay xuất bản. Khung preview chỉ cho origin CMS đã xác thực nhúng, noindex/no-store và chặn gửi form thật; cửa sổ riêng đồng bộ qua opener + postMessage kiểm origin/source. Chỉ tạo phiên preview khi mở xem trước, không chiếm một cột cố định. Tablet/mobile xếp lại các cột; dùng màu hệ thống, không thêm trang trí. Dữ liệu cũ chưa có blocks thiết bị giữ phần thông tin nghiệp vụ; catalog giữ nguồn nội dung cũ và chuyển qua form chung khi lưu. Nhóm B (bài viết/hướng dẫn) chỉ dùng một `RichTextEditor` qua `PostEditor`, không dùng Page Builder. Nhóm C giữ logic danh sách/hệ thống; các phần CMS và SEO có sẵn tiếp tục dùng nguồn hiện tại. Phần đầu trang danh sách có hero CMS được ListingPageHeader vẽ bằng PageBlockRenderer như homepage, giữ đầy đủ layout/panels/ảnh/nút/appearance. listingLayoutFromBlocks tách hero ra một slot riêng để không lặp trong thân trang; PageHero gọn chỉ là dự phòng khi thiếu hero. Breadcrumb nằm ngoài vùng phủ của hero, metadata/search/phân trang vẫn theo module sở hữu. Cây hero: Phần đầu trang → Bố cục chung + Mục trượt 1, Mục trượt 2…; mỗi mục chứa Điểm nổi bật của chính nó. Mục trượt 1 là nội dung hero chính hiện có, không thêm bản ghi DB. Nội dung từng mục gồm chữ/ảnh/CTA/điểm nổi bật; ảnh nằm ngay dưới tiêu đề. Trường panels[].highlights thiếu thì kế thừa điểm chung (tương thích dữ liệu cũ), mảng rỗng là không có điểm riêng. Có lựa chọn dùng điểm chung; nút thêm trong cây Item luôn hiện cả khi thu gọn nhóm, vô hiệu hóa khi đủ số lượng; Kiểu bố cục và giao diện chỉ chỉnh tại một mục Bố cục chung ở component cha; mục con chỉ có Nội dung. Ảnh chính sửa trong Mục trượt 1. Nhãn Thêm mục trượt khác Thêm thành phần cấp trang. Publish-web giữ mẫu component/font/responsive; cấu hình CMS được áp dụng cho các lựa chọn hỗ trợ, nhịp một màn hình chỉ dùng khi spacing Tự động và hero áp dụng mã neo. Kiểu trượt nhiều ảnh không cung cấp điều khiển màu nền/độ rộng vì renderer không hỗ trợ. Khối logo đối tác có mô tả tùy chọn trong `data.description`; logo/tên/liên kết lấy từ module Đối tác & Đánh giá.
 
 - **SEO nội dung:** `ContentSeoEditor` dùng chung và độc lập với builder/Rich Text. Giữ `seoTitle`, `seoDescription`, `canonicalUrl`, slug và redirect 301 hiện có; JSONB `seo` thêm index/follow/sitemap/breadcrumbs, Open Graph, Twitter/X và schema có form theo loại (không nhập JSON). API cũ bỏ `seo` vẫn giữ giá trị đã lưu. Website dùng `contentMetadata`/`ContentJsonLd`, không thêm meta thủ công; sitemap loại noindex và tôn trọng cấu hình indexing toàn website. Lịch sử chứa SEO, tham chiếu ảnh SEO được bảo vệ trong Media Library. Migration 0017/0018 chỉ thêm dữ liệu cấu trúc, không reset DB.
 
 - **Biểu mẫu CMS:** dùng `AdminFormField` cho nhãn tách khỏi lỗi/hướng dẫn; `useAdminFormValidation` lấy lỗi từ contract Zod, hiện lỗi cạnh trường và tóm tắt được focus khi submit. Form có kiểm tra Zod dùng `noValidate` để tránh popup lỗi mặc định chặn luồng tiếng Việt. Lỗi API giữ trên form, không chỉ nằm trong toast; giữ bản nhập khi lỗi/409. Cài đặt chỉ nhận trạng thái đã lưu sau khi phản hồi dữ liệu và `version` hợp lệ; `markSaved(savedValue)` ghi baseline đã chuẩn hóa. Tài khoản chỉ xem thấy lời giải thích và trường bị khóa.
 
-Màu đặt bằng token `--cms-*` trong `apps/cms/src/styles/tokens.css` (có bản tối); không viết mã màu trực tiếp trong component.
+Màu đặt bằng token `--cms-*` trong `apps/admin/src/styles/tokens.css` (có bản tối); không viết mã màu trực tiếp trong component.
 
 | Nhóm | Quy chuẩn | Dùng ở đâu |
 |---|---|---|

@@ -1,4 +1,4 @@
-import { cleanupExpiredLoginThrottles } from "@iorder/core/server/auth/login-throttle.repository";
+import { cleanupExpiredLoginThrottles } from "@iorder/shared/server/auth/login-throttle.repository";
 
 const rawLimit = process.env.AUTH_THROTTLE_CLEANUP_LIMIT;
 const limit = rawLimit === undefined ? 500 : Number(rawLimit);

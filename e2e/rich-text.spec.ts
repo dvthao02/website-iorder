@@ -6,16 +6,16 @@ const created: { posts: string[]; mediaNames: string[] } = { posts: [], mediaNam
 
 async function cleanup(request: APIRequestContext, origin: string) {
   for (const id of created.posts.splice(0)) {
-    const current = await (await request.get(`/api/admin/posts/${id}`)).json() as { post?: { status: string; draftVersion: number } };
+    const current = await (await request.get(`/api/v1/admin/posts/${id}`)).json() as { post?: { status: string; draftVersion: number } };
     if (!current.post) continue;
     let version = current.post.draftVersion;
-    if (current.post.status !== "archived") version = ((await (await request.patch(`/api/admin/posts/${id}`, { headers: { origin }, data: { action: "archive", expectedVersion: version } })).json()) as { post?: { draftVersion: number } }).post?.draftVersion ?? version + 1;
-    await request.delete(`/api/admin/posts/${id}`, { headers: { origin }, data: { expectedVersion: version } });
+    if (current.post.status !== "archived") version = ((await (await request.patch(`/api/v1/admin/posts/${id}`, { headers: { origin }, data: { action: "archive", expectedVersion: version } })).json()) as { post?: { draftVersion: number } }).post?.draftVersion ?? version + 1;
+    await request.delete(`/api/v1/admin/posts/${id}`, { headers: { origin }, data: { expectedVersion: version } });
   }
   // Ảnh do bước nhập file tải lên.
   for (const name of created.mediaNames.splice(0)) {
-    const list = await (await request.get(`/api/admin/media?query=${encodeURIComponent(name)}`)).json() as { assets: Array<{ id: string; originalName: string }> };
-    for (const asset of list.assets.filter((item) => item.originalName.startsWith(name))) await request.delete(`/api/admin/media/${asset.id}`, { headers: { origin } });
+    const list = await (await request.get(`/api/v1/admin/media?query=${encodeURIComponent(name)}`)).json() as { assets: Array<{ id: string; originalName: string }> };
+    for (const asset of list.assets.filter((item) => item.originalName.startsWith(name))) await request.delete(`/api/v1/admin/media/${asset.id}`, { headers: { origin } });
   }
 }
 
@@ -51,7 +51,7 @@ test("Soạn bài kiểu Word: nhập file .docx, xuất bản, website có mụ
   await page.getByRole("button", { name: "Xuất bản", exact: true }).click();
   await expect(page.locator(".admin-toast").filter({ hasText: /Đã/ }).first()).toBeVisible();
   const slug = `tieu-de-tu-word-${stamp}`;
-  const search = await (await page.request.get(`/api/admin/posts?query=${slug}&view=summary`)).json() as { result: { items: Array<{ id: string; slug: string }> } };
+  const search = await (await page.request.get(`/api/v1/admin/posts?query=${slug}&view=summary`)).json() as { result: { items: Array<{ id: string; slug: string }> } };
   const post = search.result.items.find((item) => item.slug === slug);
   expect(post).toBeTruthy();
   created.posts.push(post!.id);
@@ -78,7 +78,7 @@ test("Máy chủ từ chối nội dung có liên kết javascript: hoặc ảnh
     { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "x", marks: [{ type: "link", attrs: { href: "javascript:alert(1)" } }] }] }] },
     { type: "doc", content: [{ type: "image", attrs: { src: "https://evil.example/a.png" } }] },
   ]) {
-    const response = await page.request.post("/api/admin/posts", { headers: { origin }, data: { ...base, content: { version: 2, doc } } });
+    const response = await page.request.post("/api/v1/admin/posts", { headers: { origin }, data: { ...base, content: { version: 2, doc } } });
     expect(response.status()).toBe(400);
   }
 });
@@ -168,7 +168,7 @@ test("Ảnh trong bài: đổi kích thước, căn trái cho chữ chạy quanh
   await page.getByRole("button", { name: "Xuất bản", exact: true }).click();
   await expect(page.locator(".admin-toast").filter({ hasText: /Đã/ }).first()).toBeVisible();
   const slug = `anh-nen-${stamp}`;
-  const search = await (await page.request.get(`/api/admin/posts?query=${slug}&view=summary`)).json() as { result: { items: Array<{ id: string; slug: string }> } };
+  const search = await (await page.request.get(`/api/v1/admin/posts?query=${slug}&view=summary`)).json() as { result: { items: Array<{ id: string; slug: string }> } };
   const post = search.result.items.find((item) => item.slug === slug);
   expect(post).toBeTruthy();
   created.posts.push(post!.id);

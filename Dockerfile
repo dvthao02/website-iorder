@@ -12,10 +12,10 @@ FROM base AS dependencies
 WORKDIR /app
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY apps/backend/package.json apps/backend/package.json
-COPY apps/cms/package.json apps/cms/package.json
-COPY apps/publish-web/package.json apps/publish-web/package.json
-COPY packages/core/package.json packages/core/package.json
+COPY apps/api/package.json apps/api/package.json
+COPY apps/admin/package.json apps/admin/package.json
+COPY apps/website/package.json apps/website/package.json
+COPY packages/shared/package.json packages/shared/package.json
 RUN pnpm install --frozen-lockfile
 
 FROM dependencies AS build

@@ -70,14 +70,14 @@ importers:
         specifier: ^5
         version: 5.9.3
 
-  apps/backend:
+  apps/api:
     dependencies:
       '@aws-sdk/client-s3':
         specifier: ^3.1140.0
         version: 3.1140.0
-      '@iorder/core':
+      '@iorder/shared':
         specifier: workspace:*
-        version: link:../../packages/core
+        version: link:../../packages/shared
       drizzle-orm:
         specifier: ^0.45.3
         version: 0.45.3(postgres@3.4.9)
@@ -97,14 +97,14 @@ importers:
         specifier: ^4.6.5
         version: 4.6.5
 
-  apps/cms:
+  apps/admin:
     dependencies:
       '@aws-sdk/client-s3':
         specifier: ^3.1140.0
         version: 3.1140.0
-      '@iorder/core':
+      '@iorder/shared':
         specifier: workspace:*
-        version: link:../../packages/core
+        version: link:../../packages/shared
       '@tiptap/extension-image':
         specifier: 3.31.4
         version: 3.31.4(@tiptap/core@3.31.4(@tiptap/pm@3.31.4))
@@ -148,14 +148,14 @@ importers:
         specifier: ^4.6.5
         version: 4.6.5
 
-  apps/publish-web:
+  apps/website:
     dependencies:
       '@aws-sdk/client-s3':
         specifier: ^3.1140.0
         version: 3.1140.0
-      '@iorder/core':
+      '@iorder/shared':
         specifier: workspace:*
-        version: link:../../packages/core
+        version: link:../../packages/shared
       drizzle-orm:
         specifier: ^0.45.3
         version: 0.45.3(postgres@3.4.9)
@@ -178,7 +178,7 @@ importers:
         specifier: ^4.6.5
         version: 4.6.5
 
-  packages/core:
+  packages/shared:
     dependencies:
       '@aws-sdk/client-s3':
         specifier: ^3.1140.0

@@ -4,8 +4,8 @@ import { createHash, createHmac, randomBytes, randomUUID } from "node:crypto";
 import { createRequire } from "node:module";
 import { chromium, expect } from "@playwright/test";
 import type postgres from "postgres";
-import { removeStoredObject } from "../../packages/core/src/server/media/storage";
-import type { AdminPage, PageInput } from "../../packages/core/src/server/pages/pages.contract";
+import { removeStoredObject } from "../../packages/shared/src/server/media/storage";
+import type { AdminPage, PageInput } from "../../packages/shared/src/server/pages/pages.contract";
 
 const require = createRequire(import.meta.url);
 const backend = "http://localhost:3202";
@@ -41,22 +41,22 @@ export async function auditBuilderHttp(input: { databaseUrl: string; previewSecr
   try {
     await input.client`insert into site_settings (key,value) values ('publishing',${input.client.json({ siteUrl: website, defaultTitle: "iOrder", defaultDescription: "Website kiểm thử", defaultOgMediaId: null, allowSearchIndexing: true })})`;
     stage = "khởi động Backend";
-    await start("backend", 3202, "/api/health");
+    await start("api", 3202, "/api/health");
     stage = "khởi động website";
-    await start("publish-web", 3200, "/");
+    await start("website", 3200, "/");
     stage = "khởi động CMS";
-    await start("cms", 3201, "/login");
+    await start("admin", 3201, "/login");
     const cacheBody = JSON.stringify({ tags: ["public-content"] });
     const timestamp = String(Date.now());
     const signature = createHmac("sha256", input.previewSecret).update(`${timestamp}.${cacheBody}`).digest("hex");
     assert.equal((await fetch(`${website}/api/internal/revalidate`, { method: "POST", body: cacheBody, headers: { "content-type": "application/json", "x-iorder-cache-timestamp": timestamp, "x-iorder-cache-signature": signature } })).status, 200);
     stage = "lỗi dữ liệu trang";
-    const invalidPage = await post("/api/admin/pages", { id: input.page.id, expectedVersion: input.page.draftVersion, values: { ...input.pageValues, blocks: [{ type: "faq", isEnabled: true, data: { eyebrow: null, title: "", items: [{ question: "Hỏi", answer: "Đáp" }] } }] } });
+    const invalidPage = await post("/api/v1/admin/pages", { id: input.page.id, expectedVersion: input.page.draftVersion, values: { ...input.pageValues, blocks: [{ type: "faq", isEnabled: true, data: { eyebrow: null, title: "", items: [{ question: "Hỏi", answer: "Đáp" }] } }] } });
     assert.equal(invalidPage.status, 400);
     assert.match((await invalidPage.json()).error.message, /Thành phần 1 → Tiêu đề: Không được để trống/);
     stage = "API preview";
     const request = { previewId: randomUUID(), documentId: input.page.id, sequence: 1, parentOrigin: cms, document: { kind: "page", values: { ...input.pageValues, blocks: [{ type: "rich_text", data: { heading: "PREVIEW HTTP CHƯA LƯU", body: "Nội dung từ API thật." }, isEnabled: true }] } } };
-    assert.equal((await post("/api/admin/builder-preview", request, { cookie: "" })).status, 401);
+    assert.equal((await post("/api/v1/admin/builder-preview", request, { cookie: "" })).status, 401);
     const limitedUser = randomUUID();
     const limitedRole = randomUUID();
     const limitedCookie = randomBytes(32).toString("base64url");
@@ -64,24 +64,24 @@ export async function auditBuilderHttp(input: { databaseUrl: string; previewSecr
     await input.client`insert into roles (id,code,name) values (${limitedRole},'builder-limited','Giới hạn')`;
     await input.client`insert into user_roles (user_id,role_id) values (${limitedUser},${limitedRole})`;
     await input.client`insert into sessions (user_id,token_hash,expires_at) values (${limitedUser},${createHash("sha256").update(limitedCookie).digest("base64url")},${new Date(Date.now() + 3600000)})`;
-    assert.equal((await post("/api/admin/builder-preview", request, { cookie: `iorder_admin_session=${limitedCookie}` })).status, 403);
-    assert.equal((await post("/api/admin/builder-preview", request, { origin: "https://nguon-khac.example" })).status, 403);
+    assert.equal((await post("/api/v1/admin/builder-preview", request, { cookie: `iorder_admin_session=${limitedCookie}` })).status, 403);
+    assert.equal((await post("/api/v1/admin/builder-preview", request, { origin: "https://nguon-khac.example" })).status, 403);
     const [referencedMedia] = await input.client`select id from media_assets where storage_key='audit/builder.png'`;
     assert.ok(referencedMedia);
-    const mediaDelete = await fetch(`${backend}/api/admin/media/${referencedMedia.id}`, { method: "DELETE", headers });
+    const mediaDelete = await fetch(`${backend}/api/v1/admin/media/${referencedMedia.id}`, { method: "DELETE", headers });
     assert.equal(mediaDelete.status, 409);
     assert.equal((await mediaDelete.json() as { error: { code: string } }).error.code, "MEDIA_IN_USE");
-    const invalidBinding = await post("/api/admin/builder-preview", { ...request, previewId: randomUUID(), document: { ...request.document, values: { ...request.document.values, slug: "home", template: "homepage" } } });
+    const invalidBinding = await post("/api/v1/admin/builder-preview", { ...request, previewId: randomUUID(), document: { ...request.document, values: { ...request.document.values, slug: "home", template: "homepage" } } });
     assert.equal(invalidBinding.status, 400);
-    const created = await post("/api/admin/builder-preview", request);
+    const created = await post("/api/v1/admin/builder-preview", request);
     assert.equal(created.status, 200);
     const preview = await created.json() as { token: string; sequence: number };
     assert.equal(preview.sequence, 1);
-    assert.equal((await post("/api/admin/builder-preview", request)).status, 409);
-    const descriptor = await fetch(`${backend}/api/public/builder-preview?token=${encodeURIComponent(preview.token)}`);
+    assert.equal((await post("/api/v1/admin/builder-preview", request)).status, 409);
+    const descriptor = await fetch(`${backend}/api/v1/public/builder-preview?token=${encodeURIComponent(preview.token)}`);
     assert.equal(descriptor.status, 200);
     assert.match(descriptor.headers.get("cache-control") ?? "", /no-store/);
-    assert.equal((await fetch(`${backend}/api/public/builder-preview?token=hong`)).status, 404);
+    assert.equal((await fetch(`${backend}/api/v1/public/builder-preview?token=hong`)).status, 404);
     stage = "render website";
     const live = await fetch(`${website}/cms-preview?token=${encodeURIComponent(preview.token)}`);
     assert.equal(live.status, 200);
@@ -117,11 +117,11 @@ export async function auditBuilderHttp(input: { databaseUrl: string; previewSecr
     }
     assert.equal((await fetch(`${website}/catalog-khong-hop-le/phan-mem-kiem-thu`)).status, 404);
     for (const path of ["/tin-tuc", "/thiet-bi", "/ho-tro/cai-dat", "/ho-tro/huong-dan", "/phan-mem", "/giai-phap", "/dich-vu", "/ho-tro"]) assert.equal((await fetch(`${website}${path}`)).status, 200, path);
-    const conflict = await post("/api/admin/pages", { id: input.page.id, values: input.pageValues, expectedVersion: 1 });
+    const conflict = await post("/api/v1/admin/pages", { id: input.page.id, values: input.pageValues, expectedVersion: 1 });
     assert.equal(conflict.status, 409);
     const sitemapBefore = await (await fetch(`${website}/sitemap.xml`)).text();
     assert.ok(sitemapBefore.includes(publicPath));
-    const updated = await post("/api/admin/pages", { id: input.page.id, values: { ...input.pageValues, seo: { ...input.pageValues.seo, index: false } }, expectedVersion: input.page.draftVersion });
+    const updated = await post("/api/v1/admin/pages", { id: input.page.id, values: { ...input.pageValues, seo: { ...input.pageValues.seo, index: false } }, expectedVersion: input.page.draftVersion });
     assert.equal(updated.status, 200);
     let sitemapAfter = "";
     for (let i = 0; i < 20; i++) { sitemapAfter = await (await fetch(`${website}/sitemap.xml`)).text(); if (!sitemapAfter.includes(publicPath)) break; await wait(250); }
@@ -133,8 +133,8 @@ export async function auditBuilderHttp(input: { databaseUrl: string; previewSecr
     const context = await browser.newContext({ viewport: { width: 1600, height: 1000 }, hasTouch: true });
     await context.addCookies([{ name: "iorder_admin_session", value: input.cookie, url: cms }]);
     let attemptedLeadSubmissions = 0;
-    await context.route("**/api/leads", async route => { attemptedLeadSubmissions++; await route.abort(); });
-    const formPreview = await post("/api/admin/builder-preview", { ...request, previewId: randomUUID(), document: { kind: "page", values: { ...input.pageValues, blocks: [{ type: "lead_form", isEnabled: true, data: { title: "Form trong preview", description: null, submitLabel: "Gửi kiểm thử", needOptions: [] } }] } } });
+    await context.route("**/api/v1/leads", async route => { attemptedLeadSubmissions++; await route.abort(); });
+    const formPreview = await post("/api/v1/admin/builder-preview", { ...request, previewId: randomUUID(), document: { kind: "page", values: { ...input.pageValues, blocks: [{ type: "lead_form", isEnabled: true, data: { title: "Form trong preview", description: null, submitLabel: "Gửi kiểm thử", needOptions: [] } }] } } });
     assert.equal(formPreview.status, 200);
     const formToken = (await formPreview.json() as { token: string }).token;
     const formPage = await context.newPage();
@@ -199,7 +199,7 @@ export async function auditBuilderHttp(input: { databaseUrl: string; previewSecr
     await page.screenshot({ path: ".next/builder-seo-desktop.png", fullPage: false });
     const body = page.locator('.admin-blocks__detail [contenteditable="true"]').first();
     let failPreviewOnce = true;
-    await context.route(`${cms}/api/admin/builder-preview`, async route => { if (failPreviewOnce && route.request().postData()?.includes("THAY ĐỔI TRỰC TIẾP CHƯA LƯU")) { failPreviewOnce = false; await route.abort(); } else await route.fallback(); });
+    await context.route(`${cms}/api/v1/admin/builder-preview`, async route => { if (failPreviewOnce && route.request().postData()?.includes("THAY ĐỔI TRỰC TIẾP CHƯA LƯU")) { failPreviewOnce = false; await route.abort(); } else await route.fallback(); });
     await body.fill("THAY ĐỔI TRỰC TIẾP CHƯA LƯU");
     const previewControls = page.getByRole("region", { name: "Xem trước trực tiếp", exact: true });
     await expect(previewControls.getByText("Không kết nối được máy chủ xem trước. Bản nhập của bạn vẫn được giữ lại.", { exact: true })).toBeVisible({ timeout: 10000 });
@@ -278,7 +278,7 @@ export async function auditBuilderHttp(input: { databaseUrl: string; previewSecr
       { type: "faq", isEnabled: true, data: { eyebrow: null, title: "Hỏi đáp kiểm thử", items: [{ question: "Câu hỏi đầu", answer: "Câu trả lời" }] } },
       ...["industries", "ecosystem", "process"].map(type => ({ type, isEnabled: true, data: { eyebrow: null, title: type, description: null, items: [{ title: "Thẻ " + type, description: "Mô tả", href: null }] } })),
     ];
-    const createdOther = await post("/api/admin/pages", { id: null, values: { ...input.pageValues, slug: "kiem-thu-cac-thanh-phan", blocks: otherBlocks } });
+    const createdOther = await post("/api/v1/admin/pages", { id: null, values: { ...input.pageValues, slug: "kiem-thu-cac-thanh-phan", blocks: otherBlocks } });
     assert.equal(createdOther.status, 201);
     const otherId = (await createdOther.json()).page.id;
     await page.goto(`${cms}/admin/pages/${otherId}`, { waitUntil: "domcontentloaded" });
@@ -305,7 +305,7 @@ export async function auditBuilderHttp(input: { databaseUrl: string; previewSecr
     const otherEditor = await otherForm.boundingBox();
     assert.ok(otherToolbar && otherEditor && otherEditor.y - otherToolbar.y - otherToolbar.height <= 16, "Cây dài không được tạo khoảng trống phía trên form ngắn.");
     await page.screenshot({ path: ".next/builder-other-components.png", fullPage: false });
-    const savedOther = page.waitForResponse(response => response.url().endsWith("/api/admin/pages") && response.request().method() === "POST");
+    const savedOther = page.waitForResponse(response => response.url().endsWith("/api/v1/admin/pages") && response.request().method() === "POST");
     await page.getByRole("button", { name: "Lưu thay đổi", exact: true }).click();
     assert.equal((await savedOther).status(), 200);
     await expect(page.getByText("Đã lưu thay đổi và tạo phiên bản mới.", { exact: true }).first()).toBeVisible();
@@ -324,7 +324,7 @@ export async function auditBuilderHttp(input: { databaseUrl: string; previewSecr
       if (path === "/admin/homepage") {
         await expect(page.locator(".admin-blocks--builder")).toBeVisible({ timeout: 30000 });
         const homeProperties = page.locator(".admin-blocks__detail");
-        await homeProperties.getByRole("tab", { name: "Bố cục chung", exact: true }).click();
+        await homeProperties.getByRole("tab", { name: "Bố cục khối", exact: true }).click();
         assert.equal(await homeProperties.getByRole("button", { name: "Thêm mục trượt", exact: true }).count(), 0);
         const slideTree = page.locator(".admin-blocks__navigation");
         await slideTree.getByRole("button", { name: "Mục trượt 1", exact: true }).click();
@@ -338,7 +338,7 @@ export async function auditBuilderHttp(input: { databaseUrl: string; previewSecr
         assert.equal(await panelEditor.locator(":scope > .admin-list-item__head small").count(), 0);
         await expect(panelEditor).toHaveCSS("border-top-style", "dashed");
         const uploadName = `builder-panel-${randomUUID()}.png`;
-        const uploaded = page.waitForResponse(response => response.url().endsWith("/api/admin/media") && response.request().method() === "POST");
+        const uploaded = page.waitForResponse(response => response.url().endsWith("/api/v1/admin/media") && response.request().method() === "POST");
         await panelEditor.getByLabel("Chọn tệp cho Ảnh của khối", { exact: true }).setInputFiles({ name: uploadName, mimeType: "image/png", buffer: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAACXBIWXMAAAPoAAAD6AG1e1JrAAAAGUlEQVQokWPgajtPEmIY1dA2GkpcwzVpAADVeF8QxfNfZwAAAABJRU5ErkJggg==", "base64") });
         const uploadResponse = await uploaded;
         assert.equal(uploadResponse.status(), 201);
@@ -376,7 +376,7 @@ export async function auditBuilderHttp(input: { databaseUrl: string; previewSecr
         await page.getByRole("button", { name: "Lưu thay đổi", exact: true }).click();
         await expect(page.getByText(/Mục trượt bổ sung 1 → Tiêu đề: Vượt giới hạn 220 ký tự/).first()).toBeVisible();
         await panelEditor.getByLabel("Tiêu đề", { exact: true }).fill("Mục trượt đã sửa từ CMS");
-        const savedResponse = page.waitForResponse(response => response.url().endsWith("/api/admin/pages") && response.request().method() === "POST");
+        const savedResponse = page.waitForResponse(response => response.url().endsWith("/api/v1/admin/pages") && response.request().method() === "POST");
         await page.getByRole("button", { name: "Lưu thay đổi", exact: true }).click();
         assert.equal((await savedResponse).status(), 200);
         await expect(page.getByText("Đã lưu thay đổi và tạo phiên bản mới.", { exact: true }).first()).toBeVisible({ timeout: 30000 });
@@ -408,14 +408,14 @@ export async function auditBuilderHttp(input: { databaseUrl: string; previewSecr
         await page.screenshot({ path: ".next/builder-hero-content-preview.png", fullPage: false });
         await page.getByRole("button", { name: "Đóng xem trước", exact: true }).click();
         await page.locator(".admin-blocks__navigation .admin-block__toggle").first().click();
-        await homeProperties.getByRole("tab", { name: "Bố cục chung", exact: true }).click();
+        await homeProperties.getByRole("tab", { name: "Bố cục khối", exact: true }).click();
         await homeProperties.getByRole("group", { name: "Kiểu bố cục", exact: true }).getByText("Trượt nhiều ảnh", { exact: true }).click();
         assert.equal(await homeProperties.getByText("Các ảnh trượt (0/8)", { exact: true }).count(), 0);
         await homeNavigation.getByRole("button", { name: "+ Thêm ảnh trượt", exact: true }).click();
         await expect(homeProperties.getByRole("tab", { name: "Nội dung", exact: true })).toHaveAttribute("aria-selected", "true");
         await expect(homeProperties.getByText("Các ảnh trượt (1/8)", { exact: true })).toBeVisible();
         await homeNavigation.locator(".admin-block__toggle").first().click();
-        await homeProperties.getByRole("tab", { name: "Bố cục chung", exact: true }).click();
+        await homeProperties.getByRole("tab", { name: "Bố cục khối", exact: true }).click();
         assert.equal(await homeProperties.getByRole("slider", { name: "Độ rộng nội dung (%)", exact: true }).count(), 0);
         await expect(homeProperties.getByText("Kiểu trượt nhiều ảnh luôn hiển thị ảnh toàn chiều ngang", { exact: false })).toBeVisible();
       } else assert.equal(await page.locator(".admin-blocks--builder").count(), 0);
@@ -429,9 +429,9 @@ export async function auditBuilderHttp(input: { databaseUrl: string; previewSecr
     ];
     let serviceId = "";
     for (const [slug, path, source] of listingRoutes) {
-      const existing = await (await fetch(backend + "/api/admin/pages?slug=" + slug, { headers })).json();
+      const existing = await (await fetch(backend + "/api/v1/admin/pages?slug=" + slug, { headers })).json();
       const hero = { type: "hero", isEnabled: true, appearance: { anchor: "bo-cuc-da-chon", tone: "custom", backgroundColor: "#eef7ff", width: 75 }, data: { eyebrow: "Dữ liệu CMS", title: "Bố cục " + path, description: "Chỉ chọn ở khối cha", layout: slug === "listing-service" ? "split" : "split_reverse", mediaId: listingImage.id, primaryAction: null, secondaryAction: null, highlights: [{ title: "Điểm nổi bật chung", note: null }], panels: [{ eyebrow: null, title: "Mục trượt 2 " + path, description: "Nội dung con", mediaId: listingImage.id, primaryAction: null, secondaryAction: null, highlights: [{ title: "Điểm nổi bật riêng", note: null }] }] } };
-      const response = await post("/api/admin/pages", { id: existing.page.id, expectedVersion: existing.page.draftVersion, values: { ...input.pageValues, slug, template: "listing", title: "Danh sách " + source, blocks: [hero, { type: "collection_list", isEnabled: true, data: { source, eyebrow: null, title: null, description: null, limit: null, anchor: null } }] } });
+      const response = await post("/api/v1/admin/pages", { id: existing.page.id, expectedVersion: existing.page.draftVersion, values: { ...input.pageValues, slug, template: "listing", title: "Danh sách " + source, blocks: [hero, { type: "collection_list", isEnabled: true, data: { source, eyebrow: null, title: null, description: null, limit: null, anchor: null } }] } });
       assert.equal(response.status, 200, slug);
       if (slug === "listing-service") serviceId = existing.page.id;
     }
@@ -439,13 +439,13 @@ export async function auditBuilderHttp(input: { databaseUrl: string; previewSecr
     const listingProperties = page.locator(".admin-blocks__detail");
     const listingNavigation = page.locator(".admin-blocks__navigation");
     await expect(listingProperties.getByRole("tab")).toHaveCount(1);
-    await expect(listingProperties.getByRole("tab", { name: "Bố cục chung", exact: true })).toBeVisible();
+    await expect(listingProperties.getByRole("tab", { name: "Bố cục khối", exact: true })).toBeVisible();
     await listingNavigation.getByRole("button", { name: "Mục trượt 1", exact: true }).click();
     await expect(listingProperties.getByRole("tab")).toHaveCount(1);
     assert.equal(await listingProperties.getByRole("group", { name: "Kiểu bố cục", exact: true }).count(), 0);
-    await listingNavigation.getByRole("button", { name: "Bố cục chung", exact: true }).click();
+    await listingNavigation.getByRole("button", { name: "Bố cục khối", exact: true }).click();
     await listingProperties.getByRole("group", { name: "Kiểu bố cục", exact: true }).getByText("Ảnh trái, chữ phải", { exact: true }).click();
-    const savedListing = page.waitForResponse(response => response.url().endsWith("/api/admin/pages") && response.request().method() === "POST");
+    const savedListing = page.waitForResponse(response => response.url().endsWith("/api/v1/admin/pages") && response.request().method() === "POST");
     await page.getByRole("button", { name: "Lưu thay đổi", exact: true }).click();
     assert.equal((await savedListing).status(), 200);
     await expect(page.getByText("Đã lưu thay đổi và tạo phiên bản mới.", { exact: true }).first()).toBeVisible();

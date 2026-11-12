@@ -3,10 +3,10 @@ import { randomUUID } from "node:crypto";
 import { config } from "dotenv";
 import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
-import * as schema from "../packages/core/src/db/schema";
-import { deleteArchivedPage, listAdminPagesPage, writePage } from "../packages/core/src/server/pages/pages.repository";
-import { pageInputSchema, pageListQuerySchema } from "../packages/core/src/server/pages/pages.contract";
-import { PageVersionConflictError } from "../packages/core/src/server/pages/page-version";
+import * as schema from "../packages/shared/src/db/schema";
+import { deleteArchivedPage, listAdminPagesPage, writePage } from "../packages/shared/src/server/pages/pages.repository";
+import { pageInputSchema, pageListQuerySchema } from "../packages/shared/src/server/pages/pages.contract";
+import { PageVersionConflictError } from "../packages/shared/src/server/pages/page-version";
 
 config({ quiet: true });
 const url = process.env.DATABASE_URL;

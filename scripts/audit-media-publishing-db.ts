@@ -4,9 +4,9 @@ import { config } from "dotenv";
 import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
 import { eq } from "drizzle-orm";
-import * as schema from "../packages/core/src/db/schema";
-import { listMediaAssetsPage, listPublishingMediaUsage } from "../packages/core/src/server/media/media.repository";
-import { mediaListQuerySchema } from "../packages/core/src/server/media/media.contract";
+import * as schema from "../packages/shared/src/db/schema";
+import { listMediaAssetsPage, listPublishingMediaUsage } from "../packages/shared/src/server/media/media.repository";
+import { mediaListQuerySchema } from "../packages/shared/src/server/media/media.contract";
 
 config({ quiet: true });
 let phase = "khởi tạo";

@@ -8,20 +8,20 @@ const created: { pageIds: string[]; mediaIds: string[] } = { pageIds: [], mediaI
 
 async function cleanup(request: APIRequestContext, origin: string) {
   for (const id of created.pageIds.splice(0)) {
-    const current = await (await request.get(`/api/admin/pages/${id}`)).json() as { page?: Record<string, unknown> & { draftVersion: number } };
+    const current = await (await request.get(`/api/v1/admin/pages/${id}`)).json() as { page?: Record<string, unknown> & { draftVersion: number } };
     if (!current.page) continue;
     const { draftVersion, publishedAt, updatedAt, ...values } = current.page;
     void publishedAt; void updatedAt; Reflect.deleteProperty(values, "id");
-    const archived = await (await request.post("/api/admin/pages", { headers: { origin }, data: { id, values: { ...values, status: "archived" }, expectedVersion: draftVersion } })).json() as { page?: { draftVersion: number } };
-    await request.delete(`/api/admin/pages/${id}`, { headers: { origin }, data: { expectedVersion: archived.page?.draftVersion ?? draftVersion + 1 } });
+    const archived = await (await request.post("/api/v1/admin/pages", { headers: { origin }, data: { id, values: { ...values, status: "archived" }, expectedVersion: draftVersion } })).json() as { page?: { draftVersion: number } };
+    await request.delete(`/api/v1/admin/pages/${id}`, { headers: { origin }, data: { expectedVersion: archived.page?.draftVersion ?? draftVersion + 1 } });
   }
-  for (const id of created.mediaIds.splice(0)) await request.delete(`/api/admin/media/${id}`, { headers: { origin } });
+  for (const id of created.mediaIds.splice(0)) await request.delete(`/api/v1/admin/media/${id}`, { headers: { origin } });
 }
 
 test.afterEach(async ({ page, baseURL }) => { await cleanup(page.request, baseURL!); });
 
 async function uploadImage(request: APIRequestContext, origin: string, name: string) {
-  const upload = await request.post("/api/admin/media", { headers: { origin }, multipart: { file: { name, mimeType: "image/png", buffer: tinyPng } } });
+  const upload = await request.post("/api/v1/admin/media", { headers: { origin }, multipart: { file: { name, mimeType: "image/png", buffer: tinyPng } } });
   expect(upload.ok()).toBe(true);
   const id = ((await upload.json()) as { asset: { id: string } }).asset.id;
   created.mediaIds.push(id);
@@ -30,7 +30,7 @@ async function uploadImage(request: APIRequestContext, origin: string, name: str
 
 async function createPage(request: APIRequestContext, origin: string, slug: string, hero: Record<string, unknown>) {
   const data = { eyebrow: "Giải pháp quản lý bán hàng toàn diện", title: `Phần mềm quản lý hiệu quả ${slug}`, description: "Quản lý bán hàng, kho, nhân viên và báo cáo trên một nền tảng.", primaryAction: { label: "Dùng thử miễn phí", href: "/lien-he" }, secondaryAction: { label: "Xem demo", href: "/phan-mem" }, highlights: [{ title: "Dễ sử dụng", note: "Bắt đầu nhanh chóng" }, { title: "Triển khai nhanh", note: null }, { title: "Hỗ trợ 24/7", note: "Luôn đồng hành" }], footnote: "Dùng thử miễn phí 15 ngày", slides: [], extraMediaIds: [], tone: null, panels: [], ...hero };
-  const response = await request.post("/api/admin/pages", { headers: { origin }, data: { id: null, values: { title: "Thử phần đầu trang", slug, template: "default", status: "published", seoTitle: null, seoDescription: null, canonicalUrl: null, scheduledAt: null, blocks: [{ type: "hero", isEnabled: true, data }] } } });
+  const response = await request.post("/api/v1/admin/pages", { headers: { origin }, data: { id: null, values: { title: "Thử phần đầu trang", slug, template: "default", status: "published", seoTitle: null, seoDescription: null, canonicalUrl: null, scheduledAt: null, blocks: [{ type: "hero", isEnabled: true, data }] } } });
   expect(response.ok(), await response.text()).toBe(true);
   created.pageIds.push(((await response.json()) as { page: { id: string } }).page.id);
   return data.title as string;
@@ -102,14 +102,14 @@ test("Phần đầu trang: 5 kiểu bố cục hiển thị đúng trên website
   await page.goto(`/admin/pages/${created.pageIds.at(-1)}`);
   const toggle = page.locator(".admin-block__toggle").first();
   if (await toggle.getAttribute("aria-expanded") === "false") await toggle.click();
-  await page.locator(".admin-blocks__detail").getByRole("tab", { name: "Bố cục chung", exact: true }).click();
+  await page.locator(".admin-blocks__detail").getByRole("tab", { name: "Bố cục khối", exact: true }).click();
   const picker = page.getByRole("group", { name: "Kiểu bố cục" });
   await expect(picker.getByRole("radio")).toHaveCount(5);
   await expect(picker.getByRole("radio", { name: "Trượt nhiều ảnh" })).toBeChecked();
   await page.locator('.admin-blocks__navigation [data-builder-path="slides"] .admin-builder-item__select').first().click();
   await expect(page.getByText("Các ảnh trượt (2/8)")).toBeVisible();
   await page.locator(".admin-blocks__navigation .admin-block__toggle").first().click();
-  await page.locator(".admin-blocks__detail").getByRole("tab", { name: "Bố cục chung", exact: true }).click();
+  await page.locator(".admin-blocks__detail").getByRole("tab", { name: "Bố cục khối", exact: true }).click();
   await picker.getByText("Ảnh nền tràn màn hình").click();
   await expect(page.getByText("Các ảnh trượt (2/8)")).toBeHidden();
   await page.locator(".admin-blocks__navigation").getByRole("button", { name: "Mục trượt 1", exact: true }).click();

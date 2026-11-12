@@ -9,7 +9,7 @@ const username = requiredEnvironmentValue("INITIAL_ADMIN_USERNAME");
 const password = requiredEnvironmentValue("INITIAL_ADMIN_PASSWORD");
 
 async function login(inputUsername, inputPassword) {
-  return fetch(`${backendUrl}/api/admin/session`, {
+  return fetch(`${backendUrl}/api/v1/admin/session`, {
     body: JSON.stringify({ username: inputUsername, password: inputPassword }),
     headers: { "content-type": "application/json" },
     method: "POST",

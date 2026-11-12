@@ -2,12 +2,12 @@ import "dotenv/config";
 
 import { eq } from "drizzle-orm";
 
-import { getDb } from "../packages/core/src/db/client";
-import { pages, users } from "../packages/core/src/db/schema";
-import { defaultListingCollections, fixedWebsitePages, type ListingHeader, type ListingPageSlug, type PageBlock } from "../packages/core/src/server/pages/pages.contract";
-import { saveAdminPage } from "../packages/core/src/server/pages/pages.service";
-import { getCatalogContent } from "../packages/core/src/server/settings/catalog-content.service";
-import { getListingContent } from "../packages/core/src/server/settings/listing-content.service";
+import { getDb } from "../packages/shared/src/db/client";
+import { pages, users } from "../packages/shared/src/db/schema";
+import { defaultListingCollections, fixedWebsitePages, type ListingHeader, type ListingPageSlug, type PageBlock } from "../packages/shared/src/server/pages/pages.contract";
+import { saveAdminPage } from "../packages/shared/src/server/pages/pages.service";
+import { getCatalogContent } from "../packages/shared/src/server/settings/catalog-content.service";
+import { getListingContent } from "../packages/shared/src/server/settings/listing-content.service";
 
 // Chuyển tiêu đề trang danh sách từ site_settings (listing_content, catalog_content) sang
 // Trang hệ thống trong "Trang website". Chạy lại nhiều lần an toàn: trang đã có thì giữ nguyên.

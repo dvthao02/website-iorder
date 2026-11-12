@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { readdir, readFile } from "node:fs/promises";
 import { join, relative } from "node:path";
-import { revisionTargetSchema } from "../packages/core/src/server/revisions/revisions.contract";
+import { revisionTargetSchema } from "../packages/shared/src/server/revisions/revisions.contract";
 
-const root = join(process.cwd(), "apps/backend/src/app/api/admin");
+const root = join(process.cwd(), "apps/api/src/app/api/v1/admin");
 
 async function routes(directory: string): Promise<string[]> {
   const entries = await readdir(directory, { withFileTypes: true });
@@ -28,15 +28,15 @@ async function main() {
     for (const path of paths) for (const method of methods) {
       total += 1;
       try {
-        const response = await fetch(`http://127.0.0.1:3002/api/admin/${path}`, {
+        const response = await fetch(`http://127.0.0.1:3002/api/v1/admin/${path}`, {
           method, redirect: "manual", signal: AbortSignal.timeout(20000),
           // Không cookie/credential. Body sai JSON và ID sai tránh mutation hợp lệ.
           ...(method === "POST" || method === "PUT" || method === "PATCH"
             ? { headers: { "content-type": "application/json" }, body: "{" } : {}),
         });
         await response.body?.cancel();
-        if (response.status !== 401) failures.push(`${method} /api/admin/${path}: ${response.status}`);
-      } catch { failures.push(`${method} /api/admin/${path}: không hoàn tất HTTP`); }
+        if (response.status !== 401) failures.push(`${method} /api/v1/admin/${path}: ${response.status}`);
+      } catch { failures.push(`${method} /api/v1/admin/${path}: không hoàn tất HTTP`); }
     }
   }
   console.log(`Đã kiểm ${total} method admin không cookie; ${total - failures.length} trả 401.`);

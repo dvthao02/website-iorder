@@ -3,7 +3,7 @@ import { defineConfig, devices } from "@playwright/test";
 
 loadEnvironment({ quiet: true });
 
-// Runs against already running apps (pnpm dev:backend / dev:cms / dev, or a
+// Runs against already running apps (pnpm dev:api / dev:admin / dev, or a
 // Compose stack). Override the URLs with E2E_CMS_URL / E2E_WEB_URL.
 export default defineConfig({
   testDir: "e2e",

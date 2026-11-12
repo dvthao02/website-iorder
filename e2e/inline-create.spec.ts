@@ -28,11 +28,11 @@ test("Tạo chuyên mục và thẻ ngay trong editor bài viết", async ({ pag
     // Tạo phân loại không được gửi form bài viết đang soạn.
     await expect(page).toHaveURL(/\/admin\/news\/new$/);
   } finally {
-    const response = await page.request.get("/api/admin/taxonomy");
+    const response = await page.request.get("/api/v1/admin/taxonomy");
     const { taxonomy } = await response.json() as { taxonomy: Record<"categories" | "tags", Array<{ id: string; name: string }>> };
     for (const item of created) {
       const row = taxonomy[item.kind].find((entry) => entry.name === item.name);
-      if (row) expect((await page.request.delete(`/api/admin/taxonomy?kind=${item.kind}&id=${row.id}`, { headers: { origin: new URL(page.url()).origin } })).status()).toBe(200);
+      if (row) expect((await page.request.delete(`/api/v1/admin/taxonomy?kind=${item.kind}&id=${row.id}`, { headers: { origin: new URL(page.url()).origin } })).status()).toBe(200);
     }
   }
 });
@@ -51,9 +51,9 @@ test("Tạo nhóm thiết bị ngay trong form thêm thiết bị", async ({ pag
     await expect(page).toHaveURL(/\/admin\/equipment\/new$/);
   } finally {
     // Dọn mọi nhóm kiểm thử (kể cả nhóm sót lại từ lần chạy hỏng trước).
-    const { equipmentGroups } = await (await page.request.get("/api/admin/equipment?groupsOnly=1")).json() as { equipmentGroups: Array<{ id: string; name: string }> };
+    const { equipmentGroups } = await (await page.request.get("/api/v1/admin/equipment?groupsOnly=1")).json() as { equipmentGroups: Array<{ id: string; name: string }> };
     for (const group of equipmentGroups.filter((item) => item.name.startsWith("Nhóm tại chỗ "))) {
-      expect((await page.request.delete(`/api/admin/equipment/${group.id}?kind=groups`, { headers: { origin: new URL(page.url()).origin } })).status()).toBe(200);
+      expect((await page.request.delete(`/api/v1/admin/equipment/${group.id}?kind=groups`, { headers: { origin: new URL(page.url()).origin } })).status()).toBe(200);
     }
   }
 });

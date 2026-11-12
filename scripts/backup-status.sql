@@ -1,5 +1,5 @@
 -- Ghi kết quả một lần sao lưu vào site_settings để CMS hiện ở Tổng quan và trang Sao lưu & phục hồi
--- (packages/core/src/server/backup/backup-status.ts). Ghi 2 khóa: lần thành công/lỗi gần nhất
+-- (packages/shared/src/server/backup/backup-status.ts). Ghi 2 khóa: lần thành công/lỗi gần nhất
 -- (system.backup.success | system.backup.failure) và lịch sử 30 lần gần nhất (system.backup.history, mới nhất trước).
 -- Dùng chung cho scripts/backup.sh và scripts/backup.ps1: đưa vào stdin của psql trong container db,
 -- giá trị lấy từ biến môi trường (docker compose exec -e ...), không ghép chuỗi SQL.

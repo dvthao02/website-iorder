@@ -134,6 +134,13 @@
       "when": 1794296133013,
       "tag": "0018_equipment_builder_seo",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1794479223268,
+      "tag": "0019_equipment_page_layout",
+      "breakpoints": true
     }
   ]
 }

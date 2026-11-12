@@ -26,14 +26,14 @@ test.afterAll(async () => {
 
 test("Tài khoản giới hạn chỉ thấy đúng thao tác được phép", async ({ page, request, baseURL }) => {
   const headers = { origin: baseURL!, "content-type": "application/json" };
-  const login = await request.post("/api/admin/session", { headers, data: adminCredentials() });
+  const login = await request.post("/api/v1/admin/session", { headers, data: adminCredentials() });
   expect(login.status()).toBe(200);
-  const role = await request.post("/api/admin/roles", { headers, data: { id: null, values: { name: "Thử UI giới hạn", description: null, permissions: ["posts.view", "posts.update", "pages.view"] } } });
+  const role = await request.post("/api/v1/admin/roles", { headers, data: { id: null, values: { name: "Thử UI giới hạn", description: null, permissions: ["posts.view", "posts.update", "pages.view"] } } });
   const roleId = (await role.json()).id as string;
-  const roleCode = ((await (await request.get("/api/admin/roles")).json()).roles as Array<{ id: string; code: string }>).find((r) => r.id === roleId)!.code;
+  const roleCode = ((await (await request.get("/api/v1/admin/roles")).json()).roles as Array<{ id: string; code: string }>).find((r) => r.id === roleId)!.code;
   const username = `rbac-ui-${randomBytes(3).toString("hex")}`;
   const password = randomBytes(18).toString("base64url");
-  const user = await request.post("/api/admin/users", { headers, data: { id: null, values: { username, email: null, fullName: "Thử UI giới hạn", status: "active", role: roleCode, password } } });
+  const user = await request.post("/api/v1/admin/users", { headers, data: { id: null, values: { username, email: null, fullName: "Thử UI giới hạn", status: "active", role: roleCode, password } } });
   created.roleId = roleId;
   created.userId = (await user.json()).id;
 
