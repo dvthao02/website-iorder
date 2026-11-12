@@ -127,9 +127,21 @@ export const logger = {
 type RequestErrorInfo = { path: string; method: string; headers: Record<string, string | string[] | undefined> };
 type RequestErrorContext = { routePath?: string; routeType?: string; renderSource?: string };
 
+/** Trình duyệt tự hủy/ngắt kết nối giữa chừng (đóng tab, hủy fetch bằng AbortController): không phải lỗi của máy chủ. */
+export function isClientAbort(error: unknown) {
+  if (!(error instanceof Error)) return false;
+  const code = (error as { code?: unknown }).code;
+  return error.name === "AbortError" || (code === "ECONNRESET" && /aborted/i.test(error.message));
+}
+
 // Dùng trong instrumentation.ts (onRequestError) của từng app: lỗi chưa được route tự xử lý.
 export function logUnhandledRequestError(error: unknown, request: RequestErrorInfo, context: RequestErrorContext) {
   const header = request.headers[requestIdHeader];
+  if (isClientAbort(error)) {
+    // Ví dụ canvas xem trước hủy yêu cầu cũ khi có bản nháp mới: ghi mức debug để log không đầy "lỗi" giả.
+    logger.debug("Client hủy request giữa chừng.", { requestId: normalizeRequestId(Array.isArray(header) ? header[0] : header) ?? undefined, method: request.method, path: request.path.split("?")[0] });
+    return;
+  }
   logger.error("Lỗi chưa xử lý khi phục vụ request.", {
     error,
     requestId: normalizeRequestId(Array.isArray(header) ? header[0] : header) ?? undefined,

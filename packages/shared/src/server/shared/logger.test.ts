@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildLogEntry, normalizeRequestId, resolveRequestId, sanitizeLogValue, serializeError } from "./logger";
+import { buildLogEntry, isClientAbort, normalizeRequestId, resolveRequestId, sanitizeLogValue, serializeError } from "./logger";
 
 test("chỉ nhận request id có dạng an toàn", () => {
   assert.equal(normalizeRequestId("3f2b9c1e-1111-4a2b-9c3d-123456789abc"), "3f2b9c1e-1111-4a2b-9c3d-123456789abc");
@@ -33,4 +33,13 @@ test("dòng log có requestId, method, path không kèm query string", () => {
   assert.equal(entry.userId, "u1");
   assert.equal((entry.err as { message: string }).message, "boom");
   assert.ok(!JSON.stringify(entry).includes("0901234567"));
+});
+
+test("Client hủy request giữa chừng không bị coi là lỗi máy chủ", () => {
+  const reset = Object.assign(new Error("aborted"), { code: "ECONNRESET" });
+  assert.equal(isClientAbort(reset), true);
+  assert.equal(isClientAbort(Object.assign(new Error("The operation was aborted"), { name: "AbortError" })), true);
+  assert.equal(isClientAbort(Object.assign(new Error("connect ECONNRESET 1.2.3.4:5432"), { code: "ECONNRESET" })), false, "mất kết nối tới DB vẫn là lỗi thật");
+  assert.equal(isClientAbort(new Error("aborted")), false);
+  assert.equal(isClientAbort("aborted"), false);
 });
