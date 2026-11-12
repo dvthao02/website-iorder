@@ -2,11 +2,11 @@ import "dotenv/config";
 
 import { eq } from "drizzle-orm";
 
-import { getDb } from "../packages/core/src/db/client";
-import { roles, userRoles, users } from "../packages/core/src/db/schema";
-import { hashPassword } from "../packages/core/src/server/auth/password";
-import { superAdminRoleCode } from "../packages/core/src/server/auth/permissions";
-import { syncCmsPermissionCatalog } from "../packages/core/src/server/roles/roles.sync";
+import { getDb } from "../packages/shared/src/db/client";
+import { roles, userRoles, users } from "../packages/shared/src/db/schema";
+import { hashPassword } from "../packages/shared/src/server/auth/password";
+import { superAdminRoleCode } from "../packages/shared/src/server/auth/permissions";
+import { syncCmsPermissionCatalog } from "../packages/shared/src/server/roles/roles.sync";
 
 function requiredEnvironmentValue(name: string) {
   const value = process.env[name]?.trim();

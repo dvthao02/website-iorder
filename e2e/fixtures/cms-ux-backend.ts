@@ -1,5 +1,5 @@
 import { createServer } from "node:http";
-import { pageInputSchema } from "@iorder/core/server/pages/pages.contract";
+import { pageInputSchema } from "@iorder/shared/server/pages/pages.contract";
 
 export const uxHomePage = {
   id: "10000000-0000-4000-8000-000000000020", draftVersion: 1, updatedAt: new Date(), publishedAt: new Date(),

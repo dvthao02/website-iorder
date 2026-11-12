@@ -4,8 +4,8 @@ import { createHash, createHmac, randomBytes, randomUUID } from "node:crypto";
 import { createRequire } from "node:module";
 import { chromium, expect } from "@playwright/test";
 import type postgres from "postgres";
-import { removeStoredObject } from "../../packages/core/src/server/media/storage";
-import type { AdminPage, PageInput } from "../../packages/core/src/server/pages/pages.contract";
+import { removeStoredObject } from "../../packages/shared/src/server/media/storage";
+import type { AdminPage, PageInput } from "../../packages/shared/src/server/pages/pages.contract";
 
 const require = createRequire(import.meta.url);
 const backend = "http://localhost:3202";
@@ -41,11 +41,11 @@ export async function auditBuilderHttp(input: { databaseUrl: string; previewSecr
   try {
     await input.client`insert into site_settings (key,value) values ('publishing',${input.client.json({ siteUrl: website, defaultTitle: "iOrder", defaultDescription: "Website kiểm thử", defaultOgMediaId: null, allowSearchIndexing: true })})`;
     stage = "khởi động Backend";
-    await start("backend", 3202, "/api/health");
+    await start("api", 3202, "/api/health");
     stage = "khởi động website";
-    await start("publish-web", 3200, "/");
+    await start("website", 3200, "/");
     stage = "khởi động CMS";
-    await start("cms", 3201, "/login");
+    await start("admin", 3201, "/login");
     const cacheBody = JSON.stringify({ tags: ["public-content"] });
     const timestamp = String(Date.now());
     const signature = createHmac("sha256", input.previewSecret).update(`${timestamp}.${cacheBody}`).digest("hex");

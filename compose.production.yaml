@@ -1,7 +1,7 @@
 name: iorder-v2
 
 # Docker xoay vòng log của mọi service (tối đa 5 × 20 MB mỗi container) để log không làm đầy ổ đĩa.
-# Xem: docker compose --env-file .env.production -f compose.production.yaml logs -f backend
+# Xem: docker compose --env-file .env.production -f compose.production.yaml logs -f api
 x-logging: &default-logging
   driver: json-file
   options:
@@ -9,23 +9,23 @@ x-logging: &default-logging
     max-file: "5"
 
 services:
-  cms:
+  admin:
     build:
       context: .
       dockerfile: Dockerfile
       target: runner
       args:
-        APP_NAME: cms
-        BACKEND_URL: http://backend:3000
+        APP_NAME: admin
+        BACKEND_URL: http://api:3000
         NEXT_PUBLIC_PUBLISH_WEB_URL: https://${SITE_ADDRESS:?missing}
-    image: iorder-v2-cms:${APP_IMAGE_TAG:-latest}
+    image: iorder-admin:${APP_IMAGE_TAG:-latest}
     restart: unless-stopped
     logging: *default-logging
     environment:
-      SERVICE_NAME: cms
-      BACKEND_URL: http://backend:3000
+      SERVICE_NAME: admin
+      BACKEND_URL: http://api:3000
     depends_on:
-      backend:
+      api:
         condition: service_healthy
       migrate:
         condition: service_completed_successfully
@@ -40,25 +40,25 @@ services:
       retries: 3
       start_period: 30s
 
-  publish-web:
+  website:
     build:
       context: .
       dockerfile: Dockerfile
       target: runner
       args:
-        APP_NAME: publish-web
-        BACKEND_URL: http://backend:3000
-    image: iorder-v2-publish:${APP_IMAGE_TAG:-latest}
+        APP_NAME: website
+        BACKEND_URL: http://api:3000
+    image: iorder-website:${APP_IMAGE_TAG:-latest}
     restart: unless-stopped
     logging: *default-logging
     environment:
-      SERVICE_NAME: publish-web
-      BACKEND_URL: http://backend:3000
+      SERVICE_NAME: website
+      BACKEND_URL: http://api:3000
       PUBLISH_WEB_REVALIDATE_SECRET: ${PUBLISH_WEB_REVALIDATE_SECRET:?missing}
       # Để trống tới khi tạo website trong Umami; khi có thì website chèn script /stats/script.js.
       UMAMI_WEBSITE_ID: ${UMAMI_WEBSITE_ID:-}
     depends_on:
-      backend:
+      api:
         condition: service_healthy
       migrate:
         condition: service_completed_successfully
@@ -73,25 +73,25 @@ services:
       retries: 3
       start_period: 30s
 
-  backend:
+  api:
     build:
       context: .
       dockerfile: Dockerfile
       target: runner
       args:
-        APP_NAME: backend
-    image: iorder-v2-backend:${APP_IMAGE_TAG:-latest}
+        APP_NAME: api
+    image: iorder-api:${APP_IMAGE_TAG:-latest}
     restart: unless-stopped
     logging: *default-logging
     environment:
-      SERVICE_NAME: backend
+      SERVICE_NAME: api
       DATABASE_URL: postgresql://${POSTGRES_USER:?missing}:${POSTGRES_PASSWORD:?missing}@db:5432/${POSTGRES_DB:?missing}
       LEAD_IP_HASH_SALT: ${LEAD_IP_HASH_SALT:?missing}
       S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:?missing}
       S3_BUCKET: ${S3_BUCKET:?missing}
       S3_ENDPOINT: http://s3:8333
       S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:?missing}
-      PUBLISH_WEB_REVALIDATE_URL: http://publish-web:3000/api/internal/revalidate
+      PUBLISH_WEB_REVALIDATE_URL: http://website:3000/api/internal/revalidate
       PUBLISH_WEB_REVALIDATE_SECRET: ${PUBLISH_WEB_REVALIDATE_SECRET:?missing}
       # Số liệu truy cập cho CMS; thiếu API key hoặc mã website thì CMS báo "chưa kết nối".
       UMAMI_API_URL: http://umami:3000
@@ -119,7 +119,7 @@ services:
       context: .
       dockerfile: Dockerfile
       target: migrations
-    image: iorder-v2-migrate:${APP_IMAGE_TAG:-latest}
+    image: iorder-migrate:${APP_IMAGE_TAG:-latest}
     restart: "no"
     logging: *default-logging
     command: pnpm db:migrate
@@ -132,7 +132,7 @@ services:
       - internal
 
   seed-admin:
-    image: iorder-v2-migrate:${APP_IMAGE_TAG:-latest}
+    image: iorder-migrate:${APP_IMAGE_TAG:-latest}
     restart: "no"
     logging: *default-logging
     command: pnpm db:seed:admin
@@ -149,7 +149,7 @@ services:
 
   # Sao lưu media theo object; chỉ chạy qua scripts/backup.sh (profile ops, không khởi động khi up).
   backup-media:
-    image: iorder-v2-migrate:${APP_IMAGE_TAG:-latest}
+    image: iorder-migrate:${APP_IMAGE_TAG:-latest}
     profiles: ["ops"]
     restart: "no"
     logging: *default-logging
@@ -243,15 +243,15 @@ services:
     restart: unless-stopped
     logging: *default-logging
     depends_on:
-      cms:
+      admin:
         condition: service_healthy
-      publish-web:
+      website:
         condition: service_healthy
-      backend:
+      api:
         condition: service_healthy
       # Không phụ thuộc umami: thống kê lỗi chỉ làm hỏng /stats/*, không chặn website khởi động.
     environment:
-      CMS_SITE_ADDRESS: ${CMS_SITE_ADDRESS:?missing}
+      ADMIN_SITE_ADDRESS: ${ADMIN_SITE_ADDRESS:?missing}
       SITE_ADDRESS: ${SITE_ADDRESS:?missing}
       ANALYTICS_SITE_ADDRESS: ${ANALYTICS_SITE_ADDRESS:?missing}
     ports:

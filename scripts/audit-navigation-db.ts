@@ -3,9 +3,9 @@ import { randomUUID } from "node:crypto";
 import { config } from "dotenv";
 import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
-import * as schema from "../packages/core/src/db/schema";
-import { NavigationWriteConflictError, writeNavigation } from "../packages/core/src/server/navigation/navigation.repository";
-import type { NavigationItems } from "../packages/core/src/server/navigation/navigation.contract";
+import * as schema from "../packages/shared/src/db/schema";
+import { NavigationWriteConflictError, writeNavigation } from "../packages/shared/src/server/navigation/navigation.repository";
+import type { NavigationItems } from "../packages/shared/src/server/navigation/navigation.contract";
 
 config({ quiet: true });
 const url = process.env.DATABASE_URL;

@@ -1,6 +1,6 @@
 import { config } from "dotenv";
 import postgres from "postgres";
-import { publishingConfigSchema } from "../packages/core/src/server/settings/publishing.contract";
+import { publishingConfigSchema } from "../packages/shared/src/server/settings/publishing.contract";
 
 config({ quiet: true });
 async function main() {

@@ -4,12 +4,12 @@ import { config } from "dotenv";
 import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
 import { z } from "zod";
-import * as schema from "../packages/core/src/db/schema";
-import { deleteCmsUser, listCmsUsers, listCmsUsersPage, writeCmsUser } from "../packages/core/src/server/users/users.repository";
-import { cmsUserListQuerySchema } from "../packages/core/src/server/users/users.contract";
-import { findActiveAdministratorByUsername, findActiveAdministratorSession } from "../packages/core/src/server/auth/auth.repository";
-import { hasDatabaseErrorCode } from "../packages/core/src/server/shared/database-error";
-import { CmsAccessError } from "../packages/core/src/server/roles/roles.errors";
+import * as schema from "../packages/shared/src/db/schema";
+import { deleteCmsUser, listCmsUsers, listCmsUsersPage, writeCmsUser } from "../packages/shared/src/server/users/users.repository";
+import { cmsUserListQuerySchema } from "../packages/shared/src/server/users/users.contract";
+import { findActiveAdministratorByUsername, findActiveAdministratorSession } from "../packages/shared/src/server/auth/auth.repository";
+import { hasDatabaseErrorCode } from "../packages/shared/src/server/shared/database-error";
+import { CmsAccessError } from "../packages/shared/src/server/roles/roles.errors";
 
 config({ quiet: true });
 

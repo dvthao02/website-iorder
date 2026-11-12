@@ -1,0 +1,181 @@
+import { contentSeoSchema } from "../shared/content-seo";
+import {
+  adminOfferingInputSchema,
+  adminOfferingSchema,
+  adminOfferingListItemSchema,
+  offeringCardFieldsSchema,
+  offeringSlugSchema,
+  publicOfferingDetailSchema,
+  publicOfferingSummarySchema,
+  publicOfferingTypeSchema,
+  type AdminOffering,
+  type PublicOfferingType,
+} from "./offering-content.contract";
+import { mediaPath } from "../media/storage";
+import { contentPathChange, offeringPublicPath } from "../shared/content-paths";
+import { validateCoverMedia, validateSeoMedia } from "../media/media.service";
+import { publicationDate } from "../shared/publication-date";
+import { assertContentVersion, contentStateAfterAction, contentStateChangeNotes, contentStateRequestSchema, ContentVersionConflictError, type ContentStateAction } from "../shared/content-version";
+import {
+  createOfferingWithRevision,
+  deleteArchivedOffering,
+  findAdminOfferingById,
+  findPublishedOfferingBySlug,
+  listAdminOfferings,
+  listAdminOfferingsPage,
+  listAdminOfferingSummariesPage,
+  listPublishedOfferingDetails,
+  listPublishedOfferings,
+  updateOfferingWithRevision,
+} from "./offerings.repository";
+import type { AdminListPage, AdminListQuery } from "@iorder/shared/server/shared/admin-list.contract";
+
+const offeringIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+const catalogTypeByPath = {
+  "dich-vu": "service",
+  "giai-phap": "solution",
+  "phan-mem": "software",
+} as const;
+
+
+export function getOfferingTypeFromCatalogPath(path: string) {
+  const type = catalogTypeByPath[path as keyof typeof catalogTypeByPath];
+
+  return type ? publicOfferingTypeSchema.parse(type) : undefined;
+}
+
+export async function getPublishedOfferingSummaries(type: string) {
+  const parsedType = publicOfferingTypeSchema.parse(type);
+  const rows = await listPublishedOfferings(parsedType);
+
+  return rows.map(({ content, ...row }) => {
+    // Nội dung cũ thiếu/sai trường thì thẻ chỉ không hiện phần đó, danh sách vẫn hiện.
+    const card = offeringCardFieldsSchema.safeParse(content);
+    return publicOfferingSummarySchema.parse({ ...serializeOffering(row), category: card.data?.category ?? null, metrics: card.data?.metrics ?? [] });
+  });
+}
+
+export async function getPublishedOfferingBySlug(type: string, slug: string, previewId?: string) {
+  const parsedType = publicOfferingTypeSchema.parse(type);
+  const parsedSlug = offeringSlugSchema.parse(slug);
+  const offering = await findPublishedOfferingBySlug(parsedType, parsedSlug, previewId);
+
+  return offering ? publicOfferingDetailSchema.parse(serializeOffering(offering)) : undefined;
+}
+export async function getPublishedOfferingDetails(type: string) {
+  const parsedType = publicOfferingTypeSchema.parse(type);
+  return publicOfferingDetailSchema.array().parse((await listPublishedOfferingDetails(parsedType)).map(serializeOffering));
+}
+
+export async function getAdminOfferings() {
+  const rows = await listAdminOfferings();
+
+  return rows.map((row) => adminOfferingSchema.parse(row));
+}
+
+export async function getAdminOfferingsPage(query: AdminListQuery & { status?: AdminOffering["status"]; type?: PublicOfferingType }): Promise<AdminListPage<AdminOffering>> {
+  const result = await listAdminOfferingsPage(query);
+  return { ...result, items: result.items.map((row) => adminOfferingSchema.parse(row)) };
+}
+
+export async function getAdminOfferingById(id: string) {
+  if (!offeringIdPattern.test(id)) return undefined;
+  const offering = await findAdminOfferingById(id);
+  return offering ? adminOfferingSchema.parse(offering) : undefined;
+}
+
+export async function createAdminOffering(input: unknown, editorId: string) {
+  const values = adminOfferingInputSchema.parse(input);
+  await validateCoverMedia(values.coverMediaId);
+  await validateSeoMedia(values.seo);
+  const publishedAt = values.status === "scheduled" ? values.scheduledAt : values.status === "published" ? new Date() : null;
+  const snapshot = { ...values, publishedAt: publishedAt?.toISOString() ?? null };
+  const id = await createOfferingWithRevision(
+    { ...values, publishedAt },
+    { editorId, versionNumber: 1, snapshot, changeNote: "Tạo Offering trong CMS" },
+    contentPathChange(undefined, { status: values.status, scheduledAt: values.scheduledAt, path: offeringPublicPath(values.slug, values.type) }),
+  );
+  const offering = await findAdminOfferingById(id);
+
+  if (!offering) {
+    throw new Error("Không thể đọc Offering vừa tạo.");
+  }
+
+  return adminOfferingSchema.parse(offering);
+}
+
+export async function updateAdminOffering(id: string, input: unknown, editorId: string, changeNote = "Cập nhật Offering trong CMS", expectedVersion?: number) {
+  const values = adminOfferingInputSchema.parse(input);
+  await validateCoverMedia(values.coverMediaId);
+  await validateSeoMedia(values.seo);
+  const existing = await findAdminOfferingById(id);
+
+  if (!existing) {
+    return undefined;
+  }
+
+  values.seo ??= contentSeoSchema.parse(existing.seo ?? {});
+  if (expectedVersion !== undefined) assertContentVersion(existing.draftVersion, expectedVersion);
+  const publishedAt = publicationDate(values, existing, new Date());
+  const versionNumber = existing.draftVersion + 1;
+  const snapshot = { ...values, coverMediaId: values.coverMediaId === undefined ? existing.coverMediaId : values.coverMediaId, publishedAt: publishedAt?.toISOString() ?? null };
+  // Phiên bản đã khóa ở câu UPDATE nên `existing` đúng là bản trước khi lưu khi ghi thành công.
+  const pathChange = contentPathChange(
+    { status: existing.status, scheduledAt: existing.scheduledAt, path: offeringPublicPath(existing.slug, existing.type) },
+    { status: values.status, scheduledAt: values.scheduledAt, path: offeringPublicPath(values.slug, values.type) },
+  );
+  const updatedId = await updateOfferingWithRevision(
+    id,
+    { ...values, publishedAt },
+    { editorId, versionNumber, snapshot, changeNote },
+    pathChange,
+  );
+
+  if (!updatedId) {
+    throw new ContentVersionConflictError();
+  }
+
+  const offering = await findAdminOfferingById(updatedId);
+
+  if (!offering) {
+    throw new Error("Không thể đọc Offering vừa cập nhật.");
+  }
+
+  return adminOfferingSchema.parse(offering);
+}
+
+export async function getAdminOfferingSummariesPage(query: Parameters<typeof listAdminOfferingSummariesPage>[0]) {
+  const result = await listAdminOfferingSummariesPage(query);
+  return { ...result, items: adminOfferingListItemSchema.array().parse(result.items.map(({ coverKey, ...row }) => ({ ...row, coverUrl: coverKey ? mediaPath(coverKey) : null }))) };
+}
+
+export async function deleteArchivedAdminOffering(id: string, editorId: string, expectedVersion: number) {
+  if (!offeringIdPattern.test(id)) return undefined;
+  return deleteArchivedOffering(id, editorId, expectedVersion);
+}
+
+export async function changeAdminOfferingState(id: string, action: ContentStateAction, editorId: string, expectedVersion: number) {
+  contentStateRequestSchema.parse({ action, expectedVersion });
+  const current = await findAdminOfferingById(id);
+  if (!current) return undefined;
+  const status = contentStateAfterAction(current, action, expectedVersion);
+  const values = Object.fromEntries(Object.keys(adminOfferingInputSchema.shape).map(key => [key, Reflect.get(current, key)]));
+  return updateAdminOffering(id, { ...values, status }, editorId, `${contentStateChangeNotes[action]} nội dung`, expectedVersion);
+}
+
+function serializeOffering<T extends {
+  coverAltText: string | null;
+  coverHeight: number | null;
+  coverStorageKey: string | null;
+  coverWidth: number | null;
+}>(row: T) {
+  const { coverStorageKey, coverWidth, coverHeight, coverAltText, ...offering } = row;
+
+  return {
+    ...offering,
+    cover: coverStorageKey
+      ? { url: mediaPath(coverStorageKey), width: coverWidth, height: coverHeight, altText: coverAltText }
+      : null,
+  };
+}

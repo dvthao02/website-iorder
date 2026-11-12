@@ -3,9 +3,9 @@ import "dotenv/config";
 import { and, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 
-import { getDb } from "../packages/core/src/db/client";
-import { auditLogs, offeringRevisions, offerings, users } from "../packages/core/src/db/schema";
-import { offeringContentSchema } from "../packages/core/src/server/offerings/offering-content.contract";
+import { getDb } from "../packages/shared/src/db/client";
+import { auditLogs, offeringRevisions, offerings, users } from "../packages/shared/src/db/schema";
+import { offeringContentSchema } from "../packages/shared/src/server/offerings/offering-content.contract";
 
 const v1BaseUrl = "https://iwork.vn";
 // Industry offerings were retired from the CMS and must not be re-imported.

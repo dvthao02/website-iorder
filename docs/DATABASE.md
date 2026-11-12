@@ -2,9 +2,9 @@
 
 PostgreSQL 17, ORM Drizzle. Chỉ Backend được truy cập DB; CMS và website gọi API của Backend.
 
-- **Nguồn chuẩn của cấu trúc:** `packages/core/src/db/schema/*.ts`. Khi file này và schema lệch nhau, tin schema rồi sửa file này.
+- **Nguồn chuẩn của cấu trúc:** `packages/shared/src/db/schema/*.ts`. Khi file này và schema lệch nhau, tin schema rồi sửa file này.
 - **Migration:** thư mục `drizzle/`, 15 file từ `0000_initial_schema` đến `0014_media_version`. Kiểm tra bằng `pnpm db:check`.
-- **Cột JSONB:** dữ liệu luôn được kiểm tra bằng Zod ở `packages/core/src/server/**/*.contract.ts` trước khi ghi và sau khi đọc.
+- **Cột JSONB:** dữ liệu luôn được kiểm tra bằng Zod ở `packages/shared/src/server/**/*.contract.ts` trước khi ghi và sau khi đọc.
 
 Phần 1–4 mô tả cấu trúc, ít thay đổi. Phần 5 là ảnh chụp dữ liệu DB local tại một thời điểm, sẽ cũ dần.
 
@@ -89,7 +89,7 @@ erDiagram
 
 **`roles`**: `code` (duy nhất), `name`, `description`, `is_system` (vai trò hệ thống không xóa được).
 
-**`permissions`**: `code` (duy nhất, dạng `module.action`, ví dụ `posts.publish`), `name`, `description`. Danh sách quyền định nghĩa trong code (`packages/core/src/server/auth/permissions.ts`): 16 module, tổng 57 quyền.
+**`permissions`**: `code` (duy nhất, dạng `module.action`, ví dụ `posts.publish`), `name`, `description`. Danh sách quyền định nghĩa trong code (`packages/shared/src/server/auth/permissions.ts`): 16 module, tổng 57 quyền.
 
 | Module | Hành động |
 |---|---|
@@ -149,7 +149,7 @@ erDiagram
 | image | Hình ảnh | mediaId, alt, caption |
 | featured_posts, download_list | (cũ) | hiển thị như `collection_list` |
 
-Mã biểu tượng (`icon`) là danh sách cố định trong `packages/core/src/server/shared/block-icons.ts`.
+Mã biểu tượng (`icon`) là danh sách cố định trong `packages/shared/src/server/shared/block-icons.ts`.
 
 **`page_revisions`**: lịch sử trang. Gồm `version_number` (duy nhất theo trang), `snapshot` (toàn bộ trang kèm các khối), `editor_id`, `change_note`, `is_published`.
 

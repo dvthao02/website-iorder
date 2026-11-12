@@ -3,9 +3,9 @@ import { randomUUID } from "node:crypto";
 import { config } from "dotenv";
 import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
-import * as schema from "../packages/core/src/db/schema";
-import { listAuditLogsPage } from "../packages/core/src/server/audit/audit.repository";
-import { auditListPageSchema } from "../packages/core/src/server/audit/audit.contract";
+import * as schema from "../packages/shared/src/db/schema";
+import { listAuditLogsPage } from "../packages/shared/src/server/audit/audit.repository";
+import { auditListPageSchema } from "../packages/shared/src/server/audit/audit.contract";
 
 config({ quiet: true });
 const url = process.env.DATABASE_URL;

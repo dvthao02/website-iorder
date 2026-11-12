@@ -2,11 +2,11 @@ import "dotenv/config";
 
 import { eq } from "drizzle-orm";
 
-import { getDb } from "../packages/core/src/db/client";
-import { users } from "../packages/core/src/db/schema";
-import { getAdminNavigation, saveNavigation } from "../packages/core/src/server/navigation/navigation.service";
-import { getFixedWebsitePage, type AdminPage, type CollectionListData, type PageBlock } from "../packages/core/src/server/pages/pages.contract";
-import { getAdminPageBySlug, saveAdminPage } from "../packages/core/src/server/pages/pages.service";
+import { getDb } from "../packages/shared/src/db/client";
+import { users } from "../packages/shared/src/db/schema";
+import { getAdminNavigation, saveNavigation } from "../packages/shared/src/server/navigation/navigation.service";
+import { getFixedWebsitePage, type AdminPage, type CollectionListData, type PageBlock } from "../packages/shared/src/server/pages/pages.contract";
+import { getAdminPageBySlug, saveAdminPage } from "../packages/shared/src/server/pages/pages.service";
 
 // Tách "Hướng dẫn sử dụng" khỏi trang "Hỗ trợ cài đặt" trên dữ liệu đã có:
 // 1. Bỏ khối danh sách hướng dẫn khỏi /ho-tro/cai-dat (còn trong lịch sử phiên bản của trang).

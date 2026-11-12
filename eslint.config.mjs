@@ -8,7 +8,7 @@ const eslintConfig = defineConfig([
   {
     settings: {
       next: {
-        rootDir: ["apps/backend/", "apps/cms/", "apps/publish-web/"],
+        rootDir: ["apps/api/", "apps/admin/", "apps/website/"],
       },
     },
   },

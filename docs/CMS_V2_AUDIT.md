@@ -1,6 +1,6 @@
 # Audit CMS V2: nghiệp vụ, dữ liệu và UI/UX
 
-Ngày: 21/10/2026. Phạm vi: `apps/cms`, `apps/backend/src/app/api/admin`, `apps/backend/src/proxy.ts`, `packages/core/src/server`, phần `apps/publish-web` liên quan đến dữ liệu CMS.
+Ngày: 21/10/2026. Phạm vi: `apps/admin`, `apps/api/src/app/api/admin`, `apps/api/src/proxy.ts`, `packages/shared/src/server`, phần `apps/website` liên quan đến dữ liệu CMS.
 
 Phương pháp: đọc code trên working tree hiện tại (gồm cả các thay đổi chưa commit), đối chiếu với `docs/PROJECT.md` và `docs/ROADMAP.md`. Mỗi vấn đề dưới đây có file/dòng làm bằng chứng. Chưa chạy lại cổng chất lượng, E2E hay thử trên trình duyệt cho đợt audit này. Những gì chưa kiểm chứng được ghi ở mục 7.
 
@@ -13,20 +13,20 @@ Tóm tắt: nền tảng vững, gồm RBAC 2 lớp, optimistic concurrency, rev
 ## 1. Tổng quan kiến trúc
 
 ```text
-Trình duyệt → Caddy → cms (3001) ──rewrite /api──→ backend (3002) → service → repository → PostgreSQL
-                    → publish-web (3000) ──fetch──→ backend            └→ S3 (SeaweedFS)
+Trình duyệt → Caddy → cms (3001) ──rewrite /api──→ api (3002) → service → repository → PostgreSQL
+                    → website (3000) ──fetch──→ api            └→ S3 (SeaweedFS)
 ```
 
 | Lớp | Vị trí | Ghi chú |
 |---|---|---|
-| Phân quyền thô | `apps/backend/src/proxy.ts` + `lib/admin-permission.ts` | Ánh xạ `segment đầu của /api/admin` × method → `module.action`. Tài nguyên lạ thì chỉ Super Admin được gọi |
+| Phân quyền thô | `apps/api/src/proxy.ts` + `lib/admin-permission.ts` | Ánh xạ `segment đầu của /api/admin` × method → `module.action`. Tài nguyên lạ thì chỉ Super Admin được gọi |
 | Phân quyền chi tiết | Route handler (`lib/admin-access.ts`: `denyUnless`, `denyPublishUnless`) | Nội dung đang/sẽ công khai cần `<module>.publish` |
-| Nghiệp vụ | `packages/core/src/server/<domain>/*.service.ts` | Zod parse đầu vào/đầu ra |
+| Nghiệp vụ | `packages/shared/src/server/<domain>/*.service.ts` | Zod parse đầu vào/đầu ra |
 | Dữ liệu | `*.repository.ts` (Drizzle) | Transaction, `for update`, kiểm `draft_version`/`version` |
-| CMS | `apps/cms/src/app/admin/(protected)/**` (Server Component) → `lib/backend.ts` (đọc) và `lib/admin-api.ts` (ghi) | `requireAdminPermission` ở từng trang; `useAdminPermissions().can()` chỉ để ẩn nút |
-| Làm mới website | `revalidatePath` (wrapper) → HMAC → `publish-web/api/internal/revalidate` | TTL 60 giây làm dự phòng |
+| CMS | `apps/admin/src/app/admin/(protected)/**` (Server Component) → `lib/backend.ts` (đọc) và `lib/admin-api.ts` (ghi) | `requireAdminPermission` ở từng trang; `useAdminPermissions().can()` chỉ để ẩn nút |
+| Làm mới website | `revalidatePath` (wrapper) → HMAC → `website/api/internal/revalidate` | TTL 60 giây làm dự phòng |
 
-Danh mục quyền (`packages/core/src/server/auth/permissions.ts`) có 16 module × `view/create/update/delete/publish`. Role là dữ liệu, mỗi user một role, Super Admin (`is_system`) không sửa được. Quyền được đọc lại từ DB ở **mỗi request** (`auth.repository.ts` `findActiveAdministratorSession`), nên đổi role có hiệu lực ngay.
+Danh mục quyền (`packages/shared/src/server/auth/permissions.ts`) có 16 module × `view/create/update/delete/publish`. Role là dữ liệu, mỗi user một role, Super Admin (`is_system`) không sửa được. Quyền được đọc lại từ DB ở **mỗi request** (`auth.repository.ts` `findActiveAdministratorSession`), nên đổi role có hiệu lực ngay.
 
 ---
 
@@ -141,7 +141,7 @@ Cả ba màn ghi đều dùng `{ values, expectedVersion }`. Quyền là `settin
 
 **P0-1. Người có `users.update` chiếm được tài khoản có quyền cao hơn mình (leo thang quyền)**
 
-- **File:** `packages/core/src/server/users/users.repository.ts:62-64`; route `POST /api/admin/users`.
+- **File:** `packages/shared/src/server/users/users.repository.ts:62-64`; route `POST /api/admin/users`.
 - **Hiện trạng:** `assertCanGrant` chỉ chạy khi **đổi role** (`if (roleChanged)`). Kịch bản:
   1. A không phải Super Admin, có `users.update`.
   2. B có role R với các quyền A không có (ví dụ `roles.*`, `settings.update`).
@@ -182,7 +182,7 @@ Cả ba màn ghi đều dùng `{ values, expectedVersion }`. Quyền là `settin
 
 **P1-4. Trang hệ thống (kể cả Trang chủ) có thể bị chuyển về Bản nháp/Lưu trữ**
 
-- **File:** `page-editor-detail.tsx` (`ContentStatusChoice` không giới hạn), `apps/publish-web/src/app/(web)/page.tsx` (thiếu trang thì hiện "Trang chủ đang chờ được xuất bản trong CMS").
+- **File:** `page-editor-detail.tsx` (`ContentStatusChoice` không giới hạn), `apps/website/src/app/(web)/page.tsx` (thiếu trang thì hiện "Trang chủ đang chờ được xuất bản trong CMS").
 - **Hiện trạng:** chỉ một lần bấm nhầm là website mất trang chủ hoặc trang danh sách (404). Không có cảnh báo riêng.
 - **Hướng xử lý:**
   - Trang chủ: không cho chọn Lưu trữ, chuyển về nháp phải xác nhận.
@@ -191,13 +191,13 @@ Cả ba màn ghi đều dùng `{ values, expectedVersion }`. Quyền là `settin
 
 **P1-5. Role thiếu `taxonomy.view` thấy editor bài viết với chuyên mục/thẻ trống**
 
-- **File:** `apps/cms/src/lib/backend.ts:235` (403 thì trả danh sách rỗng), `posts-content-manager.tsx:309`, `permissions.ts:66` (role Marketing không có `taxonomy`).
+- **File:** `apps/admin/src/lib/backend.ts:235` (403 thì trả danh sách rỗng), `posts-content-manager.tsx:309`, `permissions.ts:66` (role Marketing không có `taxonomy`).
 - **Hiện trạng:** bài đang có chuyên mục vẫn hiện "Chưa có chuyên mục.", người dùng không thấy và không đổi được. Dữ liệu không mất vì `categoryIds` được giữ, nhưng giao diện nói sai sự thật.
 - **Hướng xử lý:** cho `GET /api/admin/taxonomy` nhận thêm `posts.view` (đọc danh mục là một phần của việc sửa bài). Tạo/sửa/xóa chuyên mục vẫn cần `taxonomy.*`. Sửa trong `admin-permission.ts`, thêm test.
 
 **P1-6. Cấu trúc sidebar khiến trang hệ thống khó tìm**
 
-- **File:** `apps/cms/src/components/admin/admin-shell.tsx:78-135`, `apps/cms/src/app/admin/(protected)/pages/page.tsx`.
+- **File:** `apps/admin/src/components/admin/admin-shell.tsx:78-135`, `apps/admin/src/app/admin/(protected)/pages/page.tsx`.
 - **Hiện trạng:** xem mục 3, vấn đề 1.
 - **Hướng xử lý:** xem mục 5. Gom thành một mục **"Trang website"** có 2 tab "Trang có sẵn" và "Trang tự tạo". Giữ lối tắt "Trang chủ".
 
@@ -288,4 +288,4 @@ Mỗi bước kết thúc bằng `pnpm typecheck && pnpm lint && pnpm test && pn
 - P0-1 được suy ra từ luồng code (`users.repository.ts:62-64`), **chưa tái hiện bằng request thật**. Bước 1 của kế hoạch sẽ viết fixture tái hiện trước khi sửa.
 - P1-2: đã chạy thử Zod trong repo và xác nhận `javascript:`/`data:` lọt qua `z.string().url()`. Chưa kiểm hành vi chặn của React 19 trên build production.
 - Chưa đánh giá trên điện thoại/tablet và chưa đo hiệu năng cho đợt này (ROADMAP đã có số đo bố cục 31 màn).
-- Không xem xét giao diện publish-web ngoài các điểm liên quan trực tiếp đến dữ liệu CMS.
+- Không xem xét giao diện website ngoài các điểm liên quan trực tiếp đến dữ liệu CMS.

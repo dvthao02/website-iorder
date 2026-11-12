@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/components/admin/*": ["src/components/admin/*"],
+      "@/components/*": ["src/components/*"],
+      "@iorder/shared/*": ["../../packages/shared/src/*"],
+      "@/*": ["src/*"]
+    }
+  },
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "../../packages/shared/src/**/*.ts"],
+  "exclude": ["node_modules"]
+}

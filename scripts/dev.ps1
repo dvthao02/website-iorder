@@ -1,4 +1,4 @@
-# Chay moi truong dev local: PostgreSQL + S3Mock (Docker) va 3 app Next.js (backend 3002, cms 3001, publish-web 3000),
+# Chay moi truong dev local: PostgreSQL + S3Mock (Docker) va 3 app Next.js (api 3002, admin 3001, website 3000),
 # moi app mot cua so/tab rieng de xem log.
 #   powershell -ExecutionPolicy Bypass -File scripts/dev.ps1              chay tat ca
 #   powershell -ExecutionPolicy Bypass -File scripts/dev.ps1 -Analytics   them Umami (cong 3005, ton them RAM)
@@ -18,9 +18,9 @@ $root = Split-Path -Parent $PSScriptRoot
 Set-Location $root
 
 $services = @(
-  @{ Name = "backend"; Port = 3002; Script = "dev:backend"; Url = "http://localhost:3002/api/health" },
-  @{ Name = "cms"; Port = 3001; Script = "dev:cms"; Url = "http://localhost:3001/admin" },
-  @{ Name = "publish-web"; Port = 3000; Script = "dev"; Url = "http://localhost:3000" }
+  @{ Name = "api"; Port = 3002; Script = "dev:api"; Url = "http://localhost:3002/api/health" },
+  @{ Name = "admin"; Port = 3001; Script = "dev:admin"; Url = "http://localhost:3001/admin" },
+  @{ Name = "website"; Port = 3000; Script = "dev"; Url = "http://localhost:3000" }
 )
 
 function Write-Step($message) { Write-Host "==> $message" -ForegroundColor Cyan }
@@ -134,5 +134,5 @@ foreach ($service in $services) {
 }
 if ($Analytics) { Write-Host ("{0,-12} {1,-10} {2}" -f "umami", "docker", "http://localhost:3005") }
 Write-Host ""
-Write-Host "Lan dau mo moi trang Next se bien dich vai giay. Sau khi sua packages/core phai khoi dong lai backend/cms."
+Write-Host "Lan dau mo moi trang Next se bien dich vai giay. Sau khi sua packages/shared phai khoi dong lai api/admin."
 Write-Host "Dung tat ca: powershell -ExecutionPolicy Bypass -File scripts/dev.ps1 -Stop"

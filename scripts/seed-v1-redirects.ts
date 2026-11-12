@@ -2,9 +2,9 @@ import "dotenv/config";
 
 import { eq } from "drizzle-orm";
 
-import { getDb } from "../packages/core/src/db/client";
-import { redirects, users } from "../packages/core/src/db/schema";
-import { writeRedirect } from "../packages/core/src/server/redirects/redirects.service";
+import { getDb } from "../packages/shared/src/db/client";
+import { redirects, users } from "../packages/shared/src/db/schema";
+import { writeRedirect } from "../packages/shared/src/server/redirects/redirects.service";
 
 const redirectsToSeed = [
   // URL catalogue V1: V2 uses a flat, content-type-based URL structure.

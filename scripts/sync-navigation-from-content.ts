@@ -2,12 +2,12 @@ import "dotenv/config";
 
 import { eq } from "drizzle-orm";
 
-import { getDb } from "../packages/core/src/db/client";
-import { users } from "../packages/core/src/db/schema";
-import type { NavigationItems } from "../packages/core/src/server/navigation/navigation.contract";
-import { saveNavigation } from "../packages/core/src/server/navigation/navigation.service";
-import { listPublishedOfferings } from "../packages/core/src/server/offerings/offerings.repository";
-import { listCategories } from "../packages/core/src/server/taxonomy/taxonomy.repository";
+import { getDb } from "../packages/shared/src/db/client";
+import { users } from "../packages/shared/src/db/schema";
+import type { NavigationItems } from "../packages/shared/src/server/navigation/navigation.contract";
+import { saveNavigation } from "../packages/shared/src/server/navigation/navigation.service";
+import { listPublishedOfferings } from "../packages/shared/src/server/offerings/offerings.repository";
+import { listCategories } from "../packages/shared/src/server/taxonomy/taxonomy.repository";
 
 const catalogRoots = [
   { key: "software", label: "Phần mềm", url: "/phan-mem", type: "software" as const },

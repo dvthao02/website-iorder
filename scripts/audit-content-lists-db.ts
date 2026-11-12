@@ -3,11 +3,11 @@ import { randomUUID } from "node:crypto";
 import { config } from "dotenv";
 import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
-import * as schema from "../packages/core/src/db/schema";
-import { listAdminPostsPage, listAdminPostSummariesPage } from "../packages/core/src/server/posts/posts.repository";
-import { adminPostListItemSchema } from "../packages/core/src/server/posts/posts.contract";
-import { listAdminOfferingsPage, listAdminOfferingSummariesPage } from "../packages/core/src/server/offerings/offerings.repository";
-import { adminOfferingListItemSchema } from "../packages/core/src/server/offerings/offering-content.contract";
+import * as schema from "../packages/shared/src/db/schema";
+import { listAdminPostsPage, listAdminPostSummariesPage } from "../packages/shared/src/server/posts/posts.repository";
+import { adminPostListItemSchema } from "../packages/shared/src/server/posts/posts.contract";
+import { listAdminOfferingsPage, listAdminOfferingSummariesPage } from "../packages/shared/src/server/offerings/offerings.repository";
+import { adminOfferingListItemSchema } from "../packages/shared/src/server/offerings/offering-content.contract";
 
 config({ quiet: true });
 const url = process.env.DATABASE_URL;

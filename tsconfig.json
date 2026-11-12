@@ -19,12 +19,12 @@
       }
     ],
     "paths": {
-      "@iorder/core/*": ["./packages/core/src/*"]
+      "@iorder/shared/*": ["./packages/shared/src/*"]
     }
   },
   "include": [
     "drizzle.config.ts",
-    "packages/core/src/**/*.ts",
+    "packages/shared/src/**/*.ts",
     "scripts/**/*.ts",
     "scripts/**/*.mts",
     "e2e/**/*.ts",

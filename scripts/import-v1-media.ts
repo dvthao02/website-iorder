@@ -3,9 +3,9 @@ import "dotenv/config";
 import { and, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 
-import { getDb } from "../packages/core/src/db/client";
-import { auditLogs, mediaAssets, offeringRevisions, offerings, supportDownloads, users } from "../packages/core/src/db/schema";
-import { ensureMediaBucket, hasStoredObject, putStoredObject } from "../packages/core/src/server/media/storage";
+import { getDb } from "../packages/shared/src/db/client";
+import { auditLogs, mediaAssets, offeringRevisions, offerings, supportDownloads, users } from "../packages/shared/src/db/schema";
+import { ensureMediaBucket, hasStoredObject, putStoredObject } from "../packages/shared/src/server/media/storage";
 
 const v1BaseUrl = "https://iwork.vn";
 const offeringTypes = ["software", "solution", "service"] as const;

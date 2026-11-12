@@ -4,9 +4,9 @@ import { config } from "dotenv";
 import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
 import { z } from "zod";
-import * as schema from "../packages/core/src/db/schema";
-import { saveCategory } from "../packages/core/src/server/taxonomy/taxonomy.repository";
-import { hasDatabaseErrorCode } from "../packages/core/src/server/shared/database-error";
+import * as schema from "../packages/shared/src/db/schema";
+import { saveCategory } from "../packages/shared/src/server/taxonomy/taxonomy.repository";
+import { hasDatabaseErrorCode } from "../packages/shared/src/server/shared/database-error";
 
 config({ quiet: true });
 

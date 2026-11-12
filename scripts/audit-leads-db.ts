@@ -3,9 +3,9 @@ import { randomUUID } from "node:crypto";
 import { config } from "dotenv";
 import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
-import * as schema from "../packages/core/src/db/schema";
-import { listLeadsPage, updateLeadStatus } from "../packages/core/src/server/leads/leads.repository";
-import { submitPublicLead } from "../packages/core/src/server/leads/leads.service";
+import * as schema from "../packages/shared/src/db/schema";
+import { listLeadsPage, updateLeadStatus } from "../packages/shared/src/server/leads/leads.repository";
+import { submitPublicLead } from "../packages/shared/src/server/leads/leads.service";
 
 config({ quiet: true });
 const url = process.env.DATABASE_URL;

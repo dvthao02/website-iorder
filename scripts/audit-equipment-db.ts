@@ -3,11 +3,11 @@ import { randomUUID } from "node:crypto";
 import { config } from "dotenv";
 import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
-import * as schema from "../packages/core/src/db/schema";
-import { saveEquipment, saveEquipmentGroup, deleteArchivedEquipment, deleteEquipmentGroup, listEquipmentPage, changeEquipmentState } from "../packages/core/src/server/equipment/equipment.repository";
-import { ContentVersionConflictError } from "../packages/core/src/server/shared/content-version";
-import { EquipmentVersionConflictError } from "../packages/core/src/server/equipment/equipment-version";
-import type { EquipmentInput } from "../packages/core/src/server/equipment/equipment.contract";
+import * as schema from "../packages/shared/src/db/schema";
+import { saveEquipment, saveEquipmentGroup, deleteArchivedEquipment, deleteEquipmentGroup, listEquipmentPage, changeEquipmentState } from "../packages/shared/src/server/equipment/equipment.repository";
+import { ContentVersionConflictError } from "../packages/shared/src/server/shared/content-version";
+import { EquipmentVersionConflictError } from "../packages/shared/src/server/equipment/equipment-version";
+import type { EquipmentInput } from "../packages/shared/src/server/equipment/equipment.contract";
 
 config({ quiet: true });
 const databaseUrl = process.env.DATABASE_URL;
