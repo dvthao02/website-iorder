@@ -1,6 +1,6 @@
 import { contentSeoSchema, contentSeoVisibilitySchema } from "../shared/content-seo";
 import { z } from "zod";
-import { blockAppearanceSchema } from "../shared/appearance";
+import { blockAppearanceSchema, detailHeroLayoutSchema, type DetailHeroLayout } from "../shared/appearance";
 import { pricingDataSchema } from "../shared/pricing.contract";
 import { pageBlockInputSchema } from "../pages/pages.contract";
 
@@ -10,7 +10,11 @@ const shortTextSchema = z.string().trim().min(1).max(500);
 // Thiếu phần nào thì phần đó "Tự động" (nền trắng / xanh nhạt xen kẽ).
 export const offeringSectionKeys = ["overview", "benefits", "pricing", "related"] as const;
 export type OfferingSectionKey = typeof offeringSectionKeys[number];
+// Bố cục phần đầu trang chi tiết: dùng chung với thiết bị (shared/appearance.ts).
+export const offeringHeroLayoutSchema = detailHeroLayoutSchema;
+export type OfferingHeroLayout = DetailHeroLayout;
 export const offeringSectionAppearanceSchema = z.object({
+  hero: offeringHeroLayoutSchema.optional(),
   overview: blockAppearanceSchema.optional(),
   benefits: blockAppearanceSchema.optional(),
   pricing: blockAppearanceSchema.optional(),

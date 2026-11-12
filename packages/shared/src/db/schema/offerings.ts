@@ -91,6 +91,8 @@ export const salesEquipment = pgTable(
     canonicalUrl: text("canonical_url"),
     seo: jsonb("seo").$type<unknown>().default({}).notNull(),
     blocks: jsonb("blocks").$type<unknown>(),
+    // Bố cục phần đầu trang và thông số của trang chi tiết (equipmentPageLayoutSchema); null = bố cục mặc định.
+    pageLayout: jsonb("page_layout").$type<unknown>(),
     scheduledAt: timestamp("scheduled_at", { withTimezone: true }),
     publishedAt: timestamp("published_at", { withTimezone: true }),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),

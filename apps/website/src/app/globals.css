@@ -620,6 +620,15 @@ body:has(.site-mobile-menu--open) .floating-contact, body:has(.site-mobile-menu-
   .screen-block .grouped-card { padding: clamp(1.25rem, 3svh, 1.75rem); }
   .screen-block img.card-media { aspect-ratio: 16 / 9; max-height: 26svh; }
 }
+/* Chiều cao chọn tay trong CMS (data-section-height do Section gắn): tối thiểu bằng phần vùng nhìn dưới header, nội dung căn dọc theo data-section-align. */
+section[data-section-height] { display: flex; flex-direction: column; }
+section[data-section-height] > div { width: 100%; }
+section[data-section-height="screen"] { min-height: calc(100svh - var(--header-height)); }
+section[data-section-height="three_quarter"] { min-height: calc((100svh - var(--header-height)) * .75); }
+section[data-section-height="half"] { min-height: calc((100svh - var(--header-height)) * .5); }
+section[data-section-align="top"] { justify-content: flex-start; }
+section[data-section-align="center"] { justify-content: center; }
+section[data-section-align="bottom"] { justify-content: flex-end; }
 @media (min-width: 1024px) { .bento-grid { grid-template-rows: repeat(2, clamp(9rem, 19svh, 15rem)); } }
 
 /*

@@ -20,6 +20,7 @@ export const pricingDataSchema = z.object({
     features: z.array(z.string().trim().min(1).max(200)).max(20),
     action: pricingActionSchema.nullable(),
     highlighted: z.boolean(),
+    align: z.enum(["left", "center", "right"]).optional(),
     badge: z.string().trim().max(40).nullable(),
     // Màu nền riêng của gói (màu tối thì chữ trắng); thiếu = theo kiểu gói (thường/nổi bật).
     background: cardBackgroundSchema,

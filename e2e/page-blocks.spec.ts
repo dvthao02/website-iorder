@@ -74,7 +74,7 @@ test("Trình sửa trang chỉ có một thanh cuộn; ảnh của phần đầu
   const hero = page.getByRole("region", { name: "Chỉnh sửa thành phần" });
   // Trang chủ có thể đang dùng kiểu khác (ví dụ trượt ảnh): chọn kiểu chữ – ảnh trên form (không lưu) để có ô ảnh minh họa.
   // Kiểu bố cục dùng chung; ảnh nằm trong nội dung Mục trượt 1.
-  await hero.getByRole("tab", { name: "Bố cục chung" }).click();
+  await hero.getByRole("tab", { name: "Bố cục khối" }).click();
   await hero.getByRole("group", { name: "Kiểu bố cục" }).getByText("Chữ trái, ảnh phải").click();
   await page.locator(".admin-blocks__navigation").getByRole("button", { name: "Mục trượt 1", exact: true }).click();
   // Ảnh của phần đầu trang nằm trong một nhóm "Ảnh bên phải (tùy chọn) (n/…)", mỗi ảnh là một mục phẳng (không khung thẻ)

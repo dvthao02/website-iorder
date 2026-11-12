@@ -27,12 +27,12 @@ export function HeroSlider({ slides, priority }: { slides: HeroSlide[]; priority
 
   return <div aria-label="Ảnh nổi bật" aria-roledescription="carousel" className="hero-slider" onBlur={() => setPaused(false)} onFocus={() => setPaused(true)} onKeyDown={(event) => { if (event.key === "ArrowLeft") go(active - 1); if (event.key === "ArrowRight") go(active + 1); }} onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)} role="region">
     {slides.map((slide, index) => <div aria-hidden={index !== active} aria-label={`${index + 1} / ${count}`} aria-roledescription="slide" className={index === active ? "hero-slider__slide hero-slider__slide--active" : "hero-slider__slide"} key={`${slide.url}-${index}`} role="group">
-      <Image alt={slide.alt} className="object-cover" fill priority={priority && index === 0} sizes="100vw" src={slide.url} />
+      <Image alt={slide.alt} className="object-cover" data-builder-field="image" data-builder-item={`slides:${index}`} fill priority={priority && index === 0} sizes="100vw" src={slide.url} />
       {slide.title || slide.description || slide.action ? <div className="hero-slider__overlay"><div className="site-container">
         <div className="max-w-2xl">
-          {slide.title ? <p className="mb-0 text-3xl leading-tight font-bold tracking-tight text-white sm:text-5xl">{slide.title}</p> : null}
-          {slide.description ? <p className="mt-4 text-base leading-7 text-white/90 sm:text-lg sm:leading-8">{slide.description}</p> : null}
-          {slide.action ? <div className="mt-6"><ButtonLink action={slide.action} tabIndex={index === active ? 0 : -1} /></div> : null}
+          {slide.title ? <p className="mb-0 text-3xl leading-tight font-bold tracking-tight text-white sm:text-5xl" data-builder-field="title" data-builder-item={`slides:${index}`}>{slide.title}</p> : null}
+          {slide.description ? <p className="mt-4 text-base leading-7 text-white/90 sm:text-lg sm:leading-8" data-builder-field="description" data-builder-item={`slides:${index}`}>{slide.description}</p> : null}
+          {slide.action ? <div className="mt-6"><ButtonLink action={slide.action} field="action" tabIndex={index === active ? 0 : -1} /></div> : null}
         </div>
       </div></div> : null}
     </div>)}

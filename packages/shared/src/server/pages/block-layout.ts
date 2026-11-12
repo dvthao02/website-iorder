@@ -1,4 +1,4 @@
-import { isDarkColor, type BlockAppearance } from "../shared/appearance";
+import { isDarkColor, type BlockAppearance, type BlockHeight, type BlockVerticalAlign } from "../shared/appearance";
 import { heroToneOf, type PageBlock } from "./pages.contract";
 
 export { isDarkColor } from "../shared/appearance";
@@ -10,13 +10,13 @@ export type SectionSpacing = "sm" | "md" | "lg";
 // Nền riêng của khối: màu tự chọn và/hoặc ảnh nền (mediaId; website điền imageUrl) phủ lớp màu overlay %.
 export type BlockBackground = { color: string | null; mediaId: string | null; overlay: number; imageUrl?: string | null };
 // `tone` luôn là sắc thái chữ của khối (dark = chữ trắng), kể cả khi khối có nền riêng; `width`: % độ rộng nội dung.
-export type BlockFrame = { tone: SectionSurface; spacing: SectionSpacing; anchor: string | null; width?: number | null; background?: BlockBackground | null };
+export type BlockFrame = { tone: SectionSurface; spacing: SectionSpacing; anchor: string | null; width?: number | null; background?: BlockBackground | null; height?: BlockHeight; align?: BlockVerticalAlign };
 
 // Khối mang sẵn nền riêng khi để "Tự động" (số liệu nổi bật là dải nền tối).
 const fixedTone: Partial<Record<PageBlock["type"], SectionSurface>> = { stats: "dark" };
 // Nền tối chỉ hợp với khối mà nội dung nằm trong thẻ trắng hoặc chữ đã có màu cho nền tối;
 // khối chữ dài, biểu mẫu đặt trên nền tối sẽ khó đọc nên "Tối" được đổi thành xanh nhạt (ảnh + chữ và quy trình đã có màu chữ cho nền tối).
-const darkCapable = new Set<PageBlock["type"]>(["hero", "stats", "cta", "media_text", "process", "features", "industries", "ecosystem", "testimonials", "faq", "pricing", "grouped_list", "collection_list", "featured_posts", "download_list", "partners", "video"]);
+const darkCapable = new Set<PageBlock["type"]>(["hero", "stats", "cta", "media_text", "process", "features", "industries", "ecosystem", "testimonials", "faq", "pricing", "grouped_list", "collection_list", "featured_posts", "download_list", "partners", "video", "columns"]);
 export function blockSupportsDarkTone(type: PageBlock["type"]) { return darkCapable.has(type); }
 
 // Dải mỏng (logo, ảnh đơn) và danh sách nằm ngay dưới phần đầu trang danh sách (không tiêu đề) dùng khoảng cách gọn.
@@ -28,6 +28,8 @@ function defaultSpacing(block: PageBlock): SectionSpacing {
 
 /** Chỉ dùng nhịp toàn màn hình cho khoảng cách Tự động; lựa chọn cụ thể từ CMS được ưu tiên. */
 export function blockUsesScreenHeight(block: PageBlock, screens: boolean) {
+  const height = block.appearance?.height;
+  if (height && height !== "default") return false; // Chiều cao chọn tay thay cho nhịp một màn hình tự động.
   return screens && block.type !== "hero" && (!block.appearance?.spacing || block.appearance.spacing === "auto") && defaultSpacing(block) !== "sm";
 }
 
@@ -62,6 +64,7 @@ export function sectionFrame(appearance: Partial<BlockAppearance> | null | undef
     anchor: options.anchor ?? appearance?.anchor ?? null,
     width: appearance?.width ?? null,
     background: color || mediaId ? { color, mediaId, overlay: appearance?.backgroundOverlay ?? 80 } : null,
+    ...(appearance?.height && appearance.height !== "default" ? { height: appearance.height, align: appearance.verticalAlign ?? "center" } : {}),
   };
 }
 

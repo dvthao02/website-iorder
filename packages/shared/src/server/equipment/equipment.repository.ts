@@ -89,7 +89,7 @@ export function saveEquipment(id: string | null, values: EquipmentInput, userId:
     if (id && !before) return undefined;
     if (before) assertEquipmentVersion(before.draftVersion, expectedVersion);
     const draftVersion = (before?.draftVersion ?? 0) + 1;
-    const data = { ...values, seo: contentSeoSchema.parse(values.seo ?? before?.seo ?? {}), blocks: values.blocks === undefined ? equipmentInputSchema.shape.blocks.parse(before?.blocks ?? null) : values.blocks, draftVersion, publishedAt: equipmentPublishedAt(values, before, new Date()) };
+    const data = { ...values, seo: contentSeoSchema.parse(values.seo ?? before?.seo ?? {}), blocks: values.blocks === undefined ? equipmentInputSchema.shape.blocks.parse(before?.blocks ?? null) : values.blocks, pageLayout: values.pageLayout === undefined ? equipmentInputSchema.shape.pageLayout.parse(before?.pageLayout ?? null) : values.pageLayout, draftVersion, publishedAt: equipmentPublishedAt(values, before, new Date()) };
     const [row] = id ? await tx.update(salesEquipment).set({ ...data, updatedAt: new Date() }).where(eq(salesEquipment.id, id)).returning()
       : await tx.insert(salesEquipment).values(data).returning();
     const pathChange = contentPathChange(before && { status: before.status, scheduledAt: before.scheduledAt, path: equipmentPublicPath(before.slug) }, { status: row.status, scheduledAt: row.scheduledAt, path: equipmentPublicPath(row.slug) });

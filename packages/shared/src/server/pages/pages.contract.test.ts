@@ -165,7 +165,12 @@ test("Nội dung sản phẩm: dữ liệu cũ không có giao diện các phầ
   const styled = offeringContentSchema.safeParse({ ...content, appearance: { benefits: { tone: "custom", backgroundColor: "#0A2A57", width: 80 } } });
   assert.ok(styled.success);
   assert.equal(styled.data.appearance.benefits?.backgroundColor, "#0a2a57");
-  assert.equal(offeringContentSchema.safeParse({ ...content, appearance: { hero: {} } }).success, false);
+  assert.equal(offeringContentSchema.safeParse({ ...content, appearance: { footer: {} } }).success, false);
+  // Bố cục phần đầu trang (tùy chọn): điền mặc định, chặn giá trị lạ.
+  const hero = offeringContentSchema.safeParse({ ...content, appearance: { hero: { layout: "centered" } } });
+  assert.ok(hero.success);
+  assert.deepEqual(hero.data.appearance.hero, { layout: "centered", height: "screen", background: "default" });
+  assert.equal(offeringContentSchema.safeParse({ ...content, appearance: { hero: { layout: "left" } } }).success, false);
   const composed = offeringContentSchema.safeParse({ ...content, description: "", blocks: [{ type: "rich_text", isEnabled: true, data: { heading: "Tổng quan", body: "Mô tả chi tiết" } }] });
   assert.ok(composed.success);
   assert.equal(offeringContentSchema.safeParse({ ...content, description: "", blocks: [] }).success, false);
@@ -215,4 +220,54 @@ test("Trang danh sách giữ nguyên khối cha và mọi bố cục con để p
   const fallback = listingLayoutFromBlocks("listing-service", [], { eyebrow: null, title: "Dịch vụ", description: null })!;
   assert.equal(fallback.hero, undefined);
   assert.deepEqual(fallback.blocks.map(block => block.type), ["collection_list"]);
+});
+
+test("Khối nhiều cột: 2–4 cột, mục lồng một cấp, điền mặc định và chặn cấu trúc sai", () => {
+  const base = { type: "columns", isEnabled: true, data: { eyebrow: null, title: null, columns: [{ items: [{ kind: "heading", text: "Tiêu đề" }, { kind: "text", text: "Nội dung" }] }, { items: [{ kind: "image", mediaId: null, alt: null }] }] } };
+  const saved = pageBlockInputSchema.parse(base);
+  assert.ok(saved.type === "columns");
+  assert.equal(saved.data.layout, "equal");
+  assert.equal(saved.data.gap, "md");
+  assert.equal(saved.data.verticalAlign, "center");
+  assert.equal(saved.data.stack, "normal");
+  assert.deepEqual(saved.data.columns[0].items[0], { kind: "heading", text: "Tiêu đề", level: "h3", align: "left" });
+  assert.deepEqual(saved.data.columns[1].items[0], { kind: "image", mediaId: null, alt: null, fit: "contain" });
+  assert.equal(pageBlockInputSchema.safeParse({ ...base, data: { ...base.data, columns: [{ items: [] }] } }).success, false, "ít hơn 2 cột");
+  assert.equal(pageBlockInputSchema.safeParse({ ...base, data: { ...base.data, columns: [1, 2, 3, 4, 5].map(() => ({ items: [] })) } }).success, false, "quá 4 cột");
+  assert.equal(pageBlockInputSchema.safeParse({ ...base, data: { ...base.data, columns: [{ items: [{ kind: "columns", columns: [] }] }, { items: [] }] } }).success, false, "không lồng cột trong cột");
+  assert.equal(pageBlockInputSchema.safeParse({ ...base, data: { ...base.data, columns: [{ items: [{ kind: "button", label: "", href: "/lien-he" }] }, { items: [] }] } }).success, false, "nút thiếu chữ");
+});
+
+test("Căn chữ riêng của mục con (thẻ, số liệu): tùy chọn, dữ liệu cũ vẫn hợp lệ, chặn giá trị lạ", () => {
+  const card = { title: "Thẻ", description: "", href: null };
+  const features = (item: unknown) => ({ type: "features", isEnabled: true, data: { eyebrow: null, title: "Lợi ích", description: null, items: [item] } });
+  assert.ok(pageBlockInputSchema.safeParse(features(card)).success);
+  const saved = pageBlockInputSchema.parse(features({ ...card, align: "center" }));
+  assert.ok(saved.type === "features" && saved.data.items[0].align === "center");
+  assert.equal(pageBlockInputSchema.safeParse(features({ ...card, align: "justify" })).success, false);
+  const stats = (item: unknown) => ({ type: "stats", isEnabled: true, data: { eyebrow: null, title: null, items: [item] } });
+  assert.ok(pageBlockInputSchema.safeParse(stats({ value: "1", label: "Nhãn", note: null })).success);
+  assert.ok(pageBlockInputSchema.safeParse(stats({ value: "1", label: "Nhãn", note: null, align: "right" })).success);
+  assert.equal(pageBlockInputSchema.safeParse(stats({ value: "1", label: "Nhãn", note: null, align: "top" })).success, false);
+});
+
+test("Căn chữ riêng mở rộng sang câu hỏi, gói giá, nhóm danh sách và vị trí biểu tượng của thẻ", () => {
+  const faq = (align: unknown) => ({ type: "faq", isEnabled: true, data: { eyebrow: null, title: "Hỏi đáp", items: [{ question: "Q", answer: "A", ...(align === undefined ? {} : { align }) }] } });
+  assert.ok(pageBlockInputSchema.safeParse(faq(undefined)).success);
+  assert.ok(pageBlockInputSchema.safeParse(faq("center")).success);
+  assert.equal(pageBlockInputSchema.safeParse(faq("middle")).success, false);
+
+  const plan = { name: "Gói", price: "Liên hệ", period: null, description: null, features: [], action: null, highlighted: false, badge: null };
+  const pricing = (extra: object) => ({ type: "pricing", isEnabled: true, data: { eyebrow: null, title: "Giá", description: null, note: null, plans: [{ ...plan, ...extra }] } });
+  assert.ok(pageBlockInputSchema.safeParse(pricing({})).success);
+  assert.ok(pageBlockInputSchema.safeParse(pricing({ align: "right" })).success);
+  assert.equal(pageBlockInputSchema.safeParse(pricing({ align: "up" })).success, false);
+
+  const grouped = (extra: object) => ({ type: "grouped_list", isEnabled: true, data: { eyebrow: null, title: "Nhóm", description: null, groupLabel: null, showCount: false, groups: [{ title: "Nhóm 1", icon: null, items: [], action: null, ...extra }] } });
+  assert.ok(pageBlockInputSchema.safeParse(grouped({ align: "center" })).success);
+
+  const card = { title: "Thẻ", description: "", href: null };
+  const features = (extra: object) => ({ type: "features", isEnabled: true, data: { eyebrow: null, title: "Lợi ích", description: null, items: [{ ...card, ...extra }] } });
+  assert.ok(pageBlockInputSchema.safeParse(features({ iconPosition: "left" })).success);
+  assert.equal(pageBlockInputSchema.safeParse(features({ iconPosition: "right" })).success, false);
 });

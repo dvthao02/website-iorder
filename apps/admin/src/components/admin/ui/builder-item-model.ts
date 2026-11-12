@@ -23,6 +23,23 @@ export function builderItemLabel(item: BuilderItem, index: number) {
   const label = [item.title, item.name, item.question, item.label].find(value => typeof value === "string" && value.trim());
   return typeof label === "string" ? label : `Mục ${index + 1}`;
 }
+/**
+ * Mục con ứng với mã do website gắn trên canvas (data-builder-item): "hero.primary" (nội dung chính của phần đầu trang)
+ * hoặc "<đường dẫn nhóm>:<chỉ số>" như "items:2", "plans:0", "panels:1". Không có mã (hoặc mã không còn khớp dữ liệu) thì trả null,
+ * tức thiết lập chung của khối. Bấm vào một trường của phần đầu trang (field) mà không có mã mục thì hiểu là nội dung chính.
+ */
+export function selectionFromItemId(block: PageBlock, itemId: string | undefined, field?: string): BuilderItemSelection | null {
+  const heroPrimary = block.type === "hero" && block.data.layout !== "slider";
+  if (itemId === "hero.primary" || (!itemId && field && heroPrimary)) return heroPrimary ? { path: "hero.primary", index: 0, heading: "Mục trượt 1", tab: "content" } : null;
+  if (!itemId) return null;
+  const [path, rawIndex] = itemId.split(":");
+  const index = Number(rawIndex);
+  if (!path || rawIndex === undefined || !Number.isInteger(index) || index < 0) return null;
+  const collection = builderItemCollections(block).find(entry => entry.path === path);
+  if (!collection || index >= collection.items.length) return null;
+  return { path: collection.path, index, heading: collection.heading, tab: collection.tab, parentIndex: collection.parentIndex };
+}
+
 export function builderItemCollections(block: PageBlock): BuilderItemCollection[] {
   const collection = (path: string, label: string, heading: string, noun: string, max: number, min: number, create: () => BuilderItem, tab: "content" | "media" = "content", parentIndex?: number): BuilderItemCollection => ({ path, label, heading, noun, items: read(block, path), max, min, create, tab, parentIndex });
   switch (block.type) {

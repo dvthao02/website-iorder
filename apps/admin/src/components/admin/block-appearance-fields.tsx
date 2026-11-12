@@ -3,14 +3,13 @@
 import { ChevronDown, Pipette } from "lucide-react";
 import { useEffect, useId, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 
-import { mediaAssetSchema } from "@iorder/shared/server/media/media.contract";
 import { blockAnchor, blockSupportsDarkTone } from "@iorder/shared/server/pages/block-layout";
-import { heroToneOf, type PageBlock } from "@iorder/shared/server/pages/pages.contract";
+import { type PageBlock } from "@iorder/shared/server/pages/pages.contract";
 import {
   blockOverlayLimits, blockSpacingSchema, blockWidthLimits, isDarkColor,
-  type BlockAppearance, type BlockSpacing, type BlockTone,
+  blockHeightSchema, blockVerticalAlignSchema,
+  type BlockAppearance, type BlockHeight, type BlockSpacing, type BlockTone, type BlockVerticalAlign,
 } from "@iorder/shared/server/shared/appearance";
-import { readAdminJson } from "@/lib/admin-api";
 import { MediaPicker } from "./media-picker";
 
 // Giao diện của một phần trang (khối trang, phần đầu trang, các phần của trang sản phẩm): nền (màu có sẵn, màu tự chọn,
@@ -20,6 +19,8 @@ export const defaultAppearance: BlockAppearance = { anchor: null, tone: "auto", 
 
 const toneLabels: Record<BlockTone, string> = { auto: "Tự động (xen kẽ với phần trước)", white: "Trắng", tinted: "Xám nhạt (nền xen kẽ)", dark: "Tối (chữ trắng)", custom: "Màu tự chọn…" };
 const spacingLabels: Record<BlockSpacing, string> = { auto: "Tự động", sm: "Gọn", md: "Vừa", lg: "Rộng" };
+const heightLabels: Record<BlockHeight, string> = { default: "Mặc định (theo trang)", auto: "Theo nội dung", screen: "Cả màn hình", three_quarter: "3/4 màn hình", half: "Nửa màn hình" };
+const alignLabels: Record<BlockVerticalAlign, string> = { top: "Trên", center: "Giữa", bottom: "Dưới" };
 // Màu gợi ý hợp với bộ màu website: tông sáng (chữ đậm) và vài tông đậm làm điểm nhấn (chữ trắng).
 export const colorSwatches = [
   { value: "#ffffff", label: "Trắng" },
@@ -33,7 +34,6 @@ export const colorSwatches = [
   { value: "#0a2a57", label: "Xanh đêm" },
   { value: "#0d1b33", label: "Đen than" },
 ] as const;
-const toneColors = { white: "#ffffff", tinted: "#f6f8fb", dark: "#0a2a57" } as const;
 const widthPresets = [60, 70, 80, 90, 100] as const;
 const hexPattern = /^#[0-9a-f]{6}$/i;
 
@@ -79,24 +79,6 @@ export function ColorField({ value, onChange, disabled, allowNone = false, compa
   </div>;
 }
 
-// Địa chỉ ảnh nền đã chọn, để vẽ ô xem trước (lỗi hoặc không phải ảnh thì xem trước không có ảnh).
-function useMediaUrl(id: string | null) {
-  const [result, setResult] = useState<{ id: string; url: string | null } | null>(null);
-  useEffect(() => {
-    if (!id) return;
-    const controller = new AbortController();
-    fetch(`/api/v1/admin/media/${encodeURIComponent(id)}`, { signal: controller.signal }).then(async (response) => {
-      const payload = await readAdminJson(response);
-      const parsed = mediaAssetSchema.safeParse(payload?.asset);
-      if (!controller.signal.aborted) setResult({ id, url: response.ok && parsed.success && parsed.data.mimeType.startsWith("image/") ? parsed.data.url : null });
-    }).catch(() => {
-      if (!controller.signal.aborted) setResult({ id, url: null });
-    });
-    return () => controller.abort();
-  }, [id]);
-  return id && result?.id === id ? result.url : null;
-}
-
 export type AppearanceEditorOptions = {
   /** Các lựa chọn của ô "Nền" (mặc định: đủ, bỏ "Tối" khi phần không hợp nền tối). */
   tones?: readonly BlockTone[];
@@ -104,10 +86,11 @@ export type AppearanceEditorOptions = {
   autoLabel?: string;
   /** false: không có ô "Nền" và bảng màu (chọn ở chỗ khác, ví dụ ô Màu nền của phần đầu trang); xem trước vẫn theo giá trị. */
   toneSelect?: boolean;
-  /** Màu và sắc thái chữ để xem trước khi để "Tự động". */
   autoPreview?: { color: string; dark: boolean };
   darkAllowed?: boolean;
   spacing?: boolean;
+  /** Ô chiều cao phần và căn nội dung theo chiều dọc (chỉ khối trang; mặc định tắt). */
+  height?: boolean;
   image?: boolean;
   /** Lý do không có ảnh nền (hiện thay cho ô chọn ảnh). */
   imageNote?: string;
@@ -147,7 +130,6 @@ export function ColorPicker({ value, onChange, disabled, allowNone = false, labe
 /** Trình chỉnh giao diện theo giá trị; `extra` (ví dụ ô mã neo) nằm cuối cột điều khiển. */
 export function AppearanceEditor({ value, onChange, disabled, onUploadingChange, options = {}, extra }: { value: Partial<BlockAppearance> | null | undefined; onChange: (patch: Partial<BlockAppearance>) => void; disabled?: boolean; onUploadingChange?: (pending: boolean) => void; options?: AppearanceEditorOptions; extra?: ReactNode }) {
   const appearance = { ...defaultAppearance, ...value };
-  const imageUrl = useMediaUrl(options.image === false ? null : appearance.backgroundMediaId);
   const darkAllowed = options.darkAllowed ?? true;
   const tones = (options.tones ?? (["auto", "white", "tinted", "dark", "custom"] as const)).filter((tone) => tone !== "dark" || darkAllowed);
   const tone = tones.includes(appearance.tone) ? appearance.tone : "auto";
@@ -157,9 +139,6 @@ export function AppearanceEditor({ value, onChange, disabled, onUploadingChange,
   const color = tone === "custom" ? appearance.backgroundColor ?? colorSwatches[1].value : null;
   const colorDark = color ? isDarkColor(color) : false;
   const darkFallback = colorDark && !darkAllowed;
-  const auto = options.autoPreview ?? { color: toneColors.white, dark: false };
-  const previewDark = color ? colorDark && darkAllowed : tone === "auto" ? auto.dark : tone === "dark";
-  const previewColor = color && !darkFallback ? color : darkFallback ? toneColors.tinted : tone === "auto" ? auto.color : toneColors[tone === "dark" ? "dark" : tone === "tinted" ? "tinted" : "white"];
   const width = appearance.width ?? 100;
   const setWidth = (next: number) => onChange({ width: next >= blockWidthLimits.max ? null : Math.max(blockWidthLimits.min, next) });
   const showImage = options.image !== false;
@@ -171,6 +150,12 @@ export function AppearanceEditor({ value, onChange, disabled, onUploadingChange,
       {showTone || options.spacing !== false ? <div className="admin-form-grid">
         {showTone ? <label className="admin-field">Nền<select className="admin-input" disabled={disabled} onChange={(event) => setTone(event.target.value as BlockTone)} value={tone}>{tones.map((value) => <option key={value} value={value}>{value === "auto" && options.autoLabel ? options.autoLabel : toneLabels[value]}</option>)}</select></label> : null}
         {options.spacing !== false ? <label className="admin-field">Khoảng cách trên dưới<select className="admin-input" disabled={disabled} onChange={(event) => onChange({ spacing: event.target.value as BlockSpacing })} value={appearance.spacing}>{blockSpacingSchema.options.map((value) => <option key={value} value={value}>{spacingLabels[value]}</option>)}</select></label> : null}
+      </div> : null}
+
+      {options.height ? <div className="admin-form-grid">
+        <label className="admin-field">Chiều cao phần<select className="admin-input" disabled={disabled} onChange={(event) => onChange({ height: event.target.value === "default" ? undefined : event.target.value as BlockHeight, ...(event.target.value === "default" || event.target.value === "auto" ? { verticalAlign: undefined } : {}) })} value={appearance.height ?? "default"}>{blockHeightSchema.options.map((value) => <option key={value} value={value}>{heightLabels[value]}</option>)}</select></label>
+        {appearance.height && appearance.height !== "default" && appearance.height !== "auto" ? <label className="admin-field">Vị trí nội dung theo chiều dọc<select className="admin-input" disabled={disabled} onChange={(event) => onChange({ verticalAlign: event.target.value === "center" ? undefined : event.target.value as BlockVerticalAlign })} value={appearance.verticalAlign ?? "center"}>{blockVerticalAlignSchema.options.map((value) => <option key={value} value={value}>{alignLabels[value]}</option>)}</select></label> : null}
+        <small className="admin-help">Cao tối thiểu tính theo vùng nhìn dưới thanh menu; nội dung dài hơn thì phần tự dài ra. “Mặc định” giữ nhịp chung của trang.</small>
       </div> : null}
 
       {color && showTone ? <div className="admin-block-look__colors">
@@ -198,22 +183,6 @@ export function AppearanceEditor({ value, onChange, disabled, onUploadingChange,
       </div> : null}
       {extra}
     </div>
-
-    <figure className="admin-block-look__preview">
-      <div aria-hidden="true" className="admin-block-look__surface" style={{ backgroundColor: previewColor, color: previewDark ? "#ffffff" : "#0d1b33" }}>
-        {imageUrl ? <>
-          {/* eslint-disable-next-line @next/next/no-img-element -- ảnh xem trước trong CMS, không cần tối ưu */}
-          <img alt="" className="admin-block-look__image" src={imageUrl} />
-          <span className="admin-block-look__overlay" style={{ background: previewColor, opacity: appearance.backgroundOverlay / 100 }} />
-        </> : null}
-        <span className="admin-block-look__content" style={{ width: `${showWidth ? width : 100}%` }}>
-          <strong>Tiêu đề phần</strong>
-          <span>Chữ mô tả hiển thị trên nền này.</span>
-          <span className="admin-block-look__cards"><i /><i /><i /></span>
-        </span>
-      </div>
-      <figcaption className="admin-help">{tone === "auto" && !options.autoPreview ? "Xem trước nền trắng; “Tự động” thì website chọn trắng hoặc xanh nhạt khác phần ngay trước." : "Xem trước nền, màu chữ và độ rộng trên máy tính."}</figcaption>
-    </figure>
   </div>;
 }
 
@@ -224,8 +193,6 @@ function withAnchor(block: PageBlock, anchor: string | null): PageBlock {
   if (block.type === "collection_list") return { ...block, appearance, data: { ...block.data, anchor: null } };
   return { ...block, appearance };
 }
-
-const heroPreview = { light: { color: "#ffffff", dark: false }, tinted: { color: "#eef6ff", dark: false }, dark: { color: "#115bbf", dark: true } } as const;
 
 /** Vỏ chung của một khối trang trong trình sửa trang. */
 export function BlockAppearanceFields({ block, onChange, disabled, onUploadingChange }: { block: PageBlock; onChange: (block: PageBlock) => void; disabled?: boolean; onUploadingChange?: (pending: boolean) => void }) {
@@ -249,16 +216,14 @@ export function BlockAppearanceFields({ block, onChange, disabled, onUploadingCh
   const options: AppearanceEditorOptions = hero ? {
     tones: ["auto", "custom"],
     toneSelect: false,
-    autoPreview: heroPreview[heroToneOf(hero.data)],
     spacing: false,
     image: hero.data.layout !== "background",
     imageNote: "Kiểu ảnh nền đã dùng ảnh chính làm nền; màu tự chọn thay cho lớp phủ màu trên ảnh.",
     width: true,
-  } : { darkAllowed: blockSupportsDarkTone(block.type) };
+  } : { darkAllowed: blockSupportsDarkTone(block.type), height: true };
 
   return <fieldset className="admin-block-group">
-    <legend>{hero ? "Giao diện phần đầu trang: ảnh nền, độ rộng, mã neo" : "Giao diện khối: nền, độ rộng, khoảng cách"}</legend>
+    <legend>{hero ? "Giao diện phần đầu trang: ảnh nền, độ rộng, mã neo" : "Giao diện khối: nền, độ rộng, khoảng cách, chiều cao"}</legend>
     <AppearanceEditor disabled={disabled} extra={anchorField} onChange={update} onUploadingChange={onUploadingChange} options={options} value={value} />
-    <p className="admin-help">{hero ? "Màu nền (kể cả Màu tự chọn) chọn ở ô Màu nền phía trên; ô xem trước vẽ theo lựa chọn đó." : "Hai phần liền nhau cùng nền trắng / xanh nhạt thì website thêm vạch ngăn mảnh. Nên dùng nền tối hoặc màu đậm cho tối đa một hai phần mỗi trang để làm điểm nhấn."}</p>
   </fieldset>;
 }

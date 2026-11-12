@@ -51,15 +51,15 @@ function SkinLayers({ skin, tone }: { skin: HeroSkin; tone: HeroTone }) {
 
 // Chữ của phần đầu trang dùng chung cho mọi kiểu; `dark` khi chữ nằm trên ảnh nền.
 // `headingAs`: khối nội dung trượt thứ 2 trở đi dùng thẻ p (trang chỉ có một h1 là tiêu đề chính).
-function HeroText({ data, first, dark = false, center = false, headingAs }: { data: HeroData; first: boolean; dark?: boolean; center?: boolean; headingAs?: "h1" | "h2" | "p" }) {
+function HeroText({ data, first, dark = false, center = false, headingAs, itemId = "hero.primary" }: { data: HeroData; first: boolean; dark?: boolean; center?: boolean; headingAs?: "h1" | "h2" | "p"; itemId?: string }) {
   const Heading = headingAs ?? (first ? "h1" : "h2");
-  return <div className={center ? "mx-auto max-w-3xl text-center" : ""}>
+  return <div className={center ? "mx-auto max-w-3xl text-center" : ""} data-builder-item={itemId}>
     {data.eyebrow ? <Eyebrow dark={dark}>{data.eyebrow}</Eyebrow> : null}
-    <Heading className={`mb-0 text-4xl leading-[1.12] font-bold tracking-tight text-balance sm:text-5xl lg:text-[clamp(2.25rem,5.4svh,5rem)] ${dark ? "text-white" : "text-ink"}`}>{data.title}</Heading>
-    {data.description ? <p className={`mt-6 text-lg leading-8 sm:text-xl ${dark ? "text-white/90" : "text-muted"}`}>{data.description}</p> : null}
-    {data.highlights.length ? <ul className={`hero-highlights mt-8 grid gap-4 sm:grid-cols-3 ${center ? "text-left" : ""}`}>{data.highlights.map((item, index) => <li className="flex items-start gap-2.5" key={`${item.title}-${index}`}>
+    <Heading data-builder-field="title" className={`mb-0 text-4xl leading-[1.12] font-bold tracking-tight text-balance sm:text-5xl lg:text-[clamp(2.25rem,5.4svh,5rem)] ${dark ? "text-white" : "text-ink"}`}>{data.title}</Heading>
+    {data.description ? <p data-builder-field="description" className={`mt-6 text-lg leading-8 sm:text-xl ${dark ? "text-white/90" : "text-muted"}`}>{data.description}</p> : null}
+    {data.highlights.length ? <ul className={`hero-highlights mt-8 grid gap-4 sm:grid-cols-3 ${center ? "text-left" : ""}`}>{data.highlights.map((item, index) => <li className="flex items-start gap-2.5" data-builder-item={`${itemId.startsWith("panels:") ? `panels.${itemId.slice(7)}.highlights` : "highlights"}:${index}`} key={`${item.title}-${index}`}>
       <Check aria-hidden="true" className={`mt-1 shrink-0 ${dark ? "text-white" : "text-brand-600"}`} size={18} strokeWidth={2.5} />
-      <span><strong className={`block ${dark ? "text-white" : "text-ink"}`}>{item.title}</strong>{item.note ? <span className={`block text-sm ${dark ? "text-white/75" : "text-muted"}`}>{item.note}</span> : null}</span>
+      <span><strong className={`block ${dark ? "text-white" : "text-ink"}`} data-builder-field="title">{item.title}</strong>{item.note ? <span className={`block text-sm ${dark ? "text-white/75" : "text-muted"}`} data-builder-field="note">{item.note}</span> : null}</span>
     </li>)}</ul> : null}
     <Actions center={center} dark={dark} primary={data.primaryAction} secondary={data.secondaryAction} />
     {data.footnote ? <p className={`mt-6 inline-flex items-center gap-2 text-sm font-semibold ${dark ? "text-white/85" : "text-muted"}`}><ShieldCheck aria-hidden="true" className={dark ? "" : "text-accent-green"} size={18} />{data.footnote}</p> : null}
@@ -111,7 +111,7 @@ export async function HeroSection({ data, first, frame }: { data: HeroData; firs
     const dark = skin.dark;
     const overlay = skin.color ? <div aria-hidden className="absolute inset-0 -z-10" style={{ background: skin.color, opacity: skin.overlay / 100 }} /> : <div aria-hidden className={`absolute inset-0 -z-10 ${style.overlay}`} />;
     return <section id={skin.anchor ?? undefined} className={`screen-hero relative isolate overflow-hidden border-b border-line ${skin.color ? "" : style.section}`} style={skin.color ? { backgroundColor: skin.color } : undefined} {...heroTop(first, dark ? "dark" : "light")}>
-      {image ? <>{many ? <HeroImages images={images} onLight={!dark} priority={first} sizes="100vw" variant="fill" /> : <Image alt={image.alt} className="-z-10 object-cover" fill priority={first} sizes="100vw" src={image.url} />}{overlay}{first && style.top && !skin.color ? <div aria-hidden className={`absolute inset-x-0 top-0 -z-10 h-[calc(var(--header-height)+160px)] ${style.top}`} /> : null}</> : null}
+      {image ? <>{many ? <HeroImages images={images} onLight={!dark} priority={first} sizes="100vw" variant="fill" /> : <Image alt={image.alt} className="-z-10 object-cover" data-builder-field="image" data-builder-item="hero.primary" fill priority={first} sizes="100vw" src={image.url} />}{overlay}{first && style.top && !skin.color ? <div aria-hidden className={`absolute inset-x-0 top-0 -z-10 h-[calc(var(--header-height)+160px)] ${style.top}`} /> : null}</> : null}
       <div {...box(skin, "flex min-h-[520px] items-center py-20 sm:min-h-[620px] lg:min-h-0 lg:pt-10 lg:pb-24")}><div className="max-w-2xl"><HeroText dark={dark} data={data} first={first} /></div></div>
     </section>;
   }
@@ -127,7 +127,7 @@ export async function HeroSection({ data, first, frame }: { data: HeroData; firs
       <div {...box(skin, `py-12 sm:py-16 ${image ? "lg:pt-10 lg:pb-24" : "lg:py-20"}`)}>
         <HeroText center dark={skin.dark} data={data} first={first} />
         {many ? <HeroImages className="mx-auto mt-10 max-w-4xl" imageClassName={frame} images={images} priority={first} sizes={sizes} variant="inline" />
-          : image ? <Image alt={image.alt} className={`mx-auto mt-10 max-w-4xl ${frame}`} height={800} priority={first} sizes={sizes} src={image.url} width={1400} /> : null}
+          : image ? <Image alt={image.alt} className={`mx-auto mt-10 max-w-4xl ${frame}`} data-builder-field="image" data-builder-item="hero.primary" height={800} priority={first} sizes={sizes} src={image.url} width={1400} /> : null}
       </div>
     </section>;
   }
@@ -141,13 +141,16 @@ export async function HeroSection({ data, first, frame }: { data: HeroData; firs
     <div {...box(skin, `grid items-center gap-12 py-12 sm:py-16 ${image ? `lg:pt-10 lg:pb-24 ${reverse ? "lg:grid-cols-[1fr_1.05fr]" : "lg:grid-cols-[1.05fr_1fr]"}` : "lg:py-20"}`)}>
       <div className={`${image ? "" : "max-w-3xl"} ${reverse ? "lg:order-2" : ""}`}><HeroText dark={skin.dark} data={data} first={first} /></div>
       {many ? <HeroImages className={reverse ? "lg:order-1" : ""} images={images} priority={first} sizes={splitSizes} variant="inline" />
-        : image ? <Image alt={image.alt} className={`h-auto w-full ${reverse ? "lg:order-1" : ""}`} height={800} priority={first} sizes={splitSizes} src={image.url} width={1200} /> : null}
+        : image ? <Image alt={image.alt} className={`h-auto w-full ${reverse ? "lg:order-1" : ""}`} data-builder-field="image" data-builder-item="hero.primary" height={800} priority={first} sizes={splitSizes} src={image.url} width={1200} /> : null}
     </div>
   </section>;
 }
 
 // Phần đầu trang có nhiều khối nội dung (khối 1 = nội dung chính, các khối sau = `panels`): cả chữ và ảnh trượt cùng nhau
 // theo đúng kiểu bố cục đã chọn. Mỗi khối dùng một ảnh của riêng nó (ảnh thêm của khối 1 không dùng ở chế độ này).
+// Mã mục của khối nội dung thứ `index` của phần đầu trang (0 = nội dung chính).
+const panelItemId = (index: number) => index === 0 ? "hero.primary" : `panels:${index - 1}`;
+
 async function PanelHero({ data, first, skin }: { data: HeroData; first: boolean; skin: HeroSkin }) {
   const entries = [{ text: data, mediaId: data.mediaId }, ...data.panels.map(panel => ({ text: { ...data, ...panel, highlights: panel.highlights ?? data.highlights }, mediaId: panel.mediaId }))];
   const images = await Promise.all(entries.map(entry => imageOf(entry.mediaId)));
@@ -161,8 +164,8 @@ async function PanelHero({ data, first, skin }: { data: HeroData; first: boolean
     const panels = entries.map((entry, index) => {
       const image = images[index];
       return <Fragment key={index}>
-        {image ? <><Image alt={image.altText ?? ""} className="-z-10 object-cover" fill priority={first && index === 0} sizes="100vw" src={image.url} />{skin.color ? <div aria-hidden className="absolute inset-0 -z-10" style={{ background: skin.color, opacity: skin.overlay / 100 }} /> : <div aria-hidden className={`absolute inset-0 -z-10 ${style.overlay}`} />}</> : null}
-        <div className="flex min-h-[420px] items-center sm:min-h-[520px] lg:min-h-0"><div className="max-w-2xl"><HeroText dark={dark} data={entry.text} first={first} headingAs={headingAs(index)} /></div></div>
+        {image ? <><Image alt={image.altText ?? ""} className="-z-10 object-cover" data-builder-field="image" data-builder-item={panelItemId(index)} fill priority={first && index === 0} sizes="100vw" src={image.url} />{skin.color ? <div aria-hidden className="absolute inset-0 -z-10" style={{ background: skin.color, opacity: skin.overlay / 100 }} /> : <div aria-hidden className={`absolute inset-0 -z-10 ${style.overlay}`} />}</> : null}
+        <div className="flex min-h-[420px] items-center sm:min-h-[520px] lg:min-h-0"><div className="max-w-2xl"><HeroText dark={dark} data={entry.text} first={first} headingAs={headingAs(index)} itemId={panelItemId(index)} /></div></div>
       </Fragment>;
     });
     return <section id={skin.anchor ?? undefined} className={`screen-hero relative isolate overflow-hidden border-b border-line ${skin.color ? "" : style.section}`} style={skin.color ? { backgroundColor: skin.color } : undefined} {...heroTop(first, dark ? "dark" : "light")}>
@@ -176,8 +179,8 @@ async function PanelHero({ data, first, skin }: { data: HeroData; first: boolean
     const panels = entries.map((entry, index) => {
       const image = images[index];
       return <div key={index}>
-        <HeroText center dark={skin.dark} data={entry.text} first={first} headingAs={headingAs(index)} />
-        {image ? <Image alt={image.altText ?? ""} className="mx-auto mt-10 h-auto w-full max-w-4xl rounded-xl border border-line" height={800} priority={first && index === 0} sizes="(min-width: 1024px) 70vw, 100vw" src={image.url} width={1400} /> : null}
+        <HeroText center dark={skin.dark} data={entry.text} first={first} headingAs={headingAs(index)} itemId={panelItemId(index)} />
+        {image ? <Image alt={image.altText ?? ""} className="mx-auto mt-10 h-auto w-full max-w-4xl rounded-xl border border-line" data-builder-field="image" data-builder-item={panelItemId(index)} height={800} priority={first && index === 0} sizes="(min-width: 1024px) 70vw, 100vw" src={image.url} width={1400} /> : null}
       </div>;
     });
     const surface = skinSection(skin, sectionTone);
@@ -192,8 +195,8 @@ async function PanelHero({ data, first, skin }: { data: HeroData; first: boolean
   const panels = entries.map((entry, index) => {
     const image = images[index];
     return <div className={`grid items-center gap-12 ${reverse ? "lg:grid-cols-[1fr_1.05fr]" : "lg:grid-cols-[1.05fr_1fr]"}`} key={index}>
-      <div className={reverse ? "lg:order-2" : ""}><HeroText dark={skin.dark} data={entry.text} first={first} headingAs={headingAs(index)} /></div>
-      {image ? <Image alt={image.altText ?? ""} className={`h-auto w-full ${reverse ? "lg:order-1" : ""}`} height={800} priority={first && index === 0} sizes="(min-width: 1024px) 50vw, 100vw" src={image.url} width={1200} /> : <div aria-hidden className="hidden lg:block" />}
+      <div className={reverse ? "lg:order-2" : ""}><HeroText dark={skin.dark} data={entry.text} first={first} headingAs={headingAs(index)} itemId={panelItemId(index)} /></div>
+      {image ? <Image alt={image.altText ?? ""} className={`h-auto w-full ${reverse ? "lg:order-1" : ""}`} data-builder-field="image" data-builder-item={panelItemId(index)} height={800} priority={first && index === 0} sizes="(min-width: 1024px) 50vw, 100vw" src={image.url} width={1200} /> : <div aria-hidden className="hidden lg:block" />}
     </div>;
   });
   const surface = skinSection(skin, sectionTone);

@@ -102,14 +102,14 @@ test("Phần đầu trang: 5 kiểu bố cục hiển thị đúng trên website
   await page.goto(`/admin/pages/${created.pageIds.at(-1)}`);
   const toggle = page.locator(".admin-block__toggle").first();
   if (await toggle.getAttribute("aria-expanded") === "false") await toggle.click();
-  await page.locator(".admin-blocks__detail").getByRole("tab", { name: "Bố cục chung", exact: true }).click();
+  await page.locator(".admin-blocks__detail").getByRole("tab", { name: "Bố cục khối", exact: true }).click();
   const picker = page.getByRole("group", { name: "Kiểu bố cục" });
   await expect(picker.getByRole("radio")).toHaveCount(5);
   await expect(picker.getByRole("radio", { name: "Trượt nhiều ảnh" })).toBeChecked();
   await page.locator('.admin-blocks__navigation [data-builder-path="slides"] .admin-builder-item__select').first().click();
   await expect(page.getByText("Các ảnh trượt (2/8)")).toBeVisible();
   await page.locator(".admin-blocks__navigation .admin-block__toggle").first().click();
-  await page.locator(".admin-blocks__detail").getByRole("tab", { name: "Bố cục chung", exact: true }).click();
+  await page.locator(".admin-blocks__detail").getByRole("tab", { name: "Bố cục khối", exact: true }).click();
   await picker.getByText("Ảnh nền tràn màn hình").click();
   await expect(page.getByText("Các ảnh trượt (2/8)")).toBeHidden();
   await page.locator(".admin-blocks__navigation").getByRole("button", { name: "Mục trượt 1", exact: true }).click();

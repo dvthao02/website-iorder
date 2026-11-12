@@ -8,6 +8,8 @@ import { FaqList, FrameSection, SectionHeading, gridColumns } from "@/components
 import { ConsultBand } from "./consult-band";
 import { PricingSection } from "./section-blocks";
 import { PageBlockRenderer } from "./page-block-renderer";
+import { BuilderAnchor } from "./builder-anchor";
+import { getBuilderPreviewContext } from "@/lib/builder-preview";
 
 type Closing = { title: string; hotline: string | null };
 
@@ -16,6 +18,7 @@ type Closing = { title: string; hotline: string | null };
 // Mỗi phần một bố cục khác nhau thay vì chuỗi "tiêu đề giữa + hàng thẻ" giống hệt; nền trắng / xanh nhạt xen kẽ.
 // Nền, màu tự chọn, ảnh nền, độ rộng, khoảng cách của từng phần chỉnh ở CMS › Sản phẩm › Giao diện các phần (cùng vỏ chung với khối trang).
 export async function OfferingContent({ content, closing = null }: { content: OfferingContent; closing?: Closing | null }) {
+  const inBuilder = Boolean(await getBuilderPreviewContext());
   const pricing = content.pricing ? resolveSettingLinks(content.pricing, await getExternalLinks()) : null;
   const related = content.items.length > 0 || content.faq.length > 0;
   const present = (["overview", content.benefits.length ? "benefits" : null, pricing ? "pricing" : null, related ? "related" : null] as const).filter((key): key is OfferingSectionKey => key !== null);
@@ -31,14 +34,14 @@ export async function OfferingContent({ content, closing = null }: { content: Of
   const dark = (key: OfferingSectionKey) => frames[key]?.tone === "dark";
   if (content.blocks) return <>
     <PageBlockRenderer blocks={content.blocks} previous="white" />
-    {content.items.length ? <FrameSection frame={sectionFrame(content.appearance?.related, { fallback: "tinted", darkAllowed: true, spacing: "md" })}>
+    {content.items.length ? <BuilderAnchor active={inBuilder} index={-11}><FrameSection frame={sectionFrame(content.appearance?.related, { fallback: "tinted", darkAllowed: true, spacing: "md" })}>
       <div className="mx-auto max-w-4xl">
         <SectionHeading align="left" className="mb-6" eyebrow="Xem thêm" title="Nội dung liên quan" />
         <ul className="m-0 grid list-none gap-3 p-0">{content.items.map((item, index) => <li key={index}>{typeof item === "string"
           ? <span className="flex h-full items-center rounded-card border border-line bg-white px-5 py-4 text-ink shadow-card">{item}</span>
           : <Link className="group flex h-full items-center justify-between gap-3 rounded-card border border-line bg-white px-5 py-4 font-semibold text-ink shadow-card transition hover:border-brand-200 hover:text-brand-700" href={item.href}>{item.title}<ArrowRight aria-hidden="true" className="shrink-0 text-brand-600 transition group-hover:translate-x-0.5" size={18} /></Link>}</li>)}</ul>
       </div>
-    </FrameSection> : null}
+    </FrameSection></BuilderAnchor> : null}
     {closing ? <ConsultBand description="Để lại thông tin hoặc gọi trực tiếp — iOrder khảo sát nhu cầu và đề xuất phương án phù hợp với mô hình của bạn." hotline={closing.hotline} title={`Bắt đầu với ${closing.title}`} /> : null}
   </>;
   return <>

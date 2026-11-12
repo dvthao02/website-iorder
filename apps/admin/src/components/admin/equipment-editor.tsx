@@ -1,5 +1,7 @@
 "use client";
 import { CmsPageBuilder } from "./cms-page-builder";
+import { AppearanceEditor, defaultAppearance } from "./block-appearance-fields";
+import { DetailHeroLayoutFields } from "./ui/detail-hero-layout-fields";
 import { ContentSeoEditor } from "./content-seo-editor";
 
 import { Plus } from "lucide-react";
@@ -36,24 +38,24 @@ const priceFormatter = new Intl.NumberFormat("vi-VN", { style: "currency", curre
 const noun = "thiết bị";
 
 function blankItem(groupId: string): EquipmentInput {
-  return { groupId, name: "", slug: "", modelCode: null, coverMediaId: null, priceVnd: 0, warrantyMonths: 12, summary: null, specificationGroups: [], status: "draft", scheduledAt: null, sortOrder: 0, isFeatured: false, seoTitle: null, seoDescription: null, canonicalUrl: null, seo: {}, blocks: [] };
+  return { groupId, name: "", slug: "", modelCode: null, coverMediaId: null, priceVnd: 0, warrantyMonths: 12, summary: null, specificationGroups: [], status: "draft", scheduledAt: null, sortOrder: 0, isFeatured: false, seoTitle: null, seoDescription: null, canonicalUrl: null, seo: {}, blocks: [], pageLayout: null };
 }
 
 function itemToForm(item: EquipmentItem): EquipmentInput {
-  return { groupId: item.groupId, name: item.name, slug: item.slug, modelCode: item.modelCode, coverMediaId: item.coverMediaId, priceVnd: item.priceVnd, warrantyMonths: item.warrantyMonths, summary: item.summary, specificationGroups: item.specificationGroups, status: item.status, scheduledAt: item.scheduledAt, sortOrder: item.sortOrder, isFeatured: item.isFeatured, seoTitle: item.seoTitle, seoDescription: item.seoDescription, canonicalUrl: item.canonicalUrl, seo: item.seo ?? {}, blocks: item.blocks ?? [] };
+  return { groupId: item.groupId, name: item.name, slug: item.slug, modelCode: item.modelCode, coverMediaId: item.coverMediaId, priceVnd: item.priceVnd, warrantyMonths: item.warrantyMonths, summary: item.summary, specificationGroups: item.specificationGroups, status: item.status, scheduledAt: item.scheduledAt, sortOrder: item.sortOrder, isFeatured: item.isFeatured, seoTitle: item.seoTitle, seoDescription: item.seoDescription, canonicalUrl: item.canonicalUrl, seo: item.seo ?? {}, blocks: item.blocks ?? [], pageLayout: item.pageLayout ?? null };
 }
 
 // Thông số theo nhóm (ví dụ "Kết nối" → "Cổng USB: 2 cổng"); website hiện thành bảng theo từng nhóm.
 function SpecificationGroupsEditor({ value, onChange }: { value: SpecificationGroup[]; onChange: (next: SpecificationGroup[]) => void }) {
   function updateGroup(index: number, group: SpecificationGroup) { onChange(value.map((entry, entryIndex) => entryIndex === index ? group : entry)); }
   return <div className="admin-list-editor">
-    {value.map((group, groupIndex) => <fieldset className="admin-spec-group" key={groupIndex}>
+    {value.map((group, groupIndex) => <fieldset className="admin-spec-group" data-field={`specGroup:${groupIndex}`} key={groupIndex}>
       <legend className="sr-only">Nhóm thông số {groupIndex + 1}</legend>
       <div className="admin-spec-group__head">
         <input aria-label={`Tên nhóm thông số ${groupIndex + 1}`} className="admin-input admin-spec-group__title" maxLength={180} onChange={event => updateGroup(groupIndex, { ...group, title: event.target.value })} placeholder="Tên nhóm, ví dụ: Kết nối" required value={group.title} />
         <AdminListRowControls index={groupIndex} label={`nhóm thông số ${groupIndex + 1}`} length={value.length} onMove={direction => onChange(moveListItem(value, groupIndex, direction))} onRemove={() => onChange(value.filter((_, entryIndex) => entryIndex !== groupIndex))} />
       </div>
-      {group.items.length ? <ol className="admin-list-editor__rows">{group.items.map((item, itemIndex) => <li className="admin-list-editor__row" key={itemIndex}>
+      {group.items.length ? <ol className="admin-list-editor__rows">{group.items.map((item, itemIndex) => <li className="admin-list-editor__row" data-field={`spec:${groupIndex}:${itemIndex}`} key={itemIndex}>
         <span aria-hidden="true" className="admin-list-editor__index">{itemIndex + 1}</span>
         <span className="admin-spec-group__pair">
           <input aria-label={`Tên thông số ${itemIndex + 1} của nhóm ${groupIndex + 1}`} className="admin-input" maxLength={180} onChange={event => updateGroup(groupIndex, { ...group, items: group.items.map((entry, entryIndex) => entryIndex === itemIndex ? { ...entry, label: event.target.value } : entry) })} placeholder="Tên thông số" required value={item.label} />
@@ -123,6 +125,7 @@ export function EquipmentEditor({ groups, item, onDirtyChange, onError, onSaved 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!canEdit || saving.current || uploading.current) return;
+    if (!form.name.trim()) { onError("Nhập tên thiết bị ở phần đầu trang."); return; }
     saving.current = true;
     setIsSaving(true);
     try {
@@ -150,32 +153,43 @@ export function EquipmentEditor({ groups, item, onDirtyChange, onError, onSaved 
   const seoPassed = checks.filter((check) => check.ok).length;
   const goingLive = form.status === "published" || form.status === "scheduled";
   const missing = [
-    !form.coverMediaId ? { id: "equipment-cover", label: "Ảnh bìa" } : null,
-    !summary.trim() ? { id: "equipment-summary", label: "Mô tả ngắn" } : null,
-    !form.specificationGroups.some((group) => group.items.length) ? { id: "equipment-specs", label: "Thông số kỹ thuật" } : null,
-    form.priceVnd === 0 ? { id: "equipment-price", label: "Giá bán (đang là 0 ₫)" } : null,
+    !form.coverMediaId ? { id: "equipment-content", label: "Ảnh bìa" } : null,
+    !summary.trim() ? { id: "equipment-content", label: "Mô tả ngắn" } : null,
+    !form.specificationGroups.some((group) => group.items.length) ? { id: "equipment-content", label: "Thông số kỹ thuật" } : null,
+    form.priceVnd === 0 ? { id: "equipment-content", label: "Giá bán (đang là 0 ₫)" } : null,
   ].filter((entry): entry is { id: string; label: string } => entry !== null);
+
+  // Phần đầu trang và thông số nằm trong trình dựng như mục 1 và 2: tên, giá, bảo hành, mã model, mô tả ngắn, ảnh bìa; thông số theo nhóm.
+  const heroDetail = <>
+    <label className="admin-field" data-field="title">Tên thiết bị<input maxLength={220} className="admin-input" onChange={(event) => changeName(event.target.value)} placeholder="Nhập tên thiết bị…" value={form.name} /></label>
+      <div className="admin-form-grid admin-equipment-sale">
+        <label className="admin-field" data-field="priceVnd" id="equipment-price">Giá bán (VNĐ)<input className="admin-input" inputMode="numeric" max={Number.MAX_SAFE_INTEGER} min={0} onChange={event => update("priceVnd", Math.max(0, Math.trunc(Number(event.target.value) || 0)))} type="number" value={form.priceVnd} /><small className="admin-help">Hiện trên website: {priceFormatter.format(form.priceVnd)}</small></label>
+        <label className="admin-field" data-field="warrantyMonths">Bảo hành (tháng)<input className="admin-input" max={1200} min={0} onChange={event => update("warrantyMonths", Math.max(0, Math.trunc(Number(event.target.value) || 0)))} type="number" value={form.warrantyMonths} /></label>
+        <label className="admin-field" data-field="modelCode">Mã model<input className="admin-input" maxLength={80} onChange={event => update("modelCode", event.target.value || null)} placeholder="Ví dụ: SUNMI T2s" value={form.modelCode ?? ""} /></label>
+      </div>
+    <label className="admin-field" data-field="summary" htmlFor="equipment-summary">Mô tả ngắn<textarea className="admin-input" id="equipment-summary" maxLength={20_000} onChange={event => update("summary", event.target.value || null)} placeholder="Thiết bị dùng để làm gì, phù hợp với mô hình nào. Hiện trên thẻ ở trang danh sách và đầu trang chi tiết." rows={4} value={summary} /></label>
+    <MediaPicker disabled={isSaving} hint="Hiện trên thẻ ở trang danh sách và đầu trang chi tiết. Nên dùng ảnh nền trắng, thiết bị nằm giữa." label="Ảnh bìa" onChange={coverMediaId => update("coverMediaId", coverMediaId)} onUploadingChange={handleUploadingChange} preview value={form.coverMediaId} />
+    <p className="admin-help">Đường dẫn: {publicPath}. Đổi ở mục “Đường dẫn trang” bên dưới.</p>
+  </>;
+  // Tab "Bố cục khối" của hai mục cố định: bố cục phần đầu trang và giao diện phần thông số (lưu trong cột page_layout).
+  const heroLayoutDetail = <DetailHeroLayoutFields disabled={processing || !canEdit} name="equipment-hero-layout" onChange={hero => update("pageLayout", { ...form.pageLayout, hero })} value={form.pageLayout?.hero} />;
+  const specsLayoutDetail = <AppearanceEditor disabled={processing || !canEdit} onChange={patch => update("pageLayout", { ...form.pageLayout, specs: { ...defaultAppearance, ...form.pageLayout?.specs, ...patch } })} onUploadingChange={handleUploadingChange} options={{ darkAllowed: false }} value={form.pageLayout?.specs} />;
+  const specsDetail = <SpecificationGroupsEditor onChange={specificationGroups => update("specificationGroups", specificationGroups)} value={form.specificationGroups} />;
 
   return (
     <form className="admin-post-editor" onSubmit={submit} ref={formRef}>
       {!canEdit ? <div className="col-span-full"><AdminNotice tone="info">Bạn chỉ có quyền xem nội dung này. Nội dung đang hiển thị cần thêm quyền xuất bản để sửa.</AdminNotice></div> : null}
       <fieldset disabled={processing} className="contents">
       <div className="admin-post-editor__main">
-        <AdminEditorSection className="admin-post-editor__writing" description="Tên, giá và mô tả ngắn để khách hàng nhận diện thiết bị." id="equipment-basic" step={1} title="Thông tin cơ bản">
-          <label className="admin-post-editor__title-field"><span className="sr-only">Tên thiết bị</span><input className="admin-post-editor__title" maxLength={220} onChange={(event) => changeName(event.target.value)} placeholder="Nhập tên thiết bị…" required value={form.name} /></label>
+        <AdminEditorSection description="Từ phần đầu trang, thông số kỹ thuật đến các phần còn lại: chọn từng phần ở danh sách bên trái hoặc bấm trực tiếp trên trang xem trước để sửa. Đường dẫn và SEO nằm ở các mục bên dưới." id="equipment-content" step={1} title="Nội dung trang thiết bị">
+          <CmsPageBuilder leads={[{ label: "Phần đầu trang", detail: heroDetail, layoutDetail: heroLayoutDetail }, { label: "Thông số kỹ thuật", detail: specsDetail, layoutDetail: specsLayoutDetail }]} readOnly={!canEdit} documentId={id} document={{ kind: "equipment", values: form }} blocks={form.blocks ?? []} onChange={blocks => update("blocks", blocks)} disabled={processing} onUploadingChange={handleUploadingChange} showGroupPicker />
+        </AdminEditorSection>
+        <AdminEditorSection description="Địa chỉ không dấu của thiết bị trên website. Tên ở phần đầu trang tự tạo đường dẫn cho tới khi bạn sửa tay." id="equipment-slug-section" title="Đường dẫn trang">
           {editingSlug ? <div className="admin-post-editor__slug-edit">
             <div className="admin-field"><label className="admin-seo__label" htmlFor="equipment-slug">Đường dẫn<span className="admin-help">Địa chỉ không dấu trên website: {publicPath}</span></label><span className="admin-post-editor__slug"><input autoFocus className="admin-input" id="equipment-slug" maxLength={180} onChange={(event) => { setSlugTouched(true); update("slug", event.target.value); }} pattern="[a-z0-9]+(-[a-z0-9]+)*" required value={form.slug} /><AdminButton disabled={!form.name.trim() || toSlug(form.name, 80) === form.slug} onClick={() => { setSlugTouched(true); update("slug", toSlug(form.name, 80)); }} size="sm" variant="secondary">Tạo từ tên</AdminButton><AdminButton onClick={() => setEditingSlug(false)} size="sm" variant="ghost">Xong</AdminButton></span></div>
             {savedStatus === "published" && form.status === "published" ? <small className="admin-help">Thiết bị đang hiển thị: khi lưu với đường dẫn mới, đường dẫn cũ tự chuyển hướng (301) sang đường dẫn mới.</small> : savedStatus === "published" ? <small className="admin-help admin-text-warning">Sau lần lưu này nội dung chưa hiện ngay trên website nên đổi đường dẫn sẽ không tạo chuyển hướng từ đường dẫn cũ.</small> : <small className="admin-help">Chỉ dùng chữ thường không dấu, số và dấu gạch ngang.</small>}
           </div> : <p className="admin-post-editor__slug-line"><span className="admin-help">Đường dẫn:</span> <span className="admin-post-editor__path">{publicPath}</span><button className="admin-post-editor__link" onClick={() => setEditingSlug(true)} type="button">Sửa</button>{!slugTouched ? <span className="admin-help"> · tự tạo theo tên</span> : null}</p>}
-          <div className="admin-form-grid admin-equipment-sale">
-            <label className="admin-field" id="equipment-price">Giá bán (VNĐ)<input className="admin-input" inputMode="numeric" max={Number.MAX_SAFE_INTEGER} min={0} onChange={event => update("priceVnd", Math.max(0, Math.trunc(Number(event.target.value) || 0)))} type="number" value={form.priceVnd} /><small className="admin-help">Hiện trên website: {priceFormatter.format(form.priceVnd)}</small></label>
-            <label className="admin-field">Bảo hành (tháng)<input className="admin-input" max={1200} min={0} onChange={event => update("warrantyMonths", Math.max(0, Math.trunc(Number(event.target.value) || 0)))} type="number" value={form.warrantyMonths} /></label>
-            <label className="admin-field">Mã model<input className="admin-input" maxLength={80} onChange={event => update("modelCode", event.target.value || null)} placeholder="Ví dụ: SUNMI T2s" value={form.modelCode ?? ""} /></label>
-          </div>
-          <label className="admin-field" htmlFor="equipment-summary">Mô tả ngắn<textarea className="admin-input" id="equipment-summary" maxLength={20_000} onChange={event => update("summary", event.target.value || null)} placeholder="Thiết bị dùng để làm gì, phù hợp với mô hình nào. Hiện trên thẻ ở trang danh sách và đầu trang chi tiết." rows={4} value={summary} /></label>
         </AdminEditorSection>
-        <AdminEditorSection description="Chia theo nhóm, ví dụ nhóm “Kết nối” có dòng “Cổng USB: 2 cổng”. Website hiện thành bảng." id="equipment-specs" step={2} title="Thông số kỹ thuật"><SpecificationGroupsEditor onChange={specificationGroups => update("specificationGroups", specificationGroups)} value={form.specificationGroups} /></AdminEditorSection>
-        <AdminEditorSection title="Nội dung trang thiết bị" description="Các thành phần nội dung dùng chung Page Builder. Giá, bảo hành và thông số vẫn quản lý ở phần thông tin thiết bị."><CmsPageBuilder readOnly={!canEdit} documentId={id} document={{ kind: "equipment", values: form }} blocks={form.blocks ?? []} onChange={blocks => update("blocks", blocks)} disabled={processing} onUploadingChange={handleUploadingChange} showGroupPicker /></AdminEditorSection>
         <details className="admin-post-editor__panel">
           <summary><span><strong>Google &amp; chia sẻ mạng xã hội</strong><small>Mặc định lấy từ tên và mô tả ngắn — chỉ mở khi muốn đặt riêng.</small></span><AdminStatusBadge tone={seoPassed === checks.length ? "success" : "warning"}>SEO {seoPassed}/{checks.length} đạt</AdminStatusBadge></summary>
           <div className="admin-post-editor__panel-body">
@@ -197,9 +211,6 @@ export function EquipmentEditor({ groups, item, onDirtyChange, onError, onSaved 
           <ContentStatusChoice canPublish={canPublish} noun={noun} onChange={(status) => update("status", status)} savedStatus={savedStatus} value={form.status} />
           {form.status === "scheduled" ? <label className="admin-field">Thời điểm đăng<input className="admin-input" onChange={event => update("scheduledAt", event.target.value ? new Date(event.target.value) : null)} required type="datetime-local" value={formatLocalDateTime(form.scheduledAt)} /></label> : null}
           {goingLive ? <PrepublishHints missing={missing} /> : null}
-        </section>
-        <section className="admin-content-section" id="equipment-cover">
-          <MediaPicker disabled={isSaving} hint="Hiện trên thẻ ở trang danh sách và đầu trang chi tiết. Nên dùng ảnh nền trắng, thiết bị nằm giữa." label="Ảnh bìa" onChange={coverMediaId => update("coverMediaId", coverMediaId)} onUploadingChange={handleUploadingChange} preview value={form.coverMediaId} />
         </section>
         <section className="admin-content-section">
           <header><h3>Phân loại &amp; hiển thị</h3></header>

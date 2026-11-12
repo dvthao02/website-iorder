@@ -9,11 +9,12 @@ import { isDarkColor } from "@iorder/shared/server/shared/color";
 import { youtubeVideoId } from "@iorder/shared/server/shared/youtube";
 import { getMediaById } from "@/lib/backend";
 import { getExternalLinks, getPartners, getSiteProfile, getTestimonials } from "@/lib/backend";
-import { ButtonLink, Card, CardText, CardTitle, FaqList, FrameSection, IconTile, MoreLink, SectionHeading, TextLink, gridColumns } from "@/components/ui";
+import { ButtonLink, Card, CardText, CardTitle, FaqList, FrameSection, IconTile, MoreLink, itemAlignClass, SectionHeading, TextLink, gridColumns } from "@/components/ui";
 import { BlockIcon } from "./block-icon";
 import { CollectionList } from "./collection-list";
 import { HeroSection } from "./hero-section";
 import { GroupedListSection, MediaTextSection, PricingSection } from "./section-blocks";
+import { ColumnsSection } from "./columns-section";
 import { LeadForm } from "./lead-form";
 import type { StaticPageProfile } from "@iorder/shared/server/pages/static-page-layout";
 import { RichTableOfContents, RichContent } from "./rich-content";
@@ -26,6 +27,9 @@ import { getBuilderPreviewContext } from "@/lib/builder-preview";
 // Nút "theo Cài đặt" (`setting:trial`…) được đổi sang địa chỉ hiện tại trước khi vẽ.
 // `screens` (trang chủ): trên máy tính mỗi phần cao tối thiểu một màn hình, nội dung căn giữa theo chiều dọc (CSS `.screen-block`);
 // dải gọn (khoảng cách "Gọn", ví dụ logo đối tác) và phần đầu trang không áp dụng.
+// Số liệu nổi bật: vạch nhấn nằm bên trái (căn trái), phía trên (căn giữa) hoặc bên phải (căn phải).
+const statAlignClass = { left: "border-l-2 border-brand-500 pl-5", center: "border-t-2 border-brand-500 pt-4 text-center", right: "border-r-2 border-brand-500 pr-5 text-right" } as const;
+
 export async function PageBlockRenderer({ blocks, previous = null, screens = false, sectionIds, staticPage }: { blocks: PageBlock[]; previous?: SectionSurface | null; screens?: boolean; sectionIds?: ReadonlyArray<string | undefined>; staticPage?: StaticPageProfile }) {
   const links = await getExternalLinks();
   const enabled = resolveSettingLinks(blocks.filter(block => block.isEnabled), links);
@@ -87,12 +91,12 @@ async function CardGrid({ items, visual = false, bento = false }: { items: CardI
     const leadStyle = lead.background ? { backgroundColor: lead.background } : undefined;
     // Máy tính: hai hàng cao theo chiều cao màn (globals.css .bento-grid) để cả lưới vừa một màn hình ở mọi cỡ.
     return <div className="bento-grid grid gap-5 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)_minmax(0,1fr)]">
-      {lead.href ? <Link className={leadClass} href={lead.href} style={leadStyle}>{leadBody}</Link> : <div className={leadClass} style={leadStyle}>{leadBody}</div>}
+      {lead.href ? <Link className={leadClass} data-builder-item="items:0" href={lead.href} style={leadStyle}>{leadBody}</Link> : <div className={leadClass} data-builder-item="items:0" style={leadStyle}>{leadBody}</div>}
       {rest.map((item, index) => {
         const photo = photos[index + 1];
-        return <Card background={item.background} className="lg:flex-row" flush href={item.href} key={`${item.title}-${index}`}>
+        return <Card background={item.background} className="lg:flex-row" flush href={item.href} item={`items:${index + 1}`} key={`${item.title}-${index}`}>
           <div className={`relative w-full overflow-hidden bg-subtle lg:aspect-auto lg:w-[28%] lg:shrink-0 xl:w-[36%] ${photo ? "aspect-[16/9]" : "aspect-[16/5] sm:aspect-[16/9]"}`}>
-            {photo ? <Image alt={photo.altText ?? item.title} className="object-cover transition duration-500 group-hover:scale-[1.03]" fill sizes="(min-width: 1024px) 12vw, 50vw" src={photo.url} />
+            {photo ? <Image alt={photo.altText ?? item.title} className="object-cover transition duration-500 group-hover:scale-[1.03]" data-builder-field="image" fill sizes="(min-width: 1024px) 12vw, 50vw" src={photo.url} />
               : <span aria-hidden="true" className={`absolute inset-0 grid place-items-center ${photoFallback}`}>{item.icon ? <BlockIcon name={item.icon} size={40} strokeWidth={1.4} /> : null}</span>}
           </div>
           <div className="flex min-w-0 flex-1 flex-col p-5 lg:py-4">
@@ -105,19 +109,25 @@ async function CardGrid({ items, visual = false, bento = false }: { items: CardI
     </div>;
   }
   if (!visual && !photos.some(Boolean)) return <div className={`grid gap-5 ${gridColumns(items.length, 4)}`}>
-    {items.map((item, index) => <Card background={item.background} href={item.href} key={`${item.title}-${index}`}>
-      <span className="mb-5"><IconTile>{item.icon ? <BlockIcon name={item.icon} size={22} strokeWidth={1.8} /> : String(index + 1).padStart(2, "0")}</IconTile></span>
-      <CardTitle>{item.title}</CardTitle>
-      {item.description ? <CardText>{item.description}</CardText> : null}
-      {item.href ? <MoreLink /> : null}
-    </Card>)}
+    {items.map((item, index) => {
+      const tile = <IconTile>{item.icon ? <BlockIcon name={item.icon} size={22} strokeWidth={1.8} /> : String(index + 1).padStart(2, "0")}</IconTile>;
+      const text = <>
+        <CardTitle>{item.title}</CardTitle>
+        {item.description ? <CardText>{item.description}</CardText> : null}
+        {item.href ? <MoreLink /> : null}
+      </>;
+      // "Biểu tượng bên trái": ô biểu tượng đứng cạnh khối chữ thay vì nằm phía trên.
+      return <Card background={item.background} className={itemAlignClass[item.align ?? "left"]} href={item.href} item={`items:${index}`} key={`${item.title}-${index}`}>
+        {item.iconPosition === "left" ? <div className="flex w-full items-start gap-4"><span className="shrink-0">{tile}</span><div className="flex min-w-0 flex-1 flex-col">{text}</div></div> : <><span className="mb-5">{tile}</span>{text}</>}
+      </Card>;
+    })}
   </div>;
   return <div className={`grid gap-5 ${gridColumns(items.length, 4)}`}>
     {items.map((item, index) => {
       const photo = photos[index];
-      return <Card background={item.background} flush href={item.href} key={`${item.title}-${index}`}>
+      return <Card background={item.background} className={itemAlignClass[item.align ?? "left"]} flush href={item.href} item={`items:${index}`} key={`${item.title}-${index}`}>
         <div className={`relative w-full overflow-hidden bg-subtle ${photo ? "aspect-[16/10]" : "aspect-[16/5] sm:aspect-[16/10]"}`}>
-          {photo ? <Image alt={photo.altText ?? item.title} className="object-cover transition duration-500 group-hover:scale-[1.03]" fill sizes="(min-width: 1280px) 25vw, (min-width: 640px) 50vw, 100vw" src={photo.url} />
+          {photo ? <Image alt={photo.altText ?? item.title} className="object-cover transition duration-500 group-hover:scale-[1.03]" data-builder-field="image" fill sizes="(min-width: 1280px) 25vw, (min-width: 640px) 50vw, 100vw" src={photo.url} />
             : <span aria-hidden="true" className={`absolute inset-0 grid place-items-center ${photoFallback}`}>{item.icon ? <BlockIcon name={item.icon} size={56} strokeWidth={1.4} /> : <span className="text-display font-bold">{String(index + 1).padStart(2, "0")}</span>}</span>}
         </div>
         <div className="flex flex-1 flex-col p-5 sm:p-6">
@@ -175,13 +185,14 @@ async function Block({ block, first, frame, staticPage }: { block: PageBlock; fi
     case "media_text": return <MediaTextSection data={block.data} frame={frame} />;
     case "pricing": return <PricingSection data={block.data} frame={frame} />;
     case "grouped_list": return <GroupedListSection data={block.data} frame={frame} />;
+    case "columns": return <ColumnsSection data={block.data} frame={frame} />;
     case "stats": return <FrameSection frame={frame}>
       <SectionHeading dark={dark} eyebrow={block.data.eyebrow} title={block.data.title} />
-      <dl className="m-0 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">{block.data.items.map((item, index) => <div className="border-l-2 border-brand-500 pl-5" key={`${item.label}-${index}`}>
+      <dl className="m-0 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">{block.data.items.map((item, index) => <div className={statAlignClass[item.align ?? "left"]} data-builder-item={`items:${index}`} key={`${item.label}-${index}`}>
         <dt className="sr-only">{item.label}</dt>
-        <dd className={`m-0 text-display font-bold tracking-tight ${dark ? "text-white" : "text-ink"}`}>{item.value}</dd>
-        <dd className={`m-0 mt-2 text-body font-semibold ${dark ? "text-white/85" : "text-ink"}`}>{item.label}</dd>
-        {item.note ? <dd className={`m-0 mt-1 text-small ${dark ? "text-white/60" : "text-muted"}`}>{item.note}</dd> : null}
+        <dd className={`m-0 text-display font-bold tracking-tight ${dark ? "text-white" : "text-ink"}`} data-builder-field="value">{item.value}</dd>
+        <dd className={`m-0 mt-2 text-body font-semibold ${dark ? "text-white/85" : "text-ink"}`} data-builder-field="label">{item.label}</dd>
+        {item.note ? <dd className={`m-0 mt-1 text-small ${dark ? "text-white/60" : "text-muted"}`} data-builder-field="note">{item.note}</dd> : null}
       </div>)}</dl>
     </FrameSection>;
     case "features":
@@ -208,7 +219,7 @@ async function Block({ block, first, frame, staticPage }: { block: PageBlock; fi
       if (!testimonials.length) return null;
       return <FrameSection frame={frame}>
         <SectionHeading dark={dark} eyebrow={block.data.eyebrow} title={block.data.title} />
-        <div className={`grid gap-5 ${gridColumns(testimonials.length)}`}>{testimonials.map(item => <Card as="figure" className="m-0" key={item.id}>
+        <div className={`grid gap-5 ${gridColumns(testimonials.length)}`} data-builder-field="limit">{testimonials.map(item => <Card as="figure" className="m-0" key={item.id}>
           {item.rating ? <p aria-label={`${item.rating} trên 5 sao`} className="mb-3 text-accent-amber">{"★".repeat(item.rating)}<span className="text-subtle">{"★".repeat(5 - item.rating)}</span></p> : <span aria-hidden className="mb-2 text-display leading-none font-black text-brand-200">“</span>}
           <blockquote className="m-0 flex-1 text-body text-ink/80">{item.quote}</blockquote>
           <figcaption className="mt-6 flex items-center gap-3 border-t border-line pt-5">
@@ -233,7 +244,7 @@ async function Block({ block, first, frame, staticPage }: { block: PageBlock; fi
       const marquee = partners.length >= 8;
       return <FrameSection frame={frame}>
         <SectionHeading className="mb-8" dark={dark} description={block.data.description} eyebrow={block.data.eyebrow} size="sm" title={block.data.title} />
-        {marquee ? <div className="logo-marquee" style={{ "--marquee-duration": `${partners.length * 3.5}s` } as CSSProperties}>
+        {marquee ? <div className="logo-marquee" data-builder-field="kind" style={{ "--marquee-duration": `${partners.length * 3.5}s` } as CSSProperties}>
           <div className="logo-marquee__track">
             <ul className="logo-marquee__list">{partners.map(item => <li key={item.id}>{logo(item)}</li>)}</ul>
             <ul aria-hidden="true" className="logo-marquee__list logo-marquee__list--clone">{partners.map(item => <li key={item.id}>{logo(item, true)}</li>)}</ul>
@@ -249,7 +260,7 @@ async function Block({ block, first, frame, staticPage }: { block: PageBlock; fi
     case "cta": return <FrameSection frame={frame}>
       <div className="flex flex-col items-start justify-between gap-8 rounded-card bg-gradient-to-br from-brand-700 to-navy px-8 py-12 text-white shadow-raised sm:px-12 md:flex-row md:items-center">
         <SectionHeading align="left" className="" dark eyebrow={block.data.eyebrow} title={block.data.title} />
-        <ButtonLink action={block.data.action} variant="light" />
+        <ButtonLink action={block.data.action} field="action" variant="light" />
       </div>
     </FrameSection>;
     case "lead_form": {
@@ -258,14 +269,14 @@ async function Block({ block, first, frame, staticPage }: { block: PageBlock; fi
       return <FrameSection frame={frame}><LeadForm {...block.data} contact={contact} dark={frame.tone === "dark"} trialUrl={(await getExternalLinks())?.trial ?? null} /></FrameSection>;
     }
     case "rich_text": return <FrameSection frame={frame} width="text">
-      {block.data.heading ? <h2 className="mb-6 text-h2 font-bold tracking-tight text-ink">{block.data.heading}</h2> : null}
-      {typeof block.data.body === "string" ? <div className="grid gap-5 text-lead text-ink/80">{block.data.body.split("\n").map((paragraph, index) => paragraph ? <p className="mb-0" key={index}>{paragraph}</p> : null)}</div> : <>{staticPage === "document" ? <RichTableOfContents doc={block.data.body} label="Mục lục nội dung" title="Nội dung trong trang" /> : null}<RichContent doc={block.data.body} /></>}
+      {block.data.heading ? <h2 className="mb-6 text-h2 font-bold tracking-tight text-ink" data-builder-field="title">{block.data.heading}</h2> : null}
+      {typeof block.data.body === "string" ? <div className="grid gap-5 text-lead text-ink/80" data-builder-field="body">{block.data.body.split("\n").map((paragraph, index) => paragraph ? <p className="mb-0" key={index}>{paragraph}</p> : null)}</div> : <div data-builder-field="body">{staticPage === "document" ? <RichTableOfContents doc={block.data.body} label="Mục lục nội dung" title="Nội dung trong trang" /> : null}<RichContent doc={block.data.body} /></div>}
     </FrameSection>;
     case "image": {
       const media = await getMediaById(block.data.mediaId);
       return media?.mimeType.startsWith("image/") ? <FrameSection frame={frame}><figure className="m-0">
-        <Image alt={block.data.alt ?? media.altText ?? ""} className="h-auto w-full rounded-card border border-line" height={800} sizes="(min-width: 1152px) 92vw, 100vw" src={media.url} width={1200} />
-        {block.data.caption ? <figcaption className="mt-3 text-center text-small text-muted">{block.data.caption}</figcaption> : null}
+        <Image alt={block.data.alt ?? media.altText ?? ""} className="h-auto w-full rounded-card border border-line" data-builder-field="image" height={800} sizes="(min-width: 1152px) 92vw, 100vw" src={media.url} width={1200} />
+        {block.data.caption ? <figcaption className="mt-3 text-center text-small text-muted" data-builder-field="caption">{block.data.caption}</figcaption> : null}
       </figure></FrameSection> : null;
     }
     // Video YouTube 16:9 giữa khung (tối đa ~64rem); trên máy tính thu nhỏ theo chiều cao màn hình để cả phần vừa một màn.
@@ -274,9 +285,9 @@ async function Block({ block, first, frame, staticPage }: { block: PageBlock; fi
       if (!videoId) return null;
       return <FrameSection frame={frame}>
         <SectionHeading dark={dark} description={block.data.description} eyebrow={block.data.eyebrow} title={block.data.title} />
-        <figure className="m-0 mx-auto w-full max-w-5xl lg:max-w-[min(64rem,calc((100svh-16rem)*16/9))]">
+        <figure className="m-0 mx-auto w-full max-w-5xl lg:max-w-[min(64rem,calc((100svh-16rem)*16/9))]" data-builder-field="url">
           <YouTubeFrame className={`rounded-card shadow-raised ${dark ? "ring-1 ring-white/15" : "ring-1 ring-line"}`} title={block.data.title ?? block.data.caption ?? "Video YouTube"} videoId={videoId} />
-          {block.data.caption ? <figcaption className={`mt-3 text-center text-small ${dark ? "text-white/70" : "text-muted"}`}>{block.data.caption}</figcaption> : null}
+          {block.data.caption ? <figcaption className={`mt-3 text-center text-small ${dark ? "text-white/70" : "text-muted"}`} data-builder-field="caption">{block.data.caption}</figcaption> : null}
         </figure>
       </FrameSection>;
     }

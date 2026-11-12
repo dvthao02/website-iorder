@@ -324,7 +324,7 @@ export async function auditBuilderHttp(input: { databaseUrl: string; previewSecr
       if (path === "/admin/homepage") {
         await expect(page.locator(".admin-blocks--builder")).toBeVisible({ timeout: 30000 });
         const homeProperties = page.locator(".admin-blocks__detail");
-        await homeProperties.getByRole("tab", { name: "Bố cục chung", exact: true }).click();
+        await homeProperties.getByRole("tab", { name: "Bố cục khối", exact: true }).click();
         assert.equal(await homeProperties.getByRole("button", { name: "Thêm mục trượt", exact: true }).count(), 0);
         const slideTree = page.locator(".admin-blocks__navigation");
         await slideTree.getByRole("button", { name: "Mục trượt 1", exact: true }).click();
@@ -408,14 +408,14 @@ export async function auditBuilderHttp(input: { databaseUrl: string; previewSecr
         await page.screenshot({ path: ".next/builder-hero-content-preview.png", fullPage: false });
         await page.getByRole("button", { name: "Đóng xem trước", exact: true }).click();
         await page.locator(".admin-blocks__navigation .admin-block__toggle").first().click();
-        await homeProperties.getByRole("tab", { name: "Bố cục chung", exact: true }).click();
+        await homeProperties.getByRole("tab", { name: "Bố cục khối", exact: true }).click();
         await homeProperties.getByRole("group", { name: "Kiểu bố cục", exact: true }).getByText("Trượt nhiều ảnh", { exact: true }).click();
         assert.equal(await homeProperties.getByText("Các ảnh trượt (0/8)", { exact: true }).count(), 0);
         await homeNavigation.getByRole("button", { name: "+ Thêm ảnh trượt", exact: true }).click();
         await expect(homeProperties.getByRole("tab", { name: "Nội dung", exact: true })).toHaveAttribute("aria-selected", "true");
         await expect(homeProperties.getByText("Các ảnh trượt (1/8)", { exact: true })).toBeVisible();
         await homeNavigation.locator(".admin-block__toggle").first().click();
-        await homeProperties.getByRole("tab", { name: "Bố cục chung", exact: true }).click();
+        await homeProperties.getByRole("tab", { name: "Bố cục khối", exact: true }).click();
         assert.equal(await homeProperties.getByRole("slider", { name: "Độ rộng nội dung (%)", exact: true }).count(), 0);
         await expect(homeProperties.getByText("Kiểu trượt nhiều ảnh luôn hiển thị ảnh toàn chiều ngang", { exact: false })).toBeVisible();
       } else assert.equal(await page.locator(".admin-blocks--builder").count(), 0);
@@ -439,11 +439,11 @@ export async function auditBuilderHttp(input: { databaseUrl: string; previewSecr
     const listingProperties = page.locator(".admin-blocks__detail");
     const listingNavigation = page.locator(".admin-blocks__navigation");
     await expect(listingProperties.getByRole("tab")).toHaveCount(1);
-    await expect(listingProperties.getByRole("tab", { name: "Bố cục chung", exact: true })).toBeVisible();
+    await expect(listingProperties.getByRole("tab", { name: "Bố cục khối", exact: true })).toBeVisible();
     await listingNavigation.getByRole("button", { name: "Mục trượt 1", exact: true }).click();
     await expect(listingProperties.getByRole("tab")).toHaveCount(1);
     assert.equal(await listingProperties.getByRole("group", { name: "Kiểu bố cục", exact: true }).count(), 0);
-    await listingNavigation.getByRole("button", { name: "Bố cục chung", exact: true }).click();
+    await listingNavigation.getByRole("button", { name: "Bố cục khối", exact: true }).click();
     await listingProperties.getByRole("group", { name: "Kiểu bố cục", exact: true }).getByText("Ảnh trái, chữ phải", { exact: true }).click();
     const savedListing = page.waitForResponse(response => response.url().endsWith("/api/v1/admin/pages") && response.request().method() === "POST");
     await page.getByRole("button", { name: "Lưu thay đổi", exact: true }).click();

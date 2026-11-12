@@ -6,7 +6,7 @@ import { formatDisplayDateTime, formatLocalDateTime } from "@/lib/local-date-tim
 import { toSlug } from "@/lib/slug";
 
 import { Plus } from "lucide-react";
-import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { MediaPicker } from "./media-picker";
 import { RevisionHistory } from "./revision-history";
 import { PublishedPreviewLink, offeringCatalogPaths } from "./published-preview-link";
@@ -23,11 +23,13 @@ import { useRevisionRestore } from "./ui/use-revision-restore";
 
 import { seoChecks, truncateAtWord } from "@iorder/shared/server/shared/seo";
 import type { AdminOffering, AdminOfferingInput, PublicOfferingType } from "@iorder/shared/server/offerings/offering-content.contract";
+import { AppearanceEditor, defaultAppearance } from "./block-appearance-fields";
+import { DetailHeroLayoutFields } from "./ui/detail-hero-layout-fields";
 import { pageBlockInputSchema, type PageBlock } from "@iorder/shared/server/pages/pages.contract";
 import { useAdminPermissions } from "./ui/admin-permissions";
 import { blockLabel, blockSummary } from "./page-blocks-editor";
 
-const offeringBlockTypes = ["media_text", "features", "process", "grouped_list", "stats", "testimonials", "partners", "faq", "cta", "lead_form", "rich_text", "image", "video", "pricing", "collection_list"] as const satisfies readonly PageBlock["type"][];
+const offeringBlockTypes = ["columns", "media_text", "features", "process", "grouped_list", "stats", "testimonials", "partners", "faq", "cta", "lead_form", "rich_text", "image", "video", "pricing", "collection_list"] as const satisfies readonly PageBlock["type"][];
 
 type LinkItem = { title: string; href: string };
 
@@ -35,9 +37,6 @@ const inputClassName = "admin-input";
 const labelClassName = "admin-field";
 const summaryLimit = 200;
 
-function EditorSection({ children, description, id, step, title }: { children: ReactNode; description?: string; id?: string; step?: number; title: string }) {
-  return <AdminEditorSection description={description} id={id} step={step} title={title}>{children}</AdminEditorSection>;
-}
 
 function nullableText(value: string) {
   const trimmed = value.trim();
@@ -113,7 +112,7 @@ export function OfferingEditor({ offering, offeringType, offeringTypeLabel, onSa
   const canEdit = can(offering ? "offerings.update" : "offerings.create") && (canPublish || !["published", "scheduled"].includes(offering?.status ?? "draft"));
   const noun = offeringTypeLabel.toLocaleLowerCase("vi");
   const [form, setForm] = useState(() => offeringToForm(offering, offeringType));
-  const [openBlock, setOpenBlock] = useState<number | null>(() => form.blocks.length ? 0 : null);
+  const [openBlock, setOpenBlock] = useState<number | null>(-1);
   const [blocksMigrated, setBlocksMigrated] = useState(false);
   const [savedVersion, setSavedVersion] = useState(offering?.draftVersion);
   const saving = useRef(false);
@@ -131,7 +130,6 @@ export function OfferingEditor({ offering, offeringType, offeringTypeLabel, onSa
   const [historyOpen, setHistoryOpen] = useState(false);
   // Nội dung mới: slug tự theo tiêu đề cho tới khi người dùng tự sửa. Nội dung đã có giữ slug (đổi slug làm hỏng liên kết).
   const [slugTouched, setSlugTouched] = useState(Boolean(offering));
-  const [extraOpen] = useState(() => Boolean(offering && (offering.content.bestFor || offering.content.keyValue || offering.content.category || offering.icon || offering.content.tags.length || offering.content.metrics.length)));
   const { isDirty, markSaved } = useUnsavedChanges(form);
   const needsBlocksMigration = Boolean(offering && offering.content.blocks === undefined && !blocksMigrated);
   const hasUnsavedChanges = isDirty || needsBlocksMigration;
@@ -162,6 +160,7 @@ export function OfferingEditor({ offering, offeringType, offeringTypeLabel, onSa
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!canEdit || saving.current || uploading.current || restore.pending.current) return;
+    if (!form.title.trim()) { setOpenBlock(-1); onError(`Nhập tên ${noun} ở phần đầu trang.`); return; }
     saving.current = true;
     setIsSaving(true);
 
@@ -191,56 +190,63 @@ export function OfferingEditor({ offering, offeringType, offeringTypeLabel, onSa
   const savedStatus = offering?.status;
   const goingLive = form.status === "published" || form.status === "scheduled";
   const missing = [
-    !form.coverMediaId ? { id: "offering-cover", label: "Ảnh bìa" } : null,
-    !form.summary.trim() ? { id: "offering-summary", label: "Tóm tắt" } : null,
+    !form.coverMediaId ? { id: "offering-content", label: "Ảnh bìa" } : null,
+    !form.summary.trim() ? { id: "offering-content", label: "Tóm tắt" } : null,
     !form.blocks.some((block) => block.isEnabled) ? { id: "offering-content", label: "Nội dung trang" } : null,
   ].filter((item): item is { id: string; label: string } => item !== null);
+
+  // Phần đầu trang nằm trong trình dựng như mục số 1: tên, tóm tắt, ảnh bìa, nhãn nhóm, điểm nổi bật, thẻ.
+  const heroDetail = <>
+    <label className={labelClassName} data-field="title">Tên {noun}<input className={inputClassName} maxLength={220} onChange={(event) => changeTitle(event.target.value)} placeholder={`Nhập tên ${noun}…`} value={form.title} /></label>
+        <div className={labelClassName} data-field="summary">
+          <span className="admin-seo__label"><label htmlFor="offering-summary">Tóm tắt</label><span className={form.summary.trim().length > summaryLimit ? "admin-seo__count admin-seo__count--over" : "admin-seo__count"}>{form.summary.trim().length}/{summaryLimit} ký tự</span>{form.description.trim() && !form.summary.trim() ? <button className="admin-post-editor__link" onClick={() => update("summary", truncateAtWord(form.description, summaryLimit))} type="button">Lấy từ mô tả</button> : null}</span>
+          <textarea className={inputClassName} id="offering-summary" onChange={(event) => update("summary", event.target.value)} placeholder="1–2 câu giới thiệu, hiện trên thẻ ở trang danh sách và khi chia sẻ Facebook/Zalo." rows={2} value={form.summary} />
+        </div>
+    <MediaPicker disabled={processing || !canEdit} preview hint="Hiện trên thẻ ở trang danh sách, đầu trang chi tiết và khi chia sẻ Facebook/Zalo. Nên dùng ảnh ngang 1200×630." label="Ảnh bìa" onChange={value => update("coverMediaId", value)} onUploadingChange={handleUploadingChange} value={form.coverMediaId} />
+    <label className={labelClassName} data-field="category">Nhãn nhóm<input className={inputClassName} maxLength={180} onChange={(event) => update("category", event.target.value)} placeholder="Ví dụ: Quản lý bán hàng (dòng nhỏ phía trên tên)" value={form.category} /></label>
+    <div className={labelClassName} data-field="metrics"><span>Điểm nổi bật</span><AdminListEditor addLabel="Thêm điểm nổi bật" itemLabel="Điểm nổi bật" items={form.metrics} maxItems={50} onChange={(items) => update("metrics", items)} placeholder="Ví dụ: 500+ nhà hàng đang dùng" /></div>
+    <div className={labelClassName} data-field="tags"><span>Thẻ</span><AdminListEditor addLabel="Thêm thẻ" itemLabel="Thẻ" items={form.tags} maxItems={50} onChange={(items) => update("tags", items)} placeholder="Ví dụ: F&B" /></div>
+    <label className={labelClassName} data-field="bestFor">Phù hợp với<input className={inputClassName} maxLength={500} onChange={(event) => update("bestFor", event.target.value)} placeholder="Ví dụ: Nhà hàng 10–50 bàn (hiện trong phần đầu trang)" value={form.bestFor} /></label>
+    <label className={labelClassName} data-field="keyValue">Giá trị nổi bật<input className={inputClassName} maxLength={500} onChange={(event) => update("keyValue", event.target.value)} placeholder="Một câu nêu lợi ích lớn nhất (hiện trong phần đầu trang)" value={form.keyValue} /></label>
+    <p className="admin-help">Đường dẫn: {publicPath}. Đổi ở mục “Đường dẫn trang” bên dưới.</p>
+  </>;
+  const heroLayoutDetail = <DetailHeroLayoutFields disabled={processing || !canEdit} name="offering-hero-layout" onChange={hero => update("appearance", { ...form.appearance, hero })} value={form.appearance.hero} />;
+  const relatedLayoutDetail = <>
+    <AppearanceEditor disabled={processing || !canEdit} onChange={patch => update("appearance", { ...form.appearance, related: { ...defaultAppearance, ...form.appearance.related, ...patch } })} onUploadingChange={handleUploadingChange} options={{ darkAllowed: true }} value={form.appearance.related} />
+  </>;
+  // Liên kết cuối trang: mục cố định cuối danh sách thành phần, hiện thành phần "Nội dung liên quan" phía dưới cùng.
+  const relatedDetail = <>
+    <p className="admin-help">Ví dụ: tài liệu, bảng giá, trang liên hệ. Để trống đường dẫn nếu chỉ muốn hiện chữ. Hiện ở cuối trang, sau các thành phần.</p>
+    <OfferingLinksEditor items={form.items} onChange={(items) => update("items", items)} />
+  </>;
 
   // Bản đồ nội dung đi theo đúng thứ tự các phần khách hàng đọc trên trang chi tiết.
   return (
     <form className="admin-post-editor admin-post-editor--with-outline" onSubmit={submit} ref={formRef}>
       {!canEdit ? <div className="col-span-full"><AdminNotice tone="info">Bạn chỉ có quyền xem nội dung này. Nội dung đang hiển thị cần thêm quyền xuất bản để sửa.</AdminNotice></div> : null}
+      {processing ? <div className="col-span-full"><AdminNotice tone="info">{isSaving ? "Đang lưu nội dung. Các ô nhập tạm khóa cho tới khi lưu xong." : restore.restoring ? "Đang khôi phục phiên bản. Các ô nhập tạm khóa cho tới khi tải lại." : "Đang tải tệp lên. Các ô nhập tạm khóa cho tới khi tải xong."}</AdminNotice></div> : null}
       <fieldset disabled={processing} className="contents">
-      <AdminEditorOutline key={offeringType ?? form.type} label="Bố cục trang" onSelect={(index) => { if (index > 0) jumpToBlock(index - 1); }} items={[
-        { step: 1, label: "Phần đầu trang", description: "Tên, đường dẫn, tóm tắt", href: "#offering-hero" },
+      <AdminEditorOutline key={offeringType ?? form.type} label="Bố cục trang" onSelect={(index) => jumpToBlock(index - 1)} items={[
+        { step: 1, label: "Phần đầu trang", description: "Tên, tóm tắt, ảnh bìa", href: "#page-block--1" },
         ...form.blocks.map((block, index) => ({ step: index + 2, label: blockLabel(block.type), description: blockSummary(block), href: `#page-block-${index}` })),
       ]} />
       <div className="admin-post-editor__main">
-        <AdminEditorSection className="admin-post-editor__writing" description="Tên, đường dẫn và lời giới thiệu xuất hiện ở phần đầu trang sản phẩm hoặc dịch vụ." id="offering-hero" step={1} title="Phần đầu trang">
-          <label className="admin-post-editor__title-field"><span className="sr-only">Tên {noun}</span><input className="admin-post-editor__title" maxLength={220} onChange={(event) => changeTitle(event.target.value)} placeholder={`Nhập tên ${noun}…`} required value={form.title} /></label>
+        <AdminEditorSection description="Từ phần đầu trang đến các phần còn lại: chọn từng phần ở danh sách bên trái hoặc bấm trực tiếp trên trang xem trước để sửa. Đường dẫn và SEO nằm ở các mục bên dưới." id="offering-content" step={1} title="Nội dung trang">
+          {needsBlocksMigration ? <p className="admin-help">Nội dung hiện tại sẽ được lưu thành các thành phần trang ở lần lưu tiếp theo. Ảnh bìa sẽ dùng cho phần Tổng quan; bạn có thể chọn ảnh khác ngay trong thành phần đó.</p> : null}
+          <CmsPageBuilder readOnly={!canEdit} documentId={offering?.id ?? null} document={(() => { try { return { kind: "offering", values: offeringFormToInput(form) }; } catch { return null; } })()} allowedTypes={offeringBlockTypes} blocks={form.blocks} disabled={processing} leads={[{ label: "Phần đầu trang", detail: heroDetail, layoutDetail: heroLayoutDetail }]} tails={[{ label: "Nội dung liên quan", detail: relatedDetail, layoutDetail: relatedLayoutDetail }]} onChange={(blocks) => update("blocks", blocks)} onOpenIndexChange={setOpenBlock} onUploadingChange={handleUploadingChange} openIndex={openBlock} showGroupPicker />
+        </AdminEditorSection>
+        <AdminEditorSection description={`Địa chỉ không dấu của ${noun} trên website. Tên ở phần đầu trang tự tạo đường dẫn cho tới khi bạn sửa tay.`} id="offering-slug-section" title="Đường dẫn trang">
           {editingSlug ? <div className="admin-post-editor__slug-edit">
             <div className={labelClassName}><label className="admin-seo__label" htmlFor="offering-slug">Đường dẫn<span className="admin-help">Địa chỉ không dấu trên website: {publicPath}</span></label><span className="admin-post-editor__slug"><input autoFocus className={inputClassName} id="offering-slug" maxLength={180} onChange={(event) => { setSlugTouched(true); update("slug", event.target.value); }} pattern="[a-z0-9]+(-[a-z0-9]+)*" required value={form.slug} /><AdminButton disabled={!form.title.trim() || toSlug(form.title, 80) === form.slug} onClick={() => { setSlugTouched(true); update("slug", toSlug(form.title, 80)); }} size="sm" variant="secondary">Tạo từ tên</AdminButton><AdminButton onClick={() => setEditingSlug(false)} size="sm" variant="ghost">Xong</AdminButton></span></div>
             {savedStatus === "published" && form.status === "published" ? <small className="admin-help">{offeringTypeLabel} đang hiển thị: khi lưu với đường dẫn mới, đường dẫn cũ tự chuyển hướng (301) sang đường dẫn mới.</small> : savedStatus === "published" ? <small className="admin-help admin-text-warning">Sau lần lưu này nội dung chưa hiện ngay trên website nên đổi đường dẫn sẽ không tạo chuyển hướng từ đường dẫn cũ.</small> : <small className="admin-help">Chỉ dùng chữ thường không dấu, số và dấu gạch ngang.</small>}
           </div> : <p className="admin-post-editor__slug-line"><span className="admin-help">Đường dẫn:</span> <span className="admin-post-editor__path">{publicPath}</span><button className="admin-post-editor__link" onClick={() => setEditingSlug(true)} type="button">Sửa</button>{!slugTouched ? <span className="admin-help"> · tự tạo theo tên</span> : null}</p>}
-          <div className={labelClassName}>
-            <span className="admin-seo__label"><label htmlFor="offering-summary">Tóm tắt</label><span className={form.summary.trim().length > summaryLimit ? "admin-seo__count admin-seo__count--over" : "admin-seo__count"}>{form.summary.trim().length}/{summaryLimit} ký tự</span>{form.description.trim() && !form.summary.trim() ? <button className="admin-post-editor__link" onClick={() => update("summary", truncateAtWord(form.description, summaryLimit))} type="button">Lấy từ mô tả</button> : null}</span>
-            <textarea className={inputClassName} id="offering-summary" onChange={(event) => update("summary", event.target.value)} placeholder="1–2 câu giới thiệu, hiện trên thẻ ở trang danh sách và khi chia sẻ Facebook/Zalo." rows={2} value={form.summary} />
-          </div>
         </AdminEditorSection>
-        <AdminEditorSection description="Chọn nhóm thành phần như trang chủ, sau đó thêm, sắp xếp hoặc tạm ẩn từng phần. Phần đầu trang đã được quản lý ở trên." id="offering-content" step={2} title="Nội dung trang">
-          {needsBlocksMigration ? <p className="admin-help">Nội dung hiện tại sẽ được lưu thành các thành phần trang ở lần lưu tiếp theo. Ảnh bìa sẽ dùng cho phần Tổng quan; bạn có thể chọn ảnh khác ngay trong thành phần đó.</p> : null}
-          <CmsPageBuilder readOnly={!canEdit} documentId={offering?.id ?? null} document={(() => { try { return { kind: "offering", values: offeringFormToInput(form) }; } catch { return null; } })()} allowedTypes={offeringBlockTypes} blocks={form.blocks} disabled={processing} onChange={(blocks) => update("blocks", blocks)} onOpenIndexChange={setOpenBlock} onUploadingChange={handleUploadingChange} openIndex={openBlock} showGroupPicker />
-        </AdminEditorSection>
-        <EditorSection description="Ví dụ: tài liệu, bảng giá, trang liên hệ. Để trống đường dẫn nếu chỉ muốn hiện chữ." title="Nội dung liên quan"><OfferingLinksEditor items={form.items} onChange={(items) => update("items", items)} /></EditorSection>
         <details className="admin-post-editor__panel" id="offering-seo">
           <summary><span><strong>Google &amp; chia sẻ mạng xã hội</strong><small>Mặc định lấy từ tên và tóm tắt — chỉ mở khi muốn đặt riêng.</small></span><AdminStatusBadge tone={seoPassed === checks.length ? "success" : "warning"}>SEO {seoPassed}/{checks.length} đạt</AdminStatusBadge></summary>
           <div className="admin-post-editor__panel-body">
             <SeoAssistant content={seoContent} excerpt={form.summary} hasCover={Boolean(form.coverMediaId)} onChange={(field, value) => update(field, value)} path={publicPath} seoDescription={form.seoDescription} seoTitle={form.seoTitle} slug={form.slug} title={form.title} />
             <ContentSeoEditor value={form.seo} onChange={seo => update("seo", seo)} title={form.seoTitle || form.title} description={form.seoDescription || form.summary} disabled={processing || !canEdit} onUploadingChange={handleUploadingChange} />
             <label className={labelClassName}>Địa chỉ chính thức của nội dung (nâng cao)<input className={inputClassName} onChange={(event) => update("canonicalUrl", event.target.value)} placeholder="Chỉ điền khi nội dung này được sao chép từ một địa chỉ khác" type="url" value={form.canonicalUrl} /></label>
-          </div>
-        </details>
-        <details className="admin-post-editor__panel" open={extraOpen}>
-          <summary><span><strong>Thông tin bổ sung</strong><small>Phù hợp với, giá trị chính, chỉ số và thẻ dùng cho phần giới thiệu và danh sách.</small></span></summary>
-          <div className="admin-post-editor__panel-body">
-            <div className="admin-form-grid">
-              <label className={labelClassName}>Phù hợp với<input className={inputClassName} maxLength={500} onChange={(event) => update("bestFor", event.target.value)} placeholder="Ví dụ: Nhà hàng 10–50 bàn" value={form.bestFor} /></label>
-              <label className={labelClassName}>Giá trị chính<input className={inputClassName} maxLength={500} onChange={(event) => update("keyValue", event.target.value)} placeholder="Một câu nêu lợi ích lớn nhất" value={form.keyValue} /></label>
-              <label className={labelClassName}>Danh mục<input className={inputClassName} maxLength={180} onChange={(event) => update("category", event.target.value)} placeholder="Ví dụ: Quản lý bán hàng" value={form.category} /></label>
-              <label className={labelClassName}>Biểu tượng<input className={inputClassName} maxLength={120} onChange={(event) => update("icon", event.target.value)} placeholder="Tên biểu tượng" value={form.icon} /></label>
-            </div>
-            <div className={labelClassName}><span>Chỉ số nổi bật</span><AdminListEditor addLabel="Thêm chỉ số" itemLabel="Chỉ số" items={form.metrics} maxItems={50} onChange={(items) => update("metrics", items)} placeholder="Ví dụ: 500+ nhà hàng đang dùng" /></div>
-            <div className={labelClassName}><span>Thẻ</span><AdminListEditor addLabel="Thêm thẻ" itemLabel="Thẻ" items={form.tags} maxItems={50} onChange={(items) => update("tags", items)} placeholder="Ví dụ: F&B" /></div>
           </div>
         </details>
         {offering ? <details className="admin-post-editor__panel" onToggle={(event) => setHistoryOpen(event.currentTarget.open)}>
@@ -257,9 +263,6 @@ export function OfferingEditor({ offering, offeringType, offeringTypeLabel, onSa
           <ContentStatusChoice canPublish={canPublish} noun={noun} onChange={(status) => update("status", status)} savedStatus={savedStatus} value={form.status} />
           {form.status === "scheduled" ? <label className={labelClassName}>Thời điểm đăng<input className={inputClassName} onChange={(event) => update("scheduledAt", event.target.value)} required type="datetime-local" value={form.scheduledAt} /></label> : null}
           {goingLive ? <PrepublishHints missing={missing} /> : null}
-        </section>
-        <section className="admin-content-section" id="offering-cover">
-          <MediaPicker disabled={processing || !canEdit} preview hint="Hiện trên thẻ ở trang danh sách, đầu trang chi tiết và khi chia sẻ Facebook/Zalo. Nên dùng ảnh ngang 1200×630." label="Ảnh bìa" onChange={value => update("coverMediaId", value)} onUploadingChange={handleUploadingChange} value={form.coverMediaId} />
         </section>
         <section className="admin-content-section">
           <header><h3>Hiển thị</h3></header>

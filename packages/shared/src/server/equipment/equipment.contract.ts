@@ -1,5 +1,6 @@
 import { contentSeoSchema } from "../shared/content-seo";
 import { pageBlockInputSchema } from "../pages/pages.contract";
+import { blockAppearanceSchema, detailHeroLayoutSchema } from "../shared/appearance";
 import { z } from "zod";
 
 const slug = z.string().min(1).max(180).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
@@ -8,6 +9,12 @@ export const equipmentGroupInputSchema = z.object({
   description: z.string().max(10000).nullable(), coverMediaId: z.string().uuid().nullable(),
   sortOrder: z.number().int().min(0).max(10000), isEnabled: z.boolean(),
 }).strict();
+// Bố cục phần cố định của trang chi tiết thiết bị: phần đầu trang (ảnh trái/phải/giữa, chiều cao, nền) và giao diện phần thông số (vỏ chung).
+export const equipmentPageLayoutSchema = z.object({
+  hero: detailHeroLayoutSchema.optional(),
+  specs: blockAppearanceSchema.optional(),
+}).strict();
+export type EquipmentPageLayout = z.infer<typeof equipmentPageLayoutSchema>;
 export const equipmentInputSchema = z.object({
   groupId: z.string().uuid(), name: z.string().trim().min(1).max(220), slug,
   modelCode: z.string().max(80).nullable(), coverMediaId: z.string().uuid().nullable(),
@@ -18,6 +25,7 @@ export const equipmentInputSchema = z.object({
   scheduledAt: z.coerce.date().nullable(),
   sortOrder: z.number().int().min(0).max(10000), isFeatured: z.boolean(),
   seo: contentSeoSchema.optional(), blocks: z.array(pageBlockInputSchema).max(100).nullable().optional(),
+  pageLayout: equipmentPageLayoutSchema.nullable().optional(),
   seoTitle: z.string().max(70).nullable(), seoDescription: z.string().max(180).nullable(), canonicalUrl: z.string().url().nullable(),
 }).strict().superRefine((value, context) => {
   if (value.status === "scheduled" && !value.scheduledAt) {

@@ -184,7 +184,6 @@ export function PostEditor({ post, taxonomy, onSaved, onError, contentType, onDi
   const processing = isSaving || isUploading || restore.restoring;
   useNavigationGuard(processing && !restore.completing, () => onError("Đang xử lý bài viết. Vui lòng chờ trước khi rời màn hình."));
   const [editingSlug, setEditingSlug] = useState(false);
-  const [displayOptionsOpen] = useState(() => Boolean(post?.badgeText || post?.ctaLabel || post?.ctaUrl || post?.type === "promotion"));
   const formRef = useRef<HTMLFormElement>(null);
   // Ctrl+S / ⌘+S lưu ngay, không phải cuộn xuống thanh lưu.
   useEffect(() => {
@@ -276,22 +275,29 @@ export function PostEditor({ post, taxonomy, onSaved, onError, contentType, onDi
           <RichTextEditor disabled={processing || !canEdit} onChange={(richDoc) => update("content", { version: 2, doc: richDoc })} onImportTitle={(title) => { if (!form.title.trim()) changeTitle(title); }} placeholder="Viết nội dung bài… Dùng Tiêu đề H2/H3 để chia mục, website tự tạo mục lục." value={form.content.version === 2 ? form.content.doc : postContentToRichDocument(form.content)} />
         </section>
         <EditorSection description="1–2 câu giới thiệu. Hiện ở danh sách tin, khi chia sẻ Facebook/Zalo và làm đoạn mô tả trên Google." title="Tóm tắt"><div className="admin-seo__label"><span className={form.excerpt.trim().length > 200 ? "admin-seo__count admin-seo__count--over" : "admin-seo__count"}>{form.excerpt.trim().length}/200 ký tự</span>{firstParagraph ? <button className="admin-post-editor__link" onClick={() => update("excerpt", truncateAtWord(firstParagraph, 200))} type="button">Lấy từ đoạn đầu bài</button> : null}</div><label className={labelClassName}><span className="sr-only">Tóm tắt</span><textarea className={inputClassName} id="post-excerpt" onChange={(event) => update("excerpt", event.target.value)} placeholder="Ví dụ: Danh mục sản phẩm, bảng giá và tài khoản nhân viên là những phần nên chuẩn bị trước khi triển khai." rows={3} value={form.excerpt} /></label></EditorSection>
+        <EditorSection description="Không bắt buộc. Nhãn nổi lên trên thẻ tin; nút hiện kèm nội dung để dẫn khách tới trang đăng ký hoặc liên hệ." title="Nhãn và nút kêu gọi hành động">
+          <label className={labelClassName}>Nhãn nổi bật<input className={inputClassName} onChange={(event) => update("badgeText", event.target.value)} placeholder="Ví dụ: Mới" value={form.badgeText} /><small className="admin-help">Chữ ngắn nổi trên thẻ tin ở trang danh sách.</small></label>
+          <fieldset className="admin-block-group">
+            <legend>Nút kêu gọi hành động</legend>
+            <div className="admin-form-grid">
+              <label className={labelClassName}>Chữ trên nút<input className={inputClassName} onChange={(event) => update("ctaLabel", event.target.value)} placeholder="Ví dụ: Đăng ký tư vấn" value={form.ctaLabel} /></label>
+              <label className={labelClassName}>Nút dẫn tới<input className={inputClassName} onChange={(event) => update("ctaUrl", event.target.value)} placeholder="https://…" type="url" value={form.ctaUrl} /></label>
+            </div>
+          </fieldset>
+          {form.type === "promotion" ? <fieldset className="admin-block-group">
+            <legend>Thời gian khuyến mãi</legend>
+            <div className="admin-form-grid">
+              <label className={labelClassName}>Bắt đầu<input className={inputClassName} onChange={(event) => update("promotionStartAt", event.target.value)} type="datetime-local" value={form.promotionStartAt} /></label>
+              <label className={labelClassName}>Kết thúc<input className={inputClassName} onChange={(event) => update("promotionEndAt", event.target.value)} type="datetime-local" value={form.promotionEndAt} /></label>
+            </div>
+          </fieldset> : null}
+        </EditorSection>
         <details className="admin-post-editor__panel">
           <summary><span><strong>Google &amp; chia sẻ mạng xã hội</strong><small>Mặc định lấy từ tiêu đề và tóm tắt — chỉ mở khi muốn đặt riêng.</small></span><AdminStatusBadge tone={seoPassed === checks.length ? "success" : "warning"}>SEO {seoPassed}/{checks.length} đạt</AdminStatusBadge></summary>
           <div className="admin-post-editor__panel-body">
             <SeoAssistant content={form.content} excerpt={form.excerpt} hasCover={Boolean(form.coverMediaId)} onChange={(field, value) => update(field, value)} path={publicPath} seoDescription={form.seoDescription} seoTitle={form.seoTitle} slug={form.slug} title={form.title} />
             <ContentSeoEditor value={form.seo} onChange={seo => update("seo", seo)} title={form.seoTitle || form.title} description={form.seoDescription || form.excerpt} disabled={processing || !canEdit} onUploadingChange={handleUploadingChange} />
             <label className={labelClassName}>Địa chỉ chính thức của nội dung (nâng cao)<input className={inputClassName} onChange={(event) => update("canonicalUrl", event.target.value)} placeholder="Chỉ điền khi nội dung này được sao chép từ một địa chỉ khác" type="url" value={form.canonicalUrl} /></label>
-          </div>
-        </details>
-        {/* Phần ít dùng đặt cuối cột viết để hai cột cân nhau. */}
-        <details className="admin-post-editor__panel" open={displayOptionsOpen}>
-          <summary><span><strong>Nhãn &amp; nút kêu gọi hành động</strong><small>Không bắt buộc</small></span></summary>
-          <div className="admin-post-editor__panel-body">
-            <label className={labelClassName}>Nhãn nổi bật<input className={inputClassName} onChange={(event) => update("badgeText", event.target.value)} placeholder="Ví dụ: Mới" value={form.badgeText} /></label>
-            <label className={labelClassName}>Chữ trên nút<input className={inputClassName} onChange={(event) => update("ctaLabel", event.target.value)} placeholder="Ví dụ: Đăng ký tư vấn" value={form.ctaLabel} /></label>
-            <label className={labelClassName}>Nút dẫn tới<input className={inputClassName} onChange={(event) => update("ctaUrl", event.target.value)} placeholder="https://…" type="url" value={form.ctaUrl} /></label>
-            {form.type === "promotion" ? <><label className={labelClassName}>Bắt đầu khuyến mãi<input className={inputClassName} onChange={(event) => update("promotionStartAt", event.target.value)} type="datetime-local" value={form.promotionStartAt} /></label><label className={labelClassName}>Kết thúc khuyến mãi<input className={inputClassName} onChange={(event) => update("promotionEndAt", event.target.value)} type="datetime-local" value={form.promotionEndAt} /></label></> : null}
           </div>
         </details>
         {post ? <details className="admin-post-editor__panel" onToggle={(event) => setHistoryOpen(event.currentTarget.open)}>

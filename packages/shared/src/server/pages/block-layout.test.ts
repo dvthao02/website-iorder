@@ -69,3 +69,13 @@ test("Khoảng cách chọn cụ thể trong CMS không bị nhịp toàn màn h
   for (const spacing of ["sm", "md", "lg"] as const) assert.equal(blockUsesScreenHeight(pageBlockInputSchema.parse({ ...item, appearance: { spacing } }), true), false);
   assert.equal(blockUsesScreenHeight(item, false), false);
 });
+test("Chiều cao phần chọn tay: thiếu hoặc mặc định giữ nguyên khung cũ, chọn cụ thể thì kèm căn dọc và bỏ nhịp tự động", () => {
+  assert.equal("height" in faq({ tone: "white" }).appearance!, false);
+  assert.equal("height" in resolveBlockFrames([faq({ height: "default" })])[0], false);
+  assert.deepEqual([resolveBlockFrames([faq({ height: "screen" })])[0].height, resolveBlockFrames([faq({ height: "screen" })])[0].align], ["screen", "center"]);
+  assert.equal(resolveBlockFrames([faq({ height: "half", verticalAlign: "bottom" })])[0].align, "bottom");
+  const item = pageBlockInputSchema.parse({ type: "features", isEnabled: true, data: { eyebrow: null, title: "Lợi ích", description: null, items: [] } });
+  for (const height of ["auto", "screen", "three_quarter", "half"] as const) assert.equal(blockUsesScreenHeight(pageBlockInputSchema.parse({ ...item, appearance: { height } }), true), false);
+  assert.equal(blockUsesScreenHeight(pageBlockInputSchema.parse({ ...item, appearance: { height: "default" } }), true), true);
+  assert.throws(() => faq({ height: "tall" }));
+});

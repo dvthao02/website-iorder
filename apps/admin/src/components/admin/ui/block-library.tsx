@@ -27,6 +27,12 @@ export const blockThumbnails: Record<string, ReactNode> = {
   "cta-contact": <Frame><rect fill={text} height="38" opacity=".85" rx="5" width="100" x="10" y="18" /><rect fill="#fff" height="5" rx="2" width="42" x="18" y="28" /><rect fill="#fff" height="3" opacity=".6" rx="1.5" width="34" x="18" y="37" /><rect fill={media} height="9" rx="4.5" width="25" x="77" y="32" /></Frame>,
   "cta-trial": <Frame><rect fill={text} height="38" opacity=".85" rx="5" width="100" x="10" y="18" /><rect fill="#fff" height="5" rx="2" width="42" x="18" y="28" /><rect fill="#fff" height="3" opacity=".6" rx="1.5" width="34" x="18" y="37" /><rect fill="#fff" height="9" opacity=".94" rx="4.5" width="25" x="77" y="32" /></Frame>,
   "lead-form": <Frame>{bar(30, 10, 60, 5, .9)}{[0, 1, 2].map((index) => <rect height="7" key={index} rx="2" stroke="var(--cms-border-strong)" width="60" x="30" y={22 + index * 10} />)}<rect fill={media} height="8" rx="4" width="30" x="45" y="54" /></Frame>,
+  // Khối nhiều cột: các hình khớp số cột và tỉ lệ được khởi tạo.
+  "columns-two": <Frame>{box(10, 12, 48, 48, .3)}{box(62, 12, 48, 48, .3)}{bar(15, 20, 36, 4, .8)}{bar(15, 29, 30)}{bar(67, 20, 36, 4, .8)}{bar(67, 29, 30)}</Frame>,
+  "columns-two-wide": <Frame>{box(10, 12, 62, 48, .3)}{box(76, 12, 34, 48, .3)}{bar(15, 20, 46, 4, .8)}{bar(15, 29, 40)}{bar(15, 36, 44)}{bar(81, 20, 22, 4, .8)}</Frame>,
+  "columns-three": <Frame>{[0, 1, 2].map((index) => <g key={index}>{box(10 + index * 34, 12, 30, 48, .3)}{bar(14 + index * 34, 20, 22, 4, .8)}{bar(14 + index * 34, 29, 18)}</g>)}</Frame>,
+  "columns-four": <Frame>{[0, 1, 2, 3].map((index) => <g key={index}>{box(8 + index * 26, 12, 23, 48, .3)}{bar(11 + index * 26, 20, 17, 4, .8)}{bar(11 + index * 26, 29, 14)}</g>)}</Frame>,
+  columns: <Frame>{box(10, 12, 48, 48, .3)}{box(62, 12, 48, 48, .3)}{bar(15, 20, 36, 4, .8)}{bar(67, 20, 36, 4, .8)}</Frame>,
   "media-story": <Frame>{box(10, 10, 100, 30, .48)}{bar(22, 48, 76, 4, .9)}{bar(30, 56, 60, 3, .55)}</Frame>,
   hero: heroLayoutPreviews.split,
   media_text: <Frame>{box(10, 12, 50, 48)}<TextLines width={40} x={68} y={20} /></Frame>,

@@ -10,11 +10,11 @@ export function staticPageProfile(slug: string, template?: string): StaticPagePr
   return profiles[slug] ?? (template === "contact" ? "contact" : "general");
 }
 export const staticPageHints: Record<StaticPageProfile, string> = {
-  about: "Giới thiệu: ảnh và chữ, số liệu, đối tác và lời mời liên hệ. Chọn bố cục một lần ở khối cha.",
+  about: "Giới thiệu: ảnh và chữ, số liệu, đối tác và lời mời liên hệ. Nền, độ rộng, khoảng cách chỉnh ở “Bố cục khối”.",
   contact: "Liên hệ: tiêu đề gọn, thông tin doanh nghiệp và biểu mẫu, câu hỏi thường gặp. Thông tin liên hệ lấy từ Thông tin doanh nghiệp.",
   document: "Chính sách và điều khoản: phần đầu gọn, nội dung trong cột dễ đọc. Dùng tiêu đề H2/H3 để có mục lục.",
   support: "Hỗ trợ: phần đầu rõ mục đích, nội dung theo nhóm/câu hỏi hoặc các bước. Giữ liên kết và thứ tự của từng mục.",
-  general: "Chọn từng phần để sửa nội dung. Bố cục dùng chung ở khối cha, mục con chỉ nhập nội dung.",
+  general: "Chọn từng phần để sửa. “Bố cục khối” chỉnh nền, độ rộng, khoảng cách của cả khối; từng mục con có “Bố cục mục” để căn chữ.",
 };
 const labels: Record<string, string> = {
   stats: "Số liệu nổi bật", media_text: "Giới thiệu", features: "Nội dung nổi bật", industries: "Lĩnh vực",

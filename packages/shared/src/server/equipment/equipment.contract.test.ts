@@ -72,3 +72,13 @@ test("Hẹn giờ dùng lịch, nháp và lưu trữ bỏ ngày xuất bản", (
     assert.equal(equipmentPublishedAt({ status, scheduledAt: future }, { status: "published", publishedAt: now }, now), null);
   }
 });
+
+test("Bố cục trang thiết bị: tùy chọn (dữ liệu cũ không có), điền mặc định và chặn giá trị lạ", () => {
+  assert.ok(equipmentInputSchema.safeParse(valid).success);
+  assert.ok(equipmentInputSchema.safeParse({ ...valid, pageLayout: null }).success);
+  const parsed = equipmentInputSchema.parse({ ...valid, pageLayout: { hero: { layout: "centered" }, specs: { tone: "tinted" } } });
+  assert.deepEqual(parsed.pageLayout?.hero, { layout: "centered", height: "screen", background: "default" });
+  assert.equal(parsed.pageLayout?.specs?.tone, "tinted");
+  assert.equal(equipmentInputSchema.safeParse({ ...valid, pageLayout: { hero: { layout: "left" } } }).success, false);
+  assert.equal(equipmentInputSchema.safeParse({ ...valid, pageLayout: { footer: {} } }).success, false);
+});

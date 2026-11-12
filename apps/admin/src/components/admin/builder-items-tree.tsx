@@ -49,7 +49,7 @@ export function BuilderItemsTree({ block, active, disabled, readOnly, onChange, 
     const points = collections.find(collection => collection.path === "highlights");
     const panels = collections.find(collection => collection.path === "panels");
     return <div className="admin-builder-items-tree">
-      <button aria-current={active?.path === "hero.layout" || !active ? "true" : undefined} className="admin-builder-item__select" disabled={disabled} onClick={() => onSelect({ path: "hero.layout", index: 0, heading: "", tab: "media" })} type="button">Bố cục chung</button>
+      <button aria-current={active?.path === "hero.layout" || !active ? "true" : undefined} className="admin-builder-item__select" disabled={disabled} onClick={() => onSelect({ path: "hero.layout", index: 0, heading: "", tab: "media" })} type="button">Bố cục khối</button>
       <div className="admin-builder-slide" data-builder-slide="primary">
         <button aria-label="Mục trượt 1" aria-current={active?.path === "hero.primary" ? "true" : undefined} className="admin-builder-item__select" disabled={disabled} onClick={() => onSelect({ path: "hero.primary", index: 0, heading: "Mục trượt 1", tab: "content" })} type="button"><span><strong className="admin-builder-slide-label">Mục trượt 1</strong>{block.data.title}</span></button>
         <div className="admin-builder-item__children">{points ? renderCollection(points) : null}</div>

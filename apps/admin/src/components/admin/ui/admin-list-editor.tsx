@@ -1,23 +1,86 @@
 "use client";
 
-import { ArrowDown, ArrowUp, Plus, X } from "lucide-react";
-import { useRef, type KeyboardEvent } from "react";
+import { GripVertical, Plus, X } from "lucide-react";
+import { useRef, type KeyboardEvent, type PointerEvent } from "react";
 
 import { AdminButton } from "./admin-button";
 import { AdminIconButton } from "./admin-icon-button";
 
-export function moveListItem<T>(items: T[], index: number, direction: -1 | 1) {
-  const target = index + direction;
-  if (target < 0 || target >= items.length) return items;
+/** Dời mục từ `index` đi `delta` vị trí (âm = lên, dương = xuống); kéo thả có thể dời nhiều bước một lần. */
+export function moveListItem<T>(items: T[], index: number, delta: number) {
+  const target = Math.min(items.length - 1, Math.max(0, index + delta));
+  if (target === index || index < 0 || index >= items.length) return items;
   const result = [...items];
-  [result[index], result[target]] = [result[target], result[index]];
+  const [moved] = result.splice(index, 1);
+  result.splice(target, 0, moved);
   return result;
 }
 
-export function AdminListRowControls({ index, length, label, onMove, onRemove }: { index: number; length: number; label: string; onMove: (direction: -1 | 1) => void; onRemove: () => void }) {
+// Một dòng của danh sách lặp (nhóm thông số, mục trong danh sách, thẻ, nhóm…): tay nắm kéo thả tìm dòng cha gần nhất theo các lớp này
+// và sắp xếp trong số các dòng cùng loại nằm cùng một khung cha.
+const rowKinds = [".admin-list-editor__row", ".admin-list-item", ".admin-grouped-row", ".admin-spec-group"];
+
+type SortState = { row: HTMLElement; siblings: HTMLElement[]; from: number; to: number; x: number; y: number; moved: boolean };
+
+/**
+ * Điều khiển cuối dòng: tay nắm kéo thả để sắp xếp (chuột và cảm ứng; bàn phím dùng Alt + phím lên/xuống khi đang ở tay nắm) và nút xóa.
+ * `onMove(delta)`: dời dòng đi `delta` vị trí, nên một lần thả có thể đi xa hơn một bước.
+ */
+export function AdminListRowControls({ index, length, label, onMove, onRemove }: { index: number; length: number; label: string; onMove: (delta: number) => void; onRemove: () => void }) {
+  const sort = useRef<SortState | null>(null);
+  function clearMarks() {
+    sort.current?.siblings.forEach(sibling => { delete sibling.dataset.drop; delete sibling.dataset.dragging; });
+  }
+  function down(event: PointerEvent<HTMLButtonElement>) {
+    if (length < 2 || event.button !== 0) return;
+    const row = event.currentTarget.closest<HTMLElement>(rowKinds.join(","));
+    const kind = row ? rowKinds.find(selector => row.matches(selector)) : undefined;
+    if (!row || !kind || !row.parentElement) return;
+    const siblings = Array.from(row.parentElement.children).filter((child): child is HTMLElement => child instanceof HTMLElement && child.matches(kind));
+    const from = siblings.indexOf(row);
+    if (from < 0) return;
+    sort.current = { row, siblings, from, to: from, x: event.clientX, y: event.clientY, moved: false };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }
+  function moveTo(event: PointerEvent<HTMLButtonElement>) {
+    const state = sort.current;
+    if (!state) return;
+    if (!state.moved && Math.hypot(event.clientX - state.x, event.clientY - state.y) < 6) return;
+    state.moved = true;
+    state.row.dataset.dragging = "";
+    // Vị trí chèn: số dòng có tâm nằm phía trên con trỏ; sau khi bỏ dòng đang kéo thì chỉ số đích lùi một nếu chèn xuống dưới.
+    const insertAt = state.siblings.filter(sibling => { const box = sibling.getBoundingClientRect(); return event.clientY > box.top + box.height / 2; }).length;
+    state.to = insertAt > state.from ? insertAt - 1 : insertAt;
+    state.siblings.forEach(sibling => { delete sibling.dataset.drop; });
+    if (state.to !== state.from) {
+      if (insertAt < state.siblings.length) state.siblings[insertAt].dataset.drop = "before";
+      else state.siblings[state.siblings.length - 1].dataset.drop = "after";
+    }
+  }
+  function up(event: PointerEvent<HTMLButtonElement>) {
+    const state = sort.current;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+    clearMarks();
+    sort.current = null;
+    if (state?.moved && state.to !== state.from) onMove(state.to - state.from);
+  }
+  function key(event: KeyboardEvent<HTMLButtonElement>) {
+    if (!event.altKey || (event.key !== "ArrowUp" && event.key !== "ArrowDown")) return;
+    event.preventDefault();
+    const delta = event.key === "ArrowUp" ? -1 : 1;
+    if (index + delta < 0 || index + delta >= length) return;
+    const row = event.currentTarget.closest<HTMLElement>(rowKinds.join(","));
+    const kind = row ? rowKinds.find(selector => row.matches(selector)) : undefined;
+    const parent = row?.parentElement;
+    onMove(delta);
+    // Dòng đổi chỗ nên đưa tiêu điểm theo về tay nắm của dòng vừa dời.
+    requestAnimationFrame(() => {
+      if (!parent || !kind) return;
+      Array.from(parent.children).filter((child): child is HTMLElement => child instanceof HTMLElement && child.matches(kind))[index + delta]?.querySelector<HTMLElement>("[data-sort-handle]")?.focus();
+    });
+  }
   return <span className="admin-list-editor__controls">
-    <AdminIconButton aria-label={`Đưa ${label} lên`} disabled={index === 0} onClick={() => onMove(-1)} title="Lên"><ArrowUp aria-hidden="true" size={15} /></AdminIconButton>
-    <AdminIconButton aria-label={`Đưa ${label} xuống`} disabled={index === length - 1} onClick={() => onMove(1)} title="Xuống"><ArrowDown aria-hidden="true" size={15} /></AdminIconButton>
+    <button aria-label={`Sắp xếp ${label}`} className="admin-list-editor__handle" data-sort-handle="" disabled={length < 2} onKeyDown={key} onPointerCancel={up} onPointerDown={down} onPointerMove={moveTo} onPointerUp={up} title="Kéo để sắp xếp; bàn phím dùng Alt + phím lên/xuống" type="button"><GripVertical aria-hidden="true" size={15} /></button>
     <AdminIconButton aria-label={`Xóa ${label}`} className="admin-list-editor__remove" onClick={onRemove} title="Xóa"><X aria-hidden="true" size={15} /></AdminIconButton>
   </span>;
 }

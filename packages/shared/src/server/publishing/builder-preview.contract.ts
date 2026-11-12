@@ -22,7 +22,9 @@ export const builderPreviewReadSchema = z.object({
   path: z.string().startsWith("/").refine(value => !value.startsWith("//") && !value.includes("\\") && !/[\r\n]/.test(value)),
   expiresAt: z.coerce.date(),
 }).strict();
-export const builderSelectionMessageSchema = z.object({ type: z.literal("iorder:select-block"), index: z.number().int().min(0).max(99) }).strict();
+// Mã định danh do website gắn vào phần tử (data-builder-item, data-builder-field): mục con ("items:2", "plans:0", "hero.primary"…) và trường ("title", "image"…).
+const builderIdSchema = z.string().max(60).regex(/^[a-zA-Z0-9._:-]+$/);
+export const builderSelectionMessageSchema = z.object({ type: z.literal("iorder:select-block"), index: z.number().int().min(-19).max(99), item: builderIdSchema.optional(), field: builderIdSchema.optional() }).strict();
 export type BuilderPreviewDocument = z.infer<typeof builderPreviewDocumentSchema>;
 export type BuilderPreviewRequest = z.infer<typeof builderPreviewRequestSchema>;
 export const builderPreviewTtlMs = 15 * 60 * 1000;

@@ -121,6 +121,9 @@ export function heroToneOf(data: { layout: HeroLayout; tone?: HeroTone | null })
 // Một slide của kiểu "Trượt nhiều ảnh": ảnh bắt buộc; chữ và nút tùy chọn (ảnh đã có chữ thì để trống).
 // Khối nội dung trượt của các kiểu chữ – ảnh, ảnh nền, chữ ở giữa: mỗi khối có chữ, nút và ảnh riêng;
 // khối 1 là nội dung chính của phần đầu trang (tiêu đề là h1), các khối này trượt nối tiếp.
+// Căn chữ riêng của một mục con (thẻ, số liệu…); thiếu = căn trái. Khác "Bố cục chung" của khối cha (nền, độ rộng, khoảng cách, chiều cao).
+export const itemAlignSchema = z.enum(["left", "center", "right"]);
+export type ItemAlign = z.infer<typeof itemAlignSchema>;
 const heroHighlightSchema = z.object({ isEnabled: z.boolean().optional(), title: z.string().trim().min(1).max(120), note: z.string().trim().max(160).nullable() }).strict();
 const heroPanelSchema = z.object({ isEnabled: z.boolean().optional(),
   eyebrow: z.string().trim().max(160).nullable(),
@@ -137,7 +140,7 @@ const heroSlideSchema = z.object({ isEnabled: z.boolean().optional(), mediaId: z
 // Thẻ của "Lưới thẻ": có biểu tượng thì hiện biểu tượng, không thì hiện số thứ tự (dữ liệu cũ chưa có trường này).
 // `mediaId`: ảnh đầu thẻ (ảnh người dùng, cửa hàng, sản phẩm…); có ảnh thì thẻ chuyển sang kiểu thẻ ảnh (website quyết giao diện).
 // `background`: màu nền riêng của thẻ (màu tối thì chữ trắng); thiếu = thẻ trắng.
-const cardSchema = z.object({ isEnabled: z.boolean().optional(), title: z.string().trim().min(1).max(220), description: z.string().trim().max(10_000), href: z.string().trim().max(1000).nullable(), icon: blockIconSchema.nullable().optional(), mediaId: z.string().uuid().nullable().optional(), background: cardBackgroundSchema }).strict();
+const cardSchema = z.object({ isEnabled: z.boolean().optional(), title: z.string().trim().min(1).max(220), description: z.string().trim().max(10_000), href: z.string().trim().max(1000).nullable(), icon: blockIconSchema.nullable().optional(), mediaId: z.string().uuid().nullable().optional(), background: cardBackgroundSchema, align: itemAlignSchema.optional(), iconPosition: z.enum(["top", "left"]).optional() }).strict();
 const groupedListItemSchema = z.object({ isEnabled: z.boolean().optional(), label: z.string().trim().min(1).max(120), icon: blockIconSchema.nullable(), href: z.string().trim().max(1000).nullable() }).strict();
 const groupedListGroupSchema = z.object({ isEnabled: z.boolean().optional(),
   title: z.string().trim().min(1).max(120),
@@ -146,7 +149,33 @@ const groupedListGroupSchema = z.object({ isEnabled: z.boolean().optional(),
   // Nút nhỏ cuối thẻ (ví dụ "Tư vấn triển khai theo mô hình").
   action: actionSchema.nullable(),
   background: cardBackgroundSchema,
+  align: itemAlignSchema.optional(),
 }).strict();
+// Khối nhiều cột: người soạn tự dựng bố cục 2–4 cột, mỗi cột xếp các mục nhỏ (tiêu đề, đoạn văn, ảnh, nút, danh sách).
+// Chỉ lồng một cấp (khối → cột → mục) để dữ liệu và hiệu năng ổn định.
+export const columnAlignSchema = z.enum(["left", "center", "right"]);
+export const columnItemSchema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("heading"), text: z.string().trim().min(1).max(220), level: z.enum(["h2", "h3", "h4"]).default("h3"), align: columnAlignSchema.default("left") }).strict(),
+  z.object({ kind: z.literal("text"), text: z.string().trim().min(1).max(5_000), align: columnAlignSchema.default("left") }).strict(),
+  z.object({ kind: z.literal("image"), mediaId: z.string().uuid().nullable(), alt: z.string().trim().max(500).nullable(), fit: z.enum(["contain", "cover"]).default("contain") }).strict(),
+  z.object({ kind: z.literal("button"), label: z.string().trim().min(1).max(120), href: z.string().trim().min(1).max(1000), style: z.enum(["primary", "secondary"]).default("primary") }).strict(),
+  z.object({ kind: z.literal("list"), items: z.array(z.string().trim().min(1).max(200)).min(1).max(12) }).strict(),
+]);
+export type ColumnItem = z.infer<typeof columnItemSchema>;
+export const columnsLayoutSchema = z.enum(["equal", "left_wide", "right_wide"]);
+export const columnsBlockDataSchema = z.object({
+  eyebrow: z.string().trim().max(160).nullable(),
+  title: z.string().trim().max(220).nullable(),
+  // Tỉ lệ cột: chỉ áp dụng khi có đúng 2 cột (đều, cột trái rộng 60/40, cột phải rộng 40/60); 3–4 cột luôn chia đều.
+  layout: columnsLayoutSchema.default("equal"),
+  gap: z.enum(["sm", "md", "lg"]).default("md"),
+  verticalAlign: z.enum(["top", "center", "bottom"]).default("center"),
+  // Trên điện thoại các cột xếp dọc; "reverse" đưa cột cuối lên trên (ví dụ ảnh nằm trên chữ).
+  stack: z.enum(["normal", "reverse"]).default("normal"),
+  columns: z.array(z.object({ items: z.array(columnItemSchema).max(12) }).strict()).min(2).max(4),
+}).strict();
+export type ColumnsBlockData = z.infer<typeof columnsBlockDataSchema>;
+
 export const groupedListDataSchema = z.object({
   eyebrow: z.string().trim().max(160).nullable(),
   title: z.string().trim().min(1).max(220),
@@ -176,12 +205,12 @@ export const pageBlockInputSchema = z.discriminatedUnion("type", [
     // Khối nội dung thứ 2 trở đi (trừ kiểu "Trượt nhiều ảnh"); có khối thì phần đầu trang tự trượt cả chữ và ảnh.
     panels: z.array(heroPanelSchema).max(7).default([]),
   }).strict(), isEnabled: z.boolean(), appearance: blockAppearanceSchema.optional() }).strict(),
-  z.object({ type: z.literal("stats"), data: z.object({ eyebrow: z.string().trim().max(160).nullable(), title: z.string().trim().max(220).nullable(), items: z.array(z.object({ isEnabled: z.boolean().optional(), value: z.string().trim().min(1).max(120), label: z.string().trim().min(1).max(220), note: z.string().trim().max(500).nullable() }).strict()).min(1).max(12) }).strict(), isEnabled: z.boolean(), appearance: blockAppearanceSchema.optional() }).strict(),
+  z.object({ type: z.literal("stats"), data: z.object({ eyebrow: z.string().trim().max(160).nullable(), title: z.string().trim().max(220).nullable(), items: z.array(z.object({ isEnabled: z.boolean().optional(), value: z.string().trim().min(1).max(120), label: z.string().trim().min(1).max(220), note: z.string().trim().max(500).nullable(), align: itemAlignSchema.optional() }).strict()).min(1).max(12) }).strict(), isEnabled: z.boolean(), appearance: blockAppearanceSchema.optional() }).strict(),
   z.object({ type: z.enum(["features", "industries", "ecosystem", "process"]), data: cardBlockDataSchema, isEnabled: z.boolean(), appearance: blockAppearanceSchema.optional() }).strict(),
   z.object({ type: z.literal("testimonials"), data: z.object({ eyebrow: z.string().trim().max(160).nullable(), title: z.string().trim().min(1).max(220), limit: z.number().int().min(1).max(30) }).strict(), isEnabled: z.boolean(), appearance: blockAppearanceSchema.optional() }).strict(),
   z.object({ type: z.literal("partners"), data: z.object({ description: z.string().trim().max(2000).nullable().optional(), eyebrow: z.string().trim().max(160).nullable(), title: z.string().trim().min(1).max(220), kind: z.enum(["partner", "customer", "all"]), limit: z.number().int().min(1).max(60) }).strict(), isEnabled: z.boolean(), appearance: blockAppearanceSchema.optional() }).strict(),
   z.object({ type: z.literal("featured_posts"), data: z.object({ eyebrow: z.string().trim().max(160).nullable(), title: z.string().trim().min(1).max(220), limit: z.number().int().min(1).max(12) }).strict(), isEnabled: z.boolean(), appearance: blockAppearanceSchema.optional() }).strict(),
-  z.object({ type: z.literal("faq"), data: z.object({ eyebrow: z.string().trim().max(160).nullable(), title: z.string().trim().min(1).max(220), items: z.array(z.object({ isEnabled: z.boolean().optional(), question: z.string().trim().min(1).max(500), answer: z.string().trim().min(1).max(10_000) }).strict()).min(1).max(40) }).strict(), isEnabled: z.boolean(), appearance: blockAppearanceSchema.optional() }).strict(),
+  z.object({ type: z.literal("faq"), data: z.object({ eyebrow: z.string().trim().max(160).nullable(), title: z.string().trim().min(1).max(220), items: z.array(z.object({ isEnabled: z.boolean().optional(), question: z.string().trim().min(1).max(500), answer: z.string().trim().min(1).max(10_000), align: itemAlignSchema.optional() }).strict()).min(1).max(40) }).strict(), isEnabled: z.boolean(), appearance: blockAppearanceSchema.optional() }).strict(),
   z.object({ type: z.literal("cta"), data: z.object({ id: z.string().trim().max(100).nullable(), eyebrow: z.string().trim().max(160).nullable(), title: z.string().trim().min(1).max(220), action: actionSchema }).strict(), isEnabled: z.boolean(), appearance: blockAppearanceSchema.optional() }).strict(),
   // `trialTitle`/`trialLabel`: chữ của thẻ Đăng ký dùng thử cạnh biểu mẫu (null = chữ mặc định của website).
   z.object({ type: z.literal("lead_form"), data: z.object({ title: z.string().trim().min(1).max(220), description: z.string().trim().max(2_000).nullable(), submitLabel: z.string().trim().min(1).max(120), needOptions: z.array(z.string().trim().min(1).max(200)).max(20), trialTitle: z.string().trim().max(160).nullable().optional(), trialLabel: z.string().trim().max(60).nullable().optional() }).strict(), isEnabled: z.boolean(), appearance: blockAppearanceSchema.optional() }).strict(),
@@ -209,6 +238,7 @@ export const pageBlockInputSchema = z.discriminatedUnion("type", [
   // Danh sách theo nhóm: mỗi nhóm một thẻ (biểu tượng, tên, số mục) chứa danh sách mục ngắn có biểu tượng
   // và một nút cuối thẻ, ví dụ "Phù hợp nhiều mô hình kinh doanh" chia theo nhóm ngành.
   z.object({ type: z.literal("grouped_list"), data: groupedListDataSchema, isEnabled: z.boolean(), appearance: blockAppearanceSchema.optional() }).strict(),
+  z.object({ type: z.literal("columns"), data: columnsBlockDataSchema, isEnabled: z.boolean(), appearance: blockAppearanceSchema.optional() }).strict(),
 ]);
 
 export const pageInputSchema = z.object({

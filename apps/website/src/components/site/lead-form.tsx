@@ -47,14 +47,14 @@ export function LeadForm({ title, description, submitLabel, needOptions, trialTi
   }
   return <div className="lead-form-layout grid items-start gap-10 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-16">
     <div className="lg:sticky lg:top-28" data-testid="lead-contact">
-      <h2 className={`mb-0 text-h2 font-bold tracking-tight text-balance ${dark ? "text-white" : "text-ink"}`}>{title}</h2>
-      {description ? <p className={`mt-4 mb-0 text-lead ${dark ? "text-white/80" : "text-muted"}`}>{description}</p> : null}
+      <h2 className={`mb-0 text-h2 font-bold tracking-tight text-balance ${dark ? "text-white" : "text-ink"}`} data-builder-field="title">{title}</h2>
+      {description ? <p className={`mt-4 mb-0 text-lead ${dark ? "text-white/80" : "text-muted"}`} data-builder-field="description">{description}</p> : null}
       {contactRows.length ? <ul className="m-0 mt-8 grid list-none gap-3 p-0">{contactRows.map(({ icon: Icon, label, href }) => <li className={`flex items-center gap-3 text-body font-semibold ${dark ? "text-white" : "text-ink"}`} key={label}>
         <span aria-hidden="true" className={`grid size-10 shrink-0 place-items-center rounded-control ${dark ? "bg-white/10 text-white" : "bg-white text-brand-600 shadow-card"}`}><Icon size={18} /></span>
         {href ? <a className="hover:text-brand-700 hover:underline" href={href}>{label}</a> : <span className={dark ? "text-white/80" : "font-medium text-muted"}>{label}</span>}
       </li>)}</ul> : null}
       {trialUrl ? <div className={`mt-8 rounded-card border p-5 ${dark ? "border-white/20 bg-white/10" : "border-line bg-white shadow-card"}`}>
-        <p className={`mb-3 text-body font-semibold ${dark ? "text-white" : "text-ink"}`}>{trialTitle || "Muốn tự trải nghiệm trước?"}</p>
+        <p className={`mb-3 text-body font-semibold ${dark ? "text-white" : "text-ink"}`} data-builder-field="trialTitle">{trialTitle || "Muốn tự trải nghiệm trước?"}</p>
         <a className="button button--primary" href={trialUrl} rel="noopener noreferrer" target="_blank">{trialLabel || "Đăng ký dùng thử"}<ArrowRight aria-hidden="true" size={18} /></a>
       </div> : null}
     </div>
@@ -68,7 +68,7 @@ export function LeadForm({ title, description, submitLabel, needOptions, trialTi
       <label aria-hidden="true" className="hidden">Website<input autoComplete="off" name="website" tabIndex={-1} /></label>
       <Field className="sm:col-span-2" label="Mô tả thêm"><textarea className={`${controlClassName} min-h-28 py-3`} name="message" placeholder="Mô hình kinh doanh, số chi nhánh, điều bạn cần tư vấn…" rows={4} /></Field>
       <div className="flex flex-wrap items-center gap-4 sm:col-span-2">
-        <button data-testid="lead-submit" className="button button--primary w-full disabled:opacity-60 sm:w-fit" disabled={busy} type="submit">{busy ? "Đang gửi…" : submitLabel}</button>
+        <button data-testid="lead-submit" className="button button--primary w-full disabled:opacity-60 sm:w-fit" disabled={busy} type="submit"><span data-builder-field="submitLabel">{busy ? "Đang gửi…" : submitLabel}</span></button>
         <p className={`mb-0 text-small font-medium ${success ? "text-accent-green" : "text-accent-rose"}`} role="status">{message}</p>
       </div>
     </form>
