@@ -56,6 +56,10 @@ COPY --from=build --chown=nextjs:nodejs /app/apps/${APP_NAME}/.next/standalone .
 COPY --from=build --chown=nextjs:nodejs /app/apps/${APP_NAME}/.next/static ./apps/${APP_NAME}/.next/static
 COPY --from=build --chown=nextjs:nodejs /app/apps/${APP_NAME}/public ./apps/${APP_NAME}/public
 
+# Thư mục cache của Next (ảnh đã tối ưu, cache dữ liệu). Tạo sẵn với đúng chủ sở hữu để volume được mount vào đây thừa hưởng quyền ghi của
+# người dùng không đặc quyền (volume rỗng được Docker chép chủ sở hữu từ thư mục trong image); không có volume thì vẫn chạy như cũ.
+RUN mkdir -p /app/apps/${APP_NAME}/.next/cache && chown nextjs:nodejs /app/apps/${APP_NAME}/.next/cache
+
 USER nextjs
 
 EXPOSE 3000

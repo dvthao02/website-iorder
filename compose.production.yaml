@@ -65,9 +65,17 @@ services:
     <<: *hardening
     restart: unless-stopped
     logging: *default-logging
+    # Đo trên bản production chạy local sau khi duyệt 86 URL rồi tải song song: ~560 MB RSS (gồm bộ mã hóa ảnh AVIF), nên 768m còn dư.
+    # Chưa đo trên VPS thật: nếu container bị khởi động lại vì thiếu bộ nhớ (docker inspect --format {{.State.OOMKilled}} <container>) thì tăng
+    # bằng WEBSITE_MEM_LIMIT / WEBSITE_HEAP_MB.
+    mem_limit: ${WEBSITE_MEM_LIMIT:-768m}
+    # Ảnh đã tối ưu (AVIF/WebP) lưu 31 ngày; không có volume thì mỗi lần deploy phải mã hóa lại toàn bộ ảnh từ đầu (tốn CPU, trang chậm).
+    volumes:
+      - website-cache:/app/apps/website/.next/cache
     environment:
       SERVICE_NAME: website
       BACKEND_URL: http://api:3000
+      NODE_OPTIONS: --max-old-space-size=${WEBSITE_HEAP_MB:-512}
       PUBLISH_WEB_REVALIDATE_SECRET: ${PUBLISH_WEB_REVALIDATE_SECRET:?missing}
       # Để trống tới khi tạo website trong Umami; khi có thì website chèn script /stats/script.js.
       UMAMI_WEBSITE_ID: ${UMAMI_WEBSITE_ID:-}
@@ -101,8 +109,11 @@ services:
     <<: *hardening
     restart: unless-stopped
     logging: *default-logging
+    # Đo ~190 MB RSS sau cùng bài kiểm tra tải; 384m còn dư gấp đôi. Tăng bằng API_MEM_LIMIT / API_HEAP_MB nếu bị OOMKilled.
+    mem_limit: ${API_MEM_LIMIT:-384m}
     environment:
       SERVICE_NAME: api
+      NODE_OPTIONS: --max-old-space-size=${API_HEAP_MB:-256}
       # Mã phiên bản đang chạy, hiện ở CMS → Tình trạng hệ thống. Đặt khi triển khai: APP_COMMIT=$(git rev-parse --short HEAD) docker compose ... up -d --build
       APP_COMMIT: ${APP_COMMIT:-}
       DATABASE_URL: postgresql://${POSTGRES_USER:?missing}:${POSTGRES_PASSWORD:?missing}@db:5432/${POSTGRES_DB:?missing}
@@ -299,6 +310,7 @@ services:
 
 volumes:
   postgres-data:
+  website-cache:
   secrets-data:
   seaweed-data:
   caddy-data:
