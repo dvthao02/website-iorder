@@ -5,7 +5,7 @@ import { getOriginalRequestHost, isMediaUploadOriginAllowed } from "@iorder/shar
 import { logger, requestIdHeader, resolveRequestId } from "@iorder/shared/server/shared/logger";
 import { rateLimitMessage } from "@iorder/shared/server/shared/rate-limit";
 
-import { getClientAddress } from "./lib/client-address";
+import { getClientAddress, isInternalAddress } from "./lib/client-address";
 import { apiRateLimiter, isRateLimitDisabled, rateLimitFor } from "./lib/rate-limit-policy";
 
 import { actorMayAccess, adminMutationMethods as mutationMethods, requiredAdminPermissions } from "./lib/admin-permission";
@@ -24,9 +24,10 @@ export async function proxy(request: NextRequest) {
   const logged = { headers: forwarded, method: request.method, url: request.url };
 
   // Chặn request dồn dập theo IP trước khi chạm DB/S3 (kiểm phiên bên dưới cũng là một truy vấn DB cho mỗi request).
-  // Request không có IP (website và CMS gọi Backend từ phía server, không qua Caddy) không bị giới hạn.
+  // Lời gọi nội bộ (website và CMS gọi Backend từ phía server) không bị giới hạn: Next tự gán X-Forwarded-For bằng địa chỉ socket (IP container)
+  // nên chúng không "thiếu IP" mà trông như một khách duy nhất; chỉ đếm IP công cộng do Caddy ghi.
   const clientIp = getClientAddress(request.headers.get("x-forwarded-for"), request.headers.get("x-real-ip"));
-  const limit = clientIp && !isRateLimitDisabled() ? rateLimitFor(request.nextUrl.pathname, request.method) : null;
+  const limit = clientIp && !isInternalAddress(clientIp) && !isRateLimitDisabled() ? rateLimitFor(request.nextUrl.pathname, request.method) : null;
   if (clientIp && limit) {
     const decision = apiRateLimiter.consume(`${limit.group}:${clientIp}`, limit);
     if (!decision.allowed) {

@@ -28,8 +28,21 @@ test("Gửi liên hệ dồn dập từ một IP bị chặn 429 kèm Retry-Afte
   assert.equal((await proxy(request("/api/v1/leads", { method: "POST", ip: "203.0.113.11" }))).status, 200);
 });
 
-test("Request không có IP (website/CMS gọi Backend từ phía server) không bị giới hạn", async () => {
+test("Request không có IP không bị giới hạn", async () => {
   for (let i = 0; i < 40; i += 1) assert.equal((await proxy(request("/api/v1/leads", { method: "POST" }))).status, 200);
+});
+
+// Next tự gán X-Forwarded-For = địa chỉ socket cho request thiếu header đó, nên lời gọi server-side của website/CMS tới Backend KHÔNG thiếu IP:
+// chúng mang IP của container (mạng riêng) hoặc loopback khi chạy local. Từng bị đếm chung thành một khách và làm trang website trả 500.
+test("Lời gọi nội bộ (IP loopback/mạng riêng/Docker do Next gán) không bao giờ bị giới hạn", async () => {
+  for (const ip of ["127.0.0.1", "::1", "::ffff:127.0.0.1", "172.18.0.5", "10.0.0.3", "192.168.1.9"]) {
+    for (let i = 0; i < 130; i += 1) assert.equal((await proxy(request("/api/v1/public/content", { ip }))).status, 200, `${ip} lần ${i + 1}`);
+  }
+});
+
+test("IP công cộng giống hệt kịch bản trên vẫn bị giới hạn", async () => {
+  for (let i = 0; i < 120; i += 1) assert.equal((await proxy(request("/api/v1/public/content", { ip: "203.0.113.80" }))).status, 200);
+  assert.equal((await proxy(request("/api/v1/public/content", { ip: "203.0.113.80" }))).status, 429);
 });
 
 test("Chặn trước khi kiểm phiên: API admin bị dồn dập trả 429 thay vì truy vấn DB", async () => {
