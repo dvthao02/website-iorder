@@ -6,7 +6,7 @@ Cập nhật: 14/10/2026. Kiến trúc và vận hành xem [PROJECT.md](PROJECT.
 
 | Hạng mục | Trạng thái |
 |---|---|
-| Cổng chất lượng | `typecheck`, `lint`, `test` (150 test), `db:check`, `audit --prod` (0 lỗ hổng), build CMS: đều đạt |
+| Cổng chất lượng | `typecheck`, `lint` (0 lỗi, 0 cảnh báo), `test` (767 test), `db:check`, `audit --prod` (0 lỗ hổng), build 3 app: đều đạt (22/11/2026) |
 | Docker production | Full stack từ volume rỗng đã healthy trong Compose tạm: migrate/seed-admin, upload/đọc/xóa media, quota đăng nhập, làm mới cache. **Chưa deploy VPS thật** |
 | Bảo mật | Quota đăng nhập, guard Origin, cookie session an toàn, header Caddy (nay có HSTS, CSP nền, Permissions-Policy), xác định IP theo Caddy, rate limit lead nguyên tử, **giới hạn request chung theo IP ở Backend**, ghim digest image, bắt buộc khai báo secret, `audit --prod` 0 lỗ hổng sau khi nâng Next 16.4.6/zod 4.6.7. Chi tiết và phần còn mở: mục "Rà soát bảo mật trước phát hành (21/11/2026)" |
 | Hiệu năng | Cache public 60 giây + làm mới bằng HMAC, mỗi request chỉ gửi 1 lần. Danh sách bài viết, offering, thiết bị dùng projection gọn |
@@ -17,6 +17,24 @@ Cập nhật: 14/10/2026. Kiến trúc và vận hành xem [PROJECT.md](PROJECT.
 
 - **Thử trên trình duyệt:** chưa đi trọn luồng tạo → lưu → mở lại → website cho từng module, hai phiên sửa đồng thời, và mobile.
 - **Nghiệm thu thật:** TLS/domain thật trên VPS, sao lưu kèm thử restore, lịch chạy các job dọn dẹp.
+
+### Trả nợ kỹ thuật (22/11/2026)
+
+- **Đã làm** (các mục phía code từ đợt rà soát 21/11):
+  1. **Thương hiệu thiết bị:** dữ liệu Product khai cả 25 sản phẩm là "iOrder.vn", kể cả máy của Sunmi, Zywell, Datamax… Thêm cột `sales_equipment.brand` (migration 0026), trường "Thương hiệu" ở form thiết bị và cột "Thương hiệu" khi nhập/xuất Excel; trang thiết bị hiện thương hiệu và chỉ khai `Product.brand` khi có dữ liệu (không đoán). `pnpm db:backfill-equipment-brand` điền cho thiết bị cũ chỉ khi tên ghi rõ hãng (14/25 ở bản local), mặc định chạy thử, thêm `--apply` mới ghi; **chưa chạy `--apply`** vì sửa dữ liệu thật; 11 thiết bị không ghi hãng để trống cho người vận hành điền.
+  2. **Dọn phiên hết hạn:** `pnpm db:cleanup-sessions` + job `session-cleanup` ở Tình trạng hệ thống (bản local có 134/188 phiên đã hết hạn). Xóa phiên hết hạn hoặc thu hồi quá 24 giờ, tối đa 1.000 dòng mỗi lần. Còn phải lên lịch ở host.
+  3. **Index khóa ngoại:** 15 index (migration 0027) cho các khóa ngoại được tra cứu/xóa (ảnh được dùng ở đâu, bài theo tác giả, vai trò–quyền, cây menu). Cố ý bỏ qua 10 cột chỉ ghi "ai sửa" (`editor_id`, `updated_by`, `uploaded_by`…).
+  4. **Docker:** volume `website-cache` giữ cache ảnh qua các lần deploy (trước đó mỗi lần deploy mã hóa lại toàn bộ ảnh), `mem_limit` và heap cho website (768m/512 MB) và Backend (384m/256 MB) theo số đo local.
+  5. **URL viết hoa:** `/TIN-TUC` trước đây trả 200 cùng nội dung với `/tin-tuc`; nay chuyển hướng 301 về chữ thường (gộp với bảng URL tiếng Anh để chỉ một bước).
+  6. **Lint:** hết cảnh báo cuối cùng (`_removed` chưa dùng trong `leads.contract.test.ts`).
+- **Kiểm chứng:** `typecheck`, `lint` (0 cảnh báo), `db:check`, `pnpm test` 767/767, build api/admin/website, `audit --prod` 0. Migration 0001–0027 áp sạch từ đầu vào một database tạm (tạo rồi xóa) cùng truy vấn dọn phiên (hết hạn, thu hồi, còn trong thời gian giữ, giới hạn số dòng) và đủ 15 index. Volume cache: container uid 1001 với `cap_drop ALL` ghi được vào volume mới; bỏ bước `mkdir/chown` trong Dockerfile thì `EACCES`. Chuyển hướng chữ hoa thử trên website thật: 301 một bước, giữ query, không vòng lặp, trang chuẩn vẫn 200. Dockerfile qua `docker build --check`, `docker compose config` hợp lệ.
+- **Chưa làm (cần quyết định hoặc ngoài phạm vi mã):**
+  1. **Toàn bộ trang website render động** (`revalidate = 0` ở layout gốc và `draftMode()`/`headers()` ở `app/layout.tsx` để phục vụ xem trước CMS) nên không CDN/trình duyệt cache được HTML. Tách xem trước ra khỏi đường public để cho phép ISR là cải tiến hiệu năng lớn nhất; cần refactor có kiểm thử.
+  2. `page-blocks-editor.tsx` dài 1.249 dòng: nên tách theo loại khối.
+  3. **Ảnh:** 143/229 ảnh thiếu kích thước trong DB, 134/229 thiếu alt, 39 ảnh trên 1 MB đang là `og:image` gốc. Cần backfill kích thước và nhập alt ở CMS.
+  4. Chạy `db:backfill-equipment-brand --apply`, lên lịch cron dọn phiên, đo RAM thật trên VPS, EXPLAIN ANALYZE trên dữ liệu thật.
+  5. 3 cảnh báo `pnpm audit` ở công cụ dev (`esbuild` qua `drizzle-kit`, `source-map-js`, `minimatch`), không có trong image chạy thật.
+  6. Trang 404 trả HTML ban đầu trống (nội dung dựng ở trình duyệt; không ảnh hưởng chỉ mục).
 
 ### Rà soát bảo mật trước phát hành (21/11/2026)
 
@@ -177,7 +195,7 @@ Tham chiếu các năng lực phổ biến của Strapi 5, Payload 3, Directus 1
 7. **Quên mật khẩu và TOTP cho admin.**
 8. ~~Hộp thoại xác nhận dùng chung~~: đã xong (`useAdminConfirm` cho các thao tác trong CMS; điều hướng có hộp trình duyệt dự phòng khi provider chưa đăng ký).
 9. ~~Log có cấu trúc + mã request~~: đã xong (xem PROJECT.md mục "Log và theo dõi"). Đã kiểm chứng local: tắt DB → log Backend/CMS cùng mã request, có nguyên nhân gốc `ECONNREFUSED`, tham số SQL bị ẩn; Caddy thật ghi access log JSON, che cookie, bỏ `query`. Còn: cảnh báo khi healthcheck lỗi (chờ chọn kênh nhận, gộp với thông báo lead).
-10. **Lên lịch job dọn dẹp** (media, session, audit) sau khi chốt thời hạn lưu.
+10. **Lên lịch job dọn dẹp** (media, session, audit) sau khi chốt thời hạn lưu. Lệnh dọn phiên đã có (`pnpm db:cleanup-sessions`, 22/11); còn lên lịch chạy hằng ngày ở host.
 
 18. ~~Tự đổi mật khẩu~~: đã có "Đổi mật khẩu" (nay là tab trong panel tài khoản, xem mục 17/11/2026 "Tài khoản cá nhân thành panel trượt"; trước đây là màn riêng `/admin/my-account/password`), cần mật khẩu hiện tại, tính chung giới hạn thử với đăng nhập, đăng xuất các phiên khác và ghi nhật ký.
 19. ~~Xuất CSV/Excel khách hàng tiềm năng~~: nút "Xuất Excel" (.xlsx, bộ tạo tự viết `shared/xlsx.ts`, không thêm dependency; đã đối chiếu bằng openpyxl: ngày theo giờ VN, tiêu đề cố định + bộ lọc, số điện thoại là chữ, chuỗi giống công thức không thành công thức) và "CSV", theo đúng trạng thái/từ khóa/khoảng thời gian/thứ tự đang xem; tối đa 10.000 dòng, ghi nhật ký kèm định dạng. Màn liên hệ là bảng (sắp xếp, chọn nhiều để đổi trạng thái hàng loạt, panel chi tiết), khoảng thời gian chọn nhanh (hôm nay, 7/30 ngày, tháng này/trước, tùy chọn).
@@ -188,8 +206,8 @@ Tham chiếu các năng lực phổ biến của Strapi 5, Payload 3, Directus 1
 12. Tạo biến thể ảnh khi upload (WebP, vài kích thước), focal point; upload streaming để giảm RAM.
 13. ~~Màn "không có quyền"~~: đã có `/admin/forbidden` và trang 404 của CMS.
 14. ~~Đọc lỗi API dùng chung~~: đã xong, mọi màn dùng `adminApiError`/`apiErrorMessage` trong `lib/admin-api.ts`.
-15. Image ứng dụng dùng tag/digest bất biến do CI phát hành; đặt resource limit sau khi đo.
-16. `EXPLAIN ANALYZE` trên bản sao dữ liệu thật trước khi thêm index.
+15. Image ứng dụng dùng tag/digest bất biến do CI phát hành; đặt resource limit sau khi đo. Đã đặt giới hạn RAM cho website và Backend theo số đo bản production chạy local (22/11); còn đo lại trên VPS thật.
+16. `EXPLAIN ANALYZE` trên bản sao dữ liệu thật trước khi thêm index. Đã thêm 15 index cho khóa ngoại thiếu index (22/11, migration 0027) theo danh sách khóa ngoại, chưa EXPLAIN vì dữ liệu local quá nhỏ.
 17. **Từ audit navigation 15/10:** ~~JSON-LD Article/Product/Service/Breadcrumb~~ đã có ở trang chi tiết bài viết, hướng dẫn, sản phẩm/giải pháp/dịch vụ, thiết bị (`lib/structured-data.ts`); ~~nút "Tải bản mới nhất" khi gặp 409~~ đã có (thanh xung đột chung của khung CMS). ~~`.site-shell h2` ngoài layer~~: đưa tiêu đề mặc định vào `@layer base`, class Tailwind thắng (trước đó "Phân loại bài viết" `text-lg` hiện 46px), margin theo `em`, bỏ `!` trong `collection-list`. ~~Version cho sửa alt media~~: cột `media_assets.version` (migration 0014), PATCH bắt buộc `expectedVersion`, sai → 409.
 21. ~~Nhật ký chi tiết~~: đã xong. `audit_logs` có `ip_address`, `user_agent`, `request_id` (migration 0013, chỉ thêm cột), tự điền từ ngữ cảnh request (route admin bọc `withRequestContext`, AsyncLocalStorage `run`; không dùng `enterWith` vì Node 22 rò ngữ cảnh). Ghi `user.login`, `user.login_failed` (chỉ với tài khoản có thật), `user.logout`. Màn Nhật ký có cột IP/Thiết bị, tìm theo IP, panel chi tiết. Bản ghi trước 18/10 không có IP/thiết bị. Còn: chính sách thời hạn lưu (IP là dữ liệu cá nhân).
 20. ~~Bảng danh sách: sắp xếp, ghim cột, chọn nhiều~~: đã xong. `AdminDataTable` bấm tiêu đề để sắp xếp (tăng → giảm → bỏ), nút ghim/bỏ ghim ngay trên tiêu đề, cột checkbox + `ContentBulkBar` lưu trữ/khôi phục hàng loạt (bài viết, hướng dẫn, sản phẩm/giải pháp/dịch vụ, thiết bị, trang). Sắp xếp ở máy chủ qua `sort`/`dir` với danh sách trắng cột (`listOrder`), chữ theo collation `vi-x-icu`, trạng thái theo vòng đời; danh sách nhỏ (chuyển hướng, vai trò, nhóm thiết bị) sắp tại chỗ. Bộ lọc mới: bài viết theo loại/chuyên mục/thẻ; nhật ký theo người thực hiện/loại thao tác/khoảng ngày; khách hàng tiềm năng theo khoảng ngày + thứ tự (áp cho cả CSV); media theo thứ tự; chuyển hướng theo mã. Thanh lọc chung (`AdminFilterBar`): ô tìm kiếm + bộ lọc chính trên một hàng, bộ lọc ít dùng trong "Bộ lọc khác (n)", nhãn bộ lọc đang áp dụng gỡ từng cái/"Xóa tất cả"; màn ≤680px chỉ còn ô tìm kiếm + nút "Bộ lọc (n)" mở khung trượt. Khoảng thời gian dùng chung `AdminPeriodFilter` (Nhật ký, Khách hàng tiềm năng). Áp dụng cho 11 màn danh sách. ~~Xuất bản hàng loạt~~: thao tác `publish` chung (`contentStateRequestSchema`), mục lưu trữ phải khôi phục trước, kiểm phiên bản + quyền `.publish` từng mục. ~~Kéo thả~~: `useDragReorder` cho khối trang, menu (theo cùng cấp, mang theo mục con), khối nội dung bài viết; vẫn giữ nút lên/xuống cho bàn phím/cảm ứng.

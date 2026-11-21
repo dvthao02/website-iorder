@@ -203,7 +203,7 @@ Mã biểu tượng (`icon`) là danh sách cố định trong `packages/shared/
 
 **`equipment_groups`**: nhóm thiết bị. Gồm `name`, `slug`, `description`, `cover_media_id`, `sort_order`, `is_enabled`, `deleted_at`, `version`.
 
-**`sales_equipment`**: thiết bị bán (`/thiet-bi/<slug>`). Gồm `group_id` (bắt buộc), `model_code`, `price_vnd` (bigint), `warranty_months` (mặc định 12), `summary`, `specification_groups` (jsonb: `[{title, items[{label, value}]}]`), `is_featured`, cùng các cột status/SEO/lịch. `availability` (enum `equipment_availability`: `in_stock` mặc định, `limited`, `pre_order`, `out_of_stock`, `discontinued`; migration 0023) hiện cạnh giá trên website và khai thành `offers.availability` (schema.org ItemAvailability) trong dữ liệu cấu trúc.
+**`sales_equipment`**: thiết bị bán (`/thiet-bi/<slug>`). Gồm `group_id` (bắt buộc), `model_code`, `brand` (varchar 80, thương hiệu hiện trên trang và khai ở `Product.brand`; trống = không khai, migration 0026), `price_vnd` (bigint), `warranty_months` (mặc định 12), `summary`, `specification_groups` (jsonb: `[{title, items[{label, value}]}]`), `is_featured`, cùng các cột status/SEO/lịch. `availability` (enum `equipment_availability`: `in_stock` mặc định, `limited`, `pre_order`, `out_of_stock`, `discontinued`; migration 0023) hiện cạnh giá trên website và khai thành `offers.availability` (schema.org ItemAvailability) trong dữ liệu cấu trúc.
 
 **`sales_equipment_revisions`**: lịch sử.
 
@@ -328,7 +328,7 @@ Có 99 khối, trong đó 58 là `hero`. Số khối `hero` nhiều hơn số tr
 ### Điểm cần chú ý
 
 1. **45 trang đã xóa mềm** vẫn nằm trong `pages`, `page_blocks` và `page_revisions`, có thể là trang tạo khi chạy kiểm thử. Chúng không hiện ra ngoài; muốn dọn thì cần một lệnh xóa hẳn riêng.
-2. **`sessions` có 1.886 dòng** và chưa có lệnh dọn phiên hết hạn (mới chỉ có lệnh dọn `login_throttle_buckets`).
+2. **`sessions`**: phiên hết hạn hoặc thu hồi không còn tự biến mất. Đã có `pnpm db:cleanup-sessions` (xóa phiên quá hạn hoặc bị thu hồi hơn 24 giờ, tối đa 1.000 dòng mỗi lần); còn phải lên lịch chạy hằng ngày ở host (xem PROJECT.md mục Vận hành). Hiện ở bản local có 134/188 dòng đã hết hạn.
 3. **Vai trò `role_ba1d1a363a14`** có mã tự sinh, đủ 57 quyền, đang gán cho 1 người dùng. Nên kiểm tra lại xem có phải vai trò tạo khi kiểm thử không.
 4. **`site_settings.listing_content` và `catalog_content`** chỉ còn là dự phòng cũ; trang danh sách nay lấy từ `pages`.
 5. **Khối cũ** `industries` và `ecosystem` (1 khối mỗi loại, đều ở trang chủ) vẫn hiển thị bình thường, có thể chuyển sang "Lưới thẻ" trong CMS.
