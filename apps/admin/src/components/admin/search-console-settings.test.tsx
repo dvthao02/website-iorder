@@ -7,6 +7,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 
 import type { SearchConsoleDiagnosis } from "@iorder/shared/server/search-console/search-console.contract";
 import { SearchConsoleSettingsView, searchConsoleStatus } from "./search-console-settings";
+import { AdminPermissionsProvider } from "./ui/admin-permissions";
 
 // AdminCard/AdminNotice dùng JSX kiểu cũ (không tự import React) nên test cần React toàn cục.
 (globalThis as { React?: typeof React }).React = React;
@@ -80,9 +81,21 @@ test("Màn Search Console không bao giờ nhận hay hiển thị khóa: không
   assert.ok(!/private_key|BEGIN [A-Z ]*PRIVATE KEY/.test(source), "màn CMS không xử lý khóa riêng");
 });
 
-test("Menu Cài đặt có mục Google Search Console, chỉ cho người có quyền xem cài đặt; thẻ Tổng quan dẫn tới màn này", () => {
-  const shell = readFileSync(path.join(process.cwd(), "apps/admin/src/components/admin/admin-shell.tsx"), "utf8");
+test("Menu có mục Google Search Console (nhóm Công việc, cạnh Thống kê truy cập), chỉ cho người có quyền xem cài đặt; thẻ Tổng quan dẫn tới màn này", () => {
+  const shell = readFileSync(path.join(process.cwd(), "apps/admin/src/components/admin/admin-navigation.ts"), "utf8");
   assert.match(shell, /href: "\/admin\/search-console", label: "Google Search Console", icon: SearchCheck, permission: "settings\.view"/);
   const page = readFileSync(path.join(process.cwd(), "apps/admin/src/app/admin/(protected)/search-console/page.tsx"), "utf8");
   assert.match(page, /requireAdminPermission\("settings\.view"\)/);
+});
+
+// Trang này chỉ cần settings.view còn "Kết nối & khóa API" chỉ Super Admin vào được: không dẫn người khác tới trang chặn.
+test("Màn Search Console chưa nối: chỉ Super Admin thấy liên kết tới Kết nối & khóa API, người khác chỉ thấy tên mục", () => {
+  const render = (role: string) => renderToStaticMarkup(
+    <AdminPermissionsProvider actor={{ role, permissions: ["settings.view"] }}><SearchConsoleSettingsView diagnosis={{ configured: false }} /></AdminPermissionsProvider>,
+  );
+  const admin = render("admin");
+  assert.match(admin, /href="\/admin\/integrations"/);
+  const marketing = render("marketing");
+  assert.doesNotMatch(marketing, /href="\/admin\/integrations"/);
+  assert.match(marketing, /Hệ thống → Kết nối &amp; khóa API/, "vẫn nói rõ phải nhờ ai/ở đâu");
 });

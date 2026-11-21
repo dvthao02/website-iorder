@@ -179,7 +179,7 @@ test("Mã nguồn màn: giá trị và mật khẩu bị xóa khỏi state khi l
   assert.match(panel, /onCloseEdit=\{\(\) => setEditingTool\(null\)\}/);
   assert.doesNotMatch(panel, /open \? renderForm/, "không còn biểu mẫu mở tại chỗ trong thẻ");
 
-  const shell = read("apps/admin/src/components/admin/admin-shell.tsx");
+  const shell = read("apps/admin/src/components/admin/admin-navigation.ts");
   assert.match(shell, /href: "\/admin\/integrations", label: "Kết nối & khóa API", icon: KeyRound, superAdminOnly: true/);
   assert.match(shell, /if \(item\.superAdminOnly\) return isSuperAdmin\(administrator\);/);
   assert.match(read("apps/admin/src/app/admin/(protected)/integrations/page.tsx"), /requireSuperAdmin\(\)/);

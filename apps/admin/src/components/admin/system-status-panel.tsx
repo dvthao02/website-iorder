@@ -9,6 +9,7 @@ import type { SystemCheck, SystemCheckState, SystemStatus } from "@iorder/shared
 import { AdminButton } from "./ui/admin-button";
 import { AdminCard } from "./ui/admin-card";
 import { AdminNotice, AdminStatusBadge, useAdminToast } from "./ui/admin-feedback";
+import { useOptionalAdminPermissions } from "./ui/admin-permissions";
 
 const stateBadge: Record<SystemCheckState, { tone: "success" | "warning" | "error" | "neutral"; label: string }> = {
   ok: { tone: "success", label: "Ổn" },
@@ -93,6 +94,8 @@ function Meter({ label, usedRatio, detail, state }: { label: string; usedRatio: 
 /** Phần hiển thị thuần của màn (tách khỏi việc tải dữ liệu để kiểm thử được). `now` truyền vào để thời gian tương đối ổn định khi kiểm thử. */
 export function SystemStatusView({ status, now = new Date(), checking = false, onRefresh }: { status: SystemStatus; now?: Date; checking?: boolean; onRefresh?: () => void }) {
   const { services, server, backup, jobs, config } = status;
+  // Màn này chỉ cần system.view còn các trang đích cần quyền khác: lối tắt chỉ hiện khi người xem mở được trang đó, kẻo bấm vào là "Không có quyền".
+  const { canOpenPath } = useOptionalAdminPermissions();
   const problems = problemsOf(status);
   const overall = stateBadge[status.overall];
   const diskRatio = server.disk && server.disk.totalBytes > 0 ? 1 - server.disk.freeBytes / server.disk.totalBytes : null;
@@ -124,8 +127,8 @@ export function SystemStatusView({ status, now = new Date(), checking = false, o
         <Row check={services.migrations} label="Migration database">{[services.migrations.lastAppliedAt ? `lần áp dụng gần nhất ${relativeTime(services.migrations.lastAppliedAt, now)}` : null].filter(Boolean).join(" · ")}</Row>
         <Row check={services.storage} label="Kho tệp (S3)" />
         <Row check={services.website} label="Website" />
-        <Row check={services.analytics} label="Thống kê Umami" />
-        <Row check={services.searchConsole} label="Google Search Console">{services.searchConsole.state !== "ok" ? <Link className="admin-link" href="/admin/search-console">Mở cài đặt</Link> : null}</Row>
+        <Row check={services.analytics} label="Thống kê Umami">{services.analytics.state !== "ok" && canOpenPath("/admin/integrations") ? <Link className="admin-link" href="/admin/integrations">Nối Umami</Link> : null}</Row>
+        <Row check={services.searchConsole} label="Google Search Console">{services.searchConsole.state !== "ok" && canOpenPath("/admin/search-console") ? <Link className="admin-link" href="/admin/search-console">Mở cài đặt</Link> : null}</Row>
       </ul>
     </AdminCard>
 
@@ -147,7 +150,7 @@ export function SystemStatusView({ status, now = new Date(), checking = false, o
     <AdminCard>
       <header>
         <div><h2>Sao lưu</h2><p>Chi tiết và lịch sử ở màn Sao lưu &amp; phục hồi.</p></div>
-        <span className="admin-status-tags"><AdminStatusBadge tone={stateBadge[backup.state].tone}>{stateBadge[backup.state].label}</AdminStatusBadge><Link className="admin-link" href="/admin/backup">Mở Sao lưu &amp; phục hồi</Link></span>
+        <span className="admin-status-tags"><AdminStatusBadge tone={stateBadge[backup.state].tone}>{stateBadge[backup.state].label}</AdminStatusBadge>{canOpenPath("/admin/backup") ? <Link className="admin-link" href="/admin/backup">Mở Sao lưu &amp; phục hồi</Link> : null}</span>
       </header>
       <p className="admin-status-lead">{backup.summary}{backup.lastSuccessAt ? <small className="admin-status-note">Bản thành công gần nhất: {dateTime.format(new Date(backup.lastSuccessAt))} ({relativeTime(backup.lastSuccessAt, now)})</small> : null}</p>
     </AdminCard>
@@ -164,7 +167,7 @@ export function SystemStatusView({ status, now = new Date(), checking = false, o
       <ul className="admin-status-list">
         {config.map((item) => <li className="admin-status-row admin-status-row--config" key={item.key}>
           <span>{item.label}{!item.ok && item.hint ? <small className="admin-status-note">{item.hint}</small> : null}</span>
-          <span className="admin-status-tags">{item.required ? <small className="admin-text-muted">Bắt buộc</small> : null}<AdminStatusBadge tone={item.ok ? "success" : item.required ? "warning" : "neutral"}>{item.ok ? "Đã đặt" : "Chưa đặt"}</AdminStatusBadge></span>
+          <span className="admin-status-tags">{!item.ok && item.href && canOpenPath(item.href) ? <Link className="admin-link" href={item.href}>Mở cài đặt</Link> : null}{item.required ? <small className="admin-text-muted">Bắt buộc</small> : null}<AdminStatusBadge tone={item.ok ? "success" : item.required ? "warning" : "neutral"}>{item.ok ? "Đã đặt" : "Chưa đặt"}</AdminStatusBadge></span>
         </li>)}
       </ul>
     </AdminCard>

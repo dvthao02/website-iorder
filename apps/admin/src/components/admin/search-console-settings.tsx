@@ -9,6 +9,7 @@ import type { SearchConsoleDiagnosis } from "@iorder/shared/server/search-consol
 import { AdminButton } from "./ui/admin-button";
 import { AdminCard } from "./ui/admin-card";
 import { AdminNotice, AdminStatusBadge, useAdminToast } from "./ui/admin-feedback";
+import { useOptionalAdminPermissions } from "./ui/admin-permissions";
 
 type Configured = Extract<SearchConsoleDiagnosis, { configured: true }>;
 
@@ -30,6 +31,11 @@ export function searchConsoleStatus(diagnosis: SearchConsoleDiagnosis): Status {
   return { tone: "success", label: "Đã nối" };
 }
 
+// Trang này chỉ cần settings.view còn "Kết nối & khóa API" chỉ Super Admin vào được: người khác thấy tên mục (để biết nhờ ai) chứ không có liên kết dẫn tới trang chặn.
+function IntegrationsLink({ canOpen }: { canOpen: boolean }) {
+  return canOpen ? <Link className="admin-link" href="/admin/integrations">Hệ thống → Kết nối &amp; khóa API</Link> : <strong>Hệ thống → Kết nối &amp; khóa API</strong>;
+}
+
 function Sites({ sites }: { sites: Configured["sites"] }) {
   if (!sites.length) return <>Chưa thấy website nào</>;
   return <ul className="m-0 grid list-none gap-0.5 p-0">{sites.map((site) => <li key={site.siteUrl}>{site.siteUrl}{site.permissionLevel ? <small className="admin-text-muted whitespace-nowrap"> · {permissionLabels[site.permissionLevel] ?? site.permissionLevel}</small> : null}</li>)}</ul>;
@@ -42,6 +48,7 @@ export function SearchConsoleSettingsView({ diagnosis, checking = false, onCheck
   onCheck?: () => void;
   onCopyEmail?: (email: string) => void;
 }) {
+  const { canOpenPath } = useOptionalAdminPermissions();
   const status = searchConsoleStatus(diagnosis);
   const configured = diagnosis.configured ? diagnosis : undefined;
   const email = configured?.email;
@@ -58,7 +65,7 @@ export function SearchConsoleSettingsView({ diagnosis, checking = false, onCheck
           <AdminButton disabled={checking} leadingIcon={<RefreshCw aria-hidden="true" />} onClick={onCheck} variant="secondary">{checking ? "Đang kiểm tra…" : "Kiểm tra kết nối"}</AdminButton></span>
       </header>
 
-      {!configured ? <div className="mb-3"><AdminNotice tone="info">Chưa nối. Làm theo các bước bên dưới; xong bấm “Kiểm tra kết nối”. Khóa là bí mật: Super Admin nhập ở <Link className="admin-link" href="/admin/integrations">Cài đặt → Kết nối &amp; khóa API</Link> (mã hóa, cần nhập lại mật khẩu) hoặc người quản trị máy chủ đặt bằng biến môi trường.</AdminNotice></div> : null}
+      {!configured ? <div className="mb-3"><AdminNotice tone="info">Chưa nối. Làm theo các bước bên dưới; xong bấm “Kiểm tra kết nối”. Khóa là bí mật: Super Admin nhập ở <IntegrationsLink canOpen={canOpenPath("/admin/integrations")} /> (mã hóa, cần nhập lại mật khẩu) hoặc người quản trị máy chủ đặt bằng biến môi trường.</AdminNotice></div> : null}
       {configured?.problem ? <div className="mb-3"><AdminNotice tone="error">{configured.problem}</AdminNotice></div> : null}
       {connected && configured ? <div className="mb-3"><AdminNotice tone="success">{configured.sampleQueries
         ? <>Đã nối được: Google trả về {configured.sampleQueries} cụm tìm kiếm mẫu{configured.period ? ` (${dateFormat(configured.period.startDate)} – ${dateFormat(configured.period.endDate)})` : ""}. Xem số liệu ở thẻ “Cơ hội trên Google” trong <Link className="admin-link" href="/admin">Bảng điều khiển</Link>.</>
@@ -79,7 +86,7 @@ export function SearchConsoleSettingsView({ diagnosis, checking = false, onCheck
         <li><strong>Thêm website vào Search Console.</strong> Vào Google Search Console, thêm website, chọn loại “Tên miền” và xác minh bằng bản ghi TXT trong DNS (đừng xóa bản ghi sau đó). Gửi sơ đồ <code>sitemap.xml</code>.</li>
         <li><strong>Tạo tài khoản dịch vụ.</strong> Vào Google Cloud Console, tạo project, bật “Google Search Console API”, tạo Service Account rồi tạo khóa dạng JSON và tải về.</li>
         <li><strong>Cho tài khoản đó xem dữ liệu.</strong> Trong Search Console: Cài đặt → Người dùng và quyền → Thêm người dùng. Dán email của tài khoản dịch vụ {emailBlock ?? <>(dạng <code>…@….iam.gserviceaccount.com</code>)</>}, chọn quyền <strong>Hạn chế</strong>. Nếu sau này báo lỗi 403 mới nâng lên Đầy đủ.</li>
-        <li><strong>Đặt khóa.</strong> Cách dễ nhất: Super Admin vào <Link className="admin-link" href="/admin/integrations">Cài đặt → Kết nối &amp; khóa API</Link>, chọn tệp JSON và nhập lại mật khẩu của mình (cần máy chủ đã đặt <code>SECRETS_MASTER_KEY</code>). Hoặc người quản trị máy chủ đặt <code>GOOGLE_SERVICE_ACCOUNT_FILE</code> (đường dẫn tới tệp JSON, để ngoài thư mục dự án) hay <code>GOOGLE_SERVICE_ACCOUNT_JSON</code> (nội dung tệp trên một dòng, dùng cho Docker) rồi khởi động lại Backend; biến môi trường luôn thắng. Khóa là bí mật: không gửi qua chat hay đưa lên git.</li>
+        <li><strong>Đặt khóa.</strong> Cách dễ nhất: Super Admin vào <IntegrationsLink canOpen={canOpenPath("/admin/integrations")} />, chọn tệp JSON và nhập lại mật khẩu của mình (cần máy chủ đã đặt <code>SECRETS_MASTER_KEY</code>). Hoặc người quản trị máy chủ đặt <code>GOOGLE_SERVICE_ACCOUNT_FILE</code> (đường dẫn tới tệp JSON, để ngoài thư mục dự án) hay <code>GOOGLE_SERVICE_ACCOUNT_JSON</code> (nội dung tệp trên một dòng, dùng cho Docker) rồi khởi động lại Backend; biến môi trường luôn thắng. Khóa là bí mật: không gửi qua chat hay đưa lên git.</li>
         <li><strong>Kiểm tra.</strong> Bấm “Kiểm tra kết nối” ở trên. Thiếu gì màn này sẽ nói cách sửa. Số liệu thật thường có sau 2–3 ngày.</li>
       </ol>
     </AdminCard>

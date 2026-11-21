@@ -8,44 +8,16 @@ import { AdminToastProvider } from "@/components/admin/ui/admin-feedback";
 import { AdminConfirmProvider } from "@/components/admin/ui/admin-confirm-dialog";
 import { AdminPermissionsProvider } from "@/components/admin/ui/admin-permissions";
 import {
-  ArrowRightLeft,
-  Activity,
-  BarChart3,
-  KeyRound,
-  SearchCheck,
   Bell,
-  BookOpen,
-  Building2,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
   CircleCheck,
-  ClipboardCheck,
-  DatabaseBackup,
-  Download,
   ExternalLink,
-  FileText,
-  FolderTree,
-  Globe,
-  History,
-  Home,
-  Image,
-  Laptop,
-  LayoutDashboard,
-  LayoutTemplate,
-  Link as LinkIcon,
   Menu,
-  MessageSquareText,
-  Newspaper,
-  Package,
-  PanelsTopLeft,
-  ShieldCheck,
-  Star,
-  Users,
-  UsersRound,
   X,
-  type LucideIcon,
 } from "lucide-react";
+import { isActive, navigationGroups, visibleNavigationItems, type NavigationGroup, type NavigationItem } from "@/components/admin/admin-navigation";
 
 import { LogoutButton } from "@/app/admin/(protected)/logout-button";
 import { AccountPanel, type AccountTab } from "@/components/admin/account-panel";
@@ -60,105 +32,10 @@ import { AdminVersionConflictBanner } from "@/components/admin/ui/admin-version-
 import { CmsThemeProvider } from "@/components/admin/admin-theme-settings";
 import { AdminGlobalSearch } from "@/components/admin/admin-global-search";
 import { useWebsiteUrl } from "./website-origin-context";
-import { hasAnyCmsPermission, hasCmsPermission, isSuperAdmin, type CmsPermissionCode } from "@iorder/shared/server/auth/permissions";
+import { hasCmsPermission } from "@iorder/shared/server/auth/permissions";
 
 type Administrator = { fullName: string; username: string; email?: string | null; phone?: string | null; avatarUrl?: string | null; role: string; roleName?: string | null; permissions: string[] };
 type HeaderNotification = { id: string; label: string; detail: string; href: string };
-
-// `permission` may list several codes: the item shows when the user has any of them.
-// `subPages`: màn thuộc về mục này nhưng không có dòng riêng trên sidebar; vẫn làm sáng mục và thêm nhãn vào thanh vị trí.
-// `fallback`: người không có quyền của mục nhưng có quyền vào một màn con thì thấy mục trỏ thẳng tới màn con đó.
-type NavigationItem = { href: string; label: string; icon: LucideIcon; matchesChildRoutes?: boolean; permission?: CmsPermissionCode | CmsPermissionCode[]; superAdminOnly?: boolean; subPages?: Array<{ href: string; label?: string }>; fallback?: { href: string; label: string; permission: CmsPermissionCode } };
-
-type NavigationGroup = { id: string; label: string; icon: LucideIcon; items: NavigationItem[] };
-
-function ensureUniqueNavigationPaths(groups: NavigationGroup[]) {
-  const assignedPaths = new Map<string, string>();
-
-  for (const group of groups) {
-    for (const item of group.items) {
-      const existingLabel = assignedPaths.get(item.href);
-      if (existingLabel) throw new Error(`Đường dẫn quản trị ${item.href} đang được dùng cho cả “${existingLabel}” và “${item.label}”.`);
-      assignedPaths.set(item.href, item.label);
-    }
-  }
-
-  return groups;
-}
-
-const navigationGroups = ensureUniqueNavigationPaths([
-  // Thứ tự theo công việc của người vận hành: việc cần xử lý → nội dung website (gồm cả sản phẩm, thiết bị, tệp cài đặt, đối tác) → cấu trúc website → hệ thống.
-  { id: "work", label: "Công việc", icon: LayoutDashboard, items: [
-    { href: "/admin", label: "Bảng điều khiển", icon: Home },
-    { href: "/admin/leads", label: "Khách hàng tiềm năng", icon: UsersRound, permission: "leads.view" },
-    { href: "/admin/seo/publish-check", label: "Kiểm tra trước xuất bản", icon: ClipboardCheck, permission: "settings.view" },
-    { href: "/admin/analytics", label: "Thống kê truy cập", icon: BarChart3, permission: "dashboard.view" },
-  ] },
-  {
-    id: "content",
-    label: "Nội dung website",
-    icon: FileText,
-    items: [
-      { href: "/admin/homepage", label: "Trang chủ", icon: LayoutTemplate, permission: "pages.view" },
-      { href: "/admin/pages", label: "Trang website", icon: PanelsTopLeft, matchesChildRoutes: true, permission: "pages.view" },
-      { href: "/admin/news", label: "Bài viết & Tin tức", icon: Newspaper, matchesChildRoutes: true, permission: "posts.view", subPages: [{ href: "/admin/taxonomy", label: "Chuyên mục & Thẻ" }, { href: "/admin/authors", label: "Tác giả" }], fallback: { href: "/admin/taxonomy", label: "Chuyên mục & Thẻ", permission: "taxonomy.view" } },
-      { href: "/admin/guides", label: "Hướng dẫn sử dụng", icon: BookOpen, matchesChildRoutes: true, permission: "posts.view" },
-      { href: "/admin/products", label: "Sản phẩm & Dịch vụ", icon: Package, matchesChildRoutes: true, permission: "offerings.view", subPages: [{ href: "/admin/solutions" }, { href: "/admin/services" }] },
-      { href: "/admin/equipment", label: "Thiết bị", icon: Laptop, matchesChildRoutes: true, permission: "equipment.view" },
-      { href: "/admin/resources", label: "Tệp cài đặt", icon: Download, matchesChildRoutes: true, permission: "support_downloads.view" },
-      { href: "/admin/partners", label: "Đối tác & Đánh giá", icon: Star, permission: "supporting.view" },
-      { href: "/admin/media", label: "Thư viện hình ảnh & tệp", icon: Image, permission: "media.view" },
-    ],
-  },
-  {
-    id: "structure",
-    label: "Cấu trúc website",
-    icon: FolderTree,
-    items: [
-      { href: "/admin/menu", label: "Menu & Điều hướng", icon: Menu, permission: "navigation.view" },
-      { href: "/admin/redirects", label: "Chuyển hướng URL", icon: ArrowRightLeft, permission: "redirects.view" },
-      { href: "/admin/company-profile", label: "Thông tin doanh nghiệp", icon: Building2, permission: "settings.view" },
-      { href: "/admin/seo", label: "Tên miền & SEO", icon: Globe, permission: "settings.view" },
-      { href: "/admin/search-console", label: "Google Search Console", icon: SearchCheck, permission: "settings.view" },
-      { href: "/admin/external-links", label: "Liên kết & Mạng xã hội", icon: LinkIcon, permission: "settings.view" },
-      { href: "/admin/consult-popup", label: "Cửa sổ tư vấn", icon: MessageSquareText, permission: "settings.view" },
-    ],
-  },
-  {
-    id: "system",
-    label: "Hệ thống",
-    icon: ShieldCheck,
-    items: [
-      { href: "/admin/system", label: "Tình trạng hệ thống", icon: Activity, permission: "system.view" },
-      { href: "/admin/users", label: "Người dùng & vai trò", icon: Users, permission: ["users.view", "roles.view"] },
-      { href: "/admin/integrations", label: "Kết nối & khóa API", icon: KeyRound, superAdminOnly: true },
-      { href: "/admin/audit-log", label: "Nhật ký hoạt động", icon: History, permission: "audit.view" },
-      { href: "/admin/backup", label: "Sao lưu & phục hồi", icon: DatabaseBackup, permission: "settings.view" },
-    ],
-  },
-]);
-
-function matchesPath(pathname: string, href: string, childRoutes: boolean) {
-  return pathname === href || (childRoutes && pathname.startsWith(`${href}/`));
-}
-
-function isActive(pathname: string, item: NavigationItem) {
-  return matchesPath(pathname, item.href, item.matchesChildRoutes === true) || (item.subPages ?? []).some((page) => matchesPath(pathname, page.href, item.matchesChildRoutes === true));
-}
-
-function canAccessNavigation(administrator: Administrator, item: NavigationItem) {
-  if (item.superAdminOnly) return isSuperAdmin(administrator);
-  if (!item.permission) return true;
-  return Array.isArray(item.permission) ? hasAnyCmsPermission(administrator, item.permission) : hasCmsPermission(administrator, item.permission);
-}
-
-function visibleNavigationItems(administrator: Administrator, items: NavigationItem[]): NavigationItem[] {
-  return items.flatMap((item) => {
-    if (canAccessNavigation(administrator, item)) return [item];
-    const fallback = item.fallback;
-    return fallback && hasCmsPermission(administrator, fallback.permission) ? [{ href: fallback.href, label: fallback.label, icon: item.icon, permission: fallback.permission }] : [];
-  });
-}
 
 // Màn chỉnh sửa (tạo mới hoặc theo id) có header riêng kèm nút lưu/đóng nên không dùng thanh vị trí chung.
 function isEditorRoute(pathname: string) {
@@ -241,6 +118,15 @@ export function AdminShell({ administrator, children, notifications }: { adminis
     .flatMap((group) => visibleNavigationItems(administrator, group.items)
       .map((item) => ({ group, item })))
     .find(({ item }) => isActive(pathname, item));
+
+  // Mở trang thuộc nhóm đang gập (từ ô tìm kiếm, liên kết trong trang, nút Quay lại) thì mở nhóm đó ra, kẻo mục đang chọn bị giấu. Chỉ làm một lần cho mỗi
+  // trang: người dùng gập nhóm lại khi vẫn ở trang đó thì được giữ nguyên.
+  const [expandedForPath, setExpandedForPath] = useState<string | null>(null);
+  const activeGroupId = currentNavigation?.group.id;
+  if (activeGroupId && expandedForPath !== pathname) {
+    setExpandedForPath(pathname);
+    if (collapsedNavigationGroups.has(activeGroupId)) setCollapsedNavigationGroups((current) => { const next = new Set(current); next.delete(activeGroupId); return next; });
+  }
 
   function toggleMobileNavigation() {
     if (!isMobileNavigationOpen) {

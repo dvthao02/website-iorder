@@ -68,6 +68,8 @@ export type SystemConfigItem = {
   /** Thiếu mục bắt buộc thì tình trạng chung là "cần chú ý". */
   required: boolean;
   hint?: string;
+  /** Trang CMS để đặt/sửa mục này; chỉ hiện lối tắt khi người xem mở được trang đó. Mục chỉ đặt bằng biến môi trường thì không có. */
+  href?: string;
 };
 
 export type SystemStatus = {

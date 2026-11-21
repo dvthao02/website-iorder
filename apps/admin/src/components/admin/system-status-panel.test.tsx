@@ -7,6 +7,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 
 import type { SystemStatus } from "@iorder/shared/server/system/system-status.contract";
 import { formatBytes, formatUptime, problemsOf, relativeTime, SystemStatusView } from "./system-status-panel";
+import { AdminPermissionsProvider } from "./ui/admin-permissions";
+import { navigationGroups } from "./admin-navigation";
 
 // AdminCard/AdminNotice dùng JSX kiểu cũ (không tự import React) nên test cần React toàn cục.
 (globalThis as { React?: typeof React }).React = React;
@@ -119,11 +121,44 @@ test("Màn Tình trạng hệ thống chỉ hiển thị số đo và nhãn: kh�
 });
 
 test("Menu Hệ thống có mục Tình trạng hệ thống theo quyền system.view; trang và API đều kiểm quyền đó", () => {
-  const shell = readFileSync(path.join(process.cwd(), "apps/admin/src/components/admin/admin-shell.tsx"), "utf8");
-  assert.match(shell, /href: "\/admin\/system", label: "Tình trạng hệ thống", icon: Activity, permission: "system\.view"/);
+  const item = navigationGroups.find((group) => group.id === "system")!.items.find((entry) => entry.href === "/admin/system");
+  assert.equal(item?.label, "Tình trạng hệ thống");
+  assert.equal(item?.permission, "system.view");
   const page = readFileSync(path.join(process.cwd(), "apps/admin/src/app/admin/(protected)/system/page.tsx"), "utf8");
   assert.match(page, /requireAdminPermission\("system\.view"\)/);
   const route = readFileSync(path.join(process.cwd(), "apps/api/src/app/api/v1/admin/system-status/route.ts"), "utf8");
   assert.match(route, /denyUnless\(user, "system\.view"\)/);
   assert.ok(!/export const (POST|PUT|PATCH|DELETE)/.test(route), "API chỉ có GET");
+});
+
+// Màn này chỉ cần system.view còn các trang đích cần quyền khác: lối tắt chỉ hiện khi người xem mở được trang đó, kẻo bấm vào là "Không có quyền".
+const withLinks: SystemStatus = {
+  ...healthy,
+  config: [
+    { key: "site-url", label: "Địa chỉ website chính thức", ok: false, required: true, href: "/admin/seo" },
+    { key: "analytics", label: "Thống kê truy cập (Umami)", ok: false, required: false, href: "/admin/integrations" },
+    { key: "revalidate-secret", label: "Khóa làm mới website", ok: false, required: true },
+  ],
+};
+const renderFor = (role: string, permissions: string[]) => renderToStaticMarkup(
+  <AdminPermissionsProvider actor={{ role, permissions }}><SystemStatusView now={now} status={withLinks} /></AdminPermissionsProvider>,
+);
+
+test("Lối tắt: Vận hành hệ thống (chỉ system.view) chỉ thấy lối tắt tới Sao lưu, không thấy trang cài đặt hay khóa API", () => {
+  const html = renderFor("sysops", ["dashboard.view", "audit.view", "system.view"]);
+  assert.ok(html.includes('href="/admin/backup"'));
+  for (const blocked of ["/admin/search-console", "/admin/integrations", "/admin/seo"]) assert.ok(!html.includes(`href="${blocked}"`), `không được dẫn tới ${blocked}`);
+});
+
+test("Lối tắt: Super Admin thấy đủ; người có settings.view thấy Tên miền & SEO và Search Console nhưng không thấy khóa API", () => {
+  const admin = renderFor("admin", []);
+  for (const target of ["/admin/backup", "/admin/search-console", "/admin/integrations", "/admin/seo"]) assert.ok(admin.includes(`href="${target}"`), target);
+  const settings = renderFor("custom", ["system.view", "settings.view"]);
+  assert.ok(settings.includes('href="/admin/seo"') && settings.includes('href="/admin/search-console"'));
+  assert.ok(!settings.includes('href="/admin/integrations"'));
+});
+
+test("Lối tắt: chỉ hiện cho mục chưa đặt và có đường dẫn; mục đã ổn hoặc chỉ đặt bằng biến môi trường thì không", () => {
+  const html = renderToStaticMarkup(<SystemStatusView now={now} status={{ ...withLinks, config: [{ key: "site-url", label: "Địa chỉ website", ok: true, required: true, href: "/admin/seo" }, { key: "revalidate-secret", label: "Khóa làm mới", ok: false, required: true }] }} />);
+  assert.equal((html.match(/href="\/admin\/seo"/g) ?? []).length, 0);
 });
