@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 const stateLabels = { ok: "Đang ổn", stale: "Quá hạn", failed: "Lần gần nhất bị lỗi", never: "Chưa có bản sao lưu" } as const;
 
 export default async function BackupPage() {
-  const administrator = await requireAdminPermission("settings.view");
+  const administrator = await requireAdminPermission("system.view");
   const overview = await getBackupOverview();
   if (!overview) return null;
   return <AdminPage>

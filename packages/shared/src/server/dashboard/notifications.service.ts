@@ -70,7 +70,7 @@ const offeringTargets = {
  * Việc cần xử lý cho chuông thông báo của CMS: lead mới và lead quá hạn, nội dung chờ duyệt,
  * sao lưu lỗi/quá hạn, cấu hình tên miền/lập chỉ mục và tài khoản bị đăng nhập sai nhiều lần.
  * Chạy ở mỗi lần điều hướng CMS nên chỉ gồm vài truy vấn đếm, và chỉ đếm module
- * người xem có quyền (lead cần `leads.view`, chờ duyệt cần `<module>.publish`, sao lưu và cấu hình cần `settings.view`,
+ * người xem có quyền (lead cần `leads.view`, chờ duyệt cần `<module>.publish`, sao lưu cần `system.view`, cấu hình cần `settings.view`,
  * đăng nhập sai cần `audit.view`).
  */
 export async function getAdminNotifications(actor: CmsActor): Promise<AdminNotification[]> {
@@ -87,7 +87,7 @@ export async function getAdminNotifications(actor: CmsActor): Promise<AdminNotif
     when("posts.publish", () => getDb().select({ isGuide: sql<boolean>`${posts.type} = 'guide'`, total: count() }).from(posts).where(and(eq(posts.status, "review"), isNull(posts.deletedAt))).groupBy(sql`${posts.type} = 'guide'`), []),
     when("offerings.publish", () => getDb().select({ type: offerings.type, total: count() }).from(offerings).where(and(eq(offerings.status, "review"), isNull(offerings.deletedAt))).groupBy(offerings.type), []),
     when("equipment.publish", () => reviewCount(salesEquipment), 0),
-    when("settings.view", () => getBackupStatus().then((status) => status.state), "ok" as const),
+    when("system.view", () => getBackupStatus().then((status) => status.state), "ok" as const),
     when("settings.view", () => getPublishingConfig(), null),
     when("audit.view", () => getDb().select({ userId: auditLogs.userId }).from(auditLogs)
       .where(and(eq(auditLogs.action, "user.login_failed"), gte(auditLogs.createdAt, failuresSince), isNotNull(auditLogs.userId)))

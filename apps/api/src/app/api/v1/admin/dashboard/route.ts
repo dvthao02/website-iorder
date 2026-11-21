@@ -25,8 +25,8 @@ async function handleGET(request: Request) {
     getPublishingReadiness(administrator),
     hasCmsPermission(administrator, "audit.view") ? getRecentAuditLogs() : Promise.resolve([]),
     getDashboardContentSummary(administrator, new Date(), days),
-    // Trạng thái sao lưu là thông tin vận hành: chỉ người xem được cài đặt hệ thống.
-    hasCmsPermission(administrator, "settings.view") ? getBackupStatus() : Promise.resolve(null),
+    // Trạng thái sao lưu là thông tin hạ tầng: chỉ người xem được tình trạng hệ thống (system.view), như trang Sao lưu.
+    hasCmsPermission(administrator, "system.view") ? getBackupStatus() : Promise.resolve(null),
   ]);
 
   return NextResponse.json({ administrator, analytics, readiness, auditLogs, content, backup });

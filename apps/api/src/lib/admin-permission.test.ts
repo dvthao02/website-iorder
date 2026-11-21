@@ -54,7 +54,7 @@ const routeTable: Array<[string, string, CmsPermissionCode[] | null]> = [
   ["/api/v1/admin/external-links", "PUT", ["settings.update"]],
   ["/api/v1/admin/profile", "GET", ["settings.view"]],
   ["/api/v1/admin/seo-audit", "GET", ["settings.view"]],
-  ["/api/v1/admin/backup", "GET", ["settings.view"]],
+  ["/api/v1/admin/backup", "GET", ["system.view"]],
   ["/api/v1/admin/backup", "POST", []],
   // Tình trạng hệ thống: quyền riêng system.view, chỉ đọc (mọi method khác chỉ Super Admin).
   ["/api/v1/admin/system-status", "GET", ["system.view"]],
@@ -172,6 +172,10 @@ test("Ma trận role mặc định × thao tác tiêu biểu", () => {
     ["sysops", "/api/v1/admin/audit", "GET", true],
     ["sysops", "/api/v1/admin/backup", "GET", true],
     ["sysops", "/api/v1/admin/backup", "POST", false],
+    // Sao lưu là thông tin hạ tầng: vai trò nội dung/cấu hình/phân tích không còn thấy, dù có settings.view.
+    ["content_manager", "/api/v1/admin/backup", "GET", false],
+    ["marketing", "/api/v1/admin/backup", "GET", false],
+    ["analyst", "/api/v1/admin/backup", "GET", false],
     ["sysops", "/api/v1/admin/dashboard", "GET", true],
     ["sysops", "/api/v1/admin/publishing-config", "PUT", false],
     ["sysops", "/api/v1/admin/posts", "GET", false],
@@ -206,11 +210,11 @@ test("Khóa API ở CMS chỉ Super Admin: không vai trò mặc định nào (k
   assert.ok(!/NextResponse\.json\(\{[^}]*\bvalue\b/.test(route) && !/logger\.[a-z]+\([^)]*\bbody\b/.test(route), "phản hồi và log không chứa body.value");
 });
 
-test("Vai trò Vận hành hệ thống: chỉ quyền xem (không có create/update/delete/publish), đúng bốn mô-đun cần để theo dõi", () => {
+test("Vai trò Vận hành hệ thống: chỉ quyền xem (không có create/update/delete/publish), đúng ba mô-đun cần để theo dõi (bảng điều khiển, nhật ký, tình trạng hệ thống)", () => {
   const sysops = defaultCmsRoles.find((role) => role.code === "sysops")!;
   assert.ok(sysops, "có vai trò mặc định sysops");
   assert.equal(sysops.name, "Vận hành hệ thống");
-  assert.deepEqual([...sysops.permissions].sort(), ["audit.view", "dashboard.view", "settings.view", "system.view"]);
+  assert.deepEqual([...sysops.permissions].sort(), ["audit.view", "dashboard.view", "system.view"]);
   assert.ok(sysops.permissions.every((code) => code.endsWith(".view")));
   // Chỉ Super Admin và sysops có system.view mặc định; không vai trò nội dung nào vô tình thấy thông tin hạ tầng.
   assert.deepEqual(defaultCmsRoles.filter((role) => role.permissions.includes("system.view")).map((role) => role.code).sort(), ["admin", "sysops"]);

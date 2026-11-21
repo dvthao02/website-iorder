@@ -68,7 +68,7 @@ export const defaultCmsRoles: ReadonlyArray<{ code: string; name: string; descri
   { code: "support", name: "Chăm sóc khách hàng", description: "Xử lý khách hàng tiềm năng.", permissions: [...only(["view"], "dashboard", "media"), ...all("leads")] },
   { code: "analyst", name: "Phân tích", description: "Chỉ xem.", permissions: only(["view"], ...cmsModules.map((module) => module.key).filter((key) => key !== "users" && key !== "roles" && key !== "system")) },
   // Chỉ theo dõi: thấy tình trạng hệ thống, sao lưu (xem lịch sử; chạy/phục hồi vẫn chỉ Super Admin) và nhật ký; không sửa nội dung, không quản lý người dùng hay vai trò.
-  { code: "sysops", name: "Vận hành hệ thống", description: "Theo dõi tình trạng hệ thống, sao lưu và nhật ký hoạt động. Chỉ xem: không sửa nội dung, không quản lý người dùng.", permissions: only(["view"], "dashboard", "settings", "audit", "system") },
+  { code: "sysops", name: "Vận hành hệ thống", description: "Theo dõi tình trạng hệ thống, sao lưu và nhật ký hoạt động. Chỉ xem: không sửa nội dung, không quản lý người dùng.", permissions: only(["view"], "dashboard", "audit", "system") },
 ];
 
 export type CmsActor = { role?: string; permissions: readonly string[] };

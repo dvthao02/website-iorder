@@ -33,8 +33,9 @@ const resourceModules: Record<string, CmsModuleKey> = {
   "seo-audit": "settings",
   // Số liệu tìm kiếm đọc từ Google Search Console (chỉ đọc), cùng quyền với màn "Kiểm tra xuất bản".
   "search-console": "settings",
-  // Trạng thái sao lưu (chỉ đọc) là thông tin vận hành, cùng quyền với cài đặt hệ thống.
-  backup: "settings",
+  // Sao lưu (xem lịch sử, chỉ đọc) là thông tin hạ tầng: gồm đường dẫn thư mục trên máy chủ và tên database, nên cùng quyền system.view với Tình trạng
+  // hệ thống thay vì settings.view (quyền của người sửa nội dung và cấu hình). Module system chỉ có view nên POST/PUT/DELETE chỉ Super Admin.
+  backup: "system",
   // Tình trạng hệ thống (database, kho tệp, website, tài nguyên máy chủ…): thông tin vận hành, quyền riêng system.view. Chỉ có GET.
   "system-status": "system",
 };
