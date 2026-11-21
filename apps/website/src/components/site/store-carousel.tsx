@@ -14,7 +14,8 @@ const interval = 4500;
 // Rê chuột hoặc dùng bàn phím vào ảnh thì dải dừng và hiện nội dung (tên, mô tả, "Xem thêm"); màn hình cảm ứng luôn hiện nội dung
 // ở chân ảnh. Dừng khi ngoài màn hình, tab bị ẩn hoặc người dùng bật giảm chuyển động; có nút Tạm dừng, nút trước/sau và chấm chuyển ảnh.
 // `variant="quad"`: dải cuối của lưới ảnh thực tế, hiện 4 ảnh cùng lúc (khớp các ô phía trên) và luôn hiện tên; `firstIndex`: vị trí của ảnh đầu dải trong danh sách thẻ gốc (cho trình dựng trang).
-export function StoreCarousel({ slides, label, variant, firstIndex = 0 }: { slides: CarouselSlide[]; label: string; variant?: "quad"; firstIndex?: number }) {
+// `eager`: dải nằm trong màn hình đầu hoặc đang xem trước trong CMS → ảnh đầu được ưu tiên tải, hai ảnh kế tải ngay; còn lại vẫn lazy.
+export function StoreCarousel({ slides, label, variant, firstIndex = 0, eager = false }: { slides: CarouselSlide[]; label: string; variant?: "quad"; firstIndex?: number; eager?: boolean }) {
   const track = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState(0);
   const [pages, setPages] = useState(Math.max(1, slides.length));
@@ -99,7 +100,7 @@ export function StoreCarousel({ slides, label, variant, firstIndex = 0 }: { slid
     <div className="slider__track" ref={track}>
       {slides.map((slide, index) => {
         const content = <>
-          {slide.image ? <span className={`slider__media slider__media--${slide.image.kind}`}><Image alt={slide.image.alt} className={slide.image.kind === "photo" ? "object-cover transition duration-700 group-hover:scale-[1.04]" : "object-contain transition duration-500 group-hover:scale-[1.03]"} fill sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 85vw" src={slide.image.url} /></span> : null}
+          {slide.image ? <span className={`slider__media slider__media--${slide.image.kind}`}><Image alt={slide.image.alt} className={slide.image.kind === "photo" ? "object-cover transition duration-700 group-hover:scale-[1.04]" : "object-contain transition duration-500 group-hover:scale-[1.03]"} fill loading={eager && index > 0 && index < 3 ? "eager" : undefined} preload={eager && index === 0} sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 85vw" src={slide.image.url} /></span> : null}
           <span aria-hidden="true" className="slider__scrim" />
           <span className="slider__caption">
             <strong data-builder-field="title">{slide.title}</strong>

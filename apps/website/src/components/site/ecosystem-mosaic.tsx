@@ -5,6 +5,7 @@ import type { CSSProperties } from "react";
 import { HeroImages } from "./hero-images";
 import { loadBlockImages } from "./section-blocks";
 import { SiteLink } from "./site-link";
+import { getBuilderPreviewContext } from "@/lib/builder-preview";
 import { descriptionLines, mosaicMediaKind, mosaicRows } from "@/lib/mosaic-layout";
 
 type MosaicItem = Extract<PageBlock, { type: "features" | "industries" | "ecosystem" | "process" }>["data"]["items"][number];
@@ -14,8 +15,10 @@ type MosaicItem = Extract<PageBlock, { type: "features" | "industries" | "ecosys
 //   Đây là kiểu mặc định, không cần ảnh dựng sẵn.
 // - Ảnh chụp thật (JPG): ảnh phủ kín ô, lớp tối cho chữ đọc rõ; rê chuột/bàn phím thì mô tả trượt lên.
 // - Ảnh sản phẩm nền trong suốt (PNG/WebP): đặt to ở góc ô cùng kiểu ô phẳng; rê chuột/bàn phím thì mô tả trượt lên (thẻ có màu riêng trong CMS thì dùng màu đó).
-export async function EcosystemMosaic({ items }: { items: MosaicItem[] }) {
+export async function EcosystemMosaic({ items, first = false }: { items: MosaicItem[]; first?: boolean }) {
   const galleries = await Promise.all(items.map(item => loadBlockImages([item.mediaId, ...(item.extraMediaIds ?? [])])));
+  // Ảnh trong màn hình đầu thì tải ngay (như hero: khối đầu trang) để không thành ảnh LCP bị lazy; khung xem trước CMS cuộn thẳng tới khối đang chọn nên cũng tải ngay.
+  const eager = first || Boolean(await getBuilderPreviewContext());
   const kinds = galleries.map(images => images.length ? mosaicMediaKind(images[0].mimeType) : "text");
   const textOnly = kinds.every(kind => kind === "text");
   const sizes = mosaicRows(items.length);
@@ -36,7 +39,7 @@ export async function EcosystemMosaic({ items }: { items: MosaicItem[] }) {
           </>;
           const content = <>
             {kind === "text" ? null : <div className={`mosaic__media mosaic__media--${kind}`}>
-              <HeroImages builderItem={null} imageClassName={kind === "photo" ? "object-cover transition duration-700 group-hover:scale-[1.05]" : "object-contain object-center transition duration-500 group-hover:scale-[1.04]"} images={images.map(photo => ({ url: photo.url, alt: photo.altText ?? item.title }))} preload={false} sizes="(min-width: 1024px) 40vw, (min-width: 640px) 50vw, 100vw" variant="cover" />
+              <HeroImages builderItem={null} imageClassName={kind === "photo" ? "object-cover transition duration-700 group-hover:scale-[1.05]" : "object-contain object-center transition duration-500 group-hover:scale-[1.04]"} images={images.map(photo => ({ url: photo.url, alt: photo.altText ?? item.title }))} preload={eager && index < 3} sizes="(min-width: 1024px) 40vw, (min-width: 640px) 50vw, 100vw" variant="cover" />
             </div>}
             {kind === "photo" ? <span aria-hidden="true" className="mosaic__scrim" /> : null}
             {kind === "text" || kind === "cutout" ? <div aria-hidden="true" className="mosaic__head"><span className="mosaic__num">{String(index + 1).padStart(2, "0")}</span>{item.href ? <ArrowRight className="mosaic__arrow" size={20} strokeWidth={1.8} /> : null}</div> : null}

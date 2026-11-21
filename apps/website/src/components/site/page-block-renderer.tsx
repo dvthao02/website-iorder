@@ -226,15 +226,15 @@ async function Block({ block, first, frame: blockFrame, staticPage }: { block: P
     case "industries":
     case "ecosystem": if (block.data.cardStyle === "gallery") return <FrameSection frame={frame}>
       <SectionHeading dark={dark} description={block.data.description} eyebrow={block.data.eyebrow} title={block.data.title} />
-      <StoreGallery items={block.data.items} />
+      <StoreGallery first={first} items={block.data.items} />
     </FrameSection>;
     if (block.data.cardStyle === "slider") return <FrameSection frame={frame}>
       <SectionHeading dark={dark} description={block.data.description} eyebrow={block.data.eyebrow} title={block.data.title} />
-      <StoreSlider items={block.data.items} label={block.data.title} />
+      <StoreSlider first={first} items={block.data.items} label={block.data.title} />
     </FrameSection>;
     if (block.data.cardStyle === "mosaic") return <FrameSection frame={frame}>
       <SectionHeading dark={dark} description={block.data.description} eyebrow={block.data.eyebrow} title={block.data.title} />
-      <EcosystemMosaic items={block.data.items} />
+      <EcosystemMosaic first={first} items={block.data.items} />
     </FrameSection>;
     if (block.data.cardStyle === "orbit") return <FrameSection frame={frame}>
       <SectionHeading dark={dark} description={block.data.description} eyebrow={block.data.eyebrow} title={block.data.title} />
