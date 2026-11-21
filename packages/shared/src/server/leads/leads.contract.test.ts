@@ -58,7 +58,7 @@ test("Liên hệ công khai: từ chối thiếu họ tên/số điện thoại,
     assert.equal(publicLeadInputSchema.safeParse({ ...base, ...patch }).success, false, JSON.stringify(patch));
   }
   for (const missing of ["name", "phone"] as const) {
-    const { [missing]: _removed, ...rest } = base;
+    const rest = Object.fromEntries(Object.entries(base).filter(([key]) => key !== missing));
     assert.equal(publicLeadInputSchema.safeParse(rest).success, false, missing);
   }
 });
