@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { englishPathRedirect, isRewrittenPath, publicRewrites, routeFolders } from "./legacy-paths";
+import { englishPathRedirect, isRewrittenPath, lowercasePathname, publicRewrites, routeFolders } from "./legacy-paths";
 
 test("URL tiếng Anh (tên thư mục) chuyển về URL tiếng Việt, giữ phần đường dẫn con", () => {
   assert.equal(englishPathRedirect("/news"), "/tin-tuc");
@@ -38,4 +38,18 @@ test("Mỗi URL tiếng Việt có hai rewrite (chính nó và đường dẫn c
 test("Nhận ra URL đi qua rewrites() để tắt tải trước (kèm query, neo, đường dẫn con)", () => {
   for (const href of ["/tin-tuc", "/tin-tuc/bai-viet-mau", "/tin-tuc?trang=2", "/thiet-bi#bang-gia", "/ho-tro/huong-dan/cai-dat-may-in", "/lien-he", "/trang/uu-dai", "/ho-tro"]) assert.equal(isRewrittenPath(href), true, href);
   for (const href of ["/", "/phan-mem", "/phan-mem/iorder", "/tin-tucx", "https://iorder.vn/tin-tuc", "//cdn.example.com/tin-tuc", "#lien-he", "mailto:a@b.vn"]) assert.equal(isRewrittenPath(href), false, href);
+});
+
+test("Đường dẫn viết hoa được đưa về chữ thường, giữ nguyên mã hóa phần trăm", () => {
+  assert.equal(lowercasePathname("/TIN-TUC"), "/tin-tuc");
+  assert.equal(lowercasePathname("/Tin-Tuc/Bai-Viet-Mau"), "/tin-tuc/bai-viet-mau");
+  assert.equal(lowercasePathname("/tin-tuc"), "/tin-tuc");
+  assert.equal(lowercasePathname("/"), "/");
+  assert.equal(lowercasePathname("/tin-tuc/b%C3%A0i"), "/tin-tuc/b%C3%A0i");
+  assert.equal(lowercasePathname("/Tin-Tuc/B%C3%A0i"), "/tin-tuc/b%C3%A0i");
+});
+
+test("Viết hoa rồi mới áp bảng URL tiếng Anh thì chỉ cần một bước chuyển hướng", () => {
+  assert.equal(englishPathRedirect(lowercasePathname("/NEWS")), "/tin-tuc");
+  assert.equal(englishPathRedirect(lowercasePathname("/Support/FAQ")), "/ho-tro/faq");
 });

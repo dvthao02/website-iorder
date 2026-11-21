@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getEnabledRedirect } from "@/lib/backend";
-import { englishPathRedirect } from "@/lib/legacy-paths";
+import { englishPathRedirect, lowercasePathname } from "@/lib/legacy-paths";
 import { logger } from "@iorder/shared/server/shared/logger";
 import { builderPreviewHeader, fetchBuilderPreview } from "@/lib/builder-preview";
 
@@ -47,7 +47,9 @@ export async function proxy(request: NextRequest) {
   }
 
   // URL tiếng Anh (tên thư mục route) gõ nhầm → URL tiếng Việt chuẩn, để mỗi trang chỉ có một địa chỉ. Chạy sau bảng redirects của CMS.
-  const canonical = englishPathRedirect(pathname);
+  // Cùng lượt còn đưa URL viết hoa (/TIN-TUC) về chữ thường, vì Next khớp route không phân biệt hoa thường và một trang sẽ có hai địa chỉ.
+  const lowered = lowercasePathname(pathname);
+  const canonical = englishPathRedirect(lowered) ?? (lowered !== pathname ? lowered : null);
   if (!canonical) return NextResponse.next({ request: { headers: forwarded } });
   const destination = new URL(canonical, request.url);
   destination.search = request.nextUrl.search;

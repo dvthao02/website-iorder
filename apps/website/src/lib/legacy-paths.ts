@@ -53,3 +53,11 @@ export function englishPathRedirect(pathname: string): string | null {
   if (pathname.startsWith("/support/")) return `/ho-tro${pathname.slice("/support".length)}`;
   return null;
 }
+
+/**
+ * Đường dẫn viết thường: Next khớp route không phân biệt hoa thường nên /TIN-TUC phục vụ cùng nội dung với /tin-tuc (hai địa chỉ cho một trang).
+ * Chỉ đổi chữ cái, giữ nguyên chuỗi mã hóa phần trăm (%C3%A1) để không chuyển hướng thừa.
+ */
+export function lowercasePathname(pathname: string): string {
+  return pathname.replace(/%[0-9a-f]{2}|[A-Z]/gi, (part) => (part.startsWith("%") ? part : part.toLowerCase()));
+}
