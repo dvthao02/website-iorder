@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM node:22-alpine AS base
+FROM node:22-alpine@sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402 AS base
 
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
@@ -12,10 +12,10 @@ FROM base AS dependencies
 WORKDIR /app
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY apps/backend/package.json apps/backend/package.json
-COPY apps/cms/package.json apps/cms/package.json
-COPY apps/publish-web/package.json apps/publish-web/package.json
-COPY packages/core/package.json packages/core/package.json
+COPY apps/api/package.json apps/api/package.json
+COPY apps/admin/package.json apps/admin/package.json
+COPY apps/website/package.json apps/website/package.json
+COPY packages/shared/package.json packages/shared/package.json
 RUN pnpm install --frozen-lockfile
 
 FROM dependencies AS build
@@ -23,7 +23,9 @@ WORKDIR /app
 
 ARG APP_NAME
 ARG BACKEND_URL
+ARG NEXT_PUBLIC_PUBLISH_WEB_URL
 ENV BACKEND_URL=$BACKEND_URL
+ENV NEXT_PUBLIC_PUBLISH_WEB_URL=$NEXT_PUBLIC_PUBLISH_WEB_URL
 
 COPY . ./
 RUN pnpm --filter @iorder/${APP_NAME} build
@@ -36,7 +38,7 @@ WORKDIR /app
 COPY . ./
 CMD ["pnpm", "db:migrate"]
 
-FROM node:22-alpine AS runner
+FROM node:22-alpine@sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402 AS runner
 WORKDIR /app
 
 ARG APP_NAME
@@ -47,7 +49,8 @@ ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
 RUN addgroup --system --gid 1001 nodejs \
-  && adduser --system --uid 1001 --ingroup nodejs nextjs
+  && adduser --system --uid 1001 --ingroup nodejs nextjs \
+  && mkdir -p /data/secrets && chown -R nextjs:nodejs /data && chmod 700 /data/secrets
 
 COPY --from=build --chown=nextjs:nodejs /app/apps/${APP_NAME}/.next/standalone ./
 COPY --from=build --chown=nextjs:nodejs /app/apps/${APP_NAME}/.next/static ./apps/${APP_NAME}/.next/static

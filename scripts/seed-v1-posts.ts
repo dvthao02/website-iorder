@@ -2,9 +2,9 @@ import "dotenv/config";
 
 import { and, eq, isNull } from "drizzle-orm";
 
-import { getDb } from "../packages/core/src/db/client";
-import { auditLogs, categories, postCategories, postRevisions, posts, users } from "../packages/core/src/db/schema";
-import { postContentDocumentSchema } from "../packages/core/src/server/posts/posts.contract";
+import { getDb } from "../packages/shared/src/db/client";
+import { auditLogs, categories, postCategories, postRevisions, posts, users } from "../packages/shared/src/db/schema";
+import { postContentDocumentSchema } from "../packages/shared/src/server/posts/posts.contract";
 
 const v1Source = "https://iwork.vn";
 

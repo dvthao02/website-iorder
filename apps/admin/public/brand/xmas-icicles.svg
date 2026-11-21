@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="28" height="12" viewBox="0 0 28 12">
+  <!--
+    Một nhịp cột băng (lặp ngang) treo từ mép khung ô mật khẩu "đóng băng" và từ đáy nút con mắt ở trang đăng nhập Giáng sinh.
+    Thanh sương mỏng ở trên, hai cột băng dài ngắn khác nhau rủ xuống, trắng ở gốc và xanh băng ở đầu nhọn. Ảnh tĩnh, không có hoạt ảnh.
+  -->
+  <defs>
+    <linearGradient id="ice" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" />
+      <stop offset="1" stop-color="#9cc8f5" />
+    </linearGradient>
+  </defs>
+  <path d="M0 0 H28 V2.2 Q26.4 3.2 24.6 2.4 L21 11.6 L17.6 2.4 Q14.6 3.6 11.8 2.4 L9.2 7.4 L6.6 2.4 Q3.4 3.4 0 2.2 Z" fill="url(#ice)" stroke="#8dbcf0" stroke-linejoin="round" stroke-width="0.5" />
+  <path d="M20.2 4 L21 9.6" fill="none" stroke="#ffffff" stroke-linecap="round" stroke-width="0.7" />
+  <path d="M8.8 4 L9.2 6" fill="none" stroke="#ffffff" stroke-linecap="round" stroke-width="0.6" />
+</svg>

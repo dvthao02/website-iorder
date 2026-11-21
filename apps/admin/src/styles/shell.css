@@ -1,0 +1,546 @@
+/* Khung CMS: sidebar, thanh trên cùng, tìm kiếm toàn cục, menu tài khoản và thông báo. */
+@layer components {
+  .admin-shell {
+    --admin-sidebar-width: 232px;
+    display: grid;
+    min-height: 100dvh;
+    grid-template-columns: var(--admin-sidebar-width) minmax(0, 1fr);
+    grid-template-rows: var(--cms-topbar-height) minmax(0, 1fr);
+    background: var(--cms-background);
+    background-image: var(--cms-background-image);
+    color: var(--cms-text);
+    font-family: var(--cms-font);
+  }
+  .admin-shell--collapsed { --admin-sidebar-width: 60px; }
+  .admin-shell__body { display: contents; }
+  .admin-shell__main { min-width: 0; grid-column: 2; grid-row: 2; padding-bottom: 56px; }
+  .admin-shell__content { min-width: 0; }
+
+  /* Sidebar */
+  .admin-sidebar {
+    position: relative;
+    z-index: 31;
+    display: flex;
+    min-height: 0;
+    grid-row: 1 / span 2;
+    flex-direction: column;
+    border-right: 1px solid var(--cms-nav-border);
+    background: var(--cms-nav-bg);
+    color: var(--cms-nav-text);
+  }
+  .admin-brand {
+    display: flex;
+    height: var(--cms-topbar-height);
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid var(--cms-nav-border);
+    padding: 0 16px;
+  }
+  .admin-brand__logo { width: auto; object-fit: contain; }
+  .admin-brand__logo { display: none; }
+  .admin-brand__logo--full { height: 30px; }
+  .admin-brand__logo--mark { height: 28px; }
+  .admin-brand__edition {
+    border: 1px solid var(--cms-nav-border);
+    border-radius: var(--cms-radius-sm);
+    padding: 1px 4px;
+    color: var(--cms-nav-muted);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    line-height: 1.3;
+  }
+  /* Thanh bên luôn đậm hơn thanh trên ở mọi theme nên chỉ dùng bản logo chữ sáng: bản đầy đủ khi mở, biểu tượng khi thu gọn. */
+  .admin-shell:not(.admin-shell--collapsed) .admin-brand__logo--full,
+  .admin-shell--collapsed .admin-brand__logo--mark { display: block; }
+  .admin-shell--collapsed .admin-brand { justify-content: center; padding: 0; }
+  .admin-shell--collapsed .admin-brand__edition { display: none; }
+
+  .admin-sidebar-toggle {
+    position: fixed;
+    top: calc(var(--cms-topbar-height) / 2);
+    left: calc(var(--admin-sidebar-width) - 12px);
+    z-index: 50;
+    display: grid;
+    width: 24px;
+    height: 24px;
+    place-items: center;
+    border: 1px solid var(--cms-border);
+    border-radius: 50%;
+    background: var(--cms-card);
+    color: var(--cms-muted);
+    transform: translateY(-50%);
+  }
+  .admin-sidebar-toggle svg { width: 14px; height: 14px; }
+  .admin-sidebar-toggle:hover { border-color: var(--cms-border-strong); color: var(--cms-text); }
+
+  .admin-sidebar__scroll {
+    min-height: 0;
+    flex: 1 1 auto;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 12px 10px 16px;
+  }
+  .admin-navigation { position: relative; display: grid; gap: 12px; }
+  /* Thanh dọc đánh dấu mục đang chọn, nằm sát mép trái mục và trượt sang mục mới khi chuyển trang. */
+  .admin-navigation__indicator { position: absolute; top: 0; left: 0; z-index: 1; width: 3px; height: 0; border-radius: 3px; background: var(--cms-nav-accent); opacity: 0; pointer-events: none; clip-path: inset(7px 0 round 3px); }
+  .admin-navigation__indicator[data-visible] { opacity: 1; }
+  .admin-navigation__indicator[data-ready] { transition: transform 240ms cubic-bezier(.2, .8, .2, 1), height 240ms ease, opacity 150ms ease; }
+  @media (prefers-reduced-motion: reduce) { .admin-navigation__indicator[data-ready] { transition: opacity 150ms ease; } }
+  .admin-navigation__group { display: grid; min-width: 0; gap: 2px; }
+  .admin-navigation__group-toggle {
+    display: flex;
+    width: 100%;
+    height: 28px;
+    align-items: center;
+    gap: 6px;
+    border: 0;
+    border-radius: var(--cms-nav-radius);
+    background: transparent;
+    padding: 0 8px;
+    color: var(--cms-nav-muted);
+    font-size: var(--cms-text-xs);
+    font-weight: 500;
+    text-align: left;
+  }
+  .admin-navigation__group-toggle > svg:first-child { display: none; }
+  .admin-navigation__group-toggle > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .admin-navigation__group-toggle > svg:last-child { margin-left: auto; opacity: 0.7; transition: transform 120ms ease; }
+  .admin-navigation__group-toggle:hover { color: var(--cms-nav-text); }
+  .admin-navigation__group--collapsed .admin-navigation__group-toggle > svg:last-child { transform: rotate(-90deg); }
+  .admin-navigation__items { display: grid; gap: 1px; }
+  .admin-navigation__link {
+    display: flex;
+    height: 32px;
+    min-width: 0;
+    align-items: center;
+    gap: 10px;
+    border-radius: var(--cms-nav-radius);
+    padding: 0 8px;
+    color: var(--cms-nav-text);
+    font-size: var(--cms-text-sm);
+  }
+  .admin-navigation__item-icon { display: grid; flex: 0 0 auto; place-items: center; color: var(--cms-nav-muted); }
+  .admin-navigation__label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .admin-navigation__link:hover { background: var(--cms-nav-hover); }
+  .admin-navigation__link--active,
+  .admin-navigation__link--active:hover { background: var(--cms-nav-active-bg); box-shadow: var(--cms-nav-active-shadow); color: var(--cms-nav-active-text); font-weight: 500; }
+  .admin-navigation__link--active .admin-navigation__item-icon { color: var(--cms-nav-accent); }
+
+  /* Sidebar thu gọn: nhóm thành nút biểu tượng, bấm để mở danh sách biểu tượng con. */
+  .admin-shell--collapsed .admin-sidebar__scroll { padding-inline: 8px; }
+  .admin-shell--collapsed .admin-navigation { gap: 4px; }
+  .admin-shell--collapsed .admin-navigation__group-toggle { width: 44px; height: 36px; justify-content: center; margin: 0 auto; padding: 0; }
+  .admin-shell--collapsed .admin-navigation__group-toggle > svg:first-child { display: block; width: 18px; height: 18px; }
+  .admin-shell--collapsed .admin-navigation__group-toggle > span,
+  .admin-shell--collapsed .admin-navigation__group-toggle > svg:last-child { display: none; }
+  .admin-shell--collapsed .admin-navigation__group--compact-open .admin-navigation__group-toggle { background: var(--cms-nav-hover); color: var(--cms-nav-text); }
+  .admin-shell--collapsed .admin-navigation__group:has(.admin-navigation__link--active) .admin-navigation__group-toggle { color: var(--cms-nav-accent); }
+  .admin-shell--collapsed .admin-navigation__items { justify-items: center; }
+  /* Thu gọn giữ nguyên cấu trúc nhóm: mỗi nhóm là một nút biểu tượng kèm các biểu tượng mục con bên dưới (tên hiện khi rê chuột);
+     nhóm đang gập thì nút nhóm mờ đi và ẩn các mục con, bấm để mở lại như khi thanh bên mở rộng. */
+  @media (min-width: 1101px) {
+    .admin-shell--collapsed .admin-navigation__group + .admin-navigation__group { margin-top: 6px; border-top: 1px solid var(--cms-nav-border); padding-top: 6px; }
+    .admin-shell--collapsed .admin-navigation__group--collapsed .admin-navigation__group-toggle { opacity: .55; }
+  }
+  .admin-shell--collapsed .admin-navigation__link { width: 36px; justify-content: center; padding: 0; }
+  .admin-shell--collapsed .admin-navigation__label { display: none; }
+  .admin-sidebar-tooltip {
+    position: fixed;
+    left: calc(var(--admin-sidebar-width) + 6px);
+    z-index: 80;
+    border-radius: var(--cms-radius-component);
+    background: var(--cms-text);
+    padding: 4px 8px;
+    color: var(--cms-card);
+    font-size: var(--cms-text-xs);
+    pointer-events: none;
+    transform: translateY(-50%);
+    white-space: nowrap;
+  }
+
+  /* Thanh trên cùng */
+  .admin-topbar {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    display: flex;
+    min-width: 0;
+    grid-column: 2;
+    grid-row: 1;
+    height: var(--cms-topbar-height);
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid var(--cms-topbar-border);
+    background-color: var(--cms-topbar-bg);
+    /* Đường nhấn mảnh dưới thanh trên (theme nào có thì hiện; mặc định không có). */
+    background-image: var(--cms-topbar-accent);
+    background-repeat: no-repeat;
+    background-position: left bottom;
+    background-size: 100% 2px;
+    padding: 0 var(--cms-page-gutter);
+  }
+  /* Cụm bên phải thanh trên: Xem website (nút viền), chuông thông báo, đường kẻ, menu tài khoản. */
+  .admin-topbar__view-site {
+    display: inline-flex;
+    height: 34px;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 6px;
+    margin-left: auto;
+    border: 1px solid var(--cms-topbar-border);
+    border-radius: var(--cms-radius-component);
+    background: var(--cms-card);
+    padding: 0 12px;
+    color: var(--cms-text);
+    font-size: var(--cms-text-sm);
+    font-weight: 500;
+    white-space: nowrap;
+    transition: background-color 120ms ease, border-color 120ms ease;
+  }
+  .admin-topbar__view-site > svg { color: var(--cms-muted); transition: color 120ms ease, transform 120ms ease; }
+  .admin-topbar__view-site:hover { border-color: var(--cms-border-strong); background: var(--cms-hover); }
+  .admin-topbar__view-site:hover > svg { color: var(--cms-primary); transform: translate(1px, -1px); }
+  .admin-topbar__account { position: relative; display: flex; align-items: center; gap: 6px; }
+
+  .admin-global-search {
+    position: relative;
+    display: flex;
+    width: min(440px, 100%);
+    height: var(--cms-control-height);
+    min-width: 200px;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid var(--cms-topbar-border);
+    border-radius: var(--cms-radius-component);
+    background: var(--cms-input-background);
+    padding: 0 10px;
+    color: var(--cms-muted);
+  }
+  .admin-global-search:focus-within { border-color: var(--cms-primary); background: var(--cms-input-background); box-shadow: var(--cms-focus-ring); }
+  .admin-global-search > svg { flex: 0 0 auto; }
+  .admin-global-search input { height: 100%; flex: 1 1 auto; border: 0; background: transparent; padding: 0; font-size: var(--cms-text-sm); }
+  .admin-global-search input:focus { box-shadow: none; }
+  .admin-global-search > button { display: grid; width: 22px; height: 22px; place-items: center; border: 0; border-radius: var(--cms-radius-sm); background: transparent; color: var(--cms-muted); }
+  .admin-global-search > button:hover { background: var(--cms-hover); color: var(--cms-text); }
+  .admin-global-search__loading { animation: admin-spin 0.8s linear infinite; }
+  .admin-global-search__results {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    z-index: 70;
+    display: grid;
+    width: min(520px, calc(100vw - 24px));
+    max-height: min(440px, calc(100dvh - 100px));
+    overflow-y: auto;
+    border: 1px solid var(--cms-border);
+    border-radius: var(--cms-radius-card);
+    background: var(--cms-card);
+    padding: 4px;
+    box-shadow: var(--cms-shadow-popover);
+  }
+  .admin-global-search__results a { display: grid; grid-template-columns: 16px minmax(0, 1fr); align-items: center; gap: 10px; border-radius: var(--cms-radius-component); padding: 7px 8px; }
+  .admin-global-search__results a:hover,
+  .admin-global-search__results a:focus-visible,
+  .admin-global-search__results a[aria-selected="true"] { background: var(--cms-hover); outline: 0; }
+  .admin-global-search__results a > svg { color: var(--cms-muted); }
+  .admin-global-search__results strong,
+  .admin-global-search__results small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .admin-global-search__results strong { font-size: var(--cms-text-sm); font-weight: 500; }
+  .admin-global-search__results small { color: var(--cms-muted); }
+  .admin-global-search__results > p { padding: 12px 8px; color: var(--cms-muted); font-size: var(--cms-text-sm); }
+
+  /* Popover thông báo và tài khoản */
+  .admin-popover { position: relative; }
+  .admin-popover > summary { list-style: none; cursor: pointer; }
+  .admin-popover > summary::-webkit-details-marker { display: none; }
+  .admin-notifications > summary {
+    position: relative;
+    display: grid;
+    width: 36px;
+    height: 36px;
+    place-items: center;
+    border-radius: var(--cms-radius-component);
+    color: var(--cms-topbar-muted);
+    transition: background-color 120ms ease, color 120ms ease;
+  }
+  .admin-notifications > summary:hover,
+  .admin-notifications[open] > summary { background: var(--cms-topbar-hover); color: var(--cms-topbar-text); }
+  .admin-notifications__icon { display: block; }
+  .admin-notifications b {
+    position: absolute;
+    top: 2px;
+    right: 1px;
+    display: grid;
+    min-width: 15px;
+    height: 15px;
+    place-items: center;
+    border: 2px solid var(--cms-topbar-bg);
+    border-radius: 999px;
+    background: #d4343f;
+    padding: 0 3px;
+    color: #fff;
+    font-size: 9px;
+    font-weight: 600;
+    line-height: 1;
+  }
+  .admin-account-menu { margin-left: 8px; padding-left: 12px; }
+  .admin-account-menu::before { position: absolute; top: 50%; left: 0; height: 24px; border-left: 1px solid var(--cms-topbar-border); content: ""; transform: translateY(-50%); }
+  .admin-account-menu > summary { display: flex; height: 40px; align-items: center; gap: 10px; border-radius: var(--cms-radius-component); padding: 0 8px 0 4px; color: var(--cms-topbar-text); transition: background-color 120ms ease; }
+  .admin-account-menu > summary:hover,
+  .admin-account-menu[open] > summary { background: var(--cms-topbar-hover); }
+  .admin-account-menu > summary > .admin-avatar { box-shadow: 0 0 0 1px var(--cms-topbar-border); }
+  .admin-account-menu > summary > span:not(.admin-avatar) { display: grid; min-width: 0; max-width: 168px; line-height: 1.25; }
+  .admin-account-menu > summary strong { overflow: hidden; font-size: var(--cms-text-sm); font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+  .admin-account-menu > summary small { overflow: hidden; color: var(--cms-topbar-muted); font-size: var(--cms-text-xs); text-overflow: ellipsis; white-space: nowrap; }
+  .admin-account-menu__chevron { flex: none; color: var(--cms-topbar-muted); transition: transform 160ms ease; }
+  .admin-account-menu[open] .admin-account-menu__chevron { transform: rotate(180deg); }
+  /* Cỡ đặt bằng --admin-avatar-size (AdminAvatar); chưa có ảnh thì hiện chữ cái đầu, có ảnh thì ảnh phủ kín vòng tròn. */
+  .admin-avatar { display: grid; flex: none; width: var(--admin-avatar-size, 28px); height: var(--admin-avatar-size, 28px); place-items: center; overflow: hidden; border-radius: 50%; background: var(--cms-primary-soft); color: var(--cms-primary); font-size: calc(var(--admin-avatar-size, 28px) * 0.4); font-weight: 600; }
+  .admin-avatar > img { width: 100%; height: 100%; object-fit: cover; }
+  .admin-header-popover {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    z-index: 40;
+    display: grid;
+    width: 300px;
+    overflow: hidden;
+    border: 1px solid var(--cms-border);
+    border-radius: var(--cms-radius-card);
+    background: var(--cms-card);
+    box-shadow: var(--cms-shadow-popover);
+  }
+  /* Menu chọn loại khi tạo mới (ví dụ Sản phẩm / Giải pháp / Dịch vụ). */
+  .admin-create-menu > summary { display: inline-flex; }
+  .admin-create-menu > summary .admin-button { pointer-events: none; }
+  .admin-header-popover--menu { width: 260px; padding: 4px; }
+  .admin-header-popover--menu > a { display: grid; gap: 1px; border-radius: var(--cms-radius-component); padding: 8px 10px; }
+  .admin-header-popover--menu > a:hover, .admin-header-popover--menu > a:focus-visible { background: var(--cms-hover); }
+  .admin-header-popover--menu strong { font-size: var(--cms-text-sm); font-weight: 500; }
+  .admin-header-popover--menu > .admin-header-popover__item { display: grid; gap: 1px; padding: 8px 10px; }
+  .admin-header-popover--menu small { color: var(--cms-muted); font-size: var(--cms-text-xs); }
+  /* Menu Nhập / Xuất: mục là liên kết tải file hoặc nút mở khung nhập. */
+  .admin-transfer-menu { width: 300px; }
+  /* Mục có ô biểu tượng loại tệp bên trái (AdminFileIcon), chia nhóm "Xuất file" / "Nhập file". */
+  .admin-transfer-menu > .admin-transfer-menu__item { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 10px; width: 100%; border: 0; border-radius: var(--cms-radius-component); background: transparent; padding: 7px 10px; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+  .admin-transfer-menu__item > span:last-child { display: grid; min-width: 0; gap: 1px; }
+  .admin-transfer-menu__group { padding: 8px 10px 2px; color: var(--cms-muted); font-size: 11px; font-weight: 600; }
+  .admin-transfer-menu__group:not(:first-child) { margin-top: 4px; border-top: 1px solid var(--cms-border); padding-top: 10px; }
+  .admin-transfer-menu__item:hover, .admin-transfer-menu__item:focus-visible { background: var(--cms-hover); }
+  .admin-transfer-menu strong { display: flex; align-items: center; gap: 6px; }
+  /* Điện thoại: nút trên thanh tiêu đề có thể nằm bất kỳ đâu sau khi xuống dòng, nên menu (Tạo mới, Nhập / Xuất)
+     trải theo bề ngang màn hình, ngay dưới nút (top: auto = vị trí tĩnh sau <summary>). */
+  @media (max-width: 680px) { .admin-page-bar__actions .admin-header-popover { position: fixed; top: auto; left: 12px; right: 12px; width: auto; margin-top: 6px; } }
+  .admin-header-popover--notifications > header { display: flex; align-items: center; justify-content: space-between; gap: 8px; border-bottom: 1px solid var(--cms-border); padding: 10px 12px; }
+  .admin-header-popover--notifications > header strong { font-size: var(--cms-text-sm); font-weight: 600; }
+  .admin-header-popover--notifications > header a { color: var(--cms-primary); font-size: var(--cms-text-xs); }
+  .admin-header-popover--notifications > div { display: grid; max-height: 360px; overflow-y: auto; }
+  .admin-header-popover--notifications > div > a { display: grid; gap: 1px; border-bottom: 1px solid var(--cms-border); padding: 9px 12px; }
+  .admin-header-popover--notifications > div > a:last-child { border-bottom: 0; }
+  .admin-header-popover--notifications > div > a:hover { background: var(--cms-hover); }
+  .admin-header-popover--notifications strong,
+  .admin-header-popover--notifications small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .admin-header-popover--notifications div strong { font-size: var(--cms-text-sm); font-weight: 500; }
+  .admin-header-popover--notifications small { color: var(--cms-muted); }
+  /* Trạng thái rỗng: biểu tượng + tiêu đề + một dòng giải thích, căn giữa, không để một chữ lẻ xuống dòng. */
+  .admin-header-popover--notifications > .admin-notifications__empty { justify-items: center; gap: 4px; max-height: none; overflow: visible; padding: 18px 16px 20px; text-align: center; }
+  .admin-notifications__empty > svg { color: var(--cms-status-success-text, var(--cms-muted)); }
+  .admin-header-popover--notifications > .admin-notifications__empty strong { margin-top: 2px; font-size: var(--cms-text-sm); font-weight: 500; }
+  .admin-header-popover--notifications > .admin-notifications__empty small { overflow: visible; white-space: normal; text-wrap: balance; font-size: var(--cms-text-xs); line-height: 1.45; }
+  .admin-header-popover--account { width: 240px; padding: 4px; }
+  /* Đầu menu tài khoản: ảnh + họ tên + email, bấm vào mở panel hồ sơ. Cần thắng quy tắc `button` chung bên dưới (độ ưu tiên cao hơn). */
+  .admin-header-popover--account > .admin-account-menu__identity { height: auto; gap: 10px; margin-bottom: 4px; border-bottom: 1px solid var(--cms-border); border-radius: var(--cms-radius-component) var(--cms-radius-component) 0 0; padding: 8px; }
+  .admin-account-menu__identity > span { display: grid; min-width: 0; line-height: 1.3; }
+  .admin-account-menu__identity strong,
+  .admin-account-menu__identity small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .admin-account-menu__identity strong { font-size: var(--cms-text-sm); font-weight: 600; }
+  .admin-account-menu__identity small { color: var(--cms-muted); font-size: var(--cms-text-xs); }
+  .admin-header-popover--account > a,
+  .admin-header-popover--account button { display: flex; width: 100%; height: 32px; align-items: center; border: 0; border-radius: var(--cms-radius-component); background: transparent; padding: 0 8px; color: var(--cms-text); font-size: var(--cms-text-sm); text-align: left; }
+  .admin-header-popover--account > a:hover,
+  .admin-header-popover--account button:hover { background: var(--cms-hover); }
+  .admin-header-popover--account > div { margin-top: 4px; border-top: 1px solid var(--cms-border); padding-top: 4px; }
+  /* Mục dạng nút (mở panel tài khoản) căn trái như các mục liên kết; nút Đăng xuất nằm trong <div> nên giữ nguyên. */
+  .admin-header-popover--account > button { justify-content: flex-start; }
+  .admin-header-popover--account > div button { color: var(--cms-status-error-text); }
+
+  /* Theme "Giáng sinh" (chọn ở Giao diện CMS): dây kim tuyến vắt dọc mép trên thanh trên, mũ ông già Noel trên logo, vài cây thông nhỏ phủ tuyết và bông tuyết
+     trôi chậm ở khoảng trống giữa ô tìm kiếm và nút Xem website, kèm tuyết rơi nhẹ chỉ trong thanh trên. Đèn chỉ chớp rất nhẹ. Chỉ là trang trí
+     (aria-hidden, pointer-events: none); bông tuyết và tuyết rơi đứng yên/không hiện khi người dùng chọn giảm chuyển động. Bảng màu nằm ở tokens.css;
+     phần tử trang trí dựng ở components/admin/christmas-shell-decor.tsx. */
+  /* Dây kim tuyến xanh phủ sương, nơ đỏ, đèn vàng ấm chớp nhẹ xen kẽ vắt thành các nhịp võng dọc mép trên thanh trên (public/brand/xmas-garland*.svg; hiệu ứng
+     chớp ở lớp .xmas-tinsel trong christmas-login.css). z-index -1 trong ngữ cảnh xếp chồng của thanh trên: nằm trên nền nhưng dưới mọi ô nhập và nút nên không che chúng. */
+  .xmas-tinsel--cms { position: absolute; top: -2px; right: 0; left: 0; z-index: -1; height: 22px; --tinsel-w: 200px; --tinsel-h: 21.7px; }
+  html[data-cms-theme="christmas"] .admin-brand { position: relative; }
+  html[data-cms-theme="christmas"] .admin-brand::after { position: absolute; top: 1px; left: 6px; width: 30px; height: 28px; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 92 84'%3E%3Cpath d='M10 58Q16 10 60 8Q56 32 82 58Z' fill='%23d7263d'/%3E%3Crect x='3' y='52' width='86' height='20' rx='10' fill='%23fff' stroke='%23d8cdbf' stroke-width='2'/%3E%3Ccircle cx='64' cy='11' r='9' fill='%23fff' stroke='%23d8cdbf' stroke-width='2'/%3E%3C/svg%3E") center / contain no-repeat; transform: rotate(-16deg); pointer-events: none; content: ""; }
+  html[data-cms-theme="christmas"] .admin-shell--collapsed .admin-brand::after { left: calc(50% - 24px); }
+
+  /* Dải tuyết nhấp nhô dưới thanh trên (theme "Giáng sinh"): ba lớp đồi tuyết cao thấp khác nhau (xa xanh băng, giữa xanh nhạt, gần trắng) thay cho đường nhấn mảnh mặc định.
+     Một nhịp SVG 240×14 lặp ngang (vẽ 22 rồi co dọc cho mỏng) (điểm nối có tiếp tuyến nằm ngang nên không gãy ở chỗ lặp). Áp cho cả thanh trên và khu logo bên trái (cùng chiều cao) để dải tuyết chạy liền
+     suốt chiều ngang; vẽ bằng background nên không che thêm phần tử nào. Các cây thông được nâng lên bằng padding để đứng trên tuyết. */
+  html[data-cms-theme="christmas"] :is(.admin-topbar, .admin-brand) {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 22' preserveAspectRatio='none' width='240' height='14'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23ffffff'/%3E%3Cstop offset='1' stop-color='%23e2edfa'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M0 13C30 13 45 5 80 5C115 5 125 14 160 14C190 14 205 8 215 8C228 8 232 13 240 13V22H0Z' fill='%23b9d0ec'/%3E%3Cpath d='M0 13C30 13 45 5 80 5C115 5 125 14 160 14C190 14 205 8 215 8C228 8 232 13 240 13' fill='none' stroke='%239fbce2' stroke-width='0.7'/%3E%3Cpath d='M0 16C20 16 40 9 70 9C100 9 110 17 140 17C175 17 185 10 205 10C225 10 230 16 240 16V22H0Z' fill='%23dbe8f8'/%3E%3Cpath d='M0 16C20 16 40 9 70 9C100 9 110 17 140 17C175 17 185 10 205 10C225 10 230 16 240 16' fill='none' stroke='%23b4cbea' stroke-width='0.7'/%3E%3Cpath d='M0 19C25 19 30 11 58 11C86 11 90 18 118 18C140 18 148 13 170 13C200 13 218 19 240 19V22H0Z' fill='url(%23g)'/%3E%3Cpath d='M0 19C25 19 30 11 58 11C86 11 90 18 118 18C140 18 148 13 170 13C200 13 218 19 240 19' fill='none' stroke='%23c2d6ef' stroke-width='0.7'/%3E%3C/svg%3E");
+    background-repeat: repeat-x;
+    background-position: left bottom;
+    background-size: 240px 14px;
+  }
+  html[data-cms-theme="christmas"] .admin-topbar__festive { padding-bottom: 7px; }
+  /* Khu logo: người tuyết và quà đứng trên dải tuyết ở khoảng trống bên phải chữ CMS, chừa chỗ cho nút thu gọn thanh bên ở mép; ẩn khi thanh bên thu gọn. */
+  .admin-brand__festive { position: absolute; right: 24px; bottom: 7px; display: flex; align-items: flex-end; gap: 4px; pointer-events: none; }
+  .admin-shell--collapsed .admin-brand__festive { display: none; }
+
+  /* Các ô trong header (theme "Giáng sinh") như bị đóng băng: KHÔNG có nền màu (trong suốt hoàn toàn), chỉ có viền băng xanh dày 2px kèm vòng sáng trắng và quầng băng mờ phía trong, nhũ băng rủ ở mép dưới;
+     tuyết rơi phủ lên trên (canvas tuyết z-index 2). Rê chuột thì viền đậm hơn, nền trắng rất nhạt, ánh băng lướt qua và quầng xanh sáng lên. Vệt sáng chạy bằng background-position
+     (không cần phần tử thêm) và tắt khi người dùng chọn giảm chuyển động. */
+  html[data-cms-theme="christmas"] :is(.admin-global-search, .admin-topbar__view-site, .admin-notifications > summary, .admin-account-menu > summary) {
+    position: relative;
+    border: 2px solid rgb(118 176 236);
+    background: transparent;
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.85), inset 0 0 9px rgb(130 190 250 / 0.5);
+  }
+  html[data-cms-theme="christmas"] :is(.admin-global-search, .admin-topbar__view-site, .admin-notifications > summary, .admin-account-menu > summary)::before {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(105deg, transparent 40%, rgb(255 255 255 / 0.85) 50%, transparent 60%) no-repeat;
+    background-position: 120% 0;
+    background-size: 250% 100%;
+    content: "";
+    pointer-events: none;
+    transition: background-position 700ms ease;
+  }
+  html[data-cms-theme="christmas"] :is(.admin-global-search, .admin-topbar__view-site, .admin-notifications > summary, .admin-account-menu > summary)::after {
+    position: absolute;
+    right: 6px;
+    bottom: -5px;
+    left: 6px;
+    height: 7px;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 7' width='14' height='7'%3E%3Cpath d='M0 0H14L12.6 0L11.6 4.6L10.6 0L6 0L5 6.6L4 0Z' fill='%23e9f3fe' stroke='%23a9cbee' stroke-width='0.5' stroke-linejoin='round'/%3E%3C/svg%3E") repeat-x left top / 14px 7px;
+    content: "";
+    pointer-events: none;
+  }
+  html[data-cms-theme="christmas"] :is(.admin-global-search, .admin-topbar__view-site, .admin-notifications > summary, .admin-account-menu > summary):hover,
+  html[data-cms-theme="christmas"] :is(.admin-notifications, .admin-account-menu)[open] > summary {
+    border-color: #5fa6ee;
+    background: rgb(255 255 255 / 0.3);
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.95), inset 0 0 11px rgb(120 185 255 / 0.65), 0 0 8px rgb(120 185 255 / 0.5);
+  }
+  html[data-cms-theme="christmas"] :is(.admin-global-search, .admin-topbar__view-site, .admin-notifications > summary, .admin-account-menu > summary):hover::before { background-position: -20% 0; }
+  /* Ô tìm kiếm khi gõ: nền trắng sáng và vòng nhấn như bình thường, chỉ giữ viền sáng bên trong. */
+  html[data-cms-theme="christmas"] .admin-global-search:focus-within { border-color: var(--cms-primary); background: var(--cms-input-background); box-shadow: inset 0 1px 0 #fff, var(--cms-focus-ring); }
+  @media (prefers-reduced-motion: reduce) {
+    html[data-cms-theme="christmas"] :is(.admin-global-search, .admin-topbar__view-site, .admin-notifications > summary, .admin-account-menu > summary)::before { transition: none; }
+  }
+
+  /* Khoảng trống của thanh trên: nở ra chiếm chỗ thừa; container query bớt cây khi hẹp và ẩn hẳn khi quá hẹp (điện thoại). */
+  .admin-topbar__festive { position: relative; display: flex; height: 100%; min-width: 0; flex: 1 1 0; align-items: flex-end; justify-content: center; overflow: hidden; container-type: inline-size; pointer-events: none; }
+  .admin-festive__trees { display: flex; align-items: flex-end; justify-content: center; gap: 14px; }
+  .admin-festive__pine { display: block; flex: none; height: var(--h); width: calc(var(--h) * 24 / 34); }
+  .admin-festive__pine--1 { --h: 22px; }
+  .admin-festive__pine--2 { --h: 30px; }
+  .admin-festive__pine--3 { --h: 26px; }
+  .admin-festive__pine--4 { --h: 36px; }
+  .admin-festive__pine--5 { --h: 20px; }
+  .admin-festive__snowman { display: block; flex: none; width: 20px; height: 30px; }
+  .admin-festive__gift { display: block; flex: none; width: 15px; height: 15px; }
+  .admin-festive__bulb { animation: xmas-light-twinkle 3.8s ease-in-out infinite; }
+  .admin-festive__bulb--1 { animation-delay: -1.9s; }
+  .admin-festive__bell { position: absolute; top: 7px; width: 18px; height: auto; margin-left: -9px; }
+  .admin-festive__bell--1 { left: 8%; }
+  .admin-festive__bell--2 { left: 22%; --swing-k: 1.2; --swing-delay: -1.3s; }
+  .admin-festive__bell--3 { left: 78%; --swing-k: 0.95; --swing-delay: -0.6s; }
+  .admin-festive__bell--4 { left: 92%; --swing-k: 1.15; --swing-delay: -2s; }
+  .admin-festive__flake { position: absolute; color: #8fb0ea; animation: admin-festive-drift 8s ease-in-out infinite; }
+  .admin-festive__flake--1 { top: 22px; left: 15%; }
+  .admin-festive__flake--2 { top: 34px; left: 27%; animation-duration: 10s; animation-delay: -3s; }
+  .admin-festive__flake--3 { top: 21px; right: 24%; animation-duration: 9s; animation-delay: -5s; }
+  .admin-festive__flake--4 { top: 38px; right: 15%; animation-duration: 11s; animation-delay: -2s; }
+  @keyframes admin-festive-drift { 0%, 100% { transform: translateY(-3px) rotate(0deg); } 50% { transform: translateY(4px) rotate(30deg); } }
+  @container (max-width: 250px) { .admin-festive__trees > :nth-child(n + 4) { display: none; } }
+  @container (max-width: 140px) { .admin-festive__trees > :nth-child(n + 3) { display: none; } .admin-festive__flake--2, .admin-festive__flake--4, .admin-festive__bell--2, .admin-festive__bell--3 { display: none; } }
+  @container (max-width: 80px) { .admin-topbar__festive > * { display: none; } }
+
+  /* Tuyết rơi nhẹ chỉ ở khung trên: canvas phủ kín thanh trên và khu logo bên trái, nằm TRÊN ô tìm kiếm, nút, logo và cảnh trang trí (các ô như bị đóng băng chìm dưới lớp tuyết), không bắt chuột. Menu thả xuống (z-index 40, 70) vẫn nằm trên tuyết. */
+  .admin-festive-snow { position: absolute; inset: 0; z-index: 2; width: 100%; height: 100%; pointer-events: none; }
+  @media (prefers-reduced-motion: reduce) {
+    .admin-festive__flake, .admin-festive__bulb, .admin-festive__bell { animation: none; }
+  }
+
+  .admin-loading-bar { position: fixed; top: 0; right: 0; left: 0; z-index: 120; height: 3px; overflow: hidden; opacity: 0; pointer-events: none; transition: opacity 200ms ease 120ms; }
+  .admin-loading-bar--loading { transition-delay: 0ms; }
+  .admin-loading-bar--loading,
+  .admin-loading-bar--complete { opacity: 1; }
+  .admin-loading-bar span { display: block; height: 100%; background: var(--cms-primary); box-shadow: 0 0 6px color-mix(in srgb, var(--cms-primary) 60%, transparent); transition: width 200ms ease-out; }
+
+  .admin-mobile-navigation-toggle,
+  .admin-mobile-navigation-backdrop { display: none; }
+
+  @keyframes admin-spin { to { transform: rotate(360deg); } }
+
+  /* Desktop: khung cố định theo viewport, chỉ vùng nội dung và danh sách điều hướng tự cuộn. */
+  @media (min-width: 1101px) {
+    /* Chỉ một thanh cuộn: trang không tự cuộn, kể cả khi có phần tử định vị lọt ra ngoài vùng nội dung. */
+    html:has(.admin-shell) { overflow: hidden; }
+    .admin-shell { height: 100dvh; overflow: hidden; }
+    .admin-sidebar { height: 100dvh; }
+    /* Thanh tiêu đề trang đứng yên; chỉ .admin-shell__scroll cuộn nên thanh cuộn bắt đầu ngay dưới nó. */
+    .admin-shell__main { position: relative; height: 100%; min-height: 0; overflow: hidden; padding-bottom: 0; }
+    .admin-shell__content { display: flex; height: 100%; min-height: 0; flex-direction: column; }
+    .admin-shell__content > .admin-page-bar { flex: 0 0 auto; }
+    .admin-shell__scroll { position: relative; min-height: 0; flex: 1 1 auto; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; padding-bottom: 56px; }
+    /* Trang có chân trang danh sách: bỏ đệm đáy để thẻ danh sách kết thúc đúng đáy vùng cuộn. Chân trang dính đáy (position: sticky)
+       chỉ ở được trong thẻ, nên còn đệm thì lúc cuộn hết nó dừng cách đáy 56px và để lộ khoảng trống bên dưới. */
+    .admin-shell__scroll:has(.admin-pagination) { padding-bottom: 0; }
+    /* Cùng lý do với lề đáy của .admin-page, nhưng chỉ khi phần có chân trang là phần cuối (Trang tự tạo còn danh mục bên dưới nên giữ lề). */
+    .admin-page:has(> :last-child .admin-pagination) { padding-bottom: 0; }
+    /* Màn soạn thảo tự chia vùng (tiêu đề / thân cuộn / thanh lưu) nên khung ngoài không cuộn, không chừa đáy. */
+    .admin-shell__scroll:has(> .admin-editor-detail-page) { overflow: hidden; padding-bottom: 0; }
+  }
+
+  /* Tablet và điện thoại: sidebar thành ngăn kéo mở bằng nút menu. */
+  @media (max-width: 1100px) {
+    .admin-shell,
+    .admin-shell--collapsed { --admin-sidebar-width: 260px; display: block; }
+    .admin-topbar { padding: 0 12px; }
+    .admin-mobile-navigation-toggle { display: grid; width: 32px; height: 32px; flex: 0 0 auto; place-items: center; border: 0; border-radius: var(--cms-radius-component); background: transparent; color: var(--cms-topbar-text); }
+    .admin-mobile-navigation-toggle:hover { background: var(--cms-topbar-hover); }
+    .admin-sidebar-toggle,
+    .admin-sidebar {
+      position: fixed;
+      top: var(--cms-topbar-height);
+      bottom: 0;
+      left: 0;
+      z-index: 60;
+      width: min(280px, calc(100vw - 40px));
+      box-shadow: 12px 0 32px rgb(16 24 40 / 14%);
+      transform: translateX(-105%);
+      transition: transform 160ms ease;
+    }
+    .admin-sidebar .admin-brand { display: none; }
+    .admin-shell--mobile-navigation-open .admin-sidebar { transform: translateX(0); }
+    .admin-mobile-navigation-backdrop { position: fixed; inset: var(--cms-topbar-height) 0 0; z-index: 50; display: block; border: 0; background: rgb(16 24 40 / 30%); }
+    /* Ở ngăn kéo luôn dùng dạng đầy đủ, kể cả khi trước đó đã thu gọn trên desktop. */
+    .admin-shell--collapsed .admin-navigation__group-toggle { width: 100%; height: 28px; justify-content: flex-start; padding: 0 8px; }
+    .admin-shell--collapsed .admin-navigation__group-toggle > svg:first-child { display: none; }
+    .admin-shell--collapsed .admin-navigation__group-toggle > span,
+    .admin-shell--collapsed .admin-navigation__group-toggle > svg:last-child { display: block; }
+    .admin-shell--collapsed .admin-navigation__items { display: grid; justify-items: stretch; }
+    .admin-shell--collapsed .admin-navigation__link { width: auto; justify-content: flex-start; padding: 0 8px; }
+    .admin-shell--collapsed .admin-navigation__label { display: block; }
+    .admin-shell__main { padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px)); }
+  }
+  @media (max-width: 680px) {
+    .admin-global-search { width: auto; min-width: 0; flex: 1 1 80px; height: 32px; gap: 6px; padding: 0 8px; }
+    .admin-global-search input { min-width: 0; font-size: var(--cms-text-xs); }
+    .admin-global-search__results { position: fixed; top: calc(var(--cms-topbar-height) + 6px); right: 12px; left: 12px; width: auto; max-height: calc(100dvh - var(--cms-topbar-height) - 24px); }
+    .admin-topbar__view-site { width: 34px; justify-content: center; margin-left: 0; padding: 0; }
+    .admin-topbar__view-site > span { display: none; }
+    .admin-account-menu { margin-left: 0; padding-left: 0; }
+    .admin-account-menu::before { display: none; }
+    .admin-account-menu > summary > span:not(.admin-avatar),
+    .admin-account-menu__chevron { display: none; }
+  }
+}

@@ -2,9 +2,9 @@ import "dotenv/config";
 
 import { eq } from "drizzle-orm";
 
-import { getDb } from "../packages/core/src/db/client";
-import { users } from "../packages/core/src/db/schema";
-import { getExternalLinks, updateExternalLinks } from "../packages/core/src/server/settings/external-links.service";
+import { getDb } from "../packages/shared/src/db/client";
+import { users } from "../packages/shared/src/db/schema";
+import { getExternalLinks, updateExternalLinks } from "../packages/shared/src/server/settings/external-links.service";
 
 const v1ExternalLinks = {
   appLogin: "https://app.iorder.vn/login",

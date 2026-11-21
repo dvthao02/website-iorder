@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="26" viewBox="0 0 240 26">
+  <!--
+    Một nửa số bóng đèn của dây kim tuyến (xmas-garland.svg), trong suốt ở mọi chỗ khác, cùng kích thước 240x26 để xếp khít lên dây.
+    Hai ảnh (a, b) mang các bóng xen kẽ nhau; CSS (.xmas-tinsel) cho hai lớp này đổi độ mờ nhẹ nhàng ngược pha nên đèn "thở" luân phiên.
+    Ảnh không có hoạt ảnh bên trong.
+  -->
+  <defs>
+    <radialGradient id="glow">
+      <stop offset="0" stop-color="#ffd27a" stop-opacity="0.9" />
+      <stop offset="1" stop-color="#ffd27a" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+  <g>
+    <circle cx="16" cy="11.1" fill="url(#glow)" r="6.4" />
+    <circle cx="16" cy="11.1" fill="#fff3c4" r="2" />
+    <circle cx="60" cy="16.4" fill="url(#glow)" r="6.4" />
+    <circle cx="60" cy="16.4" fill="#ffe08a" r="2" />
+    <circle cx="104" cy="18.8" fill="url(#glow)" r="6.4" />
+    <circle cx="104" cy="18.8" fill="#fff3c4" r="2" />
+    <circle cx="140" cy="18.7" fill="url(#glow)" r="6.4" />
+    <circle cx="140" cy="18.7" fill="#ffe08a" r="2" />
+    <circle cx="180" cy="16.4" fill="url(#glow)" r="6.4" />
+    <circle cx="180" cy="16.4" fill="#fff3c4" r="2" />
+    <circle cx="224" cy="11.1" fill="url(#glow)" r="6.4" />
+    <circle cx="224" cy="11.1" fill="#ffe08a" r="2" />
+  </g>
+</svg>

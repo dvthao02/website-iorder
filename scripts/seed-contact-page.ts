@@ -2,9 +2,9 @@ import "dotenv/config";
 
 import { and, eq } from "drizzle-orm";
 
-import { getDb } from "../packages/core/src/db/client";
-import { auditLogs, menuItems, menus, pages, users } from "../packages/core/src/db/schema";
-import { saveAdminPage } from "../packages/core/src/server/pages/pages.service";
+import { getDb } from "../packages/shared/src/db/client";
+import { auditLogs, menuItems, menus, pages, users } from "../packages/shared/src/db/schema";
+import { saveAdminPage } from "../packages/shared/src/server/pages/pages.service";
 
 const values = {
   title: "Liên hệ tư vấn",

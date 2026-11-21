@@ -2,9 +2,9 @@ import "dotenv/config";
 
 import { eq } from "drizzle-orm";
 
-import { getDb } from "../packages/core/src/db/client";
-import { testimonials, users } from "../packages/core/src/db/schema";
-import { writeSupporting } from "../packages/core/src/server/supporting/supporting.service";
+import { getDb } from "../packages/shared/src/db/client";
+import { testimonials, users } from "../packages/shared/src/db/schema";
+import { writeSupporting } from "../packages/shared/src/server/supporting/supporting.service";
 
 const sourceTestimonials = [
   {

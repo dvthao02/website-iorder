@@ -3,9 +3,9 @@ import "dotenv/config";
 import { and, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 
-import { getDb } from "../packages/core/src/db/client";
-import { auditLogs, offeringRevisions, offerings, users } from "../packages/core/src/db/schema";
-import { offeringContentSchema } from "../packages/core/src/server/offerings/offering-content.contract";
+import { getDb } from "../packages/shared/src/db/client";
+import { auditLogs, offeringRevisions, offerings, users } from "../packages/shared/src/db/schema";
+import { offeringContentSchema } from "../packages/shared/src/server/offerings/offering-content.contract";
 
 const v1BaseUrl = "https://iwork.vn";
 // Industry offerings were retired from the CMS and must not be re-imported.
@@ -33,7 +33,7 @@ const v1ResponseSchema = z.object({ items: z.array(v1OfferingSchema) }).strict()
 type V1Offering = z.infer<typeof v1OfferingSchema>;
 
 async function fetchV1Offerings(type: (typeof offeringTypes)[number]) {
-  const response = await fetch(`${v1BaseUrl}/api/public/offerings?type=${type}`, {
+  const response = await fetch(`${v1BaseUrl}/api/v1/public/offerings?type=${type}`, {
     signal: AbortSignal.timeout(15_000),
   });
 

@@ -1,0 +1,9 @@
+import type { MetadataRoute } from "next";
+import { getPublishingConfig } from "@/lib/backend";
+
+export const revalidate = 0;
+
+export default async function robots(): Promise<MetadataRoute.Robots> {
+  const config = await getPublishingConfig();
+  return { rules: { userAgent: "*", allow: config.allowSearchIndexing ? "/" : "", disallow: config.allowSearchIndexing ? ["/admin/", "/api/", "/cms-preview", "/stats/"] : "/" }, sitemap: config.siteUrl ? new URL("/sitemap.xml", config.siteUrl).toString() : undefined };
+}

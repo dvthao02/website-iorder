@@ -1,0 +1,137 @@
+"use client";
+
+import Image from "next/image";
+import { SiteLink as Link } from "@/components/site/site-link";
+import { usePathname } from "next/navigation";
+import { ChevronDown, Menu, X } from "lucide-react";
+import { useCallback, useEffect, useRef, useState, type FocusEvent, type KeyboardEvent as ReactKeyboardEvent } from "react";
+
+export type HeaderLink = { key: string; label: string; url: string; target: "_self" | "_blank"; children: HeaderLink[] };
+
+const external = (link: HeaderLink) => link.target === "_blank" ? { target: "_blank", rel: "noopener noreferrer" } : {};
+function matches(pathname: string, url: string) {
+  const path = url.split("#")[0].split("?")[0];
+  if (!path.startsWith("/")) return false;
+  return path === "/" ? pathname === "/" : pathname === path || pathname.startsWith(`${path}/`);
+}
+const isActive = (pathname: string, link: HeaderLink): boolean => matches(pathname, link.url) || link.children.some((child) => isActive(pathname, child));
+
+// Bảng thả xuống: chỉ các mục con (mục cha đã là liên kết trên menu ngang, bấm vào là sang trang tổng hợp), dạng danh sách
+// chữ gọn; nhiều mục (>4) chia 2 cột.
+function DropdownPanel({ link, pathname }: { link: HeaderLink; pathname: string }) {
+  return <div className={link.children.length > 4 ? "site-nav__dropdown site-nav__dropdown--wide" : "site-nav__dropdown"}>
+    <ul className="site-nav__dropdown-list">{link.children.map((child) => <li key={child.key}>
+      <Link aria-current={matches(pathname, child.url) ? "page" : undefined} className="site-nav__dropdown-link" href={child.url} {...external(child)}>{child.label}</Link>
+    </li>)}</ul>
+  </div>;
+}
+
+// Đầu trang: dính trên cùng, có bóng khi cuộn. Máy tính: menu ngang, mục có con mở bảng thả xuống
+// (nhiều mục thì chia 2 cột). Điện thoại: nút ☰ mở bảng menu toàn chiều ngang, mục có con gập/mở.
+export function SiteHeaderBar({ actions, brand, links, logo }: { actions: HeaderLink[]; brand: string; links: HeaderLink[]; logo: { url: string; alt: string } | null }) {
+  const pathname = usePathname();
+  const [scrolled, setScrolled] = useState(false);
+  // Menu điện thoại gắn với đường dẫn lúc mở: chuyển trang là tự đóng.
+  const [openOn, setOpenOn] = useState<string | null>(null);
+  const mobileOpen = openOn === pathname;
+  const [expanded, setExpanded] = useState<string | null>(null);
+
+  // Thanh trượt dưới mục menu: nằm dưới mục của trang đang xem, trượt sang mục đang rê chuột/focus, rời menu thì quay về.
+  // Lần hiện đầu tiên (đang ẩn) đặt thẳng vào chỗ, không trượt từ mép trái.
+  const navRef = useRef<HTMLElement>(null);
+  const [bar, setBar] = useState<{ left: number; width: number; visible: boolean; instant: boolean }>({ left: 0, width: 0, visible: false, instant: true });
+  const activeIndex = links.findIndex((link) => isActive(pathname, link));
+  const moveBar = useCallback((index: number) => {
+    const nav = navRef.current;
+    // Đo đúng phần chữ (.site-nav__label), không tính mũi tên của mục có bảng thả xuống.
+    const label = index >= 0 ? nav?.querySelectorAll<HTMLElement>(".site-nav__list > li > .site-nav__link > .site-nav__label")[index] : undefined;
+    if (!nav || !label) { setBar((current) => ({ ...current, visible: false, instant: true })); return; }
+    const navBox = nav.getBoundingClientRect(), box = label.getBoundingClientRect();
+    setBar((current) => ({ left: box.left - navBox.left, width: box.width, visible: true, instant: !current.visible }));
+  }, []);
+  useEffect(() => {
+    const reset = () => moveBar(activeIndex);
+    reset();
+    // Font web tải xong làm đổi bề rộng chữ: đo lại.
+    void document.fonts?.ready.then(reset);
+    window.addEventListener("resize", reset);
+    return () => window.removeEventListener("resize", reset);
+  }, [activeIndex, moveBar]);
+  const leaveNav = (event: FocusEvent<HTMLUListElement>) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) moveBar(activeIndex); };
+
+  // Bảng thả xuống: chỉ một bảng mở tại một thời điểm (trước đây mở theo :hover HOẶC :focus-within nên bấm một mục rồi rê
+  // sang mục khác thì hai bảng chồng lên nhau). Rê chuột/Tab vào mục cha thì mở, rời ra đóng sau một nhịp ngắn (để kịp đưa
+  // chuột xuống bảng), Esc đóng và trả focus về mục cha; chuyển trang là tự đóng (gắn với đường dẫn lúc mở).
+  const [dropdown, setDropdown] = useState<{ key: string; path: string } | null>(null);
+  const openKey = dropdown?.path === pathname ? dropdown.key : null;
+  const closeTimer = useRef<number | undefined>(undefined);
+  const openDropdown = (key: string) => { window.clearTimeout(closeTimer.current); setDropdown({ key, path: pathname }); };
+  const closeDropdownSoon = (key: string) => { window.clearTimeout(closeTimer.current); closeTimer.current = window.setTimeout(() => setDropdown((current) => current?.key === key ? null : current), 140); };
+  useEffect(() => () => window.clearTimeout(closeTimer.current), []);
+  const closeOnEscape = (event: ReactKeyboardEvent<HTMLLIElement>) => {
+    if (event.key !== "Escape") return;
+    setDropdown(null);
+    event.currentTarget.querySelector<HTMLElement>(".site-nav__link")?.focus();
+  };
+  const leaveBranch = (key: string) => (event: FocusEvent<HTMLLIElement>) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDropdown((current) => current?.key === key ? null : current); };
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+  // Khi mở menu điện thoại: khóa cuộn nền, Esc để đóng.
+  useEffect(() => {
+    if (!mobileOpen) return;
+    document.body.style.overflow = "hidden";
+    const onKey = (event: KeyboardEvent) => { if (event.key === "Escape") setOpenOn(null); };
+    window.addEventListener("keydown", onKey);
+    return () => { document.body.style.overflow = ""; window.removeEventListener("keydown", onKey); };
+  }, [mobileOpen]);
+
+  // Bảng menu điện thoại nằm ngoài <header>: header có backdrop-filter nên phần tử fixed bên trong sẽ bị định vị theo header.
+  // "Bỏ qua tới nội dung chính": phần tử đầu tiên khi bấm Tab, chỉ hiện khi được focus (người dùng bàn phím, trình đọc màn hình).
+  return <><a className="skip-link" href="#noi-dung">Bỏ qua tới nội dung chính</a><header className={scrolled || mobileOpen ? "site-header site-header--scrolled" : "site-header"}>
+    <div className="site-header__inner">
+      <Link aria-label={`${brand} - Trang chủ`} className="brand" href="/">
+        {logo ? <Image alt={logo.alt} className="h-[2.75rem] w-auto max-sm:h-[2.375rem]" height={80} preload src={logo.url} width={200} /> : <><span aria-hidden="true" className="brand__mark">i</span>{brand}</>}
+      </Link>
+
+      <nav aria-label="Điều hướng chính" className="site-nav" ref={navRef}>
+        <ul className="site-nav__list" onBlur={leaveNav} onMouseLeave={() => moveBar(activeIndex)}>{links.map((link, index) => {
+          const active = isActive(pathname, link);
+          const hover = { onFocus: () => moveBar(index), onMouseEnter: () => moveBar(index) };
+          if (!link.children.length) return <li className="site-nav__item" key={link.key} {...hover}><Link aria-current={matches(pathname, link.url) ? "page" : undefined} className={active ? "site-nav__link site-nav__link--active" : "site-nav__link"} href={link.url} {...external(link)}><span className="site-nav__label">{link.label}</span></Link></li>;
+          const open = openKey === link.key;
+          return <li className="site-nav__item site-nav__item--branch" data-open={open} key={link.key} onBlur={leaveBranch(link.key)} onFocus={() => { moveBar(index); openDropdown(link.key); }} onKeyDown={closeOnEscape} onMouseEnter={() => { moveBar(index); openDropdown(link.key); }} onMouseLeave={() => closeDropdownSoon(link.key)}>
+            <Link aria-expanded={open} aria-haspopup="true" className={active ? "site-nav__link site-nav__link--active" : "site-nav__link"} href={link.url} {...external(link)}><span className="site-nav__label">{link.label}</span><ChevronDown aria-hidden="true" className="site-nav__caret" size={16} /></Link>
+            <DropdownPanel link={link} pathname={pathname} />
+          </li>;
+        })}</ul>
+        <span aria-hidden="true" className="site-nav__bar" data-instant={bar.instant} data-visible={bar.visible} style={{ width: bar.width, transform: `translateX(${bar.left}px)` }} />
+      </nav>
+
+      <div className="site-header__actions">
+        {actions.map((action, index) => <Link className={index === actions.length - 1 ? "header-cta header-cta--primary" : "header-cta header-cta--secondary"} href={action.url} key={action.key} {...external(action)}>{action.label}</Link>)}
+        <button aria-controls="site-mobile-menu" aria-expanded={mobileOpen} aria-label={mobileOpen ? "Đóng menu" : "Mở menu"} className="site-menu-toggle" onClick={() => { setExpanded(null); setOpenOn(mobileOpen ? null : pathname); }} type="button">{mobileOpen ? <X aria-hidden="true" size={22} /> : <Menu aria-hidden="true" size={22} />}</button>
+      </div>
+    </div>
+  </header>
+
+    <div className={mobileOpen ? "site-mobile-menu site-mobile-menu--open" : "site-mobile-menu"} hidden={!mobileOpen} id="site-mobile-menu">
+      <nav aria-label="Điều hướng chính trên điện thoại">
+        <ul className="site-mobile-menu__list">{links.map((link) => <li key={link.key}>
+          {link.children.length ? <>
+            <div className="site-mobile-menu__row">
+              <Link aria-current={matches(pathname, link.url) ? "page" : undefined} className={isActive(pathname, link) ? "site-mobile-menu__link site-mobile-menu__link--active" : "site-mobile-menu__link"} href={link.url} {...external(link)}>{link.label}</Link>
+              <button aria-controls={`site-mobile-sub-${link.key}`} aria-expanded={expanded === link.key} aria-label={`${expanded === link.key ? "Đóng" : "Mở"} mục con của ${link.label}`} className="site-mobile-menu__toggle" onClick={() => setExpanded((current) => current === link.key ? null : link.key)} type="button"><ChevronDown aria-hidden="true" className={expanded === link.key ? "rotate-180 transition" : "transition"} size={18} /></button>
+            </div>
+            {expanded === link.key ? <ul className="site-mobile-menu__children" id={`site-mobile-sub-${link.key}`}>{link.children.map((child) => <li key={child.key}><Link aria-current={matches(pathname, child.url) ? "page" : undefined} className="site-mobile-menu__child" href={child.url} {...external(child)}>{child.label}</Link></li>)}</ul> : null}
+          </> : <Link className={isActive(pathname, link) ? "site-mobile-menu__link site-mobile-menu__link--active" : "site-mobile-menu__link"} href={link.url} {...external(link)}>{link.label}</Link>}
+        </li>)}</ul>
+        {actions.length ? <div className="site-mobile-menu__actions">{actions.map((action, index) => <Link className={`button ${index === actions.length - 1 ? "button--primary" : "button--secondary"}`} href={action.url} key={action.key} {...external(action)}>{action.label}</Link>)}</div> : null}
+      </nav>
+    </div>
+  </>;
+}

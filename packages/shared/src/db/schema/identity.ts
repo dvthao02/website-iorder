@@ -1,0 +1,111 @@
+import { sql } from "drizzle-orm";
+import { boolean, index, integer, pgTable, primaryKey, timestamp, uniqueIndex, uuid, varchar, type AnyPgColumn } from "drizzle-orm/pg-core";
+
+import { userStatusEnum } from "./enums";
+import { mediaAssets } from "./media";
+import { timestamps } from "./shared";
+
+export const users = pgTable(
+  "users",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    username: varchar("username", { length: 80 }).notNull(),
+    email: varchar("email", { length: 320 }),
+    passwordHash: varchar("password_hash", { length: 255 }).notNull(),
+    fullName: varchar("full_name", { length: 180 }).notNull(),
+    // Hồ sơ người dùng tự cập nhật ở "Tài khoản của tôi". Ảnh đại diện nằm trong thư viện media
+    // (media_assets giữ tham chiếu ngược tới users nên khai báo kiểu AnyPgColumn để tránh vòng kiểu).
+    phone: varchar("phone", { length: 30 }),
+    avatarMediaId: uuid("avatar_media_id").references((): AnyPgColumn => mediaAssets.id, { onDelete: "set null" }),
+    status: userStatusEnum("status").default("active").notNull(),
+    lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
+    // Xóa mềm: tài khoản ẩn khỏi CMS, không đăng nhập được, nhưng nhật ký vẫn giữ tên người thực hiện.
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    ...timestamps(),
+  },
+  (table) => [
+    // Tài khoản đã xóa nhả tên đăng nhập/email để tạo lại được.
+    uniqueIndex("users_username_unique").on(table.username).where(sql`${table.deletedAt} is null`),
+    uniqueIndex("users_email_unique").on(table.email).where(sql`${table.deletedAt} is null`),
+    index("users_status_index").on(table.status),
+  ],
+);
+
+export const roles = pgTable(
+  "roles",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    code: varchar("code", { length: 80 }).notNull(),
+    name: varchar("name", { length: 120 }).notNull(),
+    description: varchar("description", { length: 500 }),
+    isSystem: boolean("is_system").default(false).notNull(),
+    ...timestamps(),
+  },
+  (table) => [uniqueIndex("roles_code_unique").on(table.code)],
+);
+
+export const permissions = pgTable(
+  "permissions",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    code: varchar("code", { length: 120 }).notNull(),
+    name: varchar("name", { length: 180 }).notNull(),
+    description: varchar("description", { length: 500 }),
+    ...timestamps(),
+  },
+  (table) => [uniqueIndex("permissions_code_unique").on(table.code)],
+);
+
+export const userRoles = pgTable(
+  "user_roles",
+  {
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    roleId: uuid("role_id").notNull().references(() => roles.id, { onDelete: "cascade" }),
+  },
+  (table) => [primaryKey({ columns: [table.userId, table.roleId] })],
+);
+
+export const rolePermissions = pgTable(
+  "role_permissions",
+  {
+    roleId: uuid("role_id").notNull().references(() => roles.id, { onDelete: "cascade" }),
+    permissionId: uuid("permission_id").notNull().references(() => permissions.id, { onDelete: "cascade" }),
+  },
+  (table) => [primaryKey({ columns: [table.roleId, table.permissionId] })],
+);
+
+export const sessions = pgTable(
+  "sessions",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    tokenHash: varchar("token_hash", { length: 128 }).notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    lastSeenAt: timestamp("last_seen_at", { withTimezone: true }).defaultNow().notNull(),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+    ipHash: varchar("ip_hash", { length: 128 }),
+    userAgent: varchar("user_agent", { length: 500 }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("sessions_token_hash_unique").on(table.tokenHash),
+    index("sessions_user_expires_at_index").on(table.userId, table.expiresAt),
+    index("sessions_expires_at_index").on(table.expiresAt),
+  ],
+);
+
+/** Active, pseudonymous login-rate-limit buckets. Expired rows are harmless and cleaned by an operational job. */
+export const loginThrottleBuckets = pgTable(
+  "login_throttle_buckets",
+  {
+    scope: varchar("scope", { length: 16 }).notNull(),
+    keyHash: varchar("key_hash", { length: 128 }).notNull(),
+    attempts: integer("attempts").notNull(),
+    windowExpiresAt: timestamp("window_expires_at", { withTimezone: true }).notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.scope, table.keyHash] }),
+    index("login_throttle_buckets_window_expires_at_index").on(table.windowExpiresAt),
+  ],
+);

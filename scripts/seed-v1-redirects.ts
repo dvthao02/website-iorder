@@ -2,9 +2,9 @@ import "dotenv/config";
 
 import { eq } from "drizzle-orm";
 
-import { getDb } from "../packages/core/src/db/client";
-import { redirects, users } from "../packages/core/src/db/schema";
-import { writeRedirect } from "../packages/core/src/server/redirects/redirects.service";
+import { getDb } from "../packages/shared/src/db/client";
+import { redirects, users } from "../packages/shared/src/db/schema";
+import { writeRedirect } from "../packages/shared/src/server/redirects/redirects.service";
 
 const redirectsToSeed = [
   // URL catalogue V1: V2 uses a flat, content-type-based URL structure.
@@ -27,8 +27,8 @@ const redirectsToSeed = [
   { sourcePath: "/faq", destinationPath: "/ho-tro/faq" },
   { sourcePath: "/trang/about", destinationPath: "/gioi-thieu" },
   { sourcePath: "/trang/contact", destinationPath: "/lien-he" },
-  { sourcePath: "/trang/terms", destinationPath: "/terms" },
-  { sourcePath: "/trang/privacy-policy", destinationPath: "/privacy-policy" },
+  { sourcePath: "/trang/terms", destinationPath: "/dieu-khoan" },
+  { sourcePath: "/trang/privacy-policy", destinationPath: "/chinh-sach-bao-mat" },
   { sourcePath: "/trang/support-faq", destinationPath: "/ho-tro/faq" },
   { sourcePath: "/trang/remote-support", destinationPath: "/ho-tro-tu-xa" },
   { sourcePath: "/trang/support-videos", destinationPath: "/ho-tro/video" },

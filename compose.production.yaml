@@ -1,25 +1,49 @@
 name: iorder-v2
 
+# Docker xoay vòng log của mọi service (tối đa 5 × 20 MB mỗi container) để log không làm đầy ổ đĩa.
+# Xem: docker compose --env-file .env.production -f compose.production.yaml logs -f api
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "20m"
+    max-file: "5"
+
+# Ba service Next.js chạy bằng người dùng không đặc quyền ở cổng 3000 nên không cần capability nào và không được tự nâng quyền.
+x-hardening: &hardening
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+
 services:
-  cms:
+  admin:
     build:
       context: .
       dockerfile: Dockerfile
       target: runner
       args:
-        APP_NAME: cms
-        BACKEND_URL: http://backend:3000
-    image: iorder-v2-cms:${APP_IMAGE_TAG:-latest}
+        APP_NAME: admin
+        BACKEND_URL: http://api:3000
+        NEXT_PUBLIC_PUBLISH_WEB_URL: https://${SITE_ADDRESS:?missing}
+    image: iorder-admin:${APP_IMAGE_TAG:-latest}
+    <<: *hardening
     restart: unless-stopped
+    logging: *default-logging
+    # CMS ít người dùng đồng thời nên giữ gọn để không tranh RAM với database/website trên VPS nhỏ. Con số chưa đo trên VPS thật: nếu container bị
+    # khởi động lại vì thiếu bộ nhớ (docker inspect --format '{{.State.OOMKilled}}' <container>) thì tăng bằng ADMIN_MEM_LIMIT / ADMIN_HEAP_MB.
+    mem_limit: ${ADMIN_MEM_LIMIT:-384m}
+    cpus: ${ADMIN_CPUS:-1}
     environment:
-      BACKEND_URL: http://backend:3000
+      SERVICE_NAME: admin
+      BACKEND_URL: http://api:3000
+      NODE_OPTIONS: --max-old-space-size=${ADMIN_HEAP_MB:-256}
     depends_on:
-      backend:
+      api:
         condition: service_healthy
       migrate:
         condition: service_completed_successfully
-      s3-init:
-        condition: service_completed_successfully
+      s3:
+        condition: service_healthy
     networks:
       - internal
     healthcheck:
@@ -29,25 +53,34 @@ services:
       retries: 3
       start_period: 30s
 
-  publish-web:
+  website:
     build:
       context: .
       dockerfile: Dockerfile
       target: runner
       args:
-        APP_NAME: publish-web
-        BACKEND_URL: http://backend:3000
-    image: iorder-v2-publish:${APP_IMAGE_TAG:-latest}
+        APP_NAME: website
+        BACKEND_URL: http://api:3000
+    image: iorder-website:${APP_IMAGE_TAG:-latest}
+    <<: *hardening
     restart: unless-stopped
+    logging: *default-logging
     environment:
-      BACKEND_URL: http://backend:3000
+      SERVICE_NAME: website
+      BACKEND_URL: http://api:3000
+      PUBLISH_WEB_REVALIDATE_SECRET: ${PUBLISH_WEB_REVALIDATE_SECRET:?missing}
+      # Để trống tới khi tạo website trong Umami; khi có thì website chèn script /stats/script.js.
+      UMAMI_WEBSITE_ID: ${UMAMI_WEBSITE_ID:-}
+      # Khóa IndexNow phục vụ tại /indexnow.txt; mặc định tự sinh từ PUBLISH_WEB_REVALIDATE_SECRET (cùng giá trị với api).
+      INDEXNOW_KEY: ${INDEXNOW_KEY:-}
+      INDEXNOW_DISABLED: ${INDEXNOW_DISABLED:-}
     depends_on:
-      backend:
+      api:
         condition: service_healthy
       migrate:
         condition: service_completed_successfully
-      s3-init:
-        condition: service_completed_successfully
+      s3:
+        condition: service_healthy
     networks:
       - internal
     healthcheck:
@@ -57,29 +90,56 @@ services:
       retries: 3
       start_period: 30s
 
-  backend:
+  api:
     build:
       context: .
       dockerfile: Dockerfile
       target: runner
       args:
-        APP_NAME: backend
-    image: iorder-v2-backend:${APP_IMAGE_TAG:-latest}
+        APP_NAME: api
+    image: iorder-api:${APP_IMAGE_TAG:-latest}
+    <<: *hardening
     restart: unless-stopped
+    logging: *default-logging
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
-      LEAD_IP_HASH_SALT: ${LEAD_IP_HASH_SALT}
-      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID}
-      S3_BUCKET: ${S3_BUCKET}
-      S3_ENDPOINT: http://s3:9000
-      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY}
+      SERVICE_NAME: api
+      # Mã phiên bản đang chạy, hiện ở CMS → Tình trạng hệ thống. Đặt khi triển khai: APP_COMMIT=$(git rev-parse --short HEAD) docker compose ... up -d --build
+      APP_COMMIT: ${APP_COMMIT:-}
+      DATABASE_URL: postgresql://${POSTGRES_USER:?missing}:${POSTGRES_PASSWORD:?missing}@db:5432/${POSTGRES_DB:?missing}
+      LEAD_IP_HASH_SALT: ${LEAD_IP_HASH_SALT:?missing}
+      # Công tắc khẩn cấp: đặt 1 để tắt giới hạn số request theo IP (apps/api/src/lib/rate-limit-policy.ts) khi nó chặn nhầm người dùng thật, rồi up -d lại api.
+      RATE_LIMIT_DISABLED: ${RATE_LIMIT_DISABLED:-}
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:?missing}
+      S3_BUCKET: ${S3_BUCKET:?missing}
+      S3_ENDPOINT: http://s3:8333
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:?missing}
+      PUBLISH_WEB_REVALIDATE_URL: http://website:3000/api/internal/revalidate
+      PUBLISH_WEB_REVALIDATE_SECRET: ${PUBLISH_WEB_REVALIDATE_SECRET:?missing}
+      # Số liệu truy cập cho CMS; thiếu API key hoặc mã website thì CMS báo "chưa kết nối".
+      UMAMI_API_URL: http://umami:3000
+      UMAMI_API_KEY: ${UMAMI_API_KEY:-}
+      UMAMI_WEBSITE_ID: ${UMAMI_WEBSITE_ID:-}
+      INDEXNOW_KEY: ${INDEXNOW_KEY:-}
+      INDEXNOW_DISABLED: ${INDEXNOW_DISABLED:-}
+      # Số liệu Google Search Console (chỉ đọc): chỉ API giữ khóa; để trống thì CMS báo "chưa nối".
+      GOOGLE_SERVICE_ACCOUNT_JSON: ${GOOGLE_SERVICE_ACCOUNT_JSON:-}
+      SEARCH_CONSOLE_PROPERTY: ${SEARCH_CONSOLE_PROPERTY:-}
+      # Khóa chủ mã hóa khóa API nhập ở CMS; chỉ Backend giữ. Thắng tệp khóa chủ nếu đặt. Để trống thì Super Admin bấm "Tạo khóa chủ" ở CMS:
+      # Backend tự sinh khóa và cất vào SECRETS_KEY_FILE (volume bền secrets-data, KHÔNG nằm trong sao lưu database nên phải sao lưu riêng).
+      SECRETS_MASTER_KEY: ${SECRETS_MASTER_KEY:-}
+      SECRETS_KEY_FILE: /data/secrets/master.key
+    volumes:
+      - secrets-data:/data/secrets
     depends_on:
       migrate:
         condition: service_completed_successfully
-      s3-init:
+      seed-admin:
         condition: service_completed_successfully
+      s3:
+        condition: service_healthy
     networks:
       - internal
+      - storage
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
       interval: 30s
@@ -92,24 +152,57 @@ services:
       context: .
       dockerfile: Dockerfile
       target: migrations
-    image: iorder-v2-migrate:${APP_IMAGE_TAG:-latest}
+    image: iorder-migrate:${APP_IMAGE_TAG:-latest}
     restart: "no"
+    logging: *default-logging
     command: pnpm db:migrate
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      DATABASE_URL: postgresql://${POSTGRES_USER:?missing}:${POSTGRES_PASSWORD:?missing}@db:5432/${POSTGRES_DB:?missing}
     depends_on:
       db:
         condition: service_healthy
     networks:
       - internal
 
-  db:
-    image: postgres:17.11-alpine3.24
-    restart: unless-stopped
+  seed-admin:
+    image: iorder-migrate:${APP_IMAGE_TAG:-latest}
+    restart: "no"
+    logging: *default-logging
+    command: pnpm db:seed:admin
     environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      DATABASE_URL: postgresql://${POSTGRES_USER:?missing}:${POSTGRES_PASSWORD:?missing}@db:5432/${POSTGRES_DB:?missing}
+      INITIAL_ADMIN_USERNAME: ${INITIAL_ADMIN_USERNAME}
+      INITIAL_ADMIN_PASSWORD: ${INITIAL_ADMIN_PASSWORD}
+      INITIAL_ADMIN_NAME: ${INITIAL_ADMIN_NAME:-Administrator}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    networks:
+      - internal
+
+  # Sao lưu media theo object; chỉ chạy qua scripts/backup.sh (profile ops, không khởi động khi up).
+  backup-media:
+    image: iorder-migrate:${APP_IMAGE_TAG:-latest}
+    profiles: ["ops"]
+    restart: "no"
+    logging: *default-logging
+    command: ["node", "scripts/backup-media.mjs", "backup", "/backup/media"]
+    environment:
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:?missing}
+      S3_BUCKET: ${S3_BUCKET:?missing}
+      S3_ENDPOINT: http://s3:8333
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:?missing}
+    networks:
+      - storage
+
+  db:
+    image: postgres:17.11-alpine3.24@sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24
+    restart: unless-stopped
+    logging: *default-logging
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?missing}
+      POSTGRES_USER: ${POSTGRES_USER:?missing}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?missing}
     volumes:
       - postgres-data:/var/lib/postgresql/data
     networks:
@@ -120,50 +213,80 @@ services:
       timeout: 5s
       retries: 12
 
-  s3:
-    image: minio/minio:latest
-    restart: unless-stopped
-    command: server /data --console-address ":9001"
+  # Umami dùng chung PostgreSQL nhưng database riêng. Job này tạo database nếu chưa có,
+  # chạy được cả với volume đã có dữ liệu (init script của Postgres chỉ chạy ở volume rỗng).
+  umami-db-init:
+    image: postgres:17.11-alpine3.24@sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24
+    restart: "no"
+    logging: *default-logging
+    command: ["sh", "-c", "psql -tAc \"select 1 from pg_database where datname = 'umami'\" | grep -q 1 || psql -c 'create database umami'"]
     environment:
-      MINIO_ROOT_USER: ${S3_ACCESS_KEY_ID}
-      MINIO_ROOT_PASSWORD: ${S3_SECRET_ACCESS_KEY}
-    volumes:
-      - minio-data:/data
+      PGHOST: db
+      PGUSER: ${POSTGRES_USER:?missing}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?missing}
+      PGDATABASE: ${POSTGRES_DB:?missing}
+    depends_on:
+      db:
+        condition: service_healthy
     networks:
       - internal
 
-  s3-init:
-    image: minio/mc:latest
-    restart: "no"
-    depends_on:
-      s3:
-        condition: service_started
+  umami:
+    image: ghcr.io/umami-software/umami:3.4.0@sha256:85909afc45bdcda1917394594a087421fdbb05610fded0fa9f6fb861abb2f367
+    restart: unless-stopped
+    logging: *default-logging
     environment:
-      MINIO_ROOT_USER: ${S3_ACCESS_KEY_ID}
-      MINIO_ROOT_PASSWORD: ${S3_SECRET_ACCESS_KEY}
-      S3_BUCKET: ${S3_BUCKET}
+      DATABASE_URL: postgresql://${POSTGRES_USER:?missing}:${POSTGRES_PASSWORD:?missing}@db:5432/umami
+      APP_SECRET: ${UMAMI_APP_SECRET:?missing}
+      TWO_FACTOR_ENCRYPTION_KEY: ${UMAMI_TWO_FACTOR_ENCRYPTION_KEY:?missing}
+      DISABLE_TELEMETRY: "1"
+    depends_on:
+      umami-db-init:
+        condition: service_completed_successfully
     networks:
       - internal
-    entrypoint:
-      - /bin/sh
-      - -ec
-      - |
-        until mc alias set iorder http://s3:9000 "$${MINIO_ROOT_USER}" "$${MINIO_ROOT_PASSWORD}"; do sleep 2; done
-        mc mb --ignore-existing "iorder/$${S3_BUCKET}"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:3000/api/heartbeat"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+
+  s3:
+    image: chrislusf/seaweedfs@sha256:4e61d15fd35994cb1e43e1e553dff106794841fd9a99ade2fc8c8bfce4d7872d
+    restart: unless-stopped
+    logging: *default-logging
+    command: ["mini", "-dir=/data", "-master.telemetry=false"]
+    environment:
+      AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:?missing}
+      AWS_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:?missing}
+      S3_BUCKET: ${S3_BUCKET:?missing}
+    volumes:
+      - seaweed-data:/data
+    networks:
+      - storage
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:9333/cluster/status"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
 
   proxy:
-    image: caddy:2-alpine
+    image: caddy:2-alpine@sha256:d8542f48d34a9cf4e4c11a478865229840e87e4c96ea3f439101f31a5d35f75f
     restart: unless-stopped
+    logging: *default-logging
     depends_on:
-      cms:
+      admin:
         condition: service_healthy
-      publish-web:
+      website:
         condition: service_healthy
-      backend:
+      api:
         condition: service_healthy
+      # Không phụ thuộc umami: thống kê lỗi chỉ làm hỏng /stats/*, không chặn website khởi động.
     environment:
-      CMS_SITE_ADDRESS: ${CMS_SITE_ADDRESS}
-      SITE_ADDRESS: ${SITE_ADDRESS}
+      ADMIN_SITE_ADDRESS: ${ADMIN_SITE_ADDRESS:?missing}
+      SITE_ADDRESS: ${SITE_ADDRESS:?missing}
+      ANALYTICS_SITE_ADDRESS: ${ANALYTICS_SITE_ADDRESS:?missing}
     ports:
       - "80:80"
       - "443:443"
@@ -176,10 +299,14 @@ services:
 
 volumes:
   postgres-data:
-  minio-data:
+  secrets-data:
+  seaweed-data:
   caddy-data:
   caddy-config:
 
 networks:
   internal:
     driver: bridge
+  storage:
+    driver: bridge
+    internal: true

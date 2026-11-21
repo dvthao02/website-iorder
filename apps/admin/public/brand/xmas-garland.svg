@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="26" viewBox="0 0 240 26">
+  <!--
+    Một nhịp dây kim tuyến Giáng sinh, lặp ngang (background-repeat: repeat-x) cho thanh trên CMS theme "Giáng sinh" và trang đăng nhập mùa Giáng sinh.
+    Dây xanh thông phủ sương trắng, thắt nơ đỏ ở hai đầu nhịp (hai nửa nơ ghép liền khi lặp). KHÔNG có đèn: đèn nằm ở hai ảnh riêng
+    xmas-garland-lights-a.svg và xmas-garland-lights-b.svg (xếp lên trên, chớp nhẹ xen kẽ bằng CSS).
+    Chiều rộng 240 và hai đầu dây cùng độ cao y=5 để các nhịp nối liền nhau.
+  -->
+  <defs>
+    <g id="bow">
+      <path d="M-1 1 L-7 13 L-3.6 11.2 L-2 14.4 L1.4 2 Z" fill="#a51d28" />
+      <path d="M1 1 L7 13 L3.6 11.2 L2 14.4 L-1.4 2 Z" fill="#b81e32" />
+      <path d="M0 0 C-3 -8 -13 -8 -12 -1 C-11 5 -4 4 0 0 Z" fill="#d7263d" />
+      <path d="M0 0 C3 -8 13 -8 12 -1 C11 5 4 4 0 0 Z" fill="#d7263d" />
+      <path d="M-1.5 -1 C-4 -5 -8.5 -5 -9 -2" fill="none" stroke="#ff7a86" stroke-linecap="round" stroke-width="0.9" />
+      <path d="M1.5 -1 C4 -5 8.5 -5 9 -2" fill="none" stroke="#ff7a86" stroke-linecap="round" stroke-width="0.9" />
+      <ellipse cx="0" cy="0.4" fill="#e63946" rx="2.7" ry="2.3" />
+    </g>
+    <filter id="fuzz" x="-2%" y="-40%" width="104%" height="190%">
+      <feTurbulence baseFrequency="0.9 0.7" numOctaves="2" result="noise" seed="7" type="fractalNoise" />
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="3.6" xChannelSelector="R" yChannelSelector="G" />
+    </filter>
+  </defs>
+
+  <!-- Thân dây: bóng đổ, lớp xanh đậm có gai, lớp xanh sáng, rồi sương trắng ở hai mép và đầu gai -->
+  <g fill="none" filter="url(#fuzz)" stroke-linecap="round">
+    <path d="M0 5 Q120 26 240 5" stroke="#0e3a25" stroke-width="10.4" />
+    <path d="M0 5 Q120 26 240 5" stroke="#1b6a42" stroke-dasharray="1.6 1.4" stroke-width="9" />
+    <path d="M0 5 Q120 26 240 5" stroke="#35a86c" stroke-dasharray="1 2.4" stroke-dashoffset="1" stroke-width="6.4" />
+    <path d="M0 1.2 Q120 22.2 240 1.2" stroke="#f4faf6" stroke-dasharray="1.2 3.6" stroke-width="2.8" />
+    <path d="M0 8.8 Q120 29.8 240 8.8" stroke="#e3f0e8" stroke-dasharray="1.1 4.2" stroke-dashoffset="2" stroke-width="2.8" />
+    <path d="M0 5 Q120 26 240 5" stroke="#ffffff" stroke-dasharray="0.8 7" stroke-dashoffset="3" stroke-width="3.6" />
+  </g>
+
+  <!-- Nơ đỏ ở hai đầu nhịp (nửa nơ phía ngoài bị cắt, ghép liền với nhịp bên cạnh) -->
+  <use href="#bow" x="0" y="7" />
+  <use href="#bow" x="240" y="7" />
+</svg>

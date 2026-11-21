@@ -2,9 +2,11 @@ import "dotenv/config";
 
 import { eq } from "drizzle-orm";
 
-import { getDb } from "../packages/core/src/db/client";
-import { roles, userRoles, users } from "../packages/core/src/db/schema";
-import { hashPassword } from "../packages/core/src/server/auth/password";
+import { getDb } from "../packages/shared/src/db/client";
+import { roles, userRoles, users } from "../packages/shared/src/db/schema";
+import { hashPassword } from "../packages/shared/src/server/auth/password";
+import { superAdminRoleCode } from "../packages/shared/src/server/auth/permissions";
+import { syncCmsPermissionCatalog } from "../packages/shared/src/server/roles/roles.sync";
 
 function requiredEnvironmentValue(name: string) {
   const value = process.env[name]?.trim();
@@ -23,16 +25,9 @@ async function seedInitialAdministrator() {
   const db = getDb();
 
   const created = await db.transaction(async (tx) => {
-    await tx
-      .insert(roles)
-      .values({ code: "admin", name: "Administrator" })
-      .onConflictDoNothing({ target: roles.code });
-    await tx
-      .insert(roles)
-      .values({ code: "editor", name: "Biên tập viên" })
-      .onConflictDoNothing({ target: roles.code });
+    await syncCmsPermissionCatalog(tx);
 
-    const [adminRole] = await tx.select({ id: roles.id }).from(roles).where(eq(roles.code, "admin")).limit(1);
+    const [adminRole] = await tx.select({ id: roles.id }).from(roles).where(eq(roles.code, superAdminRoleCode)).limit(1);
 
     if (!adminRole) {
       throw new Error("Không thể tạo vai trò quản trị.");

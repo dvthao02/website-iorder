@@ -1,0 +1,2 @@
+# Script chạy trên Linux phải giữ LF dù Git trên Windows bật autocrlf.
+*.sh text eol=lf

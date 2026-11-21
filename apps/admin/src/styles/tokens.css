@@ -1,0 +1,226 @@
+/* Token giao diện CMS. Mọi màu, bo góc, chiều cao điều khiển và khoảng cách đều lấy từ đây;
+   component không dùng số cứng để mọi màn cùng một nhịp. */
+:root {
+  --cms-primary: #0d5fc7;
+  --cms-primary-strong: #0a4fa8;
+  --cms-primary-soft: #edf3fc;
+  --cms-background: #f5f6f8;
+  --cms-sidebar: #ffffff;
+  --cms-card: #ffffff;
+  --cms-input-background: #ffffff;
+  --cms-border: #e2e5e9;
+  --cms-text: #1c2128;
+  --cms-muted: #626b76;
+  --cms-hover: #f2f4f6;
+  --cms-on-primary: #ffffff;
+
+  /* Suy ra từ màu theme nên tự đổi theo mọi theme. */
+  --cms-border-strong: color-mix(in srgb, var(--cms-border), var(--cms-text) 14%);
+  --cms-subtle: color-mix(in srgb, var(--cms-card), var(--cms-background) 55%);
+  --cms-focus-ring: 0 0 0 3px color-mix(in srgb, var(--cms-primary) 20%, transparent);
+
+  --cms-status-neutral-background: #f0f2f4;
+  --cms-status-neutral-border: #dde1e6;
+  --cms-status-neutral-text: #4f5966;
+  --cms-status-info-background: #ebf3fd;
+  --cms-status-info-border: #cbdcf5;
+  --cms-status-info-text: #1d5fae;
+  --cms-status-success-background: #e9f6ef;
+  --cms-status-success-border: #c4e5d2;
+  --cms-status-success-text: #17694a;
+  --cms-status-warning-background: #fdf5e3;
+  --cms-status-warning-border: #ecd9a8;
+  --cms-status-warning-text: #8a5a0f;
+  --cms-status-error-background: #fdf0f1;
+  --cms-status-error-border: #f0c8cd;
+  --cms-status-error-text: #a8354a;
+
+  /* Màu nhận diện loại tệp (admin-file-icon.tsx): cố định qua các theme sáng, giống màu ứng dụng gốc. */
+  --cms-file-excel: #107c41; --cms-file-excel-soft: #e6f4ec;
+  --cms-file-csv: #0f766e; --cms-file-csv-soft: #e2f3f1;
+  --cms-file-word: #185abd; --cms-file-word-soft: #e8f0fb;
+  --cms-file-pdf: #c4314b; --cms-file-pdf-soft: #fbeaed;
+  --cms-file-zip: #8a5208; --cms-file-zip-soft: #fbf2de;
+  --cms-file-image: #7c3aed; --cms-file-image-soft: #f1ebfd;
+  --cms-file-text: #4f5966; --cms-file-text-soft: #eef0f3;
+
+  --cms-font: var(--font-inter), Inter, ui-sans-serif, system-ui, sans-serif;
+  --cms-font-size: 14px;
+  --cms-text-sm: 13px;
+  --cms-text-xs: 12px;
+
+  --cms-radius-sm: 4px;
+  --cms-radius-component: 6px;
+  --cms-radius-card: 8px;
+  --cms-radius-modal: 10px;
+
+  --cms-control-height: 34px;
+  --cms-control-height-sm: 28px;
+  --cms-table-row: 44px;
+
+  /* Lề trang, padding trong ô, khoảng cách giữa các khối. */
+  --cms-page-gutter: 16px;
+  --cms-card-padding: 16px;
+  --cms-block-gap: 12px;
+
+  --cms-topbar-height: 56px;
+  --cms-shadow-popover: 0 8px 24px rgb(16 24 40 / 12%), 0 1px 2px rgb(16 24 40 / 6%);
+  --cms-shadow-panel: -12px 0 32px rgb(16 24 40 / 12%);
+
+  /* Nhận diện riêng của từng theme (ngoài bảng màu): thanh bên, thanh trên, nút chính, nền trang, đổ bóng thẻ, font tiêu đề.
+     Thanh bên và thanh trên ("khung") luôn có nền riêng, khác vùng nội dung VÀ khác nhau: thanh bên (nav) LUÔN đậm hơn thanh trên (header),
+     nav là phần đậm nhất của khung (chữ nav sáng, logo chữ sáng), header là tông sáng cùng hệ màu (chữ header tối, theo --cms-text).
+     --cms-topbar-bg phải là màu đặc (không chuyển sắc).
+     Giá trị mặc định dưới đây là giao diện iOrder Blue; mỗi theme ở dưới chỉ ghi đè những gì nó muốn khác. */
+  --cms-nav-bg: #0c336d;
+  --cms-nav-text: #fbfdff;
+  --cms-nav-muted: #b7ccec;
+  --cms-nav-hover: rgb(255 255 255 / 9%);
+  --cms-nav-border: rgb(255 255 255 / 12%);
+  --cms-nav-active-bg: rgb(255 255 255 / 13%);
+  --cms-nav-active-text: #ffffff;
+  --cms-nav-active-shadow: none;
+  --cms-nav-accent: #a1cbff;
+  --cms-nav-radius: var(--cms-radius-component);
+  --cms-topbar-bg: #e4edf9;
+  --cms-topbar-border: #cddbee;
+  --cms-topbar-text: var(--cms-text);
+  --cms-topbar-muted: color-mix(in srgb, var(--cms-muted), var(--cms-text) 35%);
+  --cms-topbar-hover: color-mix(in srgb, var(--cms-text) 7%, transparent);
+  --cms-topbar-accent: none;
+  --cms-primary-fill: var(--cms-primary);
+  --cms-primary-fill-hover: var(--cms-primary-strong);
+  --cms-background-image: none;
+  --cms-shadow-card: none;
+  --cms-heading-font: var(--cms-font);
+}
+
+@media (max-width: 680px) {
+  :root { --cms-page-gutter: 12px; --cms-card-padding: 14px; }
+}
+
+/* Theme cá nhân của người vận hành (chọn ở "Giao diện CMS"); không ảnh hưởng website public. */
+html[data-cms-theme="teal-mist"] {
+  --cms-primary: #0f766e; --cms-primary-strong: #0b5f59; --cms-primary-soft: #e6f4f2; --cms-background: #f3f8f7; --cms-border: #dbe7e5; --cms-text: #15302e; --cms-muted: #56706d; --cms-hover: #edf5f4;
+  --cms-font: var(--font-manrope), Manrope, var(--font-inter), sans-serif;
+  /* Thanh bên xanh ngọc đậm, góc bo lớn, đổ bóng mềm màu ngọc. */
+  --cms-nav-bg: #0e3b38; --cms-nav-text: #fafcfc; --cms-nav-muted: #b5cfcc; --cms-nav-hover: rgb(255 255 255 / 8%); --cms-nav-border: rgb(255 255 255 / 10%);
+  --cms-nav-active-bg: rgb(94 234 212 / 15%); --cms-nav-active-text: #ffffff; --cms-nav-accent: #5eead4; --cms-nav-radius: 10px;
+  --cms-radius-sm: 6px; --cms-radius-component: 8px; --cms-radius-card: 12px; --cms-radius-modal: 16px;
+  --cms-topbar-accent: linear-gradient(90deg, #0f766e, #2dd4bf);
+  --cms-topbar-bg: #d3ebe6; --cms-topbar-border: #b9d9d3;
+  --cms-shadow-card: 0 1px 2px rgb(15 118 110 / 6%), 0 4px 16px rgb(15 118 110 / 6%);
+}
+html[data-cms-theme="indigo-soft"] {
+  --cms-primary: #4f46e5; --cms-primary-strong: #4038be; --cms-primary-soft: #eeedfd; --cms-background: #f6f5fb; --cms-border: #e3e1f0; --cms-text: #24223f; --cms-muted: #66647f; --cms-hover: #f1f0f9;
+  --cms-font: var(--font-plus-jakarta-sans), "Plus Jakarta Sans", var(--font-inter), sans-serif;
+  /* Thanh bên chàm đậm chuyển sắc, thanh trên oải hương nhạt, nút chính chuyển sắc chàm → tím. */
+  --cms-nav-bg: linear-gradient(180deg, #271f76, #2d2889); --cms-nav-text: #ffffff; --cms-nav-muted: #cdcaf6; --cms-nav-hover: rgb(255 255 255 / 9%); --cms-nav-border: rgb(255 255 255 / 12%);
+  --cms-nav-active-bg: rgb(255 255 255 / 13%); --cms-nav-active-text: #ffffff; --cms-nav-accent: #cfc2fd; --cms-nav-radius: 10px;
+  --cms-radius-sm: 6px; --cms-radius-component: 9px; --cms-radius-card: 12px; --cms-radius-modal: 16px;
+  --cms-primary-fill: linear-gradient(135deg, #4f46e5, #7c3aed); --cms-primary-fill-hover: linear-gradient(135deg, #4038be, #6930cf);
+  --cms-topbar-accent: linear-gradient(90deg, #4f46e5, #a78bfa);
+  --cms-topbar-bg: #e8e5fb; --cms-topbar-border: #d2cdf0;
+  --cms-background-image: radial-gradient(900px 420px at 100% 0, rgb(124 58 237 / 7%), transparent 70%);
+  --cms-shadow-card: 0 1px 2px rgb(79 70 229 / 8%), 0 4px 14px rgb(79 70 229 / 6%);
+}
+html[data-cms-theme="emerald-light"] {
+  --cms-primary: #047857; --cms-primary-strong: #03664b; --cms-primary-soft: #e5f4ed; --cms-background: #f4f8f6; --cms-border: #dbe8e1; --cms-text: #15302a; --cms-muted: #57706a; --cms-hover: #edf5f1;
+  /* Phẳng và vuông vức: góc bo nhỏ, không đổ bóng, một đường xanh lá mảnh dưới thanh trên. */
+  --cms-radius-sm: 2px; --cms-radius-component: 3px; --cms-radius-card: 4px; --cms-radius-modal: 6px; --cms-nav-radius: 3px;
+  --cms-nav-bg: #093c2d; --cms-nav-text: #f8fcfa; --cms-nav-muted: #a8d3bd; --cms-nav-hover: rgb(255 255 255 / 9%); --cms-nav-border: rgb(255 255 255 / 12%); --cms-nav-active-bg: rgb(255 255 255 / 13%); --cms-nav-active-text: #ffffff; --cms-nav-accent: #6ee7b7;
+  --cms-topbar-bg: #dff0e7; --cms-topbar-border: #c4dfd1;
+  --cms-topbar-accent: linear-gradient(90deg, #047857, #34d399);
+}
+html[data-cms-theme="warm-sand"] {
+  --cms-primary: #8b4a22; --cms-primary-strong: #743c1b; --cms-primary-soft: #f6ede4; --cms-background: #f8f6f2; --cms-sidebar: #fffefb; --cms-card: #fffefb; --cms-input-background: #fffefb; --cms-border: #e8e0d5; --cms-text: #3b2c22; --cms-muted: #76675c; --cms-hover: #f4eee7;
+  --cms-font: var(--font-dm-sans), "DM Sans", var(--font-inter), sans-serif;
+  /* Thanh bên nâu cà phê đậm, thanh trên màu cát, tiêu đề có chân (serif) như trang giấy, bo góc vừa. */
+  --cms-heading-font: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
+  --cms-nav-bg: #432b1b; --cms-nav-text: #faf4ec; --cms-nav-muted: #d6c1a8; --cms-nav-hover: rgb(255 255 255 / 9%); --cms-nav-border: rgb(255 255 255 / 12%);
+  --cms-nav-active-bg: rgb(255 255 255 / 13%); --cms-nav-active-text: #ffffff; --cms-nav-accent: #f0c48f; --cms-nav-radius: 8px;
+  --cms-radius-sm: 4px; --cms-radius-component: 7px; --cms-radius-card: 10px; --cms-radius-modal: 14px;
+  --cms-topbar-accent: linear-gradient(90deg, #8b4a22, #d9a066);
+  --cms-topbar-bg: #ecdfcd; --cms-topbar-border: #dccbb4;
+  --cms-shadow-card: 0 1px 2px rgb(59 44 34 / 6%);
+}
+html[data-cms-theme="slate-minimal"] {
+  --cms-primary: #334155; --cms-primary-strong: #1e293b; --cms-primary-soft: #eceff3; --cms-background: #f6f7f8; --cms-border: #e1e5e9; --cms-text: #1e293b; --cms-muted: #5f6b7b; --cms-hover: #f1f3f5;
+  --cms-font: var(--font-manrope), Manrope, var(--font-inter), sans-serif;
+  /* Thanh bên than chì, vuông vức và gọn hơn (điều khiển và hàng bảng thấp hơn), không đổ bóng. */
+  --cms-nav-bg: #1b2330; --cms-nav-text: #dde3ec; --cms-nav-muted: #abb4c0; --cms-nav-hover: rgb(255 255 255 / 7%); --cms-nav-border: rgb(255 255 255 / 9%);
+  --cms-nav-active-bg: rgb(255 255 255 / 12%); --cms-nav-active-text: #ffffff; --cms-nav-accent: #e2e8f0; --cms-nav-radius: 3px;
+  --cms-radius-sm: 2px; --cms-radius-component: 3px; --cms-radius-card: 4px; --cms-radius-modal: 6px;
+  --cms-control-height: 32px; --cms-control-height-sm: 26px; --cms-table-row: 40px;
+  --cms-topbar-bg: #e1e6ed; --cms-topbar-border: #cdd5df;
+}
+html[data-cms-theme="purple-mist"] {
+  --cms-primary: #7c3aed; --cms-primary-strong: #6930cf; --cms-primary-soft: #f2ecfd; --cms-background: #f8f6fb; --cms-border: #e7e1f1; --cms-text: #2f2147; --cms-muted: #706584; --cms-hover: #f3eff9;
+  --cms-font: var(--font-plus-jakarta-sans), "Plus Jakarta Sans", var(--font-inter), sans-serif;
+  /* Thanh bên tím đậm chuyển sắc, nút chính tím → hồng, bo góc lớn, ánh sáng tím nhẹ ở nền. */
+  --cms-nav-bg: linear-gradient(180deg, #2a0f5c, #451a8a); --cms-nav-text: #ffffff; --cms-nav-muted: #d4c8f0; --cms-nav-hover: rgb(255 255 255 / 9%); --cms-nav-border: rgb(255 255 255 / 12%);
+  --cms-nav-active-bg: rgb(255 255 255 / 13%); --cms-nav-active-text: #ffffff; --cms-nav-accent: #dbbafe; --cms-nav-radius: 12px;
+  --cms-radius-sm: 6px; --cms-radius-component: 10px; --cms-radius-card: 14px; --cms-radius-modal: 18px;
+  --cms-primary-fill: linear-gradient(135deg, #7c3aed, #c026d3); --cms-primary-fill-hover: linear-gradient(135deg, #6930cf, #a21caf);
+  --cms-topbar-accent: linear-gradient(90deg, #7c3aed, #d946ef);
+  --cms-topbar-bg: #ebe3fb; --cms-topbar-border: #d9ccf3;
+  --cms-background-image: radial-gradient(800px 380px at 0 0, rgb(217 70 239 / 6%), transparent 70%);
+  --cms-shadow-card: 0 2px 4px rgb(124 58 237 / 6%), 0 8px 24px rgb(124 58 237 / 8%);
+}
+html[data-cms-theme="sky-ice"] {
+  --cms-primary: #0369a1; --cms-primary-strong: #075985; --cms-primary-soft: #e8f3fa; --cms-background: #f4f8fb; --cms-border: #dce7ef; --cms-text: #16334a; --cms-muted: #5b6f80; --cms-hover: #edf4f9;
+  /* Thanh bên xanh biển đậm chuyển sắc, thanh trên xanh băng nhạt, dải sáng mờ trên đầu nền. */
+  --cms-nav-bg: linear-gradient(180deg, #093f68, #052d4b); --cms-nav-text: #ffffff; --cms-nav-muted: #bedaef; --cms-nav-hover: rgb(255 255 255 / 9%); --cms-nav-border: rgb(255 255 255 / 12%);
+  --cms-nav-active-bg: rgb(255 255 255 / 12%); --cms-nav-active-text: #ffffff; --cms-nav-accent: #97dcfd; --cms-nav-radius: 8px;
+  --cms-radius-sm: 4px; --cms-radius-component: 7px; --cms-radius-card: 10px; --cms-radius-modal: 14px;
+  --cms-topbar-accent: linear-gradient(90deg, #0369a1, #38bdf8);
+  --cms-topbar-bg: #d9ecf8; --cms-topbar-border: #bcd7ea;
+  --cms-background-image: linear-gradient(180deg, #e9f5fc 0, transparent 220px);
+  --cms-shadow-card: 0 1px 2px rgb(3 105 161 / 6%), 0 4px 12px rgb(3 105 161 / 5%);
+}
+html[data-cms-theme="mint-blue"] {
+  --cms-primary: #06758f; --cms-primary-strong: #155e75; --cms-primary-soft: #e6f3f5; --cms-background: #f3f8f8; --cms-border: #dae8e8; --cms-text: #153840; --cms-muted: #587076; --cms-hover: #ecf5f5;
+  --cms-font: var(--font-manrope), Manrope, var(--font-inter), sans-serif;
+  /* Thanh bên xanh biển - ngọc đậm với mục điều hướng dạng viên thuốc, thanh trên ngọc nhạt, nút chính chuyển sắc xanh biển → ngọc, bo góc tròn trịa. */
+  --cms-nav-bg: #0a4350; --cms-nav-text: #ffffff; --cms-nav-muted: #b6dedb; --cms-nav-hover: rgb(255 255 255 / 9%); --cms-nav-border: rgb(255 255 255 / 12%); --cms-nav-radius: 999px; --cms-nav-active-bg: rgb(255 255 255 / 12%); --cms-nav-active-text: #ffffff; --cms-nav-accent: #68ebd7;
+  --cms-radius-sm: 6px; --cms-radius-component: 10px; --cms-radius-card: 14px; --cms-radius-modal: 18px;
+  --cms-primary-fill: linear-gradient(135deg, #06758f, #077d99); --cms-primary-fill-hover: linear-gradient(135deg, #155e75, #06758f);
+  --cms-topbar-accent: linear-gradient(90deg, #06758f, #34d399);
+  --cms-topbar-bg: #d9f0ee; --cms-topbar-border: #bfe0dc;
+  --cms-background-image: radial-gradient(700px 320px at 0 0, rgb(52 211 153 / 8%), transparent 70%);
+  --cms-shadow-card: 0 1px 2px rgb(6 117 143 / 6%), 0 4px 14px rgb(6 117 143 / 5%);
+}
+html[data-cms-theme="christmas"] {
+  --cms-primary: #17724a; --cms-primary-strong: #115a3a; --cms-primary-soft: #e6f4ec; --cms-background: #f8f4ee; --cms-sidebar: #fffdf9; --cms-card: #fffdf9; --cms-input-background: #fffdf9; --cms-border: #e7ddd0; --cms-text: #2a2420; --cms-muted: #72675e; --cms-hover: #f5eee4;
+  --cms-topbar-accent: linear-gradient(90deg, #17724a, #c62833 50%, #17724a);
+  /* Thanh bên xanh thông đậm (logo chữ sáng), thanh trên kem nhạt. */
+  --cms-nav-bg: #0f3826; --cms-nav-text: #f0f8f3; --cms-nav-muted: #acccbb; --cms-nav-hover: rgb(255 255 255 / 8%); --cms-nav-border: rgb(255 255 255 / 12%);
+  --cms-nav-active-bg: rgb(255 255 255 / 13%); --cms-nav-active-text: #ffffff; --cms-nav-accent: #ffd27a;
+  --cms-topbar-bg: #f3eadb; --cms-topbar-border: #e2d5bd;
+}
+html[data-cms-theme="dark"] {
+  color-scheme: dark;
+  --cms-primary: #6aa8fb; --cms-primary-strong: #8bbcfc; --cms-primary-soft: #1f3150;
+  --cms-background: #11161d; --cms-sidebar: #161c24; --cms-card: #181f28; --cms-input-background: #12181f;
+  --cms-border: #2b3440; --cms-text: #e6eaef; --cms-muted: #98a3b1; --cms-hover: #212a35; --cms-on-primary: #0b1420;
+  --cms-status-neutral-background: #232c37; --cms-status-neutral-border: #36414e; --cms-status-neutral-text: #c8d0da;
+  --cms-status-info-background: #172c47; --cms-status-info-border: #29486f; --cms-status-info-text: #9cc6fb;
+  --cms-status-success-background: #15322b; --cms-status-success-border: #285a4c; --cms-status-success-text: #86d9b5;
+  --cms-status-warning-background: #362d18; --cms-status-warning-border: #5f5131; --cms-status-warning-text: #eac56c;
+  --cms-status-error-background: #3c2228; --cms-status-error-border: #643943; --cms-status-error-text: #f0a3b1;
+  --cms-file-excel: #5fcf93; --cms-file-excel-soft: #16302a; --cms-file-csv: #5cc9bd; --cms-file-csv-soft: #132e2d;
+  --cms-file-word: #7fb0f5; --cms-file-word-soft: #182a45; --cms-file-pdf: #f28da0; --cms-file-pdf-soft: #3a2027;
+  --cms-file-zip: #e6bb5c; --cms-file-zip-soft: #352b17; --cms-file-image: #b99af7; --cms-file-image-soft: #2a2242;
+  --cms-file-text: #c8d0da; --cms-file-text-soft: #232c37;
+  /* Khung tối hơn cả nền nội dung để tách ra. */
+  --cms-nav-bg: #0b0f14; --cms-nav-text: var(--cms-text); --cms-nav-muted: var(--cms-muted); --cms-nav-border: #1d2630; --cms-nav-hover: rgb(255 255 255 / 6%); --cms-nav-active-bg: #1f3150; --cms-nav-active-text: #e3eeff; --cms-nav-accent: var(--cms-primary-strong);
+  --cms-topbar-bg: #1b2430; --cms-topbar-border: #2a3644;
+  --cms-shadow-popover: 0 8px 24px rgb(0 0 0 / 40%);
+  --cms-shadow-panel: -12px 0 32px rgb(0 0 0 / 40%);
+}
+
+/* Font chọn độc lập với bảng màu. */
+html[data-cms-font="inter"] { --cms-font: var(--font-inter), Inter, ui-sans-serif, system-ui, sans-serif; }
+html[data-cms-font="manrope"] { --cms-font: var(--font-manrope), Manrope, var(--font-inter), sans-serif; }
+html[data-cms-font="plus-jakarta-sans"] { --cms-font: var(--font-plus-jakarta-sans), "Plus Jakarta Sans", var(--font-inter), sans-serif; }
+html[data-cms-font="dm-sans"] { --cms-font: var(--font-dm-sans), "DM Sans", var(--font-inter), sans-serif; }

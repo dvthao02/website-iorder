@@ -1,0 +1,1 @@
+ALTER TABLE "support_downloads" ADD COLUMN "group_name" varchar(120);

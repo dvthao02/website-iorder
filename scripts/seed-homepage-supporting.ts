@@ -2,12 +2,13 @@ import "dotenv/config";
 
 import { eq } from "drizzle-orm";
 
-import { getDb } from "../packages/core/src/db/client";
-import { pages, users } from "../packages/core/src/db/schema";
-import { getPublishedPage, saveAdminPage } from "../packages/core/src/server/pages/pages.service";
+import { getDb } from "../packages/shared/src/db/client";
+import { pages, users } from "../packages/shared/src/db/schema";
+import { getAdminPageBySlug, saveAdminPage } from "../packages/shared/src/server/pages/pages.service";
 
 async function run() {
-  const page = await getPublishedPage("home");
+  // Đọc bản admin (gồm khối đã tắt) vì trang được ghi lại toàn bộ.
+  const page = await getAdminPageBySlug("home");
   if (!page) throw new Error("Chưa có trang chủ để bổ sung nội dung hỗ trợ.");
 
   let changed = false;

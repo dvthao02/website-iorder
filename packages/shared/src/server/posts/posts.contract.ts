@@ -1,0 +1,150 @@
+import { contentSeoSchema, contentSeoVisibilitySchema } from "../shared/content-seo";
+import { postAuthorProfileSchema } from "../authors/authors.contract";
+import { z } from "zod";
+import { richDocumentSchema, type RichDocument, type RichNode } from "../shared/rich-text";
+
+export const publicPostTypeSchema = z.enum([
+  "news",
+  "promotion",
+  "case_study",
+  "announcement",
+  "guide",
+]);
+export type PublicPostType = z.infer<typeof publicPostTypeSchema>;
+const publicTaxonomyTermSchema = z.object({ id: z.string().uuid(), name: z.string(), slug: z.string() }).strict();
+
+// v1: khối đoạn văn/danh sách cũ; v2: tài liệu soạn kiểu Word (xem shared/rich-text). Bài cũ vẫn đọc được.
+const postContentV1Schema = z
+  .object({
+    version: z.literal(1),
+    blocks: z
+      .array(
+        z.discriminatedUnion("type", [
+          z.object({ type: z.literal("paragraph"), text: z.string().trim().min(1).max(10_000) }).strict(),
+          z
+            .object({
+              type: z.literal("checklist"),
+              heading: z.string().trim().min(1).max(180),
+              items: z.array(z.string().trim().min(1).max(500)).min(1).max(20),
+            })
+            .strict(),
+        ]),
+      )
+      .min(1)
+      .max(250),
+  })
+  .strict();
+const postContentV2Schema = z.object({ version: z.literal(2), doc: richDocumentSchema }).strict();
+export const postContentDocumentSchema = z.union([postContentV2Schema, postContentV1Schema]);
+
+export const publicPostSummarySchema = z
+  .object({
+    id: z.string().uuid(),
+    type: publicPostTypeSchema,
+    title: z.string(),
+    slug: z.string(),
+    seo: contentSeoVisibilitySchema.optional(),
+    excerpt: z.string().nullable(),
+    publishedAt: z.date().nullable(),
+    createdAt: z.date(),
+    updatedAt: z.date(),
+    cover: z.object({ url: z.string().startsWith("/media/"), altText: z.string().nullable() }).nullable(),
+    categories: z.array(publicTaxonomyTermSchema).default([]),
+    tags: z.array(publicTaxonomyTermSchema).default([]),
+  })
+  .strict();
+
+// Tác giả hiển thị công khai: có tên thì website ghi dòng "Tác giả" và khai Person trong dữ liệu cấu trúc; không có thì tác giả là tổ chức như trước.
+export const postAuthorFields = {
+  // Chọn từ danh sách tác giả (có trang riêng); ưu tiên hơn ba trường nhập tay bên dưới (tác giả khách). Không gửi thì giữ giá trị đã lưu.
+  authorProfileId: z.string().uuid().nullable().optional(),
+  authorName: z.string().trim().min(1).max(120).nullable().optional(),
+  authorTitle: z.string().trim().min(1).max(120).nullable().optional(),
+  authorUrl: z.string().url().max(2000).refine((value) => /^https?:\/\//i.test(value), "Dùng địa chỉ bắt đầu bằng http:// hoặc https://.").nullable().optional(),
+};
+
+export const publicPostDetailSchema = publicPostSummarySchema.extend({
+  authorName: z.string().nullable().default(null),
+  authorTitle: z.string().nullable().default(null),
+  authorUrl: z.string().nullable().default(null),
+  authorProfile: postAuthorProfileSchema.nullable().default(null),
+  content: postContentDocumentSchema,
+  seoTitle: z.string().nullable(),
+  seoDescription: z.string().nullable(),
+  canonicalUrl: z.string().url().nullable(),
+  seo: contentSeoSchema.optional(),
+});
+
+export const adminPostInputSchema = z
+  .object({
+    coverMediaId: z.string().uuid().nullable().optional(),
+    type: publicPostTypeSchema,
+    title: z.string().trim().min(1).max(220),
+    slug: z.string().trim().min(1).max(180).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+    excerpt: z.string().trim().min(1).max(10_000).nullable(),
+    content: postContentDocumentSchema,
+    status: z.enum(["draft", "review", "scheduled", "published", "archived"]),
+    seoTitle: z.string().trim().min(1).max(70).nullable(),
+    seoDescription: z.string().trim().min(1).max(180).nullable(),
+    canonicalUrl: z.string().url().nullable(),
+    seo: contentSeoSchema.optional(),
+    promotionStartAt: z.coerce.date().nullable(),
+    promotionEndAt: z.coerce.date().nullable(),
+    ctaLabel: z.string().trim().min(1).max(80).nullable(),
+    ctaUrl: z.string().url().nullable(),
+    badgeText: z.string().trim().min(1).max(60).nullable(),
+    ...postAuthorFields,
+    scheduledAt: z.coerce.date().nullable(),
+    categoryIds: z.array(z.string().uuid()).max(30).default([]),
+    tagIds: z.array(z.string().uuid()).max(50).default([]),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    if (value.status === "scheduled" && !value.scheduledAt) {
+      context.addIssue({ code: "custom", path: ["scheduledAt"], message: "Bài viết hẹn giờ cần có thời điểm xuất bản." });
+    }
+  });
+
+export const adminPostSchema = adminPostInputSchema.safeExtend({
+  id: z.string().uuid(),
+  authorId: z.string().uuid().nullable(),
+  coverMediaId: z.string().uuid().nullable(),
+  draftVersion: z.number().int().nonnegative(),
+  publishedAt: z.date().nullable(),
+  updatedAt: z.date(),
+});
+
+export type PublicPostSummary = z.infer<typeof publicPostSummarySchema>;
+export type PostContentDocument = z.infer<typeof postContentDocumentSchema>;
+export type PublicPostDetail = z.infer<typeof publicPostDetailSchema>;
+export type AdminPost = z.infer<typeof adminPostSchema>;
+export const adminPostListItemSchema = z.object({
+  id: z.string().uuid(), type: publicPostTypeSchema, title: z.string().min(1).max(220), slug: z.string().min(1).max(180),
+  status: z.enum(["draft", "review", "scheduled", "published", "archived"]),
+  draftVersion: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER), updatedAt: z.date(),
+  // Ảnh bìa để hiện ô thu nhỏ trong bảng (như Shopify/Payload); null khi chưa có ảnh.
+  coverUrl: z.string().nullable(),
+  // Chuyên mục (với hướng dẫn: nhóm trên website), theo thứ tự sắp xếp của chuyên mục.
+  categories: z.array(z.object({ id: z.string().uuid(), name: z.string() }).strict()).default([]),
+}).strict();
+export type AdminPostListItem = z.infer<typeof adminPostListItemSchema>;
+/** Bài hướng dẫn chưa gắn chuyên mục nằm ở nhóm này (CMS và website dùng cùng nhãn). */
+export const uncategorizedGuideGroup = "Hướng dẫn chung";
+/** Chuyển bài sang chuyên mục khác (thao tác hàng loạt "Chuyển vào nhóm"); mảng rỗng = bỏ chuyên mục. */
+export const postCategoriesRequestSchema = z.object({ categoryIds: z.array(z.string().uuid()).max(20), expectedVersion: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER) }).strict();
+export type AdminPostInput = z.infer<typeof adminPostInputSchema>;
+
+/** Đổi nội dung bài (v1 hoặc v2) sang tài liệu soạn thảo: dùng khi mở bài cũ trong trình soạn mới. */
+export function postContentToRichDocument(content: PostContentDocument): RichDocument {
+  if (content.version === 2) return content.doc;
+  const text = (value: string): RichNode[] => value ? [{ type: "text", text: value }] : [];
+  return {
+    type: "doc",
+    content: content.blocks.flatMap((block): RichNode[] => block.type === "paragraph"
+      ? block.text.split(/\n{2,}/).map((part) => ({ type: "paragraph", content: text(part.trim()) }))
+      : [
+          { type: "heading", attrs: { level: 3 }, content: text(block.heading) },
+          { type: "bulletList", content: block.items.map((item) => ({ type: "listItem", content: [{ type: "paragraph", content: text(item) }] })) },
+        ]),
+  };
+}

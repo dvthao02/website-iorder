@@ -2,12 +2,12 @@ import "dotenv/config";
 
 import { eq } from "drizzle-orm";
 
-import { getDb } from "../packages/core/src/db/client";
-import { users } from "../packages/core/src/db/schema";
-import type { NavigationItems } from "../packages/core/src/server/navigation/navigation.contract";
-import { saveNavigation } from "../packages/core/src/server/navigation/navigation.service";
-import { listPublishedOfferings } from "../packages/core/src/server/offerings/offerings.repository";
-import { listCategories } from "../packages/core/src/server/taxonomy/taxonomy.repository";
+import { getDb } from "../packages/shared/src/db/client";
+import { users } from "../packages/shared/src/db/schema";
+import type { NavigationItems } from "../packages/shared/src/server/navigation/navigation.contract";
+import { saveNavigation } from "../packages/shared/src/server/navigation/navigation.service";
+import { listPublishedOfferings } from "../packages/shared/src/server/offerings/offerings.repository";
+import { listCategories } from "../packages/shared/src/server/taxonomy/taxonomy.repository";
 
 const catalogRoots = [
   { key: "software", label: "Phần mềm", url: "/phan-mem", type: "software" as const },
@@ -16,7 +16,7 @@ const catalogRoots = [
 ];
 
 function item(key: string, label: string, url: string, parentKey: string | null = null): NavigationItems[number] {
-  return { key, label, url, parentKey, target: "_self", isEnabled: true };
+  return { key, label, url, parentKey, linkType: "custom", contentId: null, target: "_self", isEnabled: true };
 }
 
 async function run() {
@@ -42,7 +42,7 @@ async function run() {
     item("support-remote", "Hỗ trợ từ xa", "/ho-tro-tu-xa", "support"),
     item("news", "Tin tức", "/tin-tuc"),
     ...categories.map(category => item(`category-${category.slug}`, category.name, `/tin-tuc/chuyen-muc/${category.slug}`, "news")),
-    item("guides", "Hướng dẫn sử dụng", "/ho-tro/cai-dat#huong-dan", "support"),
+    item("guides", "Hướng dẫn sử dụng", "/ho-tro/huong-dan", "support"),
     item("consultation", "Tư vấn triển khai", "/lien-he"),
   );
 
@@ -59,11 +59,11 @@ async function run() {
     item("footer-remote", "Hỗ trợ từ xa", "/ho-tro-tu-xa", "footer-support"),
     item("footer-resources", "Tài nguyên", "/tin-tuc"),
     item("footer-news", "Tin tức", "/tin-tuc", "footer-resources"),
-    item("footer-guides", "Hướng dẫn sử dụng", "/ho-tro/cai-dat#huong-dan", "footer-support"),
+    item("footer-guides", "Hướng dẫn sử dụng", "/ho-tro/huong-dan", "footer-support"),
     item("footer-about", "Về iOrder", "/gioi-thieu", "footer-resources"),
     item("footer-contact", "Liên hệ", "/lien-he", "footer-resources"),
-    item("footer-terms", "Điều khoản dịch vụ", "/terms", "footer-resources"),
-    item("footer-privacy", "Chính sách bảo mật", "/privacy-policy", "footer-resources"),
+    item("footer-terms", "Điều khoản dịch vụ", "/dieu-khoan", "footer-resources"),
+    item("footer-privacy", "Chính sách bảo mật", "/chinh-sach-bao-mat", "footer-resources"),
   ];
 
   await Promise.all([saveNavigation("header", headerItems, author.id), saveNavigation("footer", footerItems, author.id)]);

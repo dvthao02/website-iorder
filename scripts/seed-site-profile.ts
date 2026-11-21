@@ -2,9 +2,9 @@ import "dotenv/config";
 
 import { eq } from "drizzle-orm";
 
-import { getDb } from "../packages/core/src/db/client";
-import { users } from "../packages/core/src/db/schema";
-import { getSiteProfile, updateSiteProfile } from "../packages/core/src/server/settings/profile.service";
+import { getDb } from "../packages/shared/src/db/client";
+import { users } from "../packages/shared/src/db/schema";
+import { getSiteProfile, updateSiteProfile } from "../packages/shared/src/server/settings/profile.service";
 
 const v1Profile = {
   companyName: "iOrder",

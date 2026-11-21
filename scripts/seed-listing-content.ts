@@ -2,9 +2,9 @@ import "dotenv/config";
 
 import { eq } from "drizzle-orm";
 
-import { getDb } from "../packages/core/src/db/client";
-import { siteSettings, users } from "../packages/core/src/db/schema";
-import { updateListingContent } from "../packages/core/src/server/settings/listing-content.service";
+import { getDb } from "../packages/shared/src/db/client";
+import { siteSettings, users } from "../packages/shared/src/db/schema";
+import { updateListingContent } from "../packages/shared/src/server/settings/listing-content.service";
 
 const content = {
   news: { eyebrow: "Blog iOrder", title: "Tin tức và góc nhìn vận hành", description: "Cập nhật kiến thức triển khai, vận hành và tăng trưởng dành cho doanh nghiệp Việt." },

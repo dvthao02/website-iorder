@@ -2,9 +2,9 @@ import "dotenv/config";
 
 import { eq } from "drizzle-orm";
 
-import { getDb } from "../packages/core/src/db/client";
-import { pages, users } from "../packages/core/src/db/schema";
-import { saveAdminPage } from "../packages/core/src/server/pages/pages.service";
+import { getDb } from "../packages/shared/src/db/client";
+import { pages, users } from "../packages/shared/src/db/schema";
+import { saveAdminPage } from "../packages/shared/src/server/pages/pages.service";
 
 type Section = [heading: string, items: string[]];
 

@@ -1,0 +1,145 @@
+import { and, asc, count, desc, eq, gt, ilike, inArray, isNull, notInArray, or, sql } from "drizzle-orm";
+import { getDb } from "@iorder/shared/db/client";
+import { auditLogs, roles, sessions, userRoles, users } from "@iorder/shared/db/schema";
+import { userAuditSnapshot } from "./user-audit";
+import { assertActiveAdministratorRemains } from "./user-admin-policy";
+import { superAdminRoleCode } from "../auth/permissions";
+import { assertCanGrant, loadActorAccess, requireActorPermission, rolePermissionCodes } from "../roles/roles.repository";
+import { accessErrors } from "../roles/roles.errors";
+import type { CmsUserListQuery } from "./users.contract";
+import { toAdminListPage } from "../shared/admin-list.contract";
+import { listOrder, vietnameseText } from "../shared/list-order";
+
+export async function listCmsUsersPage(query: CmsUserListQuery, database = getDb()) {
+  return database.transaction(async tx => {
+    const members = tx.select({
+      id: users.id, username: users.username, email: users.email, fullName: users.fullName,
+      status: users.status, lastLoginAt: users.lastLoginAt,
+      role: sql<string>`case when bool_or(${roles.code} = ${superAdminRoleCode}) then ${superAdminRoleCode} else min(${roles.code}) end`.as("cms_role"),
+    }).from(users).innerJoin(userRoles, eq(userRoles.userId, users.id)).innerJoin(roles, eq(roles.id, userRoles.roleId))
+      .where(isNull(users.deletedAt)).groupBy(users.id).as("cms_members");
+    const keyword = query.query ? `%${query.query.replace(/[\\%_]/g, "\\$&")}%` : undefined;
+    const condition = and(
+      query.status === "all" ? undefined : eq(members.status, query.status),
+      query.role === "all" ? undefined : eq(members.role, query.role),
+      keyword ? or(ilike(members.username, keyword), ilike(members.fullName, keyword), ilike(members.email, keyword)) : undefined,
+    );
+    const items = await tx.select().from(members).where(condition).orderBy(...listOrder({ fullName: vietnameseText(members.fullName), username: members.username, role: sql`"cms_role"`, status: members.status, lastLoginAt: members.lastLoginAt }, query, [asc(members.username), asc(members.id)]))
+      .limit(query.pageSize).offset((query.page - 1) * query.pageSize);
+    const [totals] = await tx.select({ total: count() }).from(members).where(condition);
+    const [counts] = await tx.select({
+      all: count(),
+      active: sql<number>`count(*) filter (where ${members.status} = 'active')::int`,
+      admins: sql<number>`count(*) filter (where ${members.status} = 'active' and ${members.role} = ${superAdminRoleCode})::int`,
+    }).from(members);
+    return { ...toAdminListPage(await withAccessDetails(tx, items), query, totals.total), counts };
+  }, { isolationLevel: "repeatable read", accessMode: "read only" });
+}
+
+type ReadTransaction = Parameters<Parameters<ReturnType<typeof getDb>["transaction"]>[0]>[0];
+const sessionActions = ["user.login", "user.logout", "user.login_failed"];
+
+// Thông tin truy cập cho trang tài khoản đang xem (tối đa một trang, ≤100 tài khoản): lần đăng nhập gần nhất
+// (IP, trình duyệt từ nhật ký), thao tác gần nhất (bỏ đăng nhập/đăng xuất) và số phiên còn hiệu lực.
+async function withAccessDetails<Item extends { id: string }>(tx: ReadTransaction, items: Item[]) {
+  const ids = items.map((item) => item.id);
+  if (!ids.length) return [];
+  const [logins, actions, openSessions] = await Promise.all([
+    tx.selectDistinctOn([auditLogs.userId], { userId: auditLogs.userId, ipAddress: auditLogs.ipAddress, userAgent: auditLogs.userAgent })
+      .from(auditLogs).where(and(inArray(auditLogs.userId, ids), eq(auditLogs.action, "user.login"))).orderBy(auditLogs.userId, desc(auditLogs.createdAt)),
+    tx.selectDistinctOn([auditLogs.userId], { userId: auditLogs.userId, action: auditLogs.action, createdAt: auditLogs.createdAt })
+      .from(auditLogs).where(and(inArray(auditLogs.userId, ids), notInArray(auditLogs.action, sessionActions))).orderBy(auditLogs.userId, desc(auditLogs.createdAt)),
+    tx.select({ userId: sessions.userId, total: count() }).from(sessions)
+      .where(and(inArray(sessions.userId, ids), isNull(sessions.revokedAt), gt(sessions.expiresAt, sql`now()`))).groupBy(sessions.userId),
+  ]);
+  const loginOf = new Map(logins.map((row) => [row.userId, row]));
+  const actionOf = new Map(actions.map((row) => [row.userId, row]));
+  const sessionsOf = new Map(openSessions.map((row) => [row.userId, row.total]));
+  return items.map((item) => ({
+    ...item,
+    lastLoginIp: loginOf.get(item.id)?.ipAddress ?? null,
+    lastLoginUserAgent: loginOf.get(item.id)?.userAgent ?? null,
+    lastAction: actionOf.get(item.id)?.action ?? null,
+    lastActionAt: actionOf.get(item.id)?.createdAt ?? null,
+    activeSessions: sessionsOf.get(item.id) ?? 0,
+  }));
+}
+
+export function listCmsUsers(database = getDb()) {
+  return database.select({
+    id: users.id, username: users.username, email: users.email,
+    fullName: users.fullName, status: users.status, lastLoginAt: users.lastLoginAt,
+    role: sql<string>`case when bool_or(${roles.code} = ${superAdminRoleCode}) then ${superAdminRoleCode} else min(${roles.code}) end`,
+  }).from(users)
+    .innerJoin(userRoles, eq(userRoles.userId, users.id))
+    .innerJoin(roles, eq(roles.id, userRoles.roleId))
+    .where(isNull(users.deletedAt))
+    .groupBy(users.id)
+    .orderBy(asc(users.username), asc(users.id));
+}
+export async function writeCmsUser(id: string | null, values: { username: string; email: string | null; fullName: string; role: string; status: "active" | "disabled"; passwordHash?: string }, actorId: string, database = getDb()) {
+  return database.transaction(async tx => {
+    // loadActorAccess khóa dòng role Super Admin: kiểm tra quyền, đếm admin và ghi không bị transaction khác chen vào.
+    const access = await loadActorAccess(tx, actorId);
+    requireActorPermission(access, id ? "users.update" : "users.create");
+    const [targetRole] = await tx.select({ id: roles.id }).from(roles).where(eq(roles.code, values.role)).limit(1);
+    if (!targetRole) throw accessErrors.roleNotFound();
+    const [before] = id ? await tx.select().from(users).where(and(eq(users.id, id), isNull(users.deletedAt))).for("update") : [];
+    if (id && !before) return undefined;
+    const beforeRoleIds = before ? (await tx.select({ roleId: userRoles.roleId }).from(userRoles).where(eq(userRoles.userId, before.id))).map(row => row.roleId) : [];
+    const wasSuperAdmin = beforeRoleIds.includes(access.superRoleId);
+    const roleChanged = !beforeRoleIds.includes(targetRole.id) || beforeRoleIds.length !== 1;
+    if (id === actorId && (roleChanged || values.status !== "active")) throw accessErrors.self();
+    if (!access.isSuperAdmin && (wasSuperAdmin || targetRole.id === access.superRoleId)) throw accessErrors.superAdminOnly();
+    if (roleChanged) assertCanGrant(access, await rolePermissionCodes(tx, targetRole.id));
+    // Đổi mật khẩu/email/trạng thái hay hạ role đều là nắm quyền của tài khoản đó, nên quyền hiện có của nó phải nằm trong quyền của người sửa.
+    if (!access.isSuperAdmin) {
+      for (const roleId of beforeRoleIds) {
+        if ((await rolePermissionCodes(tx, roleId)).some(code => !access.permissions.has(code))) throw accessErrors.outranked();
+      }
+    }
+    if (before?.status === "active" && wasSuperAdmin && (targetRole.id !== access.superRoleId || values.status !== "active")) {
+      const [count] = await tx.select({ total: sql<number>`count(*)::int` }).from(users)
+        .innerJoin(userRoles, eq(userRoles.userId, users.id))
+        .where(and(eq(users.status, "active"), isNull(users.deletedAt), eq(userRoles.roleId, access.superRoleId)));
+      assertActiveAdministratorRemains(true, false, count?.total ?? 0);
+    }
+    const { passwordHash, role, ...userValues } = values;
+    const [saved] = id
+      ? await tx.update(users).set({ ...userValues, ...(passwordHash ? { passwordHash } : {}), updatedAt: new Date() }).where(eq(users.id, id)).returning()
+      : await tx.insert(users).values({ ...userValues, passwordHash: passwordHash! }).returning();
+    await tx.delete(userRoles).where(eq(userRoles.userId, saved.id));
+    await tx.insert(userRoles).values({ userId: saved.id, roleId: targetRole.id });
+    // Đặt lại mật khẩu thường là phản ứng khi lộ mật khẩu: đăng xuất mọi phiên của tài khoản đó.
+    if (id && (values.status === "disabled" || passwordHash)) await tx.update(sessions).set({ revokedAt: new Date() }).where(and(eq(sessions.userId, id), sql`${sessions.revokedAt} is null`));
+    await tx.insert(auditLogs).values({ userId: actorId, action: id ? "user.update" : "user.create", entityType: "user", entityId: saved.id,
+      beforeData: userAuditSnapshot(before), afterData: { ...userAuditSnapshot(saved), role, passwordChanged: Boolean(passwordHash) } });
+    return saved.id;
+  });
+}
+
+// Xóa mềm: chỉ tài khoản đã khóa; ẩn khỏi CMS, bỏ vai trò, thu hồi mọi phiên. Nhật ký vẫn giữ tên người thực hiện
+// (dòng users còn nguyên), tên đăng nhập/email được nhả ra để tạo lại tài khoản mới nếu cần.
+export async function deleteCmsUser(id: string, actorId: string, database = getDb()) {
+  return database.transaction(async tx => {
+    const access = await loadActorAccess(tx, actorId);
+    requireActorPermission(access, "users.delete");
+    if (id === actorId) throw accessErrors.selfDelete();
+    const [before] = await tx.select().from(users).where(and(eq(users.id, id), isNull(users.deletedAt))).for("update");
+    if (!before) return undefined;
+    if (before.status !== "disabled") throw accessErrors.activeUserDelete();
+    const roleRows = await tx.select({ roleId: userRoles.roleId, code: roles.code }).from(userRoles).innerJoin(roles, eq(roles.id, userRoles.roleId)).where(eq(userRoles.userId, id));
+    if (!access.isSuperAdmin) {
+      if (roleRows.some(row => row.roleId === access.superRoleId)) throw accessErrors.superAdminOnly();
+      for (const row of roleRows) {
+        if ((await rolePermissionCodes(tx, row.roleId)).some(code => !access.permissions.has(code))) throw accessErrors.outranked();
+      }
+    }
+    const now = new Date();
+    await tx.update(users).set({ deletedAt: now, updatedAt: now }).where(eq(users.id, id));
+    await tx.delete(userRoles).where(eq(userRoles.userId, id));
+    await tx.update(sessions).set({ revokedAt: now }).where(and(eq(sessions.userId, id), isNull(sessions.revokedAt)));
+    await tx.insert(auditLogs).values({ userId: actorId, action: "user.delete", entityType: "user", entityId: id, beforeData: { ...userAuditSnapshot(before), role: roleRows.map(row => row.code).join(", ") } });
+    return id;
+  });
+}

@@ -1,11 +1,107 @@
-{$SITE_ADDRESS} {
-  encode zstd gzip
-
-  reverse_proxy publish-web:3000
+# Access log JSON (trạng thái, thời gian xử lý, IP, user agent) và một mã X-Request-Id cho mỗi request.
+# Mã này đi tiếp vào CMS/Backend để nối log; giá trị client tự gửi bị thay. Cookie/Authorization
+# được Caddy che sẵn; tham số "query" (từ khóa tìm kiếm, có thể là SĐT khách) và "token" (xem trước) bị bỏ khỏi URI.
+(observability) {
+	log {
+		output stdout
+		format filter {
+			wrap json
+			fields {
+				request>uri query {
+					delete query
+					# Token xem trước bản nháp: ai có log là mở được bản nháp trong 1 giờ.
+					delete token
+				}
+				# Mã thật nằm ở trường "uuid"; bỏ giá trị client tự gửi cho khỏi nhầm.
+				request>headers>X-Request-Id delete
+			}
+		}
+	}
+	request_header X-Request-Id {http.request.uuid}
+	header X-Request-Id {http.request.uuid}
 }
 
-{$CMS_SITE_ADDRESS} {
-  encode zstd gzip
+# Tiêu đề bảo mật dùng chung cho mọi tên miền.
+# - HSTS 1 năm: cố ý KHÔNG có includeSubDomains/preload vì tên miền con khác của công ty có thể chưa chạy HTTPS và preload không thu hồi được.
+# - Permissions-Policy: tắt các API thiết bị mà website và CMS không dùng.
+(security_headers) {
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+	}
+}
 
-  reverse_proxy cms:3000
+{$SITE_ADDRESS} {
+	@notBuilderPreview not path /cms-preview
+	header @notBuilderPreview X-Frame-Options "DENY"
+	header @notBuilderPreview Referrer-Policy "strict-origin-when-cross-origin"
+	@builderPreview path /cms-preview
+	header @builderPreview Referrer-Policy "no-referrer"
+	import observability
+	import security_headers
+	encode zstd gzip
+	header {
+		X-Content-Type-Options "nosniff"
+		# CSP nền, chỉ gồm directive không ảnh hưởng frame-ancestors của /cms-preview (Next tự đặt riêng): chặn <object>/<embed> và đổi <base>.
+		# Chưa có script-src vì CSP theo nonce buộc mọi trang render động (mất cache); nếu làm thì thử bằng Content-Security-Policy-Report-Only trước.
+		Content-Security-Policy "base-uri 'self'; object-src 'none'"
+	}
+
+	# Domain public chỉ nhận body nhỏ (biểu mẫu liên hệ, sự kiện thống kê); tải tệp lên chỉ có ở domain CMS.
+	request_body {
+		max_size 128KB
+	}
+
+	handle /api/internal/* {
+		respond "Not Found" 404
+	}
+
+	# Thống kê Umami qua cùng domain: chỉ mở script theo dõi và điểm nhận sự kiện,
+	# giao diện quản trị Umami nằm ở ANALYTICS_SITE_ADDRESS.
+	handle /stats/script.js {
+		rewrite * /script.js
+		reverse_proxy umami:3000
+	}
+
+	handle /stats/api/send {
+		rewrite * /api/send
+		reverse_proxy umami:3000
+	}
+
+	reverse_proxy website:3000
+}
+
+{$ADMIN_SITE_ADDRESS} {
+	import observability
+	import security_headers
+	encode zstd gzip
+	header {
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Content-Security-Policy "base-uri 'self'; object-src 'none'; form-action 'self'"
+	}
+
+	request_body /api/v1/admin/media {
+		max_size 21MB
+	}
+
+	handle /api/internal/* {
+		respond "Not Found" 404
+	}
+
+	reverse_proxy admin:3000
+}
+
+{$ANALYTICS_SITE_ADDRESS} {
+	import observability
+	import security_headers
+	encode zstd gzip
+	header {
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+	}
+
+	reverse_proxy umami:3000
 }

@@ -1,0 +1,59 @@
+import { z } from "zod";
+
+import type { CmsModuleKey } from "../auth/permissions";
+import type { ImportPlan, ImportResult } from "./transfer";
+
+// Bảng xuất/nhập được và module quyền của từng bảng (proxy Backend dùng để kiểm view / create|update).
+export const transferDatasetModules = {
+  equipment: "equipment",
+  "equipment-groups": "equipment",
+  "offerings-software": "offerings",
+  "offerings-solution": "offerings",
+  "offerings-service": "offerings",
+  posts: "posts",
+  guides: "posts",
+  categories: "taxonomy",
+  tags: "taxonomy",
+  partners: "supporting",
+  testimonials: "supporting",
+  redirects: "redirects",
+} as const satisfies Record<string, CmsModuleKey>;
+
+/** Bảng có thêm định dạng "word": gói .zip mỗi bài một file .docx. */
+export const wordExportDatasets = ["posts", "guides"] as const satisfies readonly TransferDatasetId[];
+
+export type TransferDatasetId = keyof typeof transferDatasetModules;
+export const transferDatasetSchema = z.enum(Object.keys(transferDatasetModules) as [TransferDatasetId, ...TransferDatasetId[]]);
+export const transferFormatSchema = z.enum(["xlsx", "csv", "word"]);
+/** Xuất riêng các mục đã chọn trong bảng (?ids=a,b,c); bỏ trống là xuất cả bảng. */
+export const exportIdsSchema = z.array(z.string().uuid()).min(1).max(200);
+
+/** Phiên bản từng dòng lúc xem trước (khóa dòng → version; null = dòng tạo mới), gửi lại khi áp dụng. Khóa dài nhất là đường dẫn cũ của chuyển hướng (500). */
+export const importExpectedSchema = z.record(z.string().max(500), z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER).nullable());
+export const importGroupsSchema = z.array(z.object({ name: z.string().min(1).max(180), slug: z.string().min(1).max(180), isEnabled: z.boolean() }).strict()).max(2000);
+
+export const importPlanSchema = z.object({
+  dataset: z.string(),
+  total: z.number().int().nonnegative(),
+  counts: z.object({ create: z.number().int().nonnegative(), update: z.number().int().nonnegative(), unchanged: z.number().int().nonnegative(), error: z.number().int().nonnegative() }),
+  fileErrors: z.array(z.string()),
+  ignoredHeaders: z.array(z.string()),
+  newGroups: importGroupsSchema.optional(),
+  rows: z.array(z.object({
+    row: z.number().int().positive(),
+    slug: z.string(),
+    label: z.string(),
+    action: z.enum(["create", "update", "unchanged", "error"]),
+    version: z.number().int().nonnegative().nullable(),
+    changes: z.array(z.object({ field: z.string(), header: z.string(), before: z.string(), after: z.string() })),
+    errors: z.array(z.string()),
+  })),
+}) satisfies z.ZodType<ImportPlan>;
+
+export const importResultSchema = z.object({
+  created: z.number().int().nonnegative(),
+  updated: z.number().int().nonnegative(),
+  unchanged: z.number().int().nonnegative(),
+  createdGroups: z.array(z.string()).optional(),
+  failed: z.object({ row: z.number().int().positive(), slug: z.string(), message: z.string() }).nullable(),
+}) satisfies z.ZodType<ImportResult>;
