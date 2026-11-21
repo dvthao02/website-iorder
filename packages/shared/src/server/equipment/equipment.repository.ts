@@ -40,7 +40,7 @@ function equipmentListCondition(query: EquipmentListQuery) {
     isNull(equipmentGroups.deletedAt),
     query.groupId ? eq(salesEquipment.groupId, query.groupId) : undefined,
     query.status ? eq(salesEquipment.status, query.status) : undefined,
-    keyword ? or(ilike(salesEquipment.name, keyword), ilike(salesEquipment.slug, keyword), ilike(salesEquipment.modelCode, keyword)) : undefined,
+    keyword ? or(ilike(salesEquipment.name, keyword), ilike(salesEquipment.slug, keyword), ilike(salesEquipment.modelCode, keyword), ilike(salesEquipment.brand, keyword)) : undefined,
   );
 }
 

@@ -127,7 +127,7 @@ export function articleJsonLd(siteUrl: string, input: { title: string; descripti
 }
 
 // Thiết bị bán kèm (có giá) là Product; phần mềm/giải pháp/dịch vụ là Service vì không có giá cố định công khai.
-export function productJsonLd(siteUrl: string, input: { name: string; description: string | null; path: string; imagePath: string | null; sku?: string | null; priceVnd?: number | null; brand: string; availability?: EquipmentAvailability | null }) {
+export function productJsonLd(siteUrl: string, input: { name: string; description: string | null; path: string; imagePath: string | null; sku?: string | null; priceVnd?: number | null; brand?: string | null; availability?: EquipmentAvailability | null }) {
   const url = absolute(siteUrl, input.path);
   return {
     "@context": "https://schema.org",
@@ -138,7 +138,8 @@ export function productJsonLd(siteUrl: string, input: { name: string; descriptio
     url,
     image: input.imagePath ? [absolute(siteUrl, input.imagePath)] : undefined,
     sku: input.sku ?? undefined,
-    brand: { "@type": "Brand", name: input.brand },
+    // Không đoán thương hiệu: thiết bị của hãng khác (Sunmi, Datamax…) khai là thương hiệu của iOrder là sai dữ liệu cấu trúc.
+    brand: input.brand ? { "@type": "Brand", name: input.brand } : undefined,
     offers: input.priceVnd ? { "@type": "Offer", priceCurrency: "VND", price: input.priceVnd, availability: equipmentAvailabilitySchemaOrg[input.availability ?? "in_stock"], itemCondition: "https://schema.org/NewCondition", url, seller: { "@id": organizationId(siteUrl) } } : undefined,
   };
 }

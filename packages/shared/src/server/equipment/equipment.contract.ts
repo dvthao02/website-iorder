@@ -25,7 +25,10 @@ export const equipmentAvailabilitySchema = z.enum(equipmentAvailabilityValues);
 export { equipmentAvailabilityLabels, equipmentAvailabilitySchemaOrg, equipmentAvailabilityValues, type EquipmentAvailability };
 export const equipmentInputSchema = z.object({
   groupId: z.string().uuid(), name: z.string().trim().min(1).max(220), slug,
-  modelCode: z.string().max(80).nullable(), coverMediaId: z.string().uuid().nullable(),
+  modelCode: z.string().max(80).nullable(),
+  // Thương hiệu (Product.brand). Không gửi thì giữ giá trị đã lưu; gửi chuỗi rỗng hoặc null thì xóa.
+  brand: z.string().trim().max(80).nullable().transform((value) => value || null).optional(),
+  coverMediaId: z.string().uuid().nullable(),
   priceVnd: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER),
   warrantyMonths: z.number().int().min(0).max(1200), summary: z.string().max(20000).nullable(),
   specificationGroups: z.array(z.object({ title: z.string().trim().min(1).max(180), items: z.array(z.object({ label: z.string().trim().min(1).max(180), value: z.string().trim().min(1).max(2000) }).strict()).max(100) }).strict()).max(50),

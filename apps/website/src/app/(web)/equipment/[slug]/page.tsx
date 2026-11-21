@@ -46,7 +46,7 @@ export default async function EquipmentDetail({ params }: Props) {
   const relatedDark = relatedFrame.tone === "dark";
   // Ảnh trượt thêm của phần đầu trang (CMS: Bố cục khối › Ảnh trượt thêm).
   const heroExtraImages = (await loadBlockImages(item.pageLayout?.hero?.extraMediaIds ?? [])).map(media => ({ url: media.url, alt: media.altText ?? item.name, width: media.width, height: media.height }));
-  return <><SiteHeader />{site ? <ContentJsonLd seo={item.seo} title={item.name} description={item.seoDescription || item.summary} path={`/thiet-bi/${item.slug}`} faq={faqItemsOfBlocks(item.blocks ?? [])} defaults={[productJsonLd(site, { name: item.name, description: item.seoDescription || item.summary, path: `/thiet-bi/${item.slug}`, imagePath: item.coverUrl ?? null, sku: item.modelCode, priceVnd: item.priceVnd, availability: item.availability, brand: profile?.companyName ?? "iOrder" }), breadcrumbJsonLd(site, [{ name: "Trang chủ", path: "/" }, { name: "Thiết bị", path: "/thiet-bi" }, { name: item.name, path: `/thiet-bi/${item.slug}` }])]} /> : null}
+  return <><SiteHeader />{site ? <ContentJsonLd seo={item.seo} title={item.name} description={item.seoDescription || item.summary} path={`/thiet-bi/${item.slug}`} faq={faqItemsOfBlocks(item.blocks ?? [])} defaults={[productJsonLd(site, { name: item.name, description: item.seoDescription || item.summary, path: `/thiet-bi/${item.slug}`, imagePath: item.coverUrl ?? null, sku: item.modelCode, priceVnd: item.priceVnd, availability: item.availability, brand: item.brand }), breadcrumbJsonLd(site, [{ name: "Trang chủ", path: "/" }, { name: "Thiết bị", path: "/thiet-bi" }, { name: item.name, path: `/thiet-bi/${item.slug}` }])]} /> : null}
     <main id="noi-dung">
       <BuilderAnchor active={inBuilder} index={-1}>
       <DetailHero extraImages={heroExtraImages} background={item.pageLayout?.hero?.background} height={item.pageLayout?.hero?.height} layout={item.pageLayout?.hero?.layout} appearance={item.pageLayout?.hero?.appearance} back={{ href: "/thiet-bi", label: "Tất cả thiết bị" }} image={item.coverUrl ? { url: item.coverUrl, alt: item.coverAlt ?? item.name } : null} imageStyle="product" label={item.groupName} primary={{ label: "Liên hệ mua hàng", href: "/lien-he" }} secondary={{ label: "Xem thiết bị khác", href: "/thiet-bi" }} summary={item.summary} title={item.name}>
@@ -56,6 +56,7 @@ export default async function EquipmentDetail({ params }: Props) {
         </div>
         <ul className="mt-5 flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted">
           {item.modelCode ? <li className="flex items-center gap-2" data-builder-field="modelCode"><BadgeCheck aria-hidden="true" className="text-brand-600" size={18} />Mã / quy cách: <strong className="font-semibold text-ink">{item.modelCode}</strong></li> : null}
+          {item.brand ? <li className="flex items-center gap-2" data-builder-field="brand"><BadgeCheck aria-hidden="true" className="text-brand-600" size={18} />Thương hiệu: <strong className="font-semibold text-ink">{item.brand}</strong></li> : null}
           <li className="flex items-center gap-2" data-builder-field="warrantyMonths"><ShieldCheck aria-hidden="true" className="text-accent-green" size={18} />Bảo hành <strong className="font-semibold text-ink">{item.warrantyMonths} tháng</strong></li>
         </ul>
       </DetailHero>

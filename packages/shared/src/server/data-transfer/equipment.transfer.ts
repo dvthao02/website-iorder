@@ -75,6 +75,7 @@ export function equipmentTransfer(actor?: CmsActor, services = { getEquipment, g
       field({ key: "name", header: "Tên thiết bị", width: 34, requiredOnCreate: true, get: (item) => item.name, format: (value) => value, parse: text(220, { required: true }) }),
       field({ key: "group", header: "Nhóm", width: 20, requiredOnCreate: true, get: (item) => item.groupName, format: (value: string | null) => value === null ? null : groupName(value), parse: text(180, { required: true }) }),
       field({ key: "modelCode", header: "Model", width: 16, get: (item) => item.modelCode, format: (value) => value, parse: text(80) }),
+      field({ key: "brand", header: "Thương hiệu", width: 18, get: (item) => item.brand, format: (value) => value, parse: text(80) }),
       field({ key: "priceVnd", header: "Giá (VNĐ)", width: 16, requiredOnCreate: true, get: (item) => item.priceVnd, format: (value) => value, parse: integer({ min: 0, max: Number.MAX_SAFE_INTEGER, unit: "VNĐ" }) }),
       field({ key: "warrantyMonths", header: "Bảo hành (tháng)", width: 16, get: (item) => item.warrantyMonths, format: (value) => value, parse: integer({ min: 0, max: 1200, unit: "tháng" }) }),
       field({ key: "summary", header: "Tóm tắt", width: 50, get: (item) => item.summary, format: (value) => value, parse: text(20_000) }),
@@ -101,7 +102,7 @@ export function equipmentTransfer(actor?: CmsActor, services = { getEquipment, g
       const errors: string[] = [];
       const base: EquipmentInput = existing
         ? pick<EquipmentInput>(existing, Object.keys(equipmentInputSchema.shape) as (keyof EquipmentInput)[])
-        : { groupId: "", name: "", slug: "", modelCode: null, coverMediaId: null, priceVnd: 0, warrantyMonths: 12, summary: null, specificationGroups: [], status: "draft", scheduledAt: null, sortOrder: 0, isFeatured: false, seoTitle: null, seoDescription: null, canonicalUrl: null };
+        : { groupId: "", name: "", slug: "", modelCode: null, brand: null, coverMediaId: null, priceVnd: 0, warrantyMonths: 12, summary: null, specificationGroups: [], status: "draft", scheduledAt: null, sortOrder: 0, isFeatured: false, seoTitle: null, seoDescription: null, canonicalUrl: null };
       const input: EquipmentInput = { ...base };
       if (typeof changes.slug === "string" && !existing) input.slug = changes.slug;
       if (typeof changes.name === "string") input.name = changes.name;
@@ -124,6 +125,7 @@ export function equipmentTransfer(actor?: CmsActor, services = { getEquipment, g
         else input.groupId = group.id;
       }
       if ("modelCode" in changes) input.modelCode = optional(changes.modelCode as string | null);
+      if ("brand" in changes) input.brand = optional(changes.brand as string | null);
       if (typeof changes.priceVnd === "number") input.priceVnd = changes.priceVnd;
       if (typeof changes.warrantyMonths === "number") input.warrantyMonths = changes.warrantyMonths;
       if ("summary" in changes) input.summary = optional(changes.summary as string | null);

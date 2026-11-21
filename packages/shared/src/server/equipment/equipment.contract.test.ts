@@ -105,3 +105,12 @@ test("Ở danh sách chỉ nhắc khi khác Còn hàng", () => {
   assert.equal(equipmentAvailabilityNotice("out_of_stock"), "Hết hàng");
   assert.equal(equipmentAvailabilityNotice("pre_order"), "Đặt trước");
 });
+
+test("Thương hiệu thiết bị: không gửi thì giữ nguyên, rỗng hoặc null thì xóa, có chữ thì cắt khoảng trắng", () => {
+  const base = { groupId: "11111111-1111-4111-8111-111111111111", name: "Máy POS", slug: "may-pos", modelCode: null, coverMediaId: null, priceVnd: 1000, warrantyMonths: 12, summary: null, specificationGroups: [], status: "draft", scheduledAt: null, sortOrder: 0, isFeatured: false, seoTitle: null, seoDescription: null, canonicalUrl: null };
+  assert.equal(equipmentInputSchema.parse(base).brand, undefined);
+  assert.equal(equipmentInputSchema.parse({ ...base, brand: null }).brand, null);
+  assert.equal(equipmentInputSchema.parse({ ...base, brand: "   " }).brand, null);
+  assert.equal(equipmentInputSchema.parse({ ...base, brand: "  Sunmi " }).brand, "Sunmi");
+  assert.equal(equipmentInputSchema.safeParse({ ...base, brand: "x".repeat(81) }).success, false);
+});

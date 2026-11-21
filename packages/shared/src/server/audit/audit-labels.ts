@@ -44,7 +44,7 @@ const fieldLabels: Record<string, string> = {
   canonicalUrl: "URL chuẩn", coverMediaId: "Ảnh bìa", mediaId: "Tệp", publishedAt: "Ngày xuất bản", scheduledAt: "Hẹn giờ",
   isEnabled: "Hiển thị", sortOrder: "Thứ tự", fullName: "Họ tên", username: "Tên đăng nhập", email: "Email",
   roleIds: "Vai trò", roles: "Vai trò", permissions: "Quyền", altText: "Mô tả ảnh", priceVnd: "Giá",
-  modelCode: "Mã model", groupId: "Nhóm", categoryIds: "Chuyên mục", tagIds: "Thẻ", sourcePath: "Đường dẫn cũ",
+  modelCode: "Mã model", brand: "Thương hiệu", groupId: "Nhóm", categoryIds: "Chuyên mục", tagIds: "Thẻ", sourcePath: "Đường dẫn cũ",
   destinationPath: "Đường dẫn mới", statusCode: "Mã chuyển hướng", items: "Danh sách mục", rows: "Số dòng",
   query: "Từ khóa", type: "Loại", description: "Mô tả", phone: "Điện thoại", address: "Địa chỉ", url: "Liên kết",
   passwordChanged: "Mật khẩu", role: "Vai trò", parentId: "Chuyên mục cha", facebook: "Facebook", youtube: "YouTube", zalo: "Zalo", tiktok: "TikTok",

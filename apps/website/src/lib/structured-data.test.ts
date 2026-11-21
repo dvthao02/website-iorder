@@ -140,3 +140,11 @@ test("Phần mềm là SoftwareApplication, có giá khi đọc được và kh�
   assert.equal("aggregateRating" in app, false);
   assert.equal(softwareApplicationJsonLd("https://iorder.vn", { name: "A", description: null, path: "/phan-mem/a", imagePath: null, publisherName: "iOrder" }).offers, undefined);
 });
+
+test("Product chỉ khai thương hiệu khi có dữ liệu, không đoán là thương hiệu của iOrder", () => {
+  const base = { name: "Máy POS Sunmi", description: null, path: "/thiet-bi/may-pos-sunmi", imagePath: null, priceVnd: 1000 };
+  assert.deepEqual(productJsonLd("https://iorder.vn", { ...base, brand: "Sunmi" }).brand, { "@type": "Brand", name: "Sunmi" });
+  assert.equal(productJsonLd("https://iorder.vn", { ...base, brand: null }).brand, undefined);
+  assert.equal(productJsonLd("https://iorder.vn", { ...base, brand: "" }).brand, undefined);
+  assert.equal(productJsonLd("https://iorder.vn", base).brand, undefined);
+});
