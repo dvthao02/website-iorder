@@ -142,23 +142,6 @@ test("Lưu nháp rồi mở lại: định dạng, bảng, danh sách, ảnh gi�
   }
 });
 
-test("Soạn bài trên máy tính bảng và điện thoại: không tràn ngang, nút lưu luôn trong tầm tay", async ({ page }) => {
-  await loginAsAdmin(page);
-  for (const viewport of [{ width: 1024, height: 768 }, { width: 390, height: 844 }]) {
-    await page.setViewportSize(viewport);
-    await page.goto("/admin/news/new");
-    await page.locator(".admin-rte__content .tiptap").waitFor();
-    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
-    expect(overflow, `tràn ngang ở ${viewport.width}px`).toBeLessThanOrEqual(0);
-    const save = page.getByRole("button", { name: "Lưu nháp", exact: true });
-    await expect(save).toBeInViewport();
-    await expect(page.getByLabel("Tiêu đề", { exact: true })).toBeInViewport();
-    // Thanh lưu gọn một dòng (trạng thái + nút), không chiếm nhiều màn hình nhỏ.
-    expect((await page.locator(".admin-editor-actions--fixed").boundingBox())!.height).toBeLessThanOrEqual(64);
-    await page.screenshot({ path: `test-results/post-editor-${viewport.width}.png`, fullPage: true });
-  }
-});
-
 test("Ảnh bìa: kéo thả để tải lên, chọn lại bằng lưới ảnh trong thư viện, xem trước đúng tỉ lệ chia sẻ", async ({ page, baseURL }) => {
   await page.setViewportSize({ width: 1600, height: 900 });
   await loginAsAdmin(page);

@@ -65,10 +65,9 @@ test("Tài khoản giới hạn chỉ thấy đúng thao tác được phép", a
     await expect(page.getByRole("heading", { name: /chưa được cấp quyền/ })).toBeVisible();
   }
 
-  // posts.update đủ để sửa trang danh sách /tin-tuc (quyền theo module sở hữu).
-  await page.goto("/admin/news");
-  await page.locator('summary[aria-label="Trang danh sách trên website"]').click();
-  await page.getByRole("link", { name: /^Sửa phần đầu trang & SEO/ }).click();
+  // posts.update đủ để sửa trang danh sách /tin-tuc (quyền theo module sở hữu): vào từ Trang website, dòng "Danh sách tự động".
+  await page.goto("/admin/pages?type=listing");
+  await page.locator(".admin-data-table tbody tr").filter({ has: page.getByRole("link", { name: "Bài viết & Tin tức" }) }).getByRole("link", { name: /^Chỉnh sửa trang/ }).click();
   await expect(page).toHaveURL(/\/admin\/pages\/[0-9a-f-]{36}$/);
   await expect(page.getByRole("button", { name: "Lưu thay đổi" })).toBeAttached();
   await expect(page.getByRole("button", { name: "Lưu thay đổi" })).not.toHaveAttribute("title", /không có quyền/);

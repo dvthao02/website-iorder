@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 import { loginAsAdmin } from "./helpers";
 
-// Thu gọn sidebar trên desktop: khung còn cột 60px, nhóm thành nút biểu tượng mở được danh sách con.
+// Thu gọn sidebar trên desktop: khung còn cột 60px, mục hiện thành biểu tượng (vẫn có tên truy cập) và mỗi nhóm vẫn gập/mở được.
 test("Thu gọn và mở lại thanh điều hướng trên desktop", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 800 });
   await loginAsAdmin(page);
@@ -13,8 +13,11 @@ test("Thu gọn và mở lại thanh điều hướng trên desktop", async ({ p
   await page.getByRole("button", { name: "Thu gọn thanh điều hướng" }).click();
   await expect(shell).toHaveClass(/(^|\s)admin-shell--collapsed(\s|$)/);
   await expect.poll(async () => Math.round((await sidebar.boundingBox())!.width)).toBe(60);
-  await expect(page.getByRole("link", { name: "Bài viết & Tin tức" })).toBeHidden();
+  // Thu gọn chỉ ẩn chữ: mục vẫn hiện dạng biểu tượng và gọi được theo tên.
+  await expect(page.getByRole("link", { name: "Bài viết & Tin tức" })).toBeVisible();
 
+  await page.getByRole("button", { name: "Gập nhóm Nội dung website" }).click();
+  await expect(page.getByRole("link", { name: "Bài viết & Tin tức" })).toBeHidden();
   await page.getByRole("button", { name: "Mở nhóm Nội dung website" }).click();
   await expect(page.getByRole("link", { name: "Bài viết & Tin tức" })).toBeVisible();
 
@@ -46,8 +49,9 @@ test("Sản phẩm & Dịch vụ một màn có tab loại; Chuyên mục & Th�
     await expect(page.locator(".admin-header-popover--menu").getByRole("link", { name: new RegExp(`^${label}`) })).toHaveAttribute("href", href);
   }
 
+  // Chuyên mục, Thẻ và Tác giả là tab của mục Bài viết & Tin tức (không có dòng riêng trên thanh bên).
   await page.goto("/admin/news");
-  await page.getByRole("link", { name: "Chuyên mục & Thẻ" }).click();
+  await page.getByRole("tab", { name: "Chuyên mục" }).click();
   await expect(page).toHaveURL(/\/admin\/taxonomy$/);
   await expect(sidebar.getByRole("link", { name: "Bài viết & Tin tức" })).toHaveAttribute("aria-current", "page");
   await expect(page.getByRole("navigation", { name: "Vị trí hiện tại" })).toContainText("Chuyên mục & Thẻ");
