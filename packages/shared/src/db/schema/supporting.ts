@@ -20,7 +20,7 @@ export const partners = pgTable(
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
     version: integer("version").default(0).notNull(), ...timestamps(),
   },
-  (table) => [uniqueIndex("partners_name_unique").on(table.name).where(sql`${table.deletedAt} is null`), index("partners_enabled_sort_index").on(table.isEnabled, table.sortOrder), index("partners_deleted_at_index").on(table.deletedAt)],
+  (table) => [index("partners_logo_media_id_index").on(table.logoMediaId), uniqueIndex("partners_name_unique").on(table.name).where(sql`${table.deletedAt} is null`), index("partners_enabled_sort_index").on(table.isEnabled, table.sortOrder), index("partners_deleted_at_index").on(table.deletedAt)],
 );
 
 export const testimonials = pgTable(
@@ -38,7 +38,7 @@ export const testimonials = pgTable(
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
     version: integer("version").default(0).notNull(), ...timestamps(),
   },
-  (table) => [index("testimonials_enabled_sort_index").on(table.isEnabled, table.sortOrder), index("testimonials_deleted_at_index").on(table.deletedAt)],
+  (table) => [index("testimonials_avatar_media_id_index").on(table.avatarMediaId), index("testimonials_enabled_sort_index").on(table.isEnabled, table.sortOrder), index("testimonials_deleted_at_index").on(table.deletedAt)],
 );
 
 export const supportDownloads = pgTable(
@@ -61,7 +61,7 @@ export const supportDownloads = pgTable(
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
     ...timestamps(),
   },
-  (table) => [index("support_downloads_enabled_sort_index").on(table.isEnabled, table.sortOrder), index("support_downloads_deleted_at_index").on(table.deletedAt)],
+  (table) => [index("support_downloads_file_media_id_index").on(table.fileMediaId), index("support_downloads_enabled_sort_index").on(table.isEnabled, table.sortOrder), index("support_downloads_deleted_at_index").on(table.deletedAt)],
 );
 
 export const supportDownloadRevisions = pgTable(
@@ -95,5 +95,5 @@ export const contactLeads = pgTable(
     handledAt: timestamp("handled_at", { withTimezone: true }),
     handledBy: uuid("handled_by").references(() => users.id, { onDelete: "set null" }),
   },
-  (table) => [index("contact_leads_status_created_index").on(table.status, table.createdAt), index("contact_leads_created_index").on(table.createdAt)],
+  (table) => [index("contact_leads_handled_by_index").on(table.handledBy), index("contact_leads_status_created_index").on(table.status, table.createdAt), index("contact_leads_created_index").on(table.createdAt)],
 );

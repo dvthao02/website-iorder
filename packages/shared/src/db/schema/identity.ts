@@ -24,6 +24,7 @@ export const users = pgTable(
     ...timestamps(),
   },
   (table) => [
+    index("users_avatar_media_id_index").on(table.avatarMediaId),
     // Tài khoản đã xóa nhả tên đăng nhập/email để tạo lại được.
     uniqueIndex("users_username_unique").on(table.username).where(sql`${table.deletedAt} is null`),
     uniqueIndex("users_email_unique").on(table.email).where(sql`${table.deletedAt} is null`),
@@ -62,7 +63,7 @@ export const userRoles = pgTable(
     userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
     roleId: uuid("role_id").notNull().references(() => roles.id, { onDelete: "cascade" }),
   },
-  (table) => [primaryKey({ columns: [table.userId, table.roleId] })],
+  (table) => [index("user_roles_role_id_index").on(table.roleId), primaryKey({ columns: [table.userId, table.roleId] })],
 );
 
 export const rolePermissions = pgTable(
@@ -71,7 +72,7 @@ export const rolePermissions = pgTable(
     roleId: uuid("role_id").notNull().references(() => roles.id, { onDelete: "cascade" }),
     permissionId: uuid("permission_id").notNull().references(() => permissions.id, { onDelete: "cascade" }),
   },
-  (table) => [primaryKey({ columns: [table.roleId, table.permissionId] })],
+  (table) => [index("role_permissions_permission_id_index").on(table.permissionId), primaryKey({ columns: [table.roleId, table.permissionId] })],
 );
 
 export const sessions = pgTable(

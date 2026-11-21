@@ -31,6 +31,7 @@ export const offerings = pgTable(
     ...timestamps(),
   },
   (table) => [
+    index("offerings_cover_media_id_index").on(table.coverMediaId),
     uniqueIndex("offerings_active_type_slug_unique").on(table.type, table.slug).where(sql`${table.deletedAt} is null`),
     index("offerings_type_status_sort_index").on(table.type, table.status, table.sortOrder),
   ],
@@ -64,6 +65,7 @@ export const equipmentGroups = pgTable(
     version: integer("version").default(0).notNull(), ...timestamps(),
   },
   (table) => [
+    index("equipment_groups_cover_media_id_index").on(table.coverMediaId),
     uniqueIndex("equipment_groups_active_slug_unique").on(table.slug).where(sql`${table.deletedAt} is null`),
     index("equipment_groups_enabled_sort_index").on(table.isEnabled, table.sortOrder),
   ],
@@ -77,6 +79,8 @@ export const salesEquipment = pgTable(
     name: varchar("name", { length: 220 }).notNull(),
     slug: varchar("slug", { length: 180 }).notNull(),
     modelCode: varchar("model_code", { length: 80 }),
+    // Thương hiệu hiển thị và khai trong dữ liệu cấu trúc (Product.brand). Để trống = không khai, thay vì đoán là thương hiệu của iOrder.
+    brand: varchar("brand", { length: 80 }),
     coverMediaId: uuid("cover_media_id").references(() => mediaAssets.id, { onDelete: "set null" }),
     priceVnd: bigint("price_vnd", { mode: "number" }).notNull(),
     warrantyMonths: integer("warranty_months").default(12).notNull(),
@@ -101,6 +105,7 @@ export const salesEquipment = pgTable(
     ...timestamps(),
   },
   (table) => [
+    index("sales_equipment_cover_media_id_index").on(table.coverMediaId),
     uniqueIndex("sales_equipment_active_slug_unique").on(table.slug).where(sql`${table.deletedAt} is null`),
     index("sales_equipment_group_status_sort_index").on(table.groupId, table.status, table.sortOrder),
   ],

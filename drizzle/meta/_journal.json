@@ -183,6 +183,20 @@
       "when": 1795069563642,
       "tag": "0025_secure_settings",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1795285022966,
+      "tag": "0026_equipment_brand",
+      "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1795285292098,
+      "tag": "0027_foreign_key_indexes",
+      "breakpoints": true
     }
   ]
 }

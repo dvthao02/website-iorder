@@ -22,7 +22,7 @@ export const postAuthors = pgTable(
     version: integer("version").default(0).notNull(),
     ...timestamps(),
   },
-  (table) => [uniqueIndex("post_authors_slug_unique").on(table.slug)],
+  (table) => [index("post_authors_avatar_media_id_index").on(table.avatarMediaId), uniqueIndex("post_authors_slug_unique").on(table.slug)],
 );
 
 export const posts = pgTable(
@@ -61,6 +61,9 @@ export const posts = pgTable(
     ...timestamps(),
   },
   (table) => [
+    index("posts_cover_media_id_index").on(table.coverMediaId),
+    index("posts_author_id_index").on(table.authorId),
+    index("posts_author_profile_id_index").on(table.authorProfileId),
     uniqueIndex("posts_active_slug_unique").on(table.slug).where(sql`${table.deletedAt} is null`),
     index("posts_status_published_at_index").on(table.status, table.publishedAt),
     index("posts_type_status_index").on(table.type, table.status),

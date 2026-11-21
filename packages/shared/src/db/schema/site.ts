@@ -29,6 +29,7 @@ export const menuItems = pgTable(
     ...timestamps(),
   },
   (table) => [
+    index("menu_items_parent_id_index").on(table.parentId),
     uniqueIndex("menu_items_position_unique").on(table.menuId, table.parentId, table.sortOrder),
     index("menu_items_menu_enabled_index").on(table.menuId, table.isEnabled),
     index("menu_items_content_reference_index").on(table.linkType, table.contentId),
