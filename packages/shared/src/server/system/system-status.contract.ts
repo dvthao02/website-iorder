@@ -42,7 +42,7 @@ export type SystemServer = SystemCheck & {
 export type SystemBackup = SystemCheck & { lastSuccessAt?: string; lastFailureAt?: string };
 
 /** Tác vụ định kỳ ghi lần chạy gần nhất vào site_settings (script gọi recordJobRun). */
-export const systemJobNames = ["login-throttles", "media-cleanup", "content-cleanup"] as const;
+export const systemJobNames = ["login-throttles", "session-cleanup", "media-cleanup", "content-cleanup"] as const;
 export type SystemJobName = (typeof systemJobNames)[number];
 
 /** Lần chạy gần nhất của một tác vụ (JSONB trong site_settings, key system.job.<tên>). */

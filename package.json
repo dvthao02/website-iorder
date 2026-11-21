@@ -50,6 +50,7 @@
     "gsc:check": "node --import tsx scripts/check-search-console.ts",
     "db:cleanup-media": "node --import tsx scripts/cleanup-deleted-media.ts",
     "db:cleanup-login-throttles": "node --import tsx scripts/cleanup-login-throttles.ts",
+    "db:cleanup-sessions": "node --import tsx scripts/cleanup-expired-sessions.ts",
     "db:cleanup-content": "node --import tsx scripts/cleanup-deleted-content.ts",
     "db:studio": "drizzle-kit studio",
     "db:seed:admin": "tsx scripts/seed-admin.ts",

@@ -20,9 +20,10 @@ const memoryWarnRatio = 0.07;
 const hourMilliseconds = 3_600_000;
 
 type JobDefinition = { label: string; schedule: string; staleAfterHours: number | null };
-/** Tần suất theo docs/PROJECT.md mục Vận hành: bucket đăng nhập hằng ngày; dọn media và thùng rác chạy tay (chưa lên lịch). */
+/** Tần suất theo docs/PROJECT.md mục Vận hành: bucket đăng nhập và phiên hết hạn hằng ngày; dọn media và thùng rác chạy tay (chưa lên lịch). */
 export const systemJobDefinitions: Record<SystemJobName, JobDefinition> = {
   "login-throttles": { label: "Dọn bucket đăng nhập hết hạn", schedule: "Hằng ngày (pnpm db:cleanup-login-throttles)", staleAfterHours: 36 },
+  "session-cleanup": { label: "Dọn phiên đăng nhập hết hạn", schedule: "Hằng ngày (pnpm db:cleanup-sessions)", staleAfterHours: 36 },
   "media-cleanup": { label: "Dọn media đã xóa", schedule: "Thủ công (pnpm db:cleanup-media)", staleAfterHours: null },
   "content-cleanup": { label: "Dọn thùng rác nội dung", schedule: "Thủ công (pnpm db:cleanup-content --apply)", staleAfterHours: null },
 };
