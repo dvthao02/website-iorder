@@ -1,7 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { backupSuccessSchema, parseBackupHistory, summarizeBackupStatus, type BackupFailure, type BackupRestoreEvent, type BackupSuccess } from "./backup-status";
+import { backupStampSchema, backupSuccessSchema, parseBackupHistory, summarizeBackupStatus, type BackupFailure, type BackupRestoreEvent, type BackupSuccess } from "./backup-status";
+
+test("Tên bản sao lưu chỉ nhận định dạng thời gian, không nhận đường dẫn", () => {
+  assert.equal(backupStampSchema.safeParse("20261104T023000Z").success, true);
+  for (const value of ["../20261104T023000Z", "20261104T023000Z/..", "", "2026-11-04", "20261104T023000Z.partial"]) {
+    assert.equal(backupStampSchema.safeParse(value).success, false);
+  }
+});
 
 const now = new Date("2026-11-04T10:00:00Z");
 const success = (finishedAt: string): BackupSuccess => ({ finishedAt, source: "vps", stamp: "20261104T023000Z", databaseBytes: 1024, verified: true, users: 3, mediaAssets: 10 });

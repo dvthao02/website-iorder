@@ -4,14 +4,17 @@
 #   powershell -ExecutionPolicy Bypass -File scripts/backup.ps1
 #   powershell -ExecutionPolicy Bypass -File scripts/backup.ps1 -BackupDir E:\iorder-backups -Keep 30
 #   -NoVerify  bo buoc thu khoi phuc      -NoMedia  chi sao luu database      -EnvFile  file .env khac
+#   -VerifyMedia  bam lai moi tep media tren dia de bat tep hong (cham hon, nen chay thi thoang)
+#   -Keep N  so ban database giu lai; khong dat thi lay so Super Admin chinh trong CMS (man Sao luu), mac dinh 14
 # Can container db (va storage neu sao luu media) dang chay: scripts/dev.ps1 bat chung.
 # Chu khong dau: Windows PowerShell 5.1 doc sai file .ps1 UTF-8 khong BOM.
 param(
   [string]$BackupDir = (Join-Path (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) "iorder-backups"),
   [string]$EnvFile = (Join-Path (Split-Path -Parent $PSScriptRoot) ".env"),
-  [int]$Keep = 14,
+  [int]$Keep = 0,
   [switch]$NoVerify,
-  [switch]$NoMedia
+  [switch]$NoMedia,
+  [switch]$VerifyMedia
 )
 
 # Khong dung "Stop": PowerShell 5.1 bien stderr cua lenh native (docker) thanh loi dung script.
@@ -20,7 +23,8 @@ $root = Split-Path -Parent $PSScriptRoot
 Set-Location $root
 # Chuoi dua vao stdin cua lenh native phai la UTF-8 (mac dinh PowerShell 5.1 la ASCII).
 $OutputEncoding = New-Object System.Text.UTF8Encoding $false
-$checkDb = "iorder_restore_check"
+$checkDb = "iorder_restore_check_$([Guid]::NewGuid().ToString('N'))"
+$tempDumpPrefix = "/tmp/iorder-backup-$([Guid]::NewGuid().ToString('N'))"
 $compose = @("compose", "--env-file", $EnvFile)
 
 function Write-Step($message) { Write-Host "==> $message" -ForegroundColor Cyan }
@@ -42,6 +46,15 @@ if (-not (Test-Path $EnvFile)) { Write-Host "Thieu file $EnvFile." -ForegroundCo
 & docker info *> $null
 if ($LASTEXITCODE -ne 0) { Write-Host "Docker chua chay. Bat bang: powershell -ExecutionPolicy Bypass -File scripts/dev.ps1" -ForegroundColor Red; exit 1 }
 if ((& docker @compose ps db --format "{{.Health}}") -ne "healthy") { Write-Host "Container db chua chay. Bat bang: powershell -ExecutionPolicy Bypass -File scripts/dev.ps1" -ForegroundColor Red; exit 1 }
+
+# So ban giu lai: -Keep neu dat; khong thi doc site_settings "system.backup.keep" (backup-retention.ts, khoang 3-60); thieu hoac sai thi 14.
+if ($Keep -le 0) {
+  $Keep = 14
+  try {
+    $stored = "$(Invoke-Db "psql -U `$POSTGRES_USER -d `$POSTGRES_DB -tA -c 'select value from site_settings where key = `$`$system.backup.keep`$`$'" "Khong doc duoc so ban giu lai.")".Trim()
+    if ($stored -match '^\d+$' -and [int]$stored -ge 3 -and [int]$stored -le 60) { $Keep = [int]$stored }
+  } catch { }
+}
 
 New-Item -ItemType Directory -Force (Join-Path $BackupDir "db"), (Join-Path $BackupDir "media") | Out-Null
 # Duong dan day du: CMS hien no trong huong dan phuc hoi.
@@ -67,8 +80,8 @@ try {
     $step = "dump database $name"
     Write-Step "Dump database $name"
     # Dump ra tep trong container roi docker cp: pipeline PowerShell 5.1 lam hong du lieu nhi phan.
-    Invoke-Db "pg_dump -U `$POSTGRES_USER -Fc --no-owner -f /tmp/iorder-backup-$name.dump $name && pg_restore --list /tmp/iorder-backup-$name.dump > /dev/null" "pg_dump $name loi." | Out-Null
-    & docker @compose cp "db:/tmp/iorder-backup-$name.dump" (Join-Path $partial "$name.dump")
+    Invoke-Db "pg_dump -U `$POSTGRES_USER -Fc --no-owner -f $tempDumpPrefix-$name.dump $name && pg_restore --list $tempDumpPrefix-$name.dump > /dev/null" "pg_dump $name loi." | Out-Null
+    & docker @compose cp "db:$tempDumpPrefix-$name.dump" (Join-Path $partial "$name.dump")
     if ($LASTEXITCODE -ne 0) { throw "Khong chep duoc ban dump $name ra may." }
   }
 
@@ -77,8 +90,10 @@ try {
     $step = "khoi phuc thu"
     $main = $databases[0]
     Write-Step "Thu khoi phuc $main vao database tam $checkDb"
+    # Neu trung ten, createdb that bai va khong duoc xoa database da co.
+    Invoke-Db "createdb -U `$POSTGRES_USER $checkDb" "Khong tao duoc database thu phuc hoi." | Out-Null
     try {
-      Invoke-Db "dropdb -U `$POSTGRES_USER --if-exists $checkDb && createdb -U `$POSTGRES_USER $checkDb && pg_restore -U `$POSTGRES_USER --no-owner --exit-on-error -d $checkDb /tmp/iorder-backup-$main.dump" "Khoi phuc thu that bai." | Out-Null
+      Invoke-Db "pg_restore -U `$POSTGRES_USER --no-owner --exit-on-error -d $checkDb $tempDumpPrefix-$main.dump" "Khoi phuc thu that bai." | Out-Null
       $counts = (Invoke-Db "psql -U `$POSTGRES_USER -d $checkDb -tA -F ' ' -c 'select (select count(*) from drizzle.__drizzle_migrations), (select count(*) from users u where to_jsonb(u)->>`$`$deleted_at`$`$ is null), (select count(*) from media_assets)'" "Khong dem duoc du lieu ban khoi phuc.") -split " "
       Write-Host "Khoi phuc thu: $($counts[0]) migration, $($counts[1]) tai khoan, $($counts[2]) media"
       if ([int]$counts[0] -eq 0 -or [int]$counts[1] -eq 0) { throw "Ban khoi phuc thu khong co du lieu." }
@@ -87,7 +102,7 @@ try {
       & docker @compose exec -T db sh -c "dropdb -U `$POSTGRES_USER --if-exists $checkDb" | Out-Null
     }
   }
-  & docker @compose exec -T db sh -c "rm -f /tmp/iorder-backup-*.dump" | Out-Null
+  foreach ($name in $databases) { & docker @compose exec -T db sh -c "rm -f $tempDumpPrefix-$name.dump" | Out-Null }
 
   $step = "tinh checksum"
   $dumps = Get-ChildItem $partial -Filter "*.dump"
@@ -100,13 +115,16 @@ try {
   if (-not $NoMedia) {
     $step = "sao luu media"
     Write-Step "Sao luu media vao $(Join-Path $BackupDir 'media')"
-    & node "--env-file=$EnvFile" scripts/backup-media.mjs backup (Join-Path $BackupDir "media")
+    $mediaArguments = @("--env-file=$EnvFile", "scripts/backup-media.mjs", "backup", (Join-Path $BackupDir "media"))
+    if ($VerifyMedia) { $mediaArguments += "--verify" }
+    & node @mediaArguments
     if ($LASTEXITCODE -ne 0) { throw "Sao luu media loi (storage co dang chay?)." }
   }
 
   # Giu $Keep ban database moi nhat; media chi them, khong xoa. Tep khac trong $BackupDir khong bi dung toi.
   $step = "xoa ban cu"
-  $old = @(Get-ChildItem (Join-Path $BackupDir "db") -Directory | Where-Object { $_.Name -notlike "*.partial" } | Sort-Object Name | Select-Object -SkipLast $Keep)
+  # Chi thu muc dung dang ma thoi gian (20261122T100000Z): ban chep tay ten la va ban dang do khong bi tinh hay bi xoa.
+  $old = @(Get-ChildItem (Join-Path $BackupDir "db") -Directory | Where-Object { $_.Name -match '^\d{8}T\d{6}Z$' } | Sort-Object Name | Select-Object -SkipLast $Keep)
   $old | Remove-Item -Recurse -Force
 
   $step = "ghi trang thai"

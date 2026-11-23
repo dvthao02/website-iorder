@@ -2,9 +2,13 @@ import { eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { getDb } from "@iorder/shared/db/client";
-import { siteSettings } from "@iorder/shared/db/schema";
+import { auditLogs, siteSettings } from "@iorder/shared/db/schema";
 
 import { parseStoredSetting } from "../settings/stored-setting";
+import { backupKeepKey, backupKeepMax, backupKeepMin, getBackupKeep } from "./backup-retention";
+
+// Tên thư mục bản sao lưu do hai script và CMS tạo; không nhận đường dẫn do client cung cấp.
+export const backupStampSchema = z.string().regex(/^\d{8}T\d{6}Z$/);
 
 // scripts/backup.sh (VPS) và scripts/backup.ps1 (Windows) ghi hai khóa này vào site_settings sau mỗi lần chạy;
 // nút "Sao lưu ngay"/"Phục hồi" trong CMS (local-ops.ts) ghi trực tiếp bằng Drizzle. Đổi cấu trúc ở đây thì sửa cả hai script.
@@ -107,10 +111,26 @@ export async function getBackupStatus(now = new Date()): Promise<BackupStatus> {
   return statusFrom(await readBackupSettings([backupSuccessKey, backupFailureKey]), now);
 }
 
-/** Trang "Sao lưu & phục hồi": trạng thái + lịch sử 30 lần gần nhất. */
-export async function getBackupOverview(now = new Date()): Promise<{ status: BackupStatus; history: BackupHistoryEntry[] }> {
-  const values = await readBackupSettings([backupSuccessKey, backupFailureKey, backupHistoryKey]);
-  return { status: statusFrom(values, now), history: parseBackupHistory(values.get(backupHistoryKey)) };
+export type BackupKeepSetting = { value: number; version: number; min: number; max: number };
+
+/** Trang "Sao lưu & phục hồi": trạng thái, lịch sử 30 lần gần nhất và số bản database giữ lại. */
+export async function getBackupOverview(now = new Date()): Promise<{ status: BackupStatus; history: BackupHistoryEntry[]; keep: BackupKeepSetting }> {
+  const [values, keep] = await Promise.all([readBackupSettings([backupSuccessKey, backupFailureKey, backupHistoryKey]), getBackupKeep()]);
+  return { status: statusFrom(values, now), history: parseBackupHistory(values.get(backupHistoryKey)), keep: { value: keep.keep, version: keep.version, min: backupKeepMin, max: backupKeepMax } };
+}
+
+/**
+ * Xóa lịch sử 30 lần gần nhất ở màn Sao lưu. Chỉ xóa danh sách: "lần sao lưu thành công/lỗi gần nhất" (cho thẻ
+ * Tình trạng và cảnh báo quá hạn) giữ nguyên, và việc xóa được ghi vào Nhật ký hoạt động. Trả về số dòng đã xóa.
+ */
+export async function clearBackupHistory(userId: string): Promise<number> {
+  return getDb().transaction(async (tx) => {
+    const [row] = await tx.select({ value: siteSettings.value }).from(siteSettings).where(eq(siteSettings.key, backupHistoryKey)).for("update");
+    const cleared = Array.isArray(row?.value) ? row.value.length : 0;
+    if (row) await tx.update(siteSettings).set({ value: [], updatedAt: new Date(), version: sql`${siteSettings.version} + 1` }).where(eq(siteSettings.key, backupHistoryKey));
+    await tx.insert(auditLogs).values({ userId, action: "backup.history_clear", entityType: "backup", entityId: null, afterData: { cleared } });
+    return cleared;
+  });
 }
 
 async function prependHistory(tx: Parameters<Parameters<ReturnType<typeof getDb>["transaction"]>[0]>[0], value: unknown) {
@@ -144,18 +164,21 @@ export async function recordBackupRestoreEvent(entry: Omit<BackupRestoreEvent, "
 
 export type BackupBookkeepingSnapshot = { key: string; value: unknown; description: string | null }[];
 
-// Ba khóa ghi chép (success/failure/history) nằm trong CHÍNH database bị phục hồi: pg_restore sẽ viết đè
-// chúng về đúng như lúc tạo bản sao lưu đang phục hồi, "xóa" mất mọi lần sao lưu/phục hồi ghi sau đó. Chụp
-// lại trước khi đụng tới database thật, rồi ghi đè lại sau khi phục hồi xong để lịch sử không bị lùi về quá khứ.
+// Các khóa ghi chép (success/failure/history) và cấu hình sao lưu (số bản giữ lại) nằm trong CHÍNH database bị phục
+// hồi: pg_restore sẽ viết đè chúng về đúng như lúc tạo bản sao lưu đang phục hồi, "xóa" mất mọi lần sao lưu/phục hồi
+// ghi sau đó và đưa cấu hình về giá trị cũ. Chụp lại trước khi đụng tới database thật, rồi ghi đè lại sau khi phục hồi
+// xong để lịch sử không bị lùi về quá khứ và số bản giữ lại không tự đổi.
+const bookkeepingKeys = [backupSuccessKey, backupFailureKey, backupHistoryKey, backupKeepKey];
+
 export async function snapshotBackupBookkeeping(): Promise<BackupBookkeepingSnapshot> {
   return getDb().select({ key: siteSettings.key, value: siteSettings.value, description: siteSettings.description }).from(siteSettings)
-    .where(inArray(siteSettings.key, [backupSuccessKey, backupFailureKey, backupHistoryKey]));
+    .where(inArray(siteSettings.key, bookkeepingKeys));
 }
 
 export async function restoreBackupBookkeeping(snapshot: BackupBookkeepingSnapshot) {
   const byKey = new Map(snapshot.map((row) => [row.key, row]));
   await getDb().transaction(async (tx) => {
-    for (const key of [backupSuccessKey, backupFailureKey, backupHistoryKey]) {
+    for (const key of bookkeepingKeys) {
       const row = byKey.get(key);
       if (!row) { await tx.delete(siteSettings).where(eq(siteSettings.key, key)); continue; }
       await tx.insert(siteSettings).values({ key, value: row.value, description: row.description })
