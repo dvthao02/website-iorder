@@ -1,11 +1,13 @@
 import { z } from "zod";
 import { adminListQuerySchema, listDateSchema } from "../shared/admin-list.contract";
 
+// Nhóm thao tác theo động từ cuối mã (post.create → create; user.login_failed → login_failed).
+export const auditVerbs = ["create", "update", "delete", "archive", "restore", "status_update", "upload", "export", "login", "login_failed", "logout", "password_change"] as const;
+
 export const auditListQuerySchema = adminListQuerySchema.extend({
   entityType: z.string().trim().max(100).default(""),
   userId: z.string().uuid().optional().catch(undefined),
-  // Nhóm thao tác theo động từ cuối mã (post.create → create; user.login_failed → login_failed).
-  verb: z.enum(["create", "update", "delete", "archive", "restore", "status_update", "upload", "export", "login", "login_failed", "logout", "password_change"]).optional().catch(undefined),
+  verb: z.enum(auditVerbs).optional().catch(undefined),
   from: listDateSchema,
   to: listDateSchema,
 });
@@ -27,3 +29,28 @@ export const auditListPageSchema = z.object({
     ctx.addIssue({ code: "custom", message: "Phản hồi phân trang nhật ký không nhất quán." });
   }
 });
+
+// --- Dọn nhật ký (chỉ Super Admin) ---
+// Bộ lọc khi xóa theo bộ lọc: nghiêm ngặt, KHÔNG như bộ lọc xem danh sách (ở đó giá trị sai bị bỏ qua cho dễ dùng, còn khi xóa
+// một giá trị sai bị bỏ qua sẽ làm phạm vi xóa rộng hơn người dùng thấy).
+const purgeDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine((value) => !Number.isNaN(Date.parse(`${value}T00:00:00+07:00`)));
+export const auditPurgeFilterSchema = z.object({
+  query: z.string().trim().max(160).default(""),
+  entityType: z.string().trim().max(100).default(""),
+  userId: z.string().uuid().optional(),
+  verb: z.enum(auditVerbs).optional(),
+  from: purgeDate.optional(),
+  to: purgeDate.optional(),
+}).strict().refine((filter) => Boolean(filter.query || filter.entityType || filter.userId || filter.verb || filter.from || filter.to), { message: "Bộ lọc rỗng: muốn xóa toàn bộ nhật ký, chọn \"toàn bộ\"." });
+export type AuditPurgeFilter = z.infer<typeof auditPurgeFilterSchema>;
+
+export const auditPurgeDays = [30, 90, 180, 365] as const;
+const dryRun = z.boolean().default(false);
+// dryRun: chỉ đếm số dòng sẽ bị xóa (để hộp xác nhận cho biết trước), không xóa gì.
+export const auditPurgeRequestSchema = z.discriminatedUnion("mode", [
+  z.object({ mode: z.literal("selected"), ids: z.array(z.string().uuid()).min(1).max(200), dryRun }).strict(),
+  z.object({ mode: z.literal("filtered"), filter: auditPurgeFilterSchema, dryRun }).strict(),
+  z.object({ mode: z.literal("older_than"), days: z.union([z.literal(30), z.literal(90), z.literal(180), z.literal(365)]), dryRun }).strict(),
+  z.object({ mode: z.literal("all"), dryRun }).strict(),
+]);
+export type AuditPurgeRequest = z.infer<typeof auditPurgeRequestSchema>;

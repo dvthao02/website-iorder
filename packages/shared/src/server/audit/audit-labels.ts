@@ -4,21 +4,23 @@ export const auditEntityLabels: Record<string, string> = {
   partner: "Đối tác", testimonial: "Đánh giá", support_download: "Tệp hỗ trợ",
   contact_lead: "Liên hệ khách hàng", user: "Tài khoản", menu: "Menu điều hướng",
   category: "Chuyên mục", tag: "Thẻ", author: "Tác giả", redirect: "Chuyển hướng",
-  site_setting: "Cấu hình website", site_profile: "Thông tin doanh nghiệp", backup: "Sao lưu & phục hồi",
+  site_setting: "Cấu hình website", site_profile: "Thông tin doanh nghiệp", backup: "Sao lưu & phục hồi", audit: "Nhật ký hoạt động",
 };
 const actionSubjects: Record<string, string> = {
   ...auditEntityLabels, lead: "Liên hệ khách hàng", navigation: "Menu điều hướng",
   profile: "Thông tin doanh nghiệp", publishing_config: "SEO và xuất bản",
-  external_links: "Liên kết ngoài", consult_popup: "Cửa sổ tư vấn", catalog_content: "Nội dung danh mục", listing_content: "Nội dung trang danh sách",
+  external_links: "Liên kết ngoài", consult_popup: "Cửa sổ tư vấn", consult_form: "Biểu mẫu tư vấn", promotion_popup: "Quảng cáo", catalog_content: "Nội dung danh mục", listing_content: "Nội dung trang danh sách",
 };
 const verbs: Record<string, string> = {
   create: "Tạo", update: "Cập nhật", delete: "Xóa", archive: "Lưu trữ", restore: "Khôi phục",
   upload: "Tải lên", delete_queue: "Đưa vào hàng đợi xóa", status_update: "Cập nhật trạng thái", password_change: "Đổi mật khẩu", export: "Xuất dữ liệu",
+  rewrite_links: "Cập nhật liên kết",
 };
 // Thao tác tự nói đủ nghĩa, không cần ghép "· Tài khoản".
 const actionOverrides: Record<string, string> = {
   "user.login": "Đăng nhập", "user.login_failed": "Đăng nhập thất bại (sai mật khẩu)", "user.logout": "Đăng xuất",
-  "backup.run": "Chạy sao lưu", "backup.restore": "Phục hồi dữ liệu",
+  "backup.run": "Chạy sao lưu", "backup.restore": "Phục hồi dữ liệu", "backup.delete": "Xóa bản sao lưu", "backup.export": "Tải bản sao lưu về",
+  "backup.history_clear": "Xóa lịch sử sao lưu", "audit.purge": "Xóa nhật ký hoạt động", "backup.keep_update": "Đổi số bản sao lưu giữ lại",
 };
 export function auditEntityLabel(code: string) {
   return Object.hasOwn(auditEntityLabels, code) ? auditEntityLabels[code] : code;
@@ -57,6 +59,7 @@ const fieldLabels: Record<string, string> = {
   workingHours: "Giờ làm việc", siteUrl: "Địa chỉ website", defaultTitle: "Tiêu đề mặc định", defaultDescription: "Mô tả mặc định",
   allowSearchIndexing: "Cho phép tìm kiếm", defaultOgMediaId: "Ảnh chia sẻ mặc định", originalName: "Tên tệp", caption: "Chú thích", mimeType: "Loại tệp",
   stamp: "Bản sao lưu", databaseBytes: "Dung lượng", fromStamp: "Phục hồi từ bản", preBackupStamp: "Bản sao lưu an toàn",
+  scope: "Phạm vi xóa", deleted: "Số dòng đã xóa", cleared: "Số dòng đã xóa", keepDays: "Giữ lại (ngày)", cutoff: "Xóa các dòng trước", filter: "Bộ lọc", selectedCount: "Số dòng đã chọn",
 };
 // Trường kỹ thuật thay đổi ở mọi lần lưu, không giúp người đọc nhật ký.
 const technicalFields = new Set(["version", "updatedAt", "updatedBy", "createdAt", "id", "draftVersion"]);

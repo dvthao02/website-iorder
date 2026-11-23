@@ -26,8 +26,8 @@ export function rateLimitFor(rawPathname: string, method: string): RouteRateLimi
     const [resource, second, third] = pathname.slice(adminPrefix.length).split("/");
     // Chặn dò mật khẩu hàng loạt trước khi tới quota PostgreSQL (mỗi lần thử tốn một lần ghi DB và một lần băm scrypt).
     if (resource === "session" && verb === "POST") return perMinute("login", 20);
-    // Đổi mật khẩu/ảnh đại diện, khóa API, sao lưu & phục hồi: hiếm khi dùng, thao tác nặng hoặc nhạy cảm.
-    if ((resource === "account" || resource === "secrets" || resource === "backup") && write) return perMinute("sensitive", 20);
+    // Đổi mật khẩu/ảnh đại diện, khóa API, sao lưu & phục hồi, dọn nhật ký: hiếm khi dùng, thao tác nặng hoặc nhạy cảm.
+    if ((resource === "account" || resource === "secrets" || resource === "backup" || resource === "audit") && write) return perMinute("sensitive", 20);
     // Tác vụ tốn CPU/băng thông: tải tệp từ link ngoài, nhập Word, nhập/xuất bảng, kiểm tra SEO.
     if ((resource === "media" && second === "import-url") || (resource === "posts" && third === "word")
       || resource === "data-transfer" || (resource === "leads" && second === "export") || resource === "seo-audit") return perMinute("heavy", 20);

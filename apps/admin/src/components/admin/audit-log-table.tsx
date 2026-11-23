@@ -1,8 +1,14 @@
 "use client";
 
+import { Trash2 } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 
 import { summarizeUserAgent } from "@iorder/shared/server/shared/user-agent";
+import { AuditLogPurgeDialog, type AuditPurgeFilter } from "@/components/admin/audit-log-purge";
+import { AdminBulkBar } from "@/components/admin/ui/admin-bulk-bar";
+import { AdminButton } from "@/components/admin/ui/admin-button";
+import { useRowSelection } from "@/components/admin/ui/content-bulk-bar";
 import { AdminDataTable, type AdminDataTableColumn } from "@/components/admin/ui/admin-data-table";
 import { AdminSidePanel } from "@/components/admin/ui/admin-side-panel";
 import { useListNavigation } from "@/components/admin/ui/use-list-navigation";
@@ -55,9 +61,14 @@ function AuditLogDetail({ entry }: { entry: AuditLogEntry }) {
   </dl>;
 }
 
-export function AuditLogTable({ entries, emptyMessage = "Chưa có thao tác nào được ghi nhận." }: { entries: AuditLogEntry[]; emptyMessage?: string }) {
+/** canManage (Super Admin): chọn dòng để xóa; filter là bộ lọc đang áp dụng (null nếu không lọc) cho lựa chọn "xóa theo bộ lọc". */
+export function AuditLogTable({ canManage = false, entries, emptyMessage = "Chưa có thao tác nào được ghi nhận.", filter = null }: { canManage?: boolean; entries: AuditLogEntry[]; emptyMessage?: string; filter?: AuditPurgeFilter | null }) {
+  const router = useRouter();
   const [selected, setSelected] = useState<AuditLogEntry | null>(null);
+  const [purging, setPurging] = useState(false);
   const { setSort, sort } = useListNavigation();
+  // Dòng đã chọn tự bỏ khi đổi trang/bộ lọc/sắp xếp (URL đổi).
+  const selection = useRowSelection(useSearchParams().toString());
   const columns = useMemo<AdminDataTableColumn<AuditLogEntry>[]>(() => [
     { id: "createdAt", label: "Thời điểm", defaultWidth: 150, minWidth: 140, sortKey: "createdAt", sortFirst: "desc", cell: (entry) => <span className="whitespace-nowrap text-[var(--cms-muted)]">{formatter.format(new Date(entry.createdAt))}</span> },
     { id: "user", label: "Người thực hiện", defaultWidth: 160, minWidth: 120, sortKey: "user", cell: (entry) => <span>{entry.userName ?? entry.userUsername ?? "Hệ thống"}</span> },
@@ -71,7 +82,11 @@ export function AuditLogTable({ entries, emptyMessage = "Chưa có thao tác nà
   ], []);
 
   return <>
-    <AdminDataTable columns={columns} emptyMessage={emptyMessage} getRowId={(entry) => entry.id} onRowClick={setSelected} onSortChange={setSort} rows={entries} sort={sort} tableId="audit-log" />
+    {canManage ? <AdminBulkBar count={selection.selectedIds.length} onClear={selection.clear}>
+      <AdminButton disabled={!selection.selectedIds.length} leadingIcon={<Trash2 aria-hidden="true" size={16} />} onClick={() => setPurging(true)} variant="secondary">Xóa các dòng đã chọn</AdminButton>
+    </AdminBulkBar> : null}
+    <AdminDataTable columns={columns} emptyMessage={emptyMessage} getRowId={(entry) => entry.id} getRowLabel={(entry) => `${auditActionLabel(entry.action)} lúc ${formatter.format(new Date(entry.createdAt))}`} onRowClick={setSelected} onSelectionChange={canManage ? selection.setSelectedIds : undefined} onSortChange={setSort} rows={entries} selectedIds={canManage ? selection.selectedIds : undefined} sort={sort} tableId="audit-log" />
+    {purging ? <AuditLogPurgeDialog filter={filter} onClose={() => setPurging(false)} onDone={() => { setPurging(false); selection.clear(); router.refresh(); }} selectedIds={selection.selectedIds} /> : null}
     <AdminSidePanel isOpen={selected !== null} label="Chi tiết thao tác" onClose={() => setSelected(null)}>
       {selected ? <>
         <header className="admin-list-manager__panel-header">

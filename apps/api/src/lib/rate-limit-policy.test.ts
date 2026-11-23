@@ -14,6 +14,8 @@ test("Nhóm hạn mức theo đường dẫn và phương thức", () => {
   assert.equal(group("/api/v1/admin/account/avatar", "DELETE"), "sensitive");
   assert.equal(group("/api/v1/admin/secrets", "PUT"), "sensitive");
   assert.equal(group("/api/v1/admin/backup", "POST"), "sensitive");
+  assert.equal(group("/api/v1/admin/audit", "POST"), "sensitive");
+  assert.equal(group("/api/v1/admin/audit", "GET"), "admin-read");
   assert.equal(group("/api/v1/admin/backup", "GET"), "admin-read");
   assert.equal(group("/api/v1/admin/media", "POST"), "upload");
   assert.equal(group("/api/v1/admin/media", "GET"), "admin-read");

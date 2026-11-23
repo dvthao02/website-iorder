@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { auditListPageSchema, auditListQuerySchema } from "./audit.contract";
+import { auditListPageSchema, auditListQuerySchema, auditPurgeRequestSchema } from "./audit.contract";
 
 test("Bộ lọc nhật ký chuẩn hóa khi parse và từ chối giới hạn/trường sai", () => {
   assert.deepEqual(auditListQuerySchema.parse({}), { page: 1, pageSize: 25, query: "", entityType: "" });
@@ -22,4 +22,30 @@ test("Nhãn đăng nhập/đăng xuất và trường thay đổi bỏ trường
   assert.equal(auditActionLabel("user.login_failed"), "Đăng nhập thất bại (sai mật khẩu)");
   assert.ok(auditLabelSearchCodes("đăng xuất").actions.includes("user.logout"));
   assert.deepEqual(auditFieldLabels(["title", "version", "updatedAt", "customField"]), ["Tiêu đề", "customField"]);
+});
+
+const id = "12345678-1234-4234-8234-123456789abc";
+test("Yêu cầu dọn nhật ký: bốn phạm vi, mặc định không phải dryRun, từ chối trường lạ", () => {
+  assert.deepEqual(auditPurgeRequestSchema.parse({ mode: "all" }), { mode: "all", dryRun: false });
+  assert.deepEqual(auditPurgeRequestSchema.parse({ mode: "older_than", days: 90, dryRun: true }), { mode: "older_than", days: 90, dryRun: true });
+  assert.deepEqual(auditPurgeRequestSchema.parse({ mode: "selected", ids: [id] }), { mode: "selected", ids: [id], dryRun: false });
+  for (const value of [{}, { mode: "everything" }, { mode: "all", days: 30 }, { mode: "all", extra: 1 }, { mode: "older_than" }, { mode: "older_than", days: 15 }, { mode: "older_than", days: "30" }, { mode: "all", dryRun: "yes" }]) {
+    assert.equal(auditPurgeRequestSchema.safeParse(value).success, false, JSON.stringify(value));
+  }
+});
+
+test("Xóa các dòng đã chọn: 1–200 mã hợp lệ", () => {
+  assert.equal(auditPurgeRequestSchema.safeParse({ mode: "selected", ids: [] }).success, false);
+  assert.equal(auditPurgeRequestSchema.safeParse({ mode: "selected", ids: ["không-phải-uuid"] }).success, false);
+  assert.equal(auditPurgeRequestSchema.safeParse({ mode: "selected", ids: Array.from({ length: 201 }, () => id) }).success, false);
+  assert.equal(auditPurgeRequestSchema.safeParse({ mode: "selected", ids: Array.from({ length: 200 }, () => id) }).success, true);
+});
+
+test("Xóa theo bộ lọc: bộ lọc phải có ít nhất một điều kiện và nghiêm ngặt (giá trị sai không bị bỏ qua làm rộng phạm vi xóa)", () => {
+  assert.equal(auditPurgeRequestSchema.safeParse({ mode: "filtered", filter: {} }).success, false, "bộ lọc rỗng = xóa hết: phải chọn toàn bộ");
+  assert.equal(auditPurgeRequestSchema.safeParse({ mode: "filtered", filter: { query: "   " } }).success, false, "chỉ khoảng trắng cũng là rỗng");
+  assert.equal(auditPurgeRequestSchema.safeParse({ mode: "filtered", filter: { verb: "create", from: "2026-11-01", to: "2026-11-30" } }).success, true);
+  for (const filter of [{ verb: "khong-co" }, { from: "01/11/2026" }, { from: "2026-13-45" }, { userId: "abc" }, { query: "x".repeat(161) }, { verb: "create", page: 2 }]) {
+    assert.equal(auditPurgeRequestSchema.safeParse({ mode: "filtered", filter }).success, false, JSON.stringify(filter));
+  }
 });
