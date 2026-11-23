@@ -1,21 +1,40 @@
 // Logo mạng xã hội đúng màu thương hiệu, vẽ bằng SVG nội tuyến (không thêm thư viện, không tải ảnh ngoài).
 // Dùng cho nút liên hệ nổi và chân trang; nhãn đọc màn hình đặt ở thẻ <a> bao ngoài nên icon ẩn với trình đọc.
 
+import { useId } from "react";
+
 type IconProps = { size?: number; className?: string };
 
+// Logo Zalo chính thức: nền xanh bo góc, bong bóng thoại trắng có đuôi ở góc dưới trái, bóng xanh đậm phía dưới, chữ "Zalo" xanh.
+// Vẽ trong hệ tọa độ 800×800 và cắt theo khung bo góc để bong bóng ăn sát mép trên/phải như bản gốc.
 export function ZaloIcon({ size = 24, className }: IconProps) {
-  return <svg aria-hidden="true" className={className} height={size} viewBox="0 0 24 24" width={size} xmlns="http://www.w3.org/2000/svg">
-    <rect fill="#0068FF" height="24" rx="6" width="24" />
-    <ellipse cx="12.2" cy="11" fill="#fff" rx="9.2" ry="7.4" />
-    <path d="M5.4 15.4c-.3 1.6-1 2.9-1.9 3.7 1.8.2 3.8-.4 5.2-1.4Z" fill="#fff" />
-    <text fill="#0068FF" fontFamily="Arial, Helvetica, sans-serif" fontSize="6.8" fontWeight="800" letterSpacing="-.25" textAnchor="middle" x="12.3" y="13.4">Zalo</text>
+  const clipId = useId();
+  return <svg aria-hidden="true" className={className} height={size} viewBox="0 0 800 800" width={size} xmlns="http://www.w3.org/2000/svg">
+    <defs><clipPath id={clipId}><rect height="800" rx="190" width="800" /></clipPath></defs>
+    <g clipPath={`url(#${clipId})`}>
+      <rect fill="#0068FF" height="800" width="800" />
+      <path d="M125 655 265 800H800V592C650 735 400 745 232 640 205 652 160 660 125 655Z" fill="#005AE0" />
+      <path d="M232 0C150 50 85 170 85 330c0 110 30 180 65 225 12 17 10 25 8 41-3 24-16 44-33 59 35 5 80-3 107-15 168 105 418 95 568-48V0Z" fill="#fff" />
+      <g fill="#0068FF">
+        <path d="M190 262H345V300L232 425H345V458H185V420L300 298H190Z" stroke="#0068FF" strokeLinejoin="round" strokeWidth="6" />
+        <rect height="196" rx="4" width="32" x="530" y="262" />
+        <rect height="146" rx="4" width="30" x="470" y="312" />
+      </g>
+      <g fill="none" stroke="#0068FF" strokeWidth="32">
+        <circle cx="428" cy="392" r="48" />
+        <circle cx="661" cy="385" r="57" />
+      </g>
+    </g>
   </svg>;
 }
 
+// Logo Facebook 2023 (Wikimedia Commons, "2023 Facebook icon.svg"): vòng tròn xanh #0866FF, chữ "f" trắng khoét ở dưới.
 export function FacebookIcon({ size = 24, className }: IconProps) {
-  return <svg aria-hidden="true" className={className} height={size} viewBox="0 0 24 24" width={size} xmlns="http://www.w3.org/2000/svg">
-    <circle cx="12" cy="12" fill="#1877F2" r="12" />
-    <path d="M15.12 15.47l.47-3.04h-2.92v-1.97c0-.83.41-1.64 1.72-1.64h1.33V6.23s-1.2-.21-2.36-.21c-2.41 0-3.98 1.46-3.98 4.1v2.31H6.71v3.04h2.67V24h3.29v-8.53z" fill="#fff" />
+  return <svg aria-hidden="true" className={className} height={size} viewBox="0 0 666.66668 666.66717" width={size} xmlns="http://www.w3.org/2000/svg">
+    <g transform="matrix(1.3333333 0 0 -1.3333333 -133.33333 799.99999)">
+      <path d="m 0,0 c 0,138.071 -111.929,250 -250,250 -138.071,0 -250,-111.929 -250,-250 0,-117.245 80.715,-215.622 189.606,-242.638 v 166.242 h -51.552 V 0 h 51.552 v 32.919 c 0,85.092 38.508,124.532 122.048,124.532 15.838,0 43.167,-3.105 54.347,-6.211 V 81.986 c -5.901,0.621 -16.149,0.932 -28.882,0.932 -40.993,0 -56.832,-15.528 -56.832,-55.9 V 0 h 81.659 l -14.028,-76.396 h -67.631 V -248.169 C -95.927,-233.218 0,-127.818 0,0" fill="#0866FF" transform="translate(600 350)" />
+      <path d="M 0,0 14.029,76.396 H -67.63 v 27.019 c 0,40.372 15.838,55.899 56.831,55.899 12.733,0 22.981,-0.31 28.882,-0.931 v 69.253 c -11.18,3.106 -38.509,6.212 -54.347,6.212 -83.539,0 -122.048,-39.441 -122.048,-124.533 V 76.396 h -51.552 V 0 h 51.552 v -166.242 c 19.343,-4.798 39.568,-7.362 60.394,-7.362 10.254,0 20.358,0.632 30.288,1.831 L -67.63,0 Z" fill="#fff" transform="translate(447.9175 273.6036)" />
+    </g>
   </svg>;
 }
 

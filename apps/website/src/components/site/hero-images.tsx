@@ -1,7 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import { FitImage } from "./fit-image";
 
 export type HeroImage = { url: string; alt: string };
 
@@ -12,7 +13,8 @@ const interval = 5000;
 // Dừng khi rê chuột/đang thao tác bàn phím hoặc khi người dùng bật giảm chuyển động; chấm để xem từng ảnh.
 // `onLight`: ảnh nền phủ lớp sáng, chấm dùng màu đậm như kiểu `inline`.
 // `builderItem`: mã mục con gắn trên ảnh để bấm trên canvas CMS chọn đúng chỗ (phần đầu trang: "hero.primary"; khối khác: không có mã).
-export function HeroImages({ images, preload, variant, sizes, className = "", imageClassName = "h-auto w-full", onLight = false, builderItem = "hero.primary", index }: { images: HeroImage[]; preload: boolean; variant: "fill" | "inline" | "cover"; sizes: string; className?: string; imageClassName?: string; onLight?: boolean; builderItem?: string | null; index?: number }) {
+// `fit="contain"` (chỉ kiểu `cover`): mỗi ảnh hiện đủ trong khung bằng FitImage (không cắt, phần thừa liền màu ảnh); mặc định "cover" giữ nguyên cách cũ (`imageClassName` quyết định).
+export function HeroImages({ images, preload, variant, sizes, className = "", imageClassName = "h-auto w-full", onLight = false, builderItem = "hero.primary", index, fit = "cover" }: { images: HeroImage[]; preload: boolean; variant: "fill" | "inline" | "cover"; sizes: string; className?: string; imageClassName?: string; onLight?: boolean; builderItem?: string | null; index?: number; fit?: "cover" | "contain" }) {
   // `index`: nơi dùng điều khiển ảnh đang xem (ví dụ quy trình trượt xem hết ảnh của bước rồi mới sang bước khác); khi đó không tự chuyển ảnh.
   const [ownActive, setActive] = useState(0);
   const controlled = index !== undefined;
@@ -36,7 +38,9 @@ export function HeroImages({ images, preload, variant, sizes, className = "", im
     <div className="hero-images__stack">
       {images.map((image, index) => <div aria-hidden={index !== active} className={index === active ? "hero-images__item hero-images__item--active" : "hero-images__item"} key={`${image.url}-${index}`}>
         {fill
-          ? <Image alt={image.alt} className={cover ? imageClassName : "object-cover"} data-builder-field="image" data-builder-item={builderItem ?? undefined} fill preload={preload && index === 0} sizes={sizes} src={image.url} />
+          ? cover && fit === "contain"
+            ? <FitImage alt={image.alt} builderField="image" builderItem={builderItem ?? undefined} className={imageClassName} preload={preload && index === 0} sizes={sizes} url={image.url} />
+            : <Image alt={image.alt} className={cover ? imageClassName : "object-cover"} data-builder-field="image" data-builder-item={builderItem ?? undefined} fill preload={preload && index === 0} sizes={sizes} src={image.url} />
           : <Image alt={image.alt} className={imageClassName} data-builder-field="image" data-builder-item={builderItem ?? undefined} height={800} preload={preload && index === 0} sizes={sizes} src={image.url} width={1200} />}
       </div>)}
     </div>

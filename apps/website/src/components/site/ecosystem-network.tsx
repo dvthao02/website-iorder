@@ -38,7 +38,7 @@ export function EcosystemNetwork({ items, photos }: { items: NetworkItem[]; phot
         <span aria-hidden="true" className="eco-link eco-link--up" />
         <Card background={item.background} flush href={item.href} item={`items:${index}`}>
           <div className={`relative w-full overflow-hidden bg-subtle ${photo ? "aspect-[16/10]" : "aspect-[16/6] sm:aspect-[16/10]"}`}>
-            {photo ? <CoverPhoto alt={item.title} className="object-cover transition duration-500 group-hover:scale-[1.03]" photos={photo} sizes="(min-width: 1024px) 30vw, (min-width: 640px) 45vw, 100vw" />
+            {photo ? <CoverPhoto alt={item.title} className="transition duration-500 group-hover:scale-[1.03]" fit="contain" photos={photo} sizes="(min-width: 1024px) 30vw, (min-width: 640px) 45vw, 100vw" />
               : <span aria-hidden="true" className="absolute inset-0 grid place-items-center bg-gradient-to-br from-brand-50 to-brand-100 text-brand-600">{item.icon ? <BlockIcon name={item.icon} size={52} strokeWidth={1.4} /> : <span className="text-display font-bold">{String(index + 1).padStart(2, "0")}</span>}</span>}
           </div>
           <div className="flex flex-1 flex-col p-5 sm:p-6">

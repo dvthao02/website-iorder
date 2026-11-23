@@ -34,12 +34,18 @@ test("Máy tính: menu thả xuống, chân trang, liên hệ nổi, lên đầu
   await expect(toTop).toHaveClass(/floating-top--visible/);
 
   const contact = page.getByRole("complementary", { name: "Liên hệ nhanh" });
-  test.skip(await contact.count() === 0, "Chưa cấu hình hotline/Zalo/email");
-  await page.getByRole("button", { name: "Mở liên hệ nhanh" }).click();
-  await expect(contact.locator(".floating-action").first()).toBeVisible();
-  await expect(contact.locator("a[href^='tel:'], a[href^='mailto:'], a[href*='zalo']").first()).toBeVisible();
-  await page.keyboard.press("Escape");
-  await expect(page.getByRole("button", { name: "Mở liên hệ nhanh" })).toHaveAttribute("aria-expanded", "false");
+  if (await contact.count() > 0) {
+    // Zalo OA tách riêng khỏi menu: luôn hiện, không cần mở bong bóng.
+    const zalo = contact.locator(".floating-action--zalo");
+    if (await zalo.count()) await expect(zalo).toBeVisible();
+    const toggle = page.getByRole("button", { name: "Mở liên hệ nhanh" });
+    if (await toggle.count()) {
+      await toggle.click();
+      await expect(contact.locator(".floating-contact__menu .floating-action").first()).toBeVisible();
+      await page.keyboard.press("Escape");
+      await expect(toggle).toHaveAttribute("aria-expanded", "false");
+    }
+  }
 
   await toTop.click();
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBeLessThan(10);
@@ -66,7 +72,7 @@ test("Điện thoại: nút ☰ mở menu toàn màn hình, nhóm gập/mở, kh
 
 test("Bàn phím: Tab đầu tiên là \"Bỏ qua tới nội dung chính\", mọi trang có đúng một vùng nội dung chính", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
-  for (const path of ["/", "/lien-he", "/tin-tuc"]) {
+  for (const path of ["/", "/contact", "/news"]) {
     await page.goto(`${webUrl}${path}`);
     await expect(page.locator("main#noi-dung")).toHaveCount(1);
   }
@@ -78,7 +84,7 @@ test("Bàn phím: Tab đầu tiên là \"Bỏ qua tới nội dung chính\", m�
   expect(await page.evaluate(() => [...document.querySelectorAll(".site-footer__column ul a")].filter((link) => link.getBoundingClientRect().height < 24).length)).toBe(0);
 });
 
-test("Liên kết tới URL qua rewrites() (/tin-tuc, /thiet-bi…) không bị tải trước lặp lại; bấm vẫn chuyển trang", async ({ page }) => {
+test("Liên kết tới các trang (/news, /equipment…) không bị tải trước lặp lại; bấm vẫn chuyển trang", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   const prefetches = new Map<string, number>();
   page.on("request", (request) => {
@@ -86,14 +92,14 @@ test("Liên kết tới URL qua rewrites() (/tin-tuc, /thiet-bi…) không bị 
     const path = new URL(request.url()).pathname;
     prefetches.set(path, (prefetches.get(path) ?? 0) + 1);
   });
-  await page.goto(`${webUrl}/lien-he`);
+  await page.goto(`${webUrl}/contact`);
   await page.waitForTimeout(4000);
-  // Trước khi sửa: mỗi URL bị rewrite tải trước ~10 lần/giây không dừng.
+  // Khi URL công khai còn bị rewrite (tiếng Việt → thư mục tiếng Anh), mỗi URL tải trước ~10 lần/giây không dừng; nay không còn rewrite, giữ làm chốt chặn.
   for (const [path, count] of prefetches) expect(count, path).toBeLessThanOrEqual(2);
   const nav = page.getByRole("navigation", { name: "Điều hướng chính" });
   const equipment = nav.getByRole("link", { name: "Thiết bị", exact: true });
   test.skip(await equipment.count() === 0, "Menu chưa có mục Thiết bị");
   await equipment.click();
-  await expect(page).toHaveURL(/\/thiet-bi$/);
+  await expect(page).toHaveURL(/\/equipment$/);
   await expect(page.locator("main#noi-dung h1")).toBeVisible();
 });
