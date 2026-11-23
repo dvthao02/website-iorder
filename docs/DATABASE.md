@@ -1,336 +1,41 @@
 # Cơ sở dữ liệu iOrder V2
 
-PostgreSQL 17, ORM Drizzle. Chỉ Backend được truy cập DB; CMS và website gọi API của Backend.
+PostgreSQL là nguồn lưu dữ liệu; Backend là ứng dụng duy nhất kết nối trực tiếp. Cấu trúc chuẩn nằm ở `packages/shared/src/db/schema/`, migration ở `drizzle/`, hợp đồng và nghiệp vụ ở `packages/shared/src/server/`. Tài liệu này giải thích mô hình, không thay schema khi cần đối chiếu từng cột, khóa ngoại hoặc index.
 
-- **Nguồn chuẩn của cấu trúc:** `packages/shared/src/db/schema/*.ts`. Khi file này và schema lệch nhau, tin schema rồi sửa file này.
-- **Migration:** thư mục `drizzle/`, 15 file từ `0000_initial_schema` đến `0014_media_version`. Kiểm tra bằng `pnpm db:check`.
-- **Cột JSONB:** dữ liệu luôn được kiểm tra bằng Zod ở `packages/shared/src/server/**/*.contract.ts` trước khi ghi và sau khi đọc.
+## 1. Quy tắc chung
 
-Phần 1–4 mô tả cấu trúc, ít thay đổi. Phần 5 là ảnh chụp dữ liệu DB local tại một thời điểm, sẽ cũ dần.
+- Bảng chính thường dùng UUID, thời gian tạo/cập nhật và có thể có `deleted_at`. Xóa mềm và điều kiện duy nhất phụ thuộc bảng; không suy ra toàn bộ bảng có cùng chính sách.
+- Nội dung có vòng đời dùng `draft`, `review`, `scheduled`, `published`, `archived`. Website đọc nội dung đủ điều kiện hiển thị; hẹn giờ đã tới hạn không cần job đổi trạng thái.
+- Nội dung có `draft_version`, nhiều danh mục/cấu hình có `version`. Request sửa gửi `expectedVersion`; transaction kiểm tra phiên bản để chặn ghi đè và trả 409 khi xung đột. Không phải mọi bảng đều có version: kiểm tra schema và hợp đồng thực tế.
+- `*_revisions` giữ snapshot nội dung; `audit_logs` ghi hành động (Super Admin xóa được theo phạm vi từ CMS; mỗi lần xóa để lại một dòng `audit.purge` không bị xóa). Không xóa một loại với giả định loại kia thay thế được. Tài khoản và nhật ký có dữ liệu nhạy cảm; không xuất hoặc in tùy tiện.
+- JSONB dùng cho nội dung có cấu trúc biến đổi và được kiểm tra bằng Zod ở service/contract. Tham chiếu media trong JSON không phải khóa ngoại SQL; cần kiểm tra sử dụng qua ứng dụng trước khi xóa tệp.
 
-## 1. Quy ước chung
+## 2. Các nhóm dữ liệu
 
-| Quy ước | Ý nghĩa |
-|---|---|
-| `id uuid` | Khóa chính mọi bảng (trừ bảng nối), sinh tự động. |
-| `created_at`, `updated_at` | Có ở hầu hết bảng (`timestamptz`, mặc định `now()`). Các bảng bên dưới không ghi lại hai cột này. |
-| `deleted_at` | **Xóa mềm**: dòng còn trong DB nhưng bị ẩn. Slug chỉ phải duy nhất giữa các dòng chưa xóa (unique index có `where deleted_at is null`). |
-| `status` (`content_status`) | Vòng đời nội dung: `draft` → `review` → `scheduled` → `published` → `archived`. Hẹn giờ đã tới giờ được coi như đã xuất bản. |
-| `draft_version` / `version` | Số phiên bản, tăng mỗi lần lưu. Client gửi `expectedVersion`; lệch phiên bản thì trả HTTP 409 (chặn hai người ghi đè nhau). |
-| Bảng `*_revisions` | Lịch sử phiên bản: mỗi lần lưu ghi một `snapshot` JSONB đầy đủ, dùng để xem lại và khôi phục. |
-| Tham chiếu tới `users` | `on delete set null`: xóa người dùng không làm mất nội dung. |
-| Tham chiếu tới `media_assets` | `on delete set null`: xóa ảnh thì nội dung chỉ mất ảnh. |
-
-### Enum
-
-| Enum | Giá trị |
-|---|---|
-| `content_status` | draft, review, scheduled, published, archived |
-| `post_type` | news, promotion, case_study, announcement, guide |
-| `offering_type` | software, solution, service |
-| `partner_kind` | partner, customer |
-| `lead_status` | new, contacted, closed |
-| `user_status` | active, disabled |
-| `equipment_availability` | in_stock, limited, pre_order, out_of_stock, discontinued |
-
-## 2. Sơ đồ quan hệ
-
-```mermaid
-erDiagram
-  users ||--o{ user_roles : ""
-  roles ||--o{ user_roles : ""
-  roles ||--o{ role_permissions : ""
-  permissions ||--o{ role_permissions : ""
-  users ||--o{ sessions : ""
-
-  pages ||--o{ page_blocks : "khối"
-  pages ||--o{ page_revisions : "lịch sử"
-
-  posts ||--o{ post_revisions : "lịch sử"
-  posts ||--o{ post_categories : ""
-  categories ||--o{ post_categories : ""
-  categories ||--o{ categories : "cha-con"
-  posts ||--o{ post_tags : ""
-  tags ||--o{ post_tags : ""
-
-  offerings ||--o{ offering_revisions : "lịch sử"
-  equipment_groups ||--o{ sales_equipment : "nhóm"
-  sales_equipment ||--o{ sales_equipment_revisions : "lịch sử"
-
-  menus ||--o{ menu_items : "mục"
-  menu_items ||--o{ menu_items : "cha-con"
-  menus ||--o{ menu_revisions : "lịch sử"
-
-  support_downloads ||--o{ support_download_revisions : "lịch sử"
-
-  post_authors ||--o{ posts : "tác giả hiển thị"
-  media_assets ||--o{ post_authors : "ảnh đại diện"
-  media_assets ||--o{ posts : "ảnh bìa"
-  media_assets ||--o{ offerings : "ảnh bìa"
-  media_assets ||--o{ sales_equipment : "ảnh"
-  media_assets ||--o{ partners : "logo"
-  media_assets ||--o{ testimonials : "ảnh đại diện"
-  media_assets ||--o{ support_downloads : "tệp"
-```
-
-`page_blocks.data` có thể chứa id media, nhưng đó là tham chiếu bên trong JSONB, không phải khóa ngoại. Thư viện media tìm chỗ đang dùng ảnh bằng cách dò chuỗi.
-
-## 3. Các bảng
-
-### 3.1. Tài khoản và phân quyền
-
-**`users`**: tài khoản CMS.
-
-| Cột | Kiểu | Ghi chú |
+| Nhóm | Bảng | Ý nghĩa và liên kết chính |
 |---|---|---|
-| username | varchar(80) | duy nhất |
-| email | varchar(320) | duy nhất, có thể trống |
-| password_hash | varchar(255) | không bao giờ trả ra API |
-| full_name | varchar(180) | |
-| phone | varchar(30) | số điện thoại, có thể trống; người dùng tự sửa ở "Tài khoản của tôi" (migration 0022) |
-| avatar_media_id | uuid | ảnh đại diện, FK `media_assets` (`on delete set null`), tệp nằm ở thư mục `avatars/` của bucket; được tính là "đang dùng" nên thư viện media không xóa nhầm (migration 0022) |
-| status | user_status | mặc định `active` |
-| last_login_at | timestamptz | |
+| Truy cập | `users`, `roles`, `permissions`, `user_roles`, `role_permissions`, `sessions`, `login_throttle_buckets` | Tài khoản, vai trò, quyền, phiên và giới hạn đăng nhập. Danh mục quyền trong code; role thực tế trong DB. |
+| Trang | `pages`, `page_blocks`, `page_revisions` | Một trang có nhiều khối theo `sort_order`, lịch sử chứa snapshot. `type`, `data`, `appearance` theo `pageBlockInputSchema` và `blockAppearanceSchema`. |
+| Bài viết | `posts`, `post_revisions`, `post_authors`, `categories`, `tags`, `post_categories`, `post_tags` | Bài tin và hướng dẫn dùng cùng bảng, phân loại bằng `type`; tác giả hiển thị khác tài khoản CMS tạo bài. |
+| Sản phẩm | `offerings`, `offering_revisions` | Phần mềm, giải pháp và dịch vụ phân biệt bằng `type`; nội dung biến thiên nằm trong JSONB. |
+| Thiết bị | `equipment_groups`, `sales_equipment`, `sales_equipment_revisions` | Nhóm, giá VND, thương hiệu, tình trạng hàng, thông số và nội dung trang thiết bị. |
+| Hỗ trợ | `support_downloads`, `support_download_revisions` | Tệp cài đặt có nguồn là media hoặc liên kết ngoài theo hợp đồng. |
+| Nội dung phụ | `partners`, `testimonials`, `contact_leads` | Đối tác, đánh giá và liên hệ. Lead chứa dữ liệu cá nhân. |
+| Media | `media_assets` | Metadata, kích thước, mô tả, `storage_key`; object thật ở S3, không nằm trong dump PostgreSQL. |
+| Cấu trúc | `menus`, `menu_items`, `menu_revisions`, `redirects` | Menu cây, lịch sử và chuyển hướng đường dẫn. |
+| Cấu hình | `site_profile`, `site_settings`, `secure_settings` | Thông tin doanh nghiệp, cấu hình JSONB và khóa kết nối mã hóa. Khóa chủ nằm ngoài DB. Biểu mẫu tư vấn và quảng cáo tự hiện lưu ở hai khóa `consult_form` và `promotion_popup` (mỗi khóa có `version` riêng); khóa gộp cũ `consult_popup` chỉ còn được đọc để chuyển tiếp khi hai khóa mới chưa có. |
+| Hệ thống | `audit_logs`, `builder_previews` | Nhật ký thao tác và bản xem trước có thời hạn. |
 
-**`roles`**: `code` (duy nhất), `name`, `description`, `is_system` (vai trò hệ thống không xóa được).
+Trang hệ thống có khóa nội bộ như `home` và đường dẫn do code quản lý; trang tự tạo dùng đường dẫn riêng. Bài `guide` và bài tin có tiền tố URL khác nhau. Khi thay URL công khai, kiểm tra chuyển hướng theo quy tắc trong `shared/content-paths.ts`. Lưu chuyển hướng (CMS hoặc tự tạo khi đổi slug) cũng đổi các liên kết nội bộ trỏ tới URL cũ sang URL mới ở `menu_items.url` (mục `custom`), `page_blocks.data`, `posts.content`/`cta_url`, `offerings.content`, `sales_equipment.blocks`/`page_layout` và `site_settings.value` (trừ khóa `system.*`), tăng `version`/`draft_version` của nội dung bị sửa và ghi `audit_logs` hành động `redirect.rewrite_links`; bảng `*_revisions` giữ nguyên lịch sử (`packages/shared/src/server/redirects/redirect-links.ts`).
 
-**`permissions`**: `code` (duy nhất, dạng `module.action`, ví dụ `posts.publish`), `name`, `description`. Danh sách quyền định nghĩa trong code (`packages/shared/src/server/auth/permissions.ts`): 16 module, tổng 57 quyền.
+## 3. Quan hệ và bảo toàn dữ liệu
 
-| Module | Hành động |
-|---|---|
-| dashboard, audit | view |
-| pages, posts, offerings, equipment, support_downloads, supporting | view, create, update, delete, publish |
-| media, taxonomy, redirects, roles | view, create, update, delete |
-| navigation, settings, leads | view, update |
-| users | view, create, update |
+`pages` → `page_blocks`/`page_revisions`; `posts` → revisions và bảng nối chuyên mục/thẻ; `offerings` và `sales_equipment` → revisions; `menus` → menu items/revisions. `media_assets` được tham chiếu bởi cột khóa ngoại và cả nội dung JSON. Một số khóa ngoại đặt null hoặc cascade khi xóa vật lý, nhưng thao tác trong ứng dụng có thể từ chối xóa khi còn sử dụng; không xóa trực tiếp để vượt kiểm tra nghiệp vụ.
 
-**`user_roles`** (user_id, role_id) và **`role_permissions`** (role_id, permission_id): bảng nối, khóa chính kép, xóa theo (cascade).
+Sao lưu database chỉ chứa metadata media và giá trị mã hóa, không chứa object S3 hoặc khóa chủ. Một bản phục hồi dùng được cần xác minh riêng cả database, media và khả năng giải mã. Xem [DEPLOYMENT.md](DEPLOYMENT.md).
 
-**`sessions`**: phiên đăng nhập. Gồm `token_hash` (duy nhất; chỉ lưu hash, không lưu token), `expires_at`, `last_seen_at`, `revoked_at`, `ip_hash`, `user_agent`.
+## 4. Migration và kiểm tra
 
-**`login_throttle_buckets`**: giới hạn số lần đăng nhập sai. Khóa chính (scope, key_hash), cùng `attempts` và `window_expires_at`. Dọn bằng `pnpm db:cleanup-login-throttles`.
+Các tệp SQL hiện đến `0027_foreign_key_indexes`. `pnpm db:check` kiểm tra metadata migration, không xác nhận migration đã chạy trên database cụ thể. Khi thay schema: rà dữ liệu cũ và tính tương thích, sinh/kiểm SQL, thử áp và kiểm tra dữ liệu trên database tạm, chuẩn bị sao lưu và phương án quay lui. Không tự chạy migration hay backfill phá hủy trên database người dùng.
 
-### 3.2. Trang website
-
-**`pages`**: mọi URL công khai là một trang. Trang hệ thống (route nằm trong code: `home`, `about`, `listing-news`, `listing-guides`…) được khai báo ở `fixedWebsitePages` (`pages.contract.ts`). Trang tự tạo hiện ở `/trang/<slug>`.
-
-| Cột | Kiểu | Ghi chú |
-|---|---|---|
-| title | varchar(220) | |
-| slug | varchar(180) | duy nhất giữa trang chưa xóa |
-| template | varchar(80) | `default`, `homepage`, `contact`, `listing` |
-| status, draft_version | | theo quy ước chung |
-| seo_title / seo_description | varchar(70) / varchar(180) | |
-| canonical_url | text | |
-| scheduled_at, published_at, deleted_at | timestamptz | |
-
-**`page_blocks`**: các thành phần của trang, theo thứ tự.
-
-| Cột | Kiểu | Ghi chú |
-|---|---|---|
-| page_id | uuid → pages | xóa theo trang |
-| type | varchar(80) | loại khối (xem bảng dưới); **không phải enum DB**, thêm loại mới không cần migration |
-| sort_order | int | duy nhất trong một trang |
-| data | jsonb | nội dung khối, schema theo `type` (`pageBlockInputSchema`) |
-| appearance | jsonb | vỏ chung: `{ anchor, tone: auto/white/tinted/dark, spacing: auto/sm/md/lg }`; để trống = "Tự động" |
-| is_enabled | bool | ẩn/hiện khối |
-
-| `type` | Tên trong CMS | Nội dung chính trong `data` |
-|---|---|---|
-| hero | Phần đầu trang | eyebrow, title, description, 2 nút, layout (5 kiểu), ảnh, slides, highlights, tone |
-| media_text | Ảnh + chữ | layout trái/phải, title, description, bullets, mediaId, 2 nút |
-| features | Lưới thẻ | eyebrow, title, description, items[{title, description, href, icon}] |
-| industries, ecosystem | (cũ) giống Lưới thẻ | như `features`; không thêm mới được |
-| process | Quy trình | như Lưới thẻ, hiển thị dạng các bước |
-| grouped_list | Danh sách theo nhóm | groupLabel, showCount, groups[{title, icon, items[{label, icon, href}], action}] |
-| stats | Số liệu nổi bật | items[{value, label, note}] |
-| collection_list | Danh sách nội dung | source (posts/guides/downloads/equipment/software/solution/service), limit, anchor |
-| pricing | Bảng giá | plans[{name, price, period, features, action, highlighted, badge}] |
-| testimonials, partners | Đánh giá / Logo | chỉ cấu hình số lượng, dữ liệu lấy từ bảng `testimonials`, `partners` |
-| cta | Kêu gọi hành động | title, action |
-| lead_form | Biểu mẫu tư vấn | title, submitLabel, needOptions |
-| faq | Câu hỏi thường gặp | items[{question, answer}] |
-| rich_text | Đoạn văn bản | heading, body (tài liệu soạn thảo) |
-| image | Hình ảnh | mediaId, alt, caption |
-| featured_posts, download_list | (cũ) | hiển thị như `collection_list` |
-
-Mã biểu tượng (`icon`) là danh sách cố định trong `packages/shared/src/server/shared/block-icons.ts`.
-
-**`page_revisions`**: lịch sử trang. Gồm `version_number` (duy nhất theo trang), `snapshot` (toàn bộ trang kèm các khối), `editor_id`, `change_note`, `is_published`.
-
-### 3.3. Bài viết, tin tức, hướng dẫn
-
-**`posts`**: một bảng cho mọi loại bài. Loại `type = guide` hiện ở `/ho-tro/huong-dan/<slug>`, các loại khác ở `/tin-tuc/<slug>`.
-
-| Cột | Kiểu | Ghi chú |
-|---|---|---|
-| type | post_type | |
-| author_id, cover_media_id | uuid | |
-| title, slug, excerpt | | slug duy nhất giữa bài chưa xóa |
-| content | jsonb | tài liệu soạn thảo (`shared/rich-text`) |
-| content_html | text | chỉ script nhập dữ liệu V1 ghi vào; ứng dụng không đọc (website vẽ từ `content`) |
-| view_count | int | |
-| promotion_start_at / promotion_end_at | timestamptz | dùng cho khuyến mãi |
-| cta_label, cta_url, badge_text | | nút và nhãn tùy chọn |
-| author_profile_id | uuid | tác giả hiển thị công khai, FK `post_authors` (`on delete set null`; migration 0024). Ưu tiên hơn ba cột nhập tay bên dưới |
-| author_name / author_title / author_url | varchar(120) / varchar(120) / text | tác giả hiển thị công khai (migration 0023); khác `author_id` là tài khoản CMS đã tạo bài. Có tên thì website ghi "Tác giả" và khai `Person` trong `Article`; để trống thì tác giả là tổ chức. `author_url` chỉ nhận http(s) |
-| status, draft_version, SEO, scheduled_at, published_at, deleted_at | | theo quy ước chung |
-
-**`post_revisions`**: lịch sử bài viết.
-
-**`post_authors`**: hồ sơ tác giả công khai (migration 0024): `slug` (duy nhất), `name`, `job_title`, `bio` (≤ 2000), `avatar_media_id` (FK media, `on delete set null`), `profile_url` (http/https), `is_enabled` (bật thì có trang `/tac-gia/<slug>`, mặc định tắt), `version`. Tác giả không cần có tài khoản CMS. Xóa hard-delete và bị chặn khi còn bài viết (chưa xóa) dùng tác giả; `posts.author_id` vẫn là tài khoản CMS đã tạo bài, không phải tác giả hiển thị.
-
-**`categories`**: chuyên mục, có cấp cha-con (`parent_id`, không xóa được cha khi còn con). Gồm `name`, `slug` (duy nhất), `description`, `sort_order`, `version`.
-
-**`tags`**: thẻ, gồm `name`, `slug` (duy nhất), `version`.
-
-**`post_categories`**, **`post_tags`**: bảng nối. Không xóa được chuyên mục hoặc thẻ khi còn bài đang dùng (`restrict`).
-
-### 3.4. Sản phẩm, giải pháp, dịch vụ, thiết bị
-
-**`offerings`**: phần mềm, giải pháp, dịch vụ (`type`). Hiện ở `/phan-mem`, `/giai-phap`, `/dich-vu`.
-
-| Cột | Kiểu | Ghi chú |
-|---|---|---|
-| type | offering_type | slug duy nhất trong cùng `type` |
-| summary | text | |
-| content | jsonb | description, tags, bestFor, keyValue, metrics, features, benefits, faq, items, category, pricing |
-| icon | varchar(120) | |
-| sort_order, is_featured | | thứ tự, nổi bật |
-| status, draft_version, SEO, lịch | | theo quy ước chung |
-
-**`offering_revisions`**: lịch sử.
-
-**`equipment_groups`**: nhóm thiết bị. Gồm `name`, `slug`, `description`, `cover_media_id`, `sort_order`, `is_enabled`, `deleted_at`, `version`.
-
-**`sales_equipment`**: thiết bị bán (`/thiet-bi/<slug>`). Gồm `group_id` (bắt buộc), `model_code`, `brand` (varchar 80, thương hiệu hiện trên trang và khai ở `Product.brand`; trống = không khai, migration 0026), `price_vnd` (bigint), `warranty_months` (mặc định 12), `summary`, `specification_groups` (jsonb: `[{title, items[{label, value}]}]`), `is_featured`, cùng các cột status/SEO/lịch. `availability` (enum `equipment_availability`: `in_stock` mặc định, `limited`, `pre_order`, `out_of_stock`, `discontinued`; migration 0023) hiện cạnh giá trên website và khai thành `offers.availability` (schema.org ItemAvailability) trong dữ liệu cấu trúc.
-
-**`sales_equipment_revisions`**: lịch sử.
-
-### 3.5. Hỗ trợ, đối tác, khách hàng
-
-**`support_downloads`**: tệp cài đặt (`/ho-tro/cai-dat`). Mỗi mục có MỘT nguồn tải: tệp trong thư viện (`file_media_id`, chỉ PDF/ZIP ≤ 20 MB) hoặc link ngoài `external_url` (https, tối đa 1000 ký tự, không tài khoản/mật khẩu; migration 0020, nullable). Hợp đồng cấm dùng cả hai. `group_name` (tối đa 120 ký tự, nullable, migration 0021): nhóm hiển thị trên trang, ví dụ "Driver trên Windows"; trống = nhóm "Khác". Gồm `file_media_id`, `external_url`, `group_name`, `icon`, `title`, `description`, `meta` (ví dụ "PDF · 1 trang"), `sort_order`, `is_enabled`, `draft_version`, `archived_at`, `deleted_at`.
-
-**`support_download_revisions`**: lịch sử.
-
-**`partners`**: logo đối tác/khách hàng. Gồm `kind`, `name` (duy nhất giữa dòng chưa xóa), `logo_media_id`, `description`, `website_url`, `sort_order`, `is_enabled`, `deleted_at`, `version`.
-
-**`testimonials`**: đánh giá. Gồm `author_name`, `author_role`, `company`, `quote`, `rating` (1–5), `avatar_media_id`, `sort_order`, `is_enabled`, `deleted_at`, `version`.
-
-**`contact_leads`**: liên hệ từ form tư vấn. Gồm `name`, `phone`, `email`, `business_model`, `branches`, `need`, `message`, `status` (lead_status), `ip_hash` (chỉ lưu hash IP), `handled_at`, `handled_by`. Bảng này có dữ liệu cá nhân, nên không in ra log.
-
-### 3.6. Media
-
-**`media_assets`**: tệp tải lên (lưu ở S3, DB chỉ giữ thông tin).
-
-| Cột | Kiểu | Ghi chú |
-|---|---|---|
-| storage_key | varchar(500) | khóa trên S3, duy nhất |
-| original_name, mime_type | | |
-| file_size | bigint | byte |
-| width, height | int | ảnh |
-| alt_text, caption | | |
-| version | int | chống ghi đè khi sửa mô tả |
-| uploaded_by, deleted_at | | tệp đã xóa mềm được dọn bằng `pnpm db:cleanup-media` |
-
-### 3.7. Menu, cấu hình, hệ thống
-
-**`menus`**: mỗi vị trí một menu: `location` (duy nhất: `header`, `header_cta`, `footer`), `name`, `version`.
-
-**`menu_items`**: các mục menu.
-
-| Cột | Ghi chú |
-|---|---|
-| menu_id, parent_id | cây menu (mục con xóa theo mục cha) |
-| label, url, target (`_self`/`_blank`), icon | |
-| link_type, content_id | `custom` hoặc liên kết tới nội dung (`page`, `post`, `offering`, `equipment`): đổi slug nội dung thì menu tự theo |
-| sort_order, is_enabled | |
-
-**`menu_revisions`**: lịch sử menu.
-
-**`site_profile`**: thông tin doanh nghiệp (một dòng, `profile_key = default`). Gồm `company_name`, `legal_name`, `hotline`, `support_email`, `sales_email`, `address`, `working_hours`, `logo_media_id`, `version`.
-
-**`site_settings`**: cấu hình dạng khóa → JSONB.
-
-**`secure_settings`** (migration 0025): khóa API do Super Admin nhập ở CMS. `key` duy nhất (danh mục cố định trong mã: `google_service_account`, `search_console_property`, `umami_api_key`), `payload` là bản mã AES-256-GCM (`v1.nonce.tag.bảnmã`), `hint` gợi ý không bí mật hiển thị lại, `updated_by` (FK `users`, xóa người dùng thì đặt null), `version` chống ghi đè đồng thời. Khóa chủ để giải mã nằm ngoài database và ngoài bản sao lưu database (biến môi trường `SECRETS_MASTER_KEY` hoặc tệp khóa chủ do CMS tạo).
-
-| `key` | Nội dung |
-|---|---|
-| `publishing` | siteUrl, defaultTitle, defaultDescription, defaultOgMediaId, allowSearchIndexing |
-| `external_links` | appLogin, trial, facebook, zalo, youtube, appStore, googlePlay |
-| `listing_content` | (cũ) tiêu đề trang danh sách news/support/equipment/guides; nay dùng trang `listing-*` trong `pages` |
-| `catalog_content` | (cũ) tiêu đề trang danh sách software/solution/service; nay dùng trang `listing-*` |
-
-**`redirects`**: chuyển hướng URL. Gồm `source_path` (duy nhất giữa dòng chưa xóa), `destination_path`, `status_code` (mặc định 301), `is_enabled`, `deleted_at`, `version`. Đổi slug nội dung đang hiển thị thì hệ thống tự thêm chuyển hướng.
-
-**`audit_logs`**: nhật ký thao tác. Gồm `user_id`, `action` (ví dụ `page.update`), `entity_type`, `entity_id`, `before_data`/`after_data` (jsonb), `ip_hash`, `ip_address`, `user_agent`, `request_id`. Ba cột cuối lấy tự động từ request; script/seed để trống.
-
-## 4. Lệnh thường dùng
-
-| Lệnh | Việc |
-|---|---|
-| `pnpm db:generate` | Sinh migration từ thay đổi schema |
-| `pnpm db:migrate` | Chạy migration |
-| `pnpm db:check` | Kiểm tra migration khớp schema |
-| `pnpm db:studio` | Mở Drizzle Studio để xem dữ liệu |
-| `pnpm db:backfill-listing-pages` | Tạo trang danh sách hệ thống còn thiếu (chạy lại an toàn) |
-| `pnpm db:seed:listing-sections` | Tạo sẵn nội dung cho trang danh sách "cha": Phần mềm, Giải pháp, Dịch vụ sinh từ chính các mục con đã xuất bản (mỗi mục một phần + hỏi đáp gộp); Thiết bị, Hướng dẫn, Hỗ trợ cài đặt dùng nội dung mẫu. Chỉ thêm hoặc thay bản do chính lệnh này tạo và chưa ai sửa; trang người vận hành đã chỉnh thì bỏ qua; `--dry-run` để xem trước (chạy lại an toàn) |
-| `pnpm db:update:privacy-policy` | Cập nhật trang Chính sách bảo mật theo bản công bố tại app.iorder.vn/privacy-policy (nội dung, dòng "Cập nhật", mô tả SEO; có phiên bản và lịch sử); `--dry-run` để xem trước; đã đúng bản này thì không lưu lại |
-| `pnpm db:split-support-guides` | Tách Hướng dẫn sử dụng khỏi Hỗ trợ cài đặt (chạy lại an toàn) |
-
-Không chạy seed/import phá hủy trên DB đang có dữ liệu thật.
-
-## 5. Ảnh chụp DB local, 22/10/2026
-
-Lấy bằng truy vấn chỉ đọc (transaction `read only`), không in dữ liệu cá nhân. PostgreSQL 17.11, dung lượng 17 MB, đã chạy 15/15 migration.
-
-### Số dòng
-
-| Nhóm | Bảng (số dòng) |
-|---|---|
-| Tài khoản | users 5 · roles 8 · permissions 57 · user_roles 5 · role_permissions 259 · sessions 1.886 · login_throttle_buckets 0 |
-| Trang | pages 60 (15 đang dùng, 45 đã xóa mềm) · page_blocks 99 · page_revisions 338 |
-| Bài viết | posts 8 · post_revisions 8 · categories 5 · tags 7 · post_categories 8 · post_tags 14 |
-| Sản phẩm | offerings 13 (4 đã xóa mềm) · offering_revisions 27 |
-| Thiết bị | equipment_groups 6 (3 đã xóa) · sales_equipment 8 (3 đã xóa) · sales_equipment_revisions 11 |
-| Hỗ trợ | support_downloads 3 · support_download_revisions 3 |
-| Đối tác | partners 17 · testimonials 3 · contact_leads 0 |
-| Media | media_assets 70 (28 đã xóa mềm; còn 39 ảnh ≈ 19,3 MB và 3 tệp tài liệu) |
-| Menu và cấu hình | menus 3 · menu_items 34 · menu_revisions 17 · site_profile 1 · site_settings 4 · redirects 0 |
-| Nhật ký | audit_logs 4.543 |
-
-### Nội dung đang có
-
-- **Bài viết** (đều đã xuất bản): 2 tin tức, 1 khuyến mãi, 1 câu chuyện khách hàng, 1 thông báo, 3 hướng dẫn.
-- **Sản phẩm**: phần mềm 3 xuất bản + 1 nháp; giải pháp 3; dịch vụ 2.
-- **Thiết bị**: 5 xuất bản.
-- **Menu**: header 17 mục, footer 15 mục, header_cta 2 mục.
-- **Vai trò**: admin (hệ thống, 57 quyền, 1 người), content_manager (47), editor (33, 1 người), marketing (28, 1 người), publisher (19), analyst (14), support (4, 1 người), `role_ba1d1a363a14` (57 quyền, 1 người).
-
-### 15 trang đang dùng
-
-| Slug | Template | Trạng thái | Phiên bản | Các khối |
-|---|---|---|---|---|
-| home | homepage | published | 54 | hero, partners, ecosystem, collection_list, media_text, industries, process, image |
-| about | default | published | 5 | hero, stats, media_text, partners, cta |
-| contact | contact | published | 5 | hero, lead_form, faq |
-| listing-news | listing | published | 126 | hero, collection_list |
-| listing-equipment | listing | published | 13 | hero, collection_list |
-| listing-support | listing | published | 6 | hero, collection_list |
-| listing-guides | listing | published | 1 | hero, collection_list |
-| listing-software / -solution / -service | listing | published | 5 | hero, collection_list |
-| privacy-policy, terms | default | published | 5 | hero, rich_text |
-| remote-support | default | published | 5 | hero, process |
-| support-faq, support-videos | default | archived | 4 | hero, features |
-
-Có 99 khối, trong đó 58 là `hero`. Số khối `hero` nhiều hơn số trang đang dùng vì còn khối của các trang đã xóa mềm. Chưa khối nào dùng cột `appearance`, tức tất cả đang để "Tự động".
-
-### Điểm cần chú ý
-
-1. **45 trang đã xóa mềm** vẫn nằm trong `pages`, `page_blocks` và `page_revisions`, có thể là trang tạo khi chạy kiểm thử. Chúng không hiện ra ngoài; muốn dọn thì cần một lệnh xóa hẳn riêng.
-2. **`sessions`**: phiên hết hạn hoặc thu hồi không còn tự biến mất. Đã có `pnpm db:cleanup-sessions` (xóa phiên quá hạn hoặc bị thu hồi hơn 24 giờ, tối đa 1.000 dòng mỗi lần); còn phải lên lịch chạy hằng ngày ở host (xem PROJECT.md mục Vận hành). Hiện ở bản local có 134/188 dòng đã hết hạn.
-3. **Vai trò `role_ba1d1a363a14`** có mã tự sinh, đủ 57 quyền, đang gán cho 1 người dùng. Nên kiểm tra lại xem có phải vai trò tạo khi kiểm thử không.
-4. **`site_settings.listing_content` và `catalog_content`** chỉ còn là dự phòng cũ; trang danh sách nay lấy từ `pages`.
-5. **Khối cũ** `industries` và `ecosystem` (1 khối mỗi loại, đều ở trang chủ) vẫn hiển thị bình thường, có thể chuyển sang "Lưới thẻ" trong CMS.
-6. `external_links` đã lưu 320 lần, cao bất thường so với các cấu hình khác; khả năng do kiểm thử tự động.
-7. Hai cột chưa được ứng dụng dùng: `posts.content_html` (chỉ dữ liệu nhập từ V1) và `menu_items.icon`.
+`pnpm db:generate` sinh migration; `pnpm db:migrate` áp migration lên database được cấu hình; `pnpm db:studio` mở trình quản lý. Các lệnh seed, import, backfill và cleanup có thể ghi hoặc xóa dữ liệu: đọc lệnh và xác nhận đích trước khi chạy. Không lưu ảnh chụp số lượng dữ liệu local thành hiện trạng cố định trong tài liệu.
