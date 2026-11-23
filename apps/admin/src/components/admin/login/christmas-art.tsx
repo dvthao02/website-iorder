@@ -309,42 +309,205 @@ export function Hills({ className, variant }: { className?: string; variant: "fa
   </svg>;
 }
 
-/** Nhà gỗ trên đồi: ống khói nhả khói bay lên, hai cửa sổ ấm áp lập lòe như ánh lửa. */
-export function Cabin({ className, uid }: { className?: string; uid: string }) {
-  return <svg aria-hidden="true" className={className} focusable="false" viewBox="0 -30 130 140">
-    <defs>
-      <radialGradient id={`${uid}-warm`}>
-        <stop offset="0" stopColor="#ffd27a" stopOpacity="0.75" />
-        <stop offset="1" stopColor="#ffb347" stopOpacity="0" />
-      </radialGradient>
-    </defs>
-    <ellipse cx="65" cy="103" fill="#050b24" opacity="0.3" rx="60" ry="5" />
-    <g fill="#d9e6ff">
-      <circle className="xmas-smoke" cx="88" cy="10" r="6" />
-      <circle className="xmas-smoke xmas-smoke--2" cx="88" cy="10" r="6" />
-      <circle className="xmas-smoke xmas-smoke--3" cx="88" cy="10" r="6" />
-    </g>
-    <rect fill="#5b3a1f" height="26" width="13" x="80" y="18" />
-    <rect fill="#f3f8ff" height="5" rx="2" width="17" x="78" y="14" />
-    <rect fill="#8a5a36" height="46" width="84" x="23" y="56" />
-    <path d="M23 66 H107 M23 76 H107 M23 86 H107 M23 96 H107" fill="none" stroke="#6f4528" strokeWidth="1.6" />
-    <polygon fill="#7a3b2e" points="12,60 65,14 118,60" />
-    <path d="M12 60 L65 14 L118 60 Q104 54 92 57 Q78 50 65 57 Q52 50 38 57 Q24 54 12 60 Z" fill="#f3f8ff" />
-    <circle className="xmas-window-glow" cx="42" cy="78" fill={`url(#${uid}-warm)`} r="26" />
-    <circle className="xmas-window-glow xmas-window-glow--2" cx="88" cy="78" fill={`url(#${uid}-warm)`} r="26" />
-    <g className="xmas-window">
-      <rect fill="#ffd27a" height="17" rx="2" width="19" x="33" y="70" />
-      <path d="M42.5 70 V87 M33 78.5 H52" stroke="#8a5a36" strokeWidth="1.6" />
-    </g>
-    <g className="xmas-window xmas-window--2">
-      <rect fill="#ffd27a" height="17" rx="2" width="19" x="79" y="70" />
-      <path d="M88.5 70 V87 M79 78.5 H98" stroke="#8a5a36" strokeWidth="1.6" />
-    </g>
-    <rect fill="#4a2c17" height="26" rx="2" width="16" x="57" y="76" />
-    <circle cx="61" cy="90" fill="#ffd166" r="1.2" />
-    <circle cx="65" cy="82" fill="none" r="4.6" stroke="#2f9e63" strokeWidth="2" />
-    <circle cx="62" cy="79" fill="#ff5a67" r="1.1" />
-    <circle cx="68" cy="85" fill="#ff5a67" r="1.1" />
-    <ellipse cx="65" cy="103" fill="#e8f0ff" rx="62" ry="7" />
-  </svg>;
+// ===== Nhà thờ Đức Bà Sài Gòn lên đèn Giáng sinh =====
+// Hai tháp chuông giống hệt nhau (hệ tọa độ 110 x 600) đứng đối xứng hai bên thẻ đăng nhập, như hai tháp đứng hai bên gian giữa của nhà thờ; thẻ là phần
+// gian giữa được thắp sáng (ánh đèn loang ra phía sau thẻ, xem .xmas__cathedral-glow). Gạch đỏ chiếu đèn vàng từ dưới lên nên ấm dần về chân tháp.
+// Hình khối là SVG tĩnh (vẽ một lần); các bóng đèn là phần tử HTML đặt chồng lên theo % của khung (như đèn trên cây thông) để chỉ đổi độ mờ,
+// không phải vẽ lại cả tòa tháp ở mỗi khung hình. Vị trí và kích thước theo thẻ nằm ở christmas-cathedral.css.
+
+const lampColors = ["#ffd98a", "#fff3cf", "#ff6b6b", "#ffd98a", "#7be0a6"] as const;
+
+// Đèn viền một tháp: hai mép chóp, hai hàng dưới gờ đá, bốn cặp đèn dọc hai góc thân và vòm cửa.
+const towerLamps: Array<[number, number]> = (() => {
+  const points: Array<[number, number]> = [[55, 38]];
+  for (let step = 1; step <= 5; step += 1) {
+    const t = step / 7;
+    points.push([55 - 24 * (1 - t), 162 - 130 * t], [55 + 24 * (1 - t), 162 - 130 * t]);
+  }
+  for (const y of [201, 306]) {
+    for (const x of [18, 36.5, 55, 73.5, 92]) points.push([x, y]);
+  }
+  for (const y of [340, 400, 460, 520]) points.push([12, y], [98, y]);
+  for (let step = 0; step <= 4; step += 1) {
+    const angle = (Math.PI / 4) * step;
+    points.push([55 + 17 * Math.cos(angle), 548 - 17 * Math.sin(angle)]);
+  }
+  return points;
+})();
+
+// Bật đèn từ chân tháp lên đỉnh chóp: bóng thấp nhất có --k nhỏ nhất (xem xmas-bulb-on ở christmas-login.css).
+const towerLampOrder = [...towerLamps].sort((a, b) => b[1] - a[1]);
+
+// Tuyết đọng trên gờ đá: dải trắng gợn sóng phủ mép trên gờ [x1, x2] ở độ cao y (hai bên nhô ra 2 đơn vị cho giống tuyết rủ).
+function snowCap(x1: number, x2: number, y: number) {
+  const left = x1 - 2;
+  const count = Math.round((x2 + 2 - left) / 11);
+  const step = (x2 + 2 - left) / count;
+  let path = `M${left} ${y + 3} V${y}`;
+  for (let index = 0; index < count; index += 1) path += ` q${step / 2} ${index % 2 === 0 ? -6 : -4.5} ${step} 0`;
+  return `${path} V${y + 3} Z`;
+}
+
+// Hàng cột băng rủ dưới gờ đá, dài ngắn xen kẽ.
+function icicles(x1: number, x2: number, y: number) {
+  const lengths = [8, 13, 6, 11];
+  let path = "";
+  for (let x = x1, index = 0; x + 6 <= x2; x += 9, index += 1) path += `M${x} ${y} L${x + 3} ${y + lengths[index % lengths.length]} L${x + 6} ${y} Z `;
+  return path;
+}
+
+// Vòng nguyệt quế quanh cửa sổ tròn (tâm 55,360): vòng lá hai lớp, vài quả đỏ và nơ đỏ ở đáy với hai tà rủ xuống.
+const wreathBerries = [-150, -110, -70, -30, 20, 160].map((degrees) => [55 + 20 * Math.cos((degrees * Math.PI) / 180), 360 + 20 * Math.sin((degrees * Math.PI) / 180)] as const);
+
+/** Một tháp chuông: chóp sắt có thánh giá, hai ô chuông, cửa sổ tròn và cửa vòm; gạch đỏ chiếu đèn, đèn dây chớp từ chân lên đỉnh. `uid` giữ id gradient không trùng giữa hai tháp. */
+function CathedralTower({ className, uid }: { className?: string; uid: string }) {
+  return <div aria-hidden="true" className={className}>
+    <svg className="xmas__tower-art" focusable="false" viewBox="0 0 110 600">
+      <defs>
+        <linearGradient gradientUnits="userSpaceOnUse" id={`${uid}-brick`} x1="0" x2="0" y1="160" y2="580">
+          <stop offset="0" stopColor="#5a2033" />
+          <stop offset="0.5" stopColor="#9a3b3a" />
+          <stop offset="1" stopColor="#e48b50" />
+        </linearGradient>
+        <linearGradient gradientUnits="userSpaceOnUse" id={`${uid}-beam`} x1="0" x2="0" y1="160" y2="580">
+          <stop offset="0" stopColor="#ffd98a" stopOpacity="0" />
+          <stop offset="1" stopColor="#ffd98a" stopOpacity="0.36" />
+        </linearGradient>
+        <linearGradient gradientUnits="userSpaceOnUse" id={`${uid}-spire`} x1="0" x2="0" y1="32" y2="162">
+          <stop offset="0" stopColor="#3a3466" />
+          <stop offset="1" stopColor="#5a4d86" />
+        </linearGradient>
+        <radialGradient cx="0.5" cy="0.9" id={`${uid}-door`} r="0.9">
+          <stop offset="0" stopColor="#ffe9b0" />
+          <stop offset="1" stopColor="#e8893a" />
+        </radialGradient>
+        <radialGradient id={`${uid}-ground`}>
+          <stop offset="0" stopColor="#ffd98a" stopOpacity="0.62" />
+          <stop offset="1" stopColor="#ffb454" stopOpacity="0" />
+        </radialGradient>
+        <pattern height="7" id={`${uid}-bricks`} patternUnits="userSpaceOnUse" width="14">
+          <path d="M0 0.4H14M0 3.9H14M3.5 0.4V3.9M10.5 3.9V7.4" fill="none" stroke="#2a0a14" strokeOpacity="0.3" strokeWidth="0.6" />
+        </pattern>
+        <clipPath id={`${uid}-body`}>
+          <path d="M8 580 V206 H102 V580 Z M22 206 V162 H88 V206 Z" />
+        </clipPath>
+      </defs>
+      <ellipse cx="55" cy="584" fill={`url(#${uid}-ground)`} rx="62" ry="11" />
+      <g clipPath={`url(#${uid}-body)`}>
+        <rect fill={`url(#${uid}-brick)`} height="430" width="110" y="160" />
+        <rect fill={`url(#${uid}-bricks)`} height="430" width="110" y="160" />
+        <path d="M8 580 L38 170 H72 L102 580 Z" fill={`url(#${uid}-beam)`} />
+      </g>
+      <polygon fill={`url(#${uid}-spire)`} points="31,162 79,162 55,32" stroke="#ffd98a" strokeLinejoin="round" strokeOpacity="0.55" strokeWidth="1.2" />
+      <path d="M55 40 V162 M47 120 H63 M42 140 H68" fill="none" stroke="#ffd98a" strokeOpacity="0.3" strokeWidth="1" />
+      <path d="M55 3 V34 M46 14 H64" fill="none" stroke="#ffd98a" strokeLinecap="round" strokeWidth="3" />
+      <path d="M49 192 V178 a6 6 0 0 1 12 0 V192 Z" fill="#ffe29a" />
+      <rect fill="#f0d7a0" height="10" opacity="0.9" width="78" x="16" y="196" />
+      {[37, 73].map((x) => <g key={x}>
+        <path d={`M${x - 8} 296 V240 a8 8 0 0 1 16 0 V296 Z`} fill="#ffe29a" />
+        <path d={`M${x - 8} 250 H${x + 8} M${x - 8} 260 H${x + 8} M${x - 8} 270 H${x + 8} M${x - 8} 280 H${x + 8} M${x - 8} 290 H${x + 8}`} fill="none" stroke="#8a4a2e" strokeWidth="1" />
+        <path d={`M${x - 8} 296 V240 a8 8 0 0 1 16 0 V296`} fill="none" stroke="#f0d7a0" strokeWidth="2" />
+      </g>)}
+      <rect fill="#f0d7a0" height="12" opacity="0.9" width="102" x="4" y="300" />
+      <circle cx="55" cy="360" fill="#ffe29a" r="14" stroke="#f0d7a0" strokeWidth="2.6" />
+      <path d="M41 360 H69 M55 346 V374 M45 350 L65 370 M65 350 L45 370" fill="none" stroke="#9a4a2e" strokeWidth="1.3" />
+      <circle cx="55" cy="360" fill="#9a4a2e" r="3.2" />
+      {[37, 73].map((x) => <path d={`M${x - 5} 470 V410 a5 5 0 0 1 10 0 V470 Z`} fill="#ffe29a" key={x} stroke="#f0d7a0" strokeWidth="1.6" />)}
+      <path d="M43 580 V548 a12 12 0 0 1 24 0 V580 Z" fill={`url(#${uid}-door)`} stroke="#f0d7a0" strokeWidth="2.4" />
+      <path d="M55 536 V580" fill="none" stroke="#a8561f" strokeOpacity="0.55" strokeWidth="1.2" />
+      <rect fill="#f0d7a0" height="8" opacity="0.85" width="102" x="4" y="572" />
+      {/* Chi tiết Giáng sinh: tuyết đọng và cột băng trên hai gờ đá, vòng nguyệt quế thắt nơ đỏ quanh cửa sổ tròn. */}
+      <path d={snowCap(16, 94, 196)} fill="#f4f9ff" />
+      <path d={snowCap(4, 106, 300)} fill="#f4f9ff" />
+      <path d={icicles(18, 90, 206)} fill="#e0f0ff" fillOpacity="0.9" />
+      <path d={icicles(8, 100, 312)} fill="#e0f0ff" fillOpacity="0.9" />
+      <circle cx="55" cy="360" fill="none" r="20" stroke="#1c6b43" strokeWidth="7" />
+      <circle cx="55" cy="360" fill="none" r="20" stroke="#3dbb7c" strokeDasharray="4 3" strokeLinecap="round" strokeWidth="3" />
+      {wreathBerries.map(([x, y]) => <circle cx={x.toFixed(1)} cy={y.toFixed(1)} fill="#e0344a" key={`${x}-${y}`} r="1.9" />)}
+      <path d="M55 380 C46 371 39 380 46 387 C50 390 55 385 55 380 Z M55 380 C64 371 71 380 64 387 C60 390 55 385 55 380 Z" fill="#d7263d" stroke="#a51e30" strokeWidth="0.8" />
+      <path d="M53.5 383 L48 397 L52 395 L54.5 398 Z M56.5 383 L62 397 L58 395 L55.5 398 Z" fill="#d7263d" stroke="#a51e30" strokeWidth="0.6" />
+      <circle cx="55" cy="381" fill="#b81e32" r="2.6" />
+    </svg>
+    {towerLampOrder.map(([x, y], index) => <i className="xmas-bulb xmas-bulb--dot xmas-lamp" key={`${x.toFixed(1)}-${y.toFixed(1)}`} style={{ left: `${((x / 110) * 100).toFixed(2)}%`, top: `${((y / 600) * 100).toFixed(2)}%`, "--k": index, "--bulb": lampColors[index % lampColors.length] } as CSSProperties} />)}
+  </div>;
+}
+
+// Gian giữa (mặt tiền) nằm giữa hai tháp, hệ tọa độ 452 x 410: rộng bằng thẻ đăng nhập cộng 12px mỗi bên chui dưới chân tháp. Thẻ trong suốt nên mặt tiền
+// hiện ra sau lớp kính mờ nên không gắn đèn nhấp nháy (đèn sau kính nhòe thành đốm sáng làm rối nội dung thẻ) và các ô sáng được làm dịu màu. Kích thước cố định theo px (thẻ luôn rộng 428px), chỉ có chiều cao tháp đổi theo màn hình.
+
+/** Mặt tiền nhà thờ giữa hai tháp: đầu hồi, hoa hồng, hàng cửa sổ vòm, ba cửa vòm sáng đèn và tượng Đức Mẹ trước cửa chính. */
+function CathedralNave({ className }: { className?: string }) {
+  return <div aria-hidden="true" className={className}>
+    <svg className="xmas__nave-art" focusable="false" viewBox="0 0 452 410">
+      <defs>
+        <linearGradient gradientUnits="userSpaceOnUse" id="nave-brick" x1="0" x2="0" y1="56" y2="410">
+          <stop offset="0" stopColor="#5a2033" />
+          <stop offset="0.5" stopColor="#9a3b3a" />
+          <stop offset="1" stopColor="#e48b50" />
+        </linearGradient>
+        <linearGradient gradientUnits="userSpaceOnUse" id="nave-beam" x1="0" x2="0" y1="56" y2="410">
+          <stop offset="0" stopColor="#ffd98a" stopOpacity="0" />
+          <stop offset="1" stopColor="#ffd98a" stopOpacity="0.3" />
+        </linearGradient>
+        <radialGradient cx="0.5" cy="0.9" id="nave-door" r="0.9">
+          <stop offset="0" stopColor="#ffe9b0" />
+          <stop offset="1" stopColor="#e8893a" />
+        </radialGradient>
+        <radialGradient id="nave-ground">
+          <stop offset="0" stopColor="#ffd98a" stopOpacity="0.55" />
+          <stop offset="1" stopColor="#ffb454" stopOpacity="0" />
+        </radialGradient>
+        <pattern height="7" id="nave-bricks" patternUnits="userSpaceOnUse" width="14">
+          <path d="M0 0.4H14M0 3.9H14M3.5 0.4V3.9M10.5 3.9V7.4" fill="none" stroke="#2a0a14" strokeOpacity="0.3" strokeWidth="0.6" />
+        </pattern>
+        <clipPath id="nave-body">
+          <path d="M0 118 L226 56 L452 118 V410 H0 Z" />
+        </clipPath>
+      </defs>
+      <ellipse cx="226" cy="414" fill="url(#nave-ground)" rx="250" ry="14" />
+      <g clipPath="url(#nave-body)">
+        <rect fill="url(#nave-brick)" height="360" width="452" y="56" />
+        <rect fill="url(#nave-bricks)" height="360" width="452" y="56" />
+        <rect fill="url(#nave-beam)" height="360" width="452" y="56" />
+      </g>
+      <path d="M0 118 L226 56 L452 118" fill="none" stroke="#f0d7a0" strokeLinejoin="round" strokeWidth="4" />
+      <rect fill="#f0d7a0" height="8" opacity="0.85" width="452" y="118" />
+      <circle cx="226" cy="168" fill="#3a1a2a" r="36" stroke="#f0d7a0" strokeWidth="4" />
+      <circle cx="226" cy="168" fill="#d9a05a" r="29" />
+      <path d="M226 139 V197 M197 168 H255 M205.5 147.5 L246.5 188.5 M246.5 147.5 L205.5 188.5" fill="none" stroke="#9a4a2e" strokeWidth="2" />
+      <circle cx="226" cy="168" fill="#9a4a2e" r="6" />
+      {[88, 130, 172, 280, 322, 364].map((x) => <path d={`M${x - 7} 266 V221 a7 7 0 0 1 14 0 V266 Z`} fill="#d9a05a" key={x} stroke="#f0d7a0" strokeWidth="1.6" />)}
+      <path d="M213 270 V232 a13 13 0 0 1 26 0 V270 Z" fill="#d9a05a" stroke="#f0d7a0" strokeWidth="2" />
+      <circle cx="226" cy="241" fill="#fff7e0" r="3.6" />
+      <path d="M226 245 L219 266 H233 Z" fill="#fff7e0" />
+      <path d="M98 410 V372 a20 20 0 0 1 40 0 V410 Z M314 410 V372 a20 20 0 0 1 40 0 V410 Z" fill="url(#nave-door)" stroke="#f0d7a0" strokeWidth="2.6" />
+      <path d="M182 410 V350 a44 44 0 0 1 88 0 V410 Z" fill="url(#nave-door)" stroke="#f0d7a0" strokeWidth="4" />
+      <path d="M226 306 V410 M204 346 V410 M248 346 V410" fill="none" stroke="#a8561f" strokeOpacity="0.55" strokeWidth="1.4" />
+      <rect fill="#f0d7a0" height="8" opacity="0.8" rx="2" width="132" x="160" y="402" />
+      {/* Tượng Đức Mẹ trước cửa chính: áo choàng trắng ngà, quầng sáng quanh đầu. */}
+      <rect fill="#f0d7a0" height="28" rx="2" width="18" x="217" y="382" />
+      <path d="M226 346 Q215 358 213 382 H239 Q237 358 226 346 Z" fill="#fbf2dc" />
+      <circle cx="226" cy="341" fill="#fbf2dc" r="4.6" />
+      <circle cx="226" cy="341" fill="none" r="9" stroke="#ffe29a" strokeOpacity="0.9" strokeWidth="1.2" />
+    </svg>
+  </div>;
+}
+
+// 17 bóng trên dây võng nối hai chóp tháp: u là vị trí dọc dây, s = 2·√(u(1−u)) là độ võng theo đường nửa elip của .xmas__swag-wire.
+const swagLamps = Array.from({ length: 17 }, (_, index) => {
+  const u = index / 16;
+  return { s: 2 * Math.sqrt(u * (1 - u)), u };
+});
+
+/** Nhà thờ Đức Bà lên đèn: hai tháp chuông hai bên thẻ đăng nhập, mặt tiền giữa hai tháp (hiện qua thẻ trong suốt) và vầng sáng vàng ấm phía sau. */
+export function Cathedral({ className }: { className?: string }) {
+  return <div aria-hidden="true" className={className}>
+    <i className="xmas__cathedral-glow" />
+    <CathedralNave className="xmas__nave" />
+    <CathedralTower className="xmas__tower xmas__tower--l" uid="tower-l" />
+    <CathedralTower className="xmas__tower xmas__tower--r" uid="tower-r" />
+    {/* Dây đèn võng nối hai chóp tháp phía trên thẻ ("bầu trời sao nhân tạo"): dây là nửa elip, mỗi bóng có --u (0..1 dọc dây) và --s (độ võng 0..1); vị trí tính trong CSS theo cỡ tháp. */}
+    <i className="xmas__swag-wire" />
+    {swagLamps.map(({ s, u }, index) => <i className="xmas-bulb xmas-bulb--dot xmas__swag-lamp" key={index} style={{ "--u": u.toFixed(4), "--s": s.toFixed(4), "--k": index, "--bulb": lampColors[index % lampColors.length] } as CSSProperties} />)}
+  </div>;
 }

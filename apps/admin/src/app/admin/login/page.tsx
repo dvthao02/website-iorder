@@ -50,8 +50,8 @@ export default async function AdministratorLoginPage({
             <div className="xmas__tilt">
               <section aria-labelledby="login-title" className="xmas__card">
                 <SantaHat className="xmas__hat" />
-                <p className="xmas__chip"><Snowflake aria-hidden="true" size={13} />Giáng sinh an lành</p>
-                <Image alt="iOrder" className="mb-4" height={51} preload src="/brand/iorder-logo.png" width={140} />
+                <p className="xmas__chip"><Snowflake aria-hidden="true" size={13} />Đêm Noel Sài Gòn</p>
+                <Image alt="iOrder" className="mb-4" height={47} preload src="/brand/iorder-logo-dark.png" width={141} />
                 <h1 id="login-title">Đăng nhập CMS</h1>
                 <p className="xmas__lead">Quản lý nội dung, sản phẩm và khách hàng của website iOrder.</p>
                 {form}

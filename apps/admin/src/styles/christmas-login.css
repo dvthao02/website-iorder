@@ -75,9 +75,16 @@
      Lớp và ông không nhận chuột (kẻo chặn form khi bay ngang qua thẻ); ChristmasStage tự tính cú bấm trúng khung ông. Dưới canvas hiệu ứng (30).
      Dịch theo chuột như các lớp nền (độ sâu 11). Quầng sáng vàng nhạt phía sau là nền chuyển sắc tĩnh (không dùng filter/blur cho nhẹ máy). */
   .xmas__flight { position: absolute; inset: 0; z-index: 12; overflow: hidden; pointer-events: none; transform: translate3d(calc(var(--px) * 11 * -0.35px), calc(var(--py) * 11 * -0.22px), 0); }
-  .xmas__santa { --w: clamp(260px, 35vw, 560px); --drift: calc(-0.17 * (100vw + 1.2 * var(--w))); position: absolute; top: clamp(30px, 5vh, 56px); left: 0; width: var(--w); animation: xmas-fly 30s linear infinite; will-change: transform; }
+  .xmas__santa { --w: clamp(150px, 18vw, 300px); --drift: calc(-0.17 * (100vw + 1.2 * var(--w))); position: absolute; top: clamp(40px, 6vh, 66px); left: 0; width: var(--w); animation: xmas-fly 30s linear infinite; will-change: transform; }
   .xmas__santa::before { position: absolute; z-index: -1; inset: -30% -14% -44%; background: radial-gradient(closest-side, rgb(255 228 150 / 46%), rgb(255 228 150 / 0%)); pointer-events: none; content: ""; }
-  @keyframes xmas-fly { 0% { transform: translate3d(-110%, 1vh, 0); } 60% { transform: translate3d(calc(100vw + 10%), -1vh, 0); } 100% { transform: translate3d(calc(100vw + 10%), -1vh, 0); } }
+  /* Đường bay vòng cung: lên từ thấp, đạt đỉnh giữa màn hình rồi hạ nhẹ, đầu xe ngóc lên khi lên và chúi xuống khi hạ (góc nhỏ). Mốc 30% nằm đúng giữa hai đầu nên
+     vận tốc ngang vẫn đều; chỉ có độ cao và góc nghiêng đổi. */
+  @keyframes xmas-fly {
+    0% { transform: translate3d(-110%, 2vh, 0) rotate(-3deg); }
+    30% { transform: translate3d(calc(50vw - 50%), -1.5vh, 0) rotate(0deg); }
+    60% { transform: translate3d(calc(100vw + 10%), 1.5vh, 0) rotate(3deg); }
+    100% { transform: translate3d(calc(100vw + 10%), 1.5vh, 0) rotate(3deg); }
+  }
   /* Bay lượn mềm, không cứng: ba nhịp chồng lên nhau (chuyến bay thẳng 30s, lượn dài 8,3s, nhún-chúi ngắn 3,4s quanh xe) nên đường bay không lặp đều như máy. */
   .xmas__santa-glide { animation: xmas-glide 8.3s ease-in-out infinite; }
   @keyframes xmas-glide { 0%, 100% { transform: translateY(0); } 32% { transform: translateY(calc(var(--w) * -0.022)); } 68% { transform: translateY(calc(var(--w) * 0.014)); } }
@@ -379,19 +386,6 @@
   .xmas__santa.is-poked .xmas__santa-bob::after { position: absolute; top: -16px; left: 56%; padding: 6px 12px; border-radius: 14px; background: #fff; box-shadow: 0 4px 14px rgb(0 0 0 / 30%); color: #d7263d; font: 700 14px/1 var(--cms-font); white-space: nowrap; content: "Ho ho ho!"; animation: xmas-bubble 1.6s ease both; }
   @keyframes xmas-bubble { 0% { opacity: 0; transform: translate(-50%, 10px) scale(0.6); } 15%, 80% { opacity: 1; transform: translate(-50%, 0) scale(1); } 100% { opacity: 0; transform: translate(-50%, -8px) scale(0.9); } }
 
-  /* Nhà gỗ trên đồi: khói bay lên từ ống khói, cửa sổ lập lòe như ánh lửa. */
-  .xmas__cabin { position: absolute; bottom: 14vh; left: 28%; width: clamp(60px, 7vw, 110px); height: auto; }
-  .xmas-smoke { transform-box: fill-box; transform-origin: center; opacity: 0; animation: xmas-smoke 4.2s ease-out infinite; }
-  .xmas-smoke--2 { animation-delay: 1.4s; }
-  .xmas-smoke--3 { animation-delay: 2.8s; }
-  @keyframes xmas-smoke { 0% { opacity: 0; transform: translate(0, 0) scale(0.5); } 18% { opacity: 0.75; } 100% { opacity: 0; transform: translate(16px, -52px) scale(2.3); } }
-  .xmas-window { animation: xmas-flicker 2.7s ease-in-out infinite alternate; }
-  .xmas-window--2 { animation-duration: 3.4s; animation-delay: -1.1s; }
-  .xmas-window-glow { animation: xmas-glow 2.7s ease-in-out infinite alternate; }
-  .xmas-window-glow--2 { animation-duration: 3.4s; animation-delay: -1.1s; }
-  @keyframes xmas-flicker { 0% { opacity: 0.82; } 20% { opacity: 1; } 45% { opacity: 0.88; } 70% { opacity: 1; } 100% { opacity: 0.9; } }
-  @keyframes xmas-glow { 0% { opacity: 0.55; } 40% { opacity: 1; } 100% { opacity: 0.7; } }
-
   /* Lời chúc: từng chữ nảy lên lần lượt, rồi từng từ nhấp nhô nhẹ nối đuôi nhau. */
   .xmas__word { display: inline-block; white-space: nowrap; animation: xmas-float 3.4s ease-in-out infinite; animation-delay: calc(var(--w, 0) * -0.35s); }
   .xmas__word i { display: inline-block; font-style: normal; animation: xmas-letter 0.6s cubic-bezier(0.3, 1.4, 0.5, 1) calc(1.1s + var(--c, 0) * 26ms) both; }
@@ -400,7 +394,7 @@
 
   /* Màn hẹp: bớt đồ trang trí để không đè lên thẻ; cảm ứng không có thị sai nên không cần lề thừa. */
   @media (max-width: 1000px) {
-    .xmas__tree--l2, .xmas__tree--r2, .xmas__gifts, .xmas__cabin { display: none; }
+    .xmas__tree--l2, .xmas__tree--r2, .xmas__gifts { display: none; }
     .xmas__tree--l1 { left: 2%; width: clamp(100px, 20vw, 170px); }
     .xmas__tree--r1 { right: 3%; width: clamp(90px, 17vw, 150px); }
     .xmas__snowman { right: 18%; }
@@ -413,7 +407,7 @@
     .xmas__snowman { display: none; }
     .xmas__tree--l1 { left: -6%; bottom: 8vh; width: 38vw; }
     .xmas__tree--r1 { right: -8%; bottom: 8vh; width: 34vw; }
-    .xmas__santa { top: 40px; --w: 62vw; }
+    .xmas__santa { top: 44px; --w: 44vw; }
     .xmas__moon { top: 6%; right: 6%; }
     .xmas__center { padding-top: 56px; padding-bottom: 56px; }
     .xmas__card { padding: 28px 20px 20px; }
@@ -432,7 +426,6 @@
     .xmas__card .admin-password-input:has(.admin-password-input__toggle[aria-pressed="true"])::after { display: none; }
     .xmas-tinsel::before, .xmas-tinsel::after, .xmas-bell { animation: none; }
     .xmas__flare { opacity: 0.75; transform: scale(0.8); }
-    .xmas-smoke { opacity: 0.4; transform: translate(10px, -26px) scale(1.4); }
     .xmas__tilt { transform: none; }
   }
 }

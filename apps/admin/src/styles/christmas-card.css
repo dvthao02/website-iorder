@@ -1,0 +1,77 @@
+@font-face { font-family: "Be Vietnam Pro"; src: url("/fonts/BeVietnamPro-Bold.ttf") format("truetype"); font-weight: 700; font-display: swap; }
+
+/* Thẻ đăng nhập dạng kính trong suốt: gần như không có nền, chỉ một lớp xanh đêm rất nhạt và làm mờ phần cảnh phía sau để chữ vẫn đọc được;
+   tháp và mặt tiền nhà thờ hiện ra sau kính. Cảnh, hoạt ảnh và tương tác Giáng sinh giữ nguyên.
+   File này nằm ngoài @layer nên thắng christmas-login.css: mọi thứ cần đổi (màu chữ, khung ô, băng giá, vầng sáng) phải khai báo lại ở đây. */
+
+/* Hộp bao thẻ phải rộng đúng bằng thẻ. Trước đây hộp co theo nội dung (463,8px) còn thẻ 428px nằm sát mép trái hộp nên cả thẻ lệch tâm 18px so với hai tháp. */
+.xmas__stack { width: min(100%, 428px); }
+.xmas__tilt { width: 100%; }
+.xmas__card {
+  --cms-primary: #c92738;
+  --cms-primary-strong: #a51e30;
+  --cms-text: #f6f9ff;
+  --cms-muted: rgb(226 234 248 / 80%);
+  --cms-border: rgb(255 255 255 / 26%);
+  --cms-border-strong: rgb(255 255 255 / 46%);
+  --cms-input-background: transparent;
+  --cms-hover: rgb(255 255 255 / 10%);
+  --cms-focus-ring: 0 0 0 3px rgb(255 143 155 / 30%);
+  width: 100%;
+  border: 1px solid rgb(255 255 255 / 28%);
+  border-radius: 28px;
+  background: linear-gradient(180deg, transparent 58%, rgb(6 14 40 / 22%)), linear-gradient(150deg, rgb(255 255 255 / 11%), rgb(255 255 255 / 3%) 60%), rgb(6 14 40 / 30%);
+  box-shadow: 0 28px 72px rgb(3 8 24 / 45%), 0 1px 0 rgb(255 255 255 / 35%) inset, 0 0 0 1px rgb(247 204 123 / 22%), 0 0 90px rgb(255 190 105 / 18%);
+  color: var(--cms-text);
+  padding: 34px 34px 28px;
+  text-align: center;
+  -webkit-backdrop-filter: blur(16px) saturate(1.2);
+  backdrop-filter: blur(16px) saturate(1.2);
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .xmas__card { background: linear-gradient(150deg, rgb(255 255 255 / 11%), rgb(255 255 255 / 3%) 60%), rgb(6 14 40 / 66%); }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .xmas__card { background: rgb(10 22 52 / 94%); -webkit-backdrop-filter: none; backdrop-filter: none; }
+}
+.xmas--alert .xmas__card { box-shadow: 0 28px 72px rgb(3 8 24 / 45%), 0 1px 0 rgb(255 255 255 / 35%) inset, 0 0 0 1px rgb(247 204 123 / 22%), 0 0 64px rgb(255 60 70 / 55%); }
+.xmas--success .xmas__card { box-shadow: 0 28px 72px rgb(3 8 24 / 45%), 0 1px 0 rgb(255 255 255 / 35%) inset, 0 0 0 1px rgb(247 204 123 / 22%), 0 0 70px rgb(94 234 160 / 50%); }
+/* Viền sọc kẹo cây quanh cả thẻ (trước chỉ có một dải ở mép trên): ::before là vành rộng 4px, nền sọc chéo đỏ trắng, mask-composite khoét phần giữa chỉ để lại vành.
+   Đứng yên: sọc chạy liên tục buộc vẽ lại cả vành ở mỗi khung hình trên thẻ đang làm mờ nền. */
+.xmas__card::before { inset: 0; height: auto; padding: 4px; border-radius: inherit; background: linear-gradient(135deg, #d8343f 25%, #fff 25% 50%, #d8343f 50% 75%, #fff 75%) 0 0 / 24px 24px; -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); mask-composite: exclude; animation: none; pointer-events: none; }
+/* Vệt sáng loang theo con trỏ ngả vàng ấm như ánh đèn nhà thờ (bản gốc ngả hồng). */
+.xmas__card::after { background: radial-gradient(420px circle at calc(50% + var(--px) * 38%) calc(30% + var(--py) * 38%), rgb(255 205 130 / 14%), transparent 62%); }
+
+/* Bố cục canh giữa: chip, logo, tiêu đề, mô tả, nút và dòng nhắc cùng nằm trên một trục giữa, đối xứng với hai tháp hai bên thẻ (đã kiểm tra bằng vị trí chip và logo).
+   Trước đây phần đầu canh trái còn nút và dòng nhắc canh giữa nên thẻ lệch trục. Ô nhập vẫn canh trái (nhãn nổi và chữ gõ vào). */
+.xmas__card form, .xmas__card .admin-input { text-align: left; }
+.xmas__card .xmas__chip { margin-bottom: 16px; }
+.xmas__card img[alt="iOrder"] { margin-inline: auto; margin-bottom: 14px; }
+.xmas__card h1 { margin-bottom: 10px; color: #fff; font-family: "Be Vietnam Pro", var(--font-inter), sans-serif; font-size: 27px; letter-spacing: -.035em; text-shadow: 0 1px 14px rgb(3 8 24 / 55%); }
+.xmas__card .xmas__lead { max-width: 34ch; margin: 0 auto 26px; text-wrap: balance; color: rgb(232 238 250 / 84%); line-height: 1.65; text-shadow: 0 1px 8px rgb(3 8 24 / 45%); }
+.xmas__card .xmas__chip { gap: 7px; border: 1px solid rgb(255 220 150 / 45%); background: rgb(255 214 150 / 14%); padding: 5px 11px; color: #ffe2a8; font-size: 11px; }
+.xmas__card .xmas__chip svg { color: #ffd98a; }
+/* Logo không có nền: page.tsx dùng bản logo cho nền tối (chữ trắng, vòng xanh); bóng đổ tối nhẹ tách nét chữ khỏi mặt tiền nhà thờ phía sau. */
+.xmas__card img[alt="iOrder"] { filter: drop-shadow(0 2px 8px rgb(3 8 24 / 50%)); }
+
+.xmas__card .admin-input { color: var(--cms-text); caret-color: #fff; }
+.xmas__card .admin-field:focus-within > .admin-field__label { color: #ffb3bc; }
+.xmas__card .admin-field:focus-within > .admin-field__frame { border-color: #ff8f9b; }
+.xmas__card .admin-field:has(.admin-password-input__toggle[aria-pressed="false"]):focus-within > .admin-field__frame { border-color: #ff8f9b; }
+/* Mật khẩu đang ẩn: băng giá trên kính tối là lớp xanh băng nhạt thay cho nền sương trắng. */
+.xmas__card .admin-password-input:has(.admin-password-input__toggle[aria-pressed="false"]) > input { background: linear-gradient(180deg, rgb(160 205 255 / 0%) 0, rgb(160 205 255 / 10%) 55%, rgb(160 205 255 / 22%)); box-shadow: inset 0 -12px 14px -10px rgb(160 200 250 / 40%), inset 12px 0 14px -12px rgb(160 200 250 / 30%), inset -12px 0 14px -12px rgb(160 200 250 / 30%); }
+.xmas__card .admin-field:has(.admin-password-input__toggle[aria-pressed="false"]) > .admin-field__frame { border-color: #9fc8f7; }
+/* Cột băng phủ trọn bề ngang ô khi nhãn "Mật khẩu" nằm trong ô; nhãn nổi lên mép trên (đang gõ, đã có mật khẩu, trình duyệt tự điền) thì băng bắt đầu sau nhãn để không đè chữ.
+   background-repeat: round co giãn nhẹ để số cột băng luôn nguyên, không bị cắt dở ở đầu bên phải. */
+.xmas__card .admin-password-input::before { left: 10px; height: 10px; background-size: 23px 10px; background-repeat: round no-repeat; }
+.xmas__card .admin-field:is(:focus-within, :has(.admin-input:not(:placeholder-shown), .admin-input:-webkit-autofill)) .admin-password-input::before { left: 76px; }
+/* Băng bao quanh ô mật khẩu cả trên lẫn dưới: hàng cột băng rủ từ mép trên (::before của ô, ở trên) và hàng măng băng mọc lên từ mép dưới (::after của .admin-field, ảnh lật ngược
+   của cột băng). Hàng dưới (thấp hơn hàng trên để chữ trong ô còn chỗ thở) không có nhãn nên luôn phủ trọn bề ngang; tan (co lại và mờ đi) cùng lúc với hàng trên khi bấm con mắt hiện mật khẩu. */
+.xmas__card .admin-field:has(.admin-password-input)::after { position: absolute; z-index: 1; right: 10px; bottom: 1px; left: 10px; height: 7px; background: url("/brand/xmas-icicles-up.svg") 0 100% / 23px 7px; background-repeat: round no-repeat; transform-origin: 50% 100%; transition: transform 0.6s cubic-bezier(0.3, 0, 0.2, 1), opacity 0.5s ease; pointer-events: none; content: ""; }
+.xmas__card .admin-field:has(.admin-password-input__toggle[aria-pressed="true"])::after { opacity: 0; transform: scaleY(0.15) translateY(2px); }
+.xmas__card .admin-button--primary { border-radius: 11px; background: linear-gradient(110deg, #a91f30, #c92738 55%, #a91f30); box-shadow: 0 9px 22px rgb(169 31 48 / 32%); }
+.xmas__card .admin-button--primary:focus-visible { outline: 3px solid #9be7c8; outline-offset: 3px; }
+.xmas__card .admin-help { max-width: 36ch; margin-inline: auto; text-wrap: balance; color: rgb(226 234 248 / 74%); line-height: 1.55; }
+/* Lời chúc nằm đè lên cửa vòm sáng của nhà thờ: đặt trên viên kính tối mờ để vẫn đọc được. */
+.xmas__greeting { justify-self: center; border-radius: 999px; background: rgb(7 21 44 / 52%); padding: 6px 16px; color: #fff; -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+@media (max-width: 640px) { .xmas__card { padding: 30px 23px 24px; } .xmas__card h1 { font-size: 25px; } .xmas__greeting { border-radius: 12px; padding: 7px 10px; } }

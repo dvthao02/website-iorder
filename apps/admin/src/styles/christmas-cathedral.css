@@ -1,0 +1,42 @@
+/* Nhà thờ Đức Bà lên đèn Giáng sinh (Cathedral trong components/admin/login/christmas-art.tsx), thay nhà gỗ trên đồi.
+   Bố cục đối xứng quanh thẻ đăng nhập: hai tháp chuông cùng cỡ, cùng độ cao đứng sát hai mép thẻ, mặt tiền (gian giữa) nằm giữa hai tháp và hiện ra qua thẻ
+   trong suốt, ánh đèn vàng loang phía sau. Cỡ tháp theo chiều cao màn hình, vị trí theo mép thẻ nên đối xứng với thẻ ở mọi cỡ màn hình.
+   Mọi chuyển động tắt khi người dùng chọn "giảm chuyển động" (khối giảm chuyển động của christmas-login.css). */
+.xmas__cathedral {
+  --h: clamp(480px, 74vh, 700px);
+  --half: min(214px, calc(50vw - 16px));
+  position: absolute;
+  inset: 0;
+  isolation: isolate;
+}
+.xmas__tower { position: absolute; bottom: 16vh; width: calc(var(--h) * 110 / 600); height: var(--h); }
+.xmas__tower--l { right: calc(50% + var(--half)); }
+.xmas__tower--r { left: calc(50% + var(--half)); }
+.xmas__tower-art, .xmas__nave-art { display: block; width: 100%; height: 100%; overflow: visible; animation: xmas-flood-on 2.8s ease-out 0.9s backwards; }
+/* Mặt tiền rộng bằng thẻ cộng 12px mỗi bên (chui dưới chân tháp); chân tháp nằm cao hơn đáy khung tháp 20/600 chiều cao nên mặt tiền nâng lên cùng mức. */
+.xmas__nave { position: absolute; bottom: calc(16vh + var(--h) / 30); left: 50%; width: calc(var(--half) * 2 + 24px); aspect-ratio: 452 / 410; transform: translateX(-50%); }
+/* Ánh đèn pha loang vào bầu trời và sang cả phía sau thẻ; thở nhẹ sau khi đã bật hết đèn. */
+.xmas__cathedral-glow { position: absolute; z-index: -1; bottom: 9vh; left: 50%; width: min(1000px, 96vw); height: calc(var(--h) * 1.12); background: radial-gradient(closest-side at 50% 58%, rgb(255 192 108 / 58%), rgb(255 170 84 / 22%) 60%, transparent); pointer-events: none; transform: translateX(-50%); animation: xmas-flood-on 2.8s ease-out 0.9s backwards, xmas-cathedral-breathe 6s ease-in-out 3.7s infinite alternate; }
+@keyframes xmas-flood-on { from { opacity: 0.12; } to { opacity: 1; } }
+@keyframes xmas-cathedral-breathe { from { opacity: 1; } to { opacity: 0.72; } }
+/* Bóng đèn viền tháp dùng lại hoạt ảnh .xmas-bulb (bật lần lượt từ chân lên đỉnh, nháy nhanh khi đang gửi, đỏ khi đăng nhập sai) nhưng nhỏ hơn bóng trên cây.
+   Mặt tiền không có đèn: nó nằm sau thẻ kính mờ nên đèn chỉ nhòe thành đốm sáng. */
+.xmas-lamp { width: 8.6%; margin: -4.3% 0 0 -4.3%; box-shadow: 0 0 10px 3px color-mix(in srgb, var(--bulb) 62%, transparent); }
+
+/* Dây đèn võng nối hai chóp tháp ("bầu trời sao nhân tạo"), ngay phía trên thẻ. Theo đơn vị của tháp (khung 110 x 600, đáy khung ở y=600 nên độ cao tính bằng 600 - y): hai đầu dây buộc ở y=40 trên chóp (tâm tháp
+   cách tâm màn hình --reach), dây võng xuống tối đa 26 đơn vị, vừa kịp nằm trên mép thẻ. Dây là nửa elip (border-radius) và bóng nằm đúng trên đường đó nhờ --s = 2·√(u(1−u)). */
+.xmas__cathedral { --reach: calc(var(--half) + var(--h) * 55 / 600); }
+.xmas__swag-wire { position: absolute; bottom: calc(16vh + var(--h) * 534 / 600); left: calc(50% - var(--reach)); width: calc(var(--reach) * 2); height: calc(var(--h) * 26 / 600); border: 1px solid rgb(255 236 190 / 42%); border-top: 0; border-radius: 0 0 50% 50% / 0 0 100% 100%; pointer-events: none; }
+.xmas__swag-lamp { bottom: calc(16vh + var(--h) * (560 - 26 * var(--s)) / 600); left: calc(50% + (var(--u) * 2 - 1) * var(--reach)); width: 11px; margin: 0 0 -5.5px -5.5px; box-shadow: 0 0 12px 4px color-mix(in srgb, var(--bulb) 62%, transparent); }
+
+@media (min-width: 1001px) {
+  /* Hai bên đối xứng: mỗi bên một cây thông lớn sát mép và một đồ vật dưới chân (hộp quà / người tuyết) ngoài tầm tháp. */
+  .xmas__tree--l1 { left: 6%; width: clamp(110px, 12vw, 200px); }
+  .xmas__tree--r1 { right: 6%; width: clamp(110px, 12vw, 200px); }
+  .xmas__tree--l2, .xmas__tree--r2 { display: none; }
+  .xmas__snowman { right: 18%; }
+}
+/* Điện thoại: thẻ phủ gần hết bề ngang nên không còn chỗ cho tháp và mặt tiền; chỉ giữ vầng sáng ấm phía sau thẻ. */
+@media (max-width: 640px) {
+  .xmas__tower, .xmas__nave, .xmas__swag-wire, .xmas__swag-lamp { display: none; }
+}

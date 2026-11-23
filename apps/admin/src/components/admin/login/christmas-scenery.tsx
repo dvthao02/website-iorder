@@ -1,8 +1,8 @@
 import type { CSSProperties } from "react";
 
-import { Cabin, Garland, GiftBasket, Gifts, Hills, Mountains, SantaSleigh, Snowman, Tree } from "./christmas-art";
+import { Cathedral, Garland, GiftBasket, Gifts, Hills, Mountains, SantaSleigh, Snowman, Tree } from "./christmas-art";
 
-// Cảnh nền đêm Giáng sinh. Toàn bộ là server component (không hydrate); sao và đốm tuyết sinh từ bộ số giả ngẫu nhiên
+// Cảnh nền đêm Giáng sinh quanh Nhà thờ Đức Bà lên đèn (bên trái thẻ đăng nhập, cân với trăng bên phải). Toàn bộ là server component (không hydrate); sao và đốm tuyết sinh từ bộ số giả ngẫu nhiên
 // cố định nên mỗi lần dựng ra cùng một bầu trời. Các lớp .xmas__layer dịch nhẹ theo chuột (ChristmasStage) theo độ sâu --depth.
 // Ba thứ bấm được (data-xmas: santa, snowman, gifts): người tuyết và hộp quà bật lại pointer-events, ông già Noel bay trên thẻ nên được tính theo
 // khung (xem ChristmasSanta); ChristmasStage cho chúng "phản ứng" khi bấm.
@@ -59,7 +59,7 @@ export function ChristmasScenery() {
     </div>
     <div className="xmas__layer xmas__layer--bottom" style={layer(15)}>
       <Hills className="xmas__hill xmas__hill--far" variant="far" />
-      <Cabin className="xmas__cabin" uid="cabin" />
+      <Cathedral className="xmas__cathedral" />
     </div>
     <div className="xmas__layer xmas__layer--bottom" style={layer(20)}>
       <Tree className="xmas__tree xmas__tree--small xmas__tree--l2" uid="t-l2" />
