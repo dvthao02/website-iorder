@@ -4,7 +4,9 @@ import { config } from "dotenv";
 import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
 import * as schema from "../packages/shared/src/db/schema";
-import { listLeadsPage, updateLeadStatus } from "../packages/shared/src/server/leads/leads.repository";
+import type { LeadContext } from "../packages/shared/src/server/leads/leads.contract";
+import { createRateLimitedLead, listLeadsPage, updateLeadStatus } from "../packages/shared/src/server/leads/leads.repository";
+import { issueLeadToken } from "../packages/shared/src/server/leads/leads.guard";
 import { leadRateLimitMax, leadRateLimitWindowMs } from "../packages/shared/src/server/leads/leads.rate-limit";
 import { submitPublicLead } from "../packages/shared/src/server/leads/leads.service";
 
@@ -87,16 +89,76 @@ async function main() {
     assert.equal((await listLeadsPage({ ...query, status: "new" }, db)).total, 4);
     await client`alter table audit_logs drop constraint reject_lead_audit`;
     const [beforeRateLimit] = await client`select count(*)::int as total from contact_leads`;
-    const rateLimitInput = { name: "Khách kiểm thử chống spam", phone: "0900000001", email: "", businessModel: "", branches: "", need: "", message: "", website: "" };
+    // Mã phiên đủ tuổi (cấp cách đây 10 giây) để request qua được lớp kiểm tra mã; xem leads.guard.ts.
+    const token = () => issueLeadToken(new Date(Date.now() - 10_000));
+    const rateLimitInput = { name: "Khách kiểm thử chống spam", email: "", businessModel: "", branches: "", need: "", message: "", website: "" };
     // Nhiều hơn mức tối đa một request, xen kẽ hai kết nối: khóa advisory phải làm đúng `leadRateLimitMax` request được ghi.
-    const concurrent = await Promise.all(Array.from({ length: leadRateLimitMax + 1 }, (_, index) => submitPublicLead(rateLimitInput, "198.51.100.10", index % 2 ? raceDb : db)));
+    // Mỗi request một số điện thoại riêng để giới hạn theo IP là lớp duy nhất quyết định (cùng số thì thành liên hệ trùng).
+    const concurrent = await Promise.all(Array.from({ length: leadRateLimitMax + 1 }, (_, index) => submitPublicLead({ ...rateLimitInput, phone: `091234567${index}`, token: token() }, "198.51.100.10", index % 2 ? raceDb : db)));
     assert.equal(concurrent.filter(result => result.accepted).length, leadRateLimitMax);
     const rejected = concurrent.filter(result => !result.accepted);
     assert.equal(rejected.length, 1);
-    for (const result of rejected) if (!result.accepted) assert.ok(result.retryAfterSeconds >= 1 && result.retryAfterSeconds <= leadRateLimitWindowMs / 1000);
+    for (const result of rejected) if (!result.accepted && result.kind === "rate_limited") assert.ok(result.retryAfterSeconds >= 1 && result.retryAfterSeconds <= leadRateLimitWindowMs / 1000);
+    else assert.fail("Request bị chặn phải là giới hạn theo IP.");
     const [afterRateLimit] = await client`select count(*)::int as total from contact_leads`;
     assert.equal(afterRateLimit.total, beforeRateLimit.total + leadRateLimitMax);
     console.log(`Đạt: ${leadRateLimitMax + 1} request cùng IP đồng thời chỉ chính xác ${leadRateLimitMax} request được ghi trong cửa sổ rate limit, request còn lại nhận số giây phải chờ.`);
+
+    // Các lớp chống spam còn lại, mỗi lần dùng một IP khác để không dính giới hạn theo IP.
+    // Lùi giờ các liên hệ của một số điện thoại 2 phút để qua khoảng giãn cách giữa hai liên hệ liên tiếp (30 giây) mà không phải chờ thật.
+    const backdate = (digits: string) => client`update contact_leads set created_at = created_at - interval '2 minutes' where phone_digits = ${digits}`;
+    const [beforeGuards] = await client`select count(*)::int as total from contact_leads`;
+    const phone = "0987654321";
+    const first = await submitPublicLead({ ...rateLimitInput, phone, message: "Cần tư vấn máy POS", token: token() }, "198.51.100.21", db);
+    assert.deepEqual(first, { accepted: true, duplicate: false, discarded: false });
+    // Cùng số (gõ +84, có dấu cách), cùng lời nhắn, đều là liên hệ chung: nhận là đã gửi nhưng không thêm dòng.
+    const duplicate = await submitPublicLead({ ...rateLimitInput, phone: "+84 987 654 321", message: "cần tư vấn  máy pos", token: token() }, "198.51.100.22", db);
+    assert.deepEqual(duplicate, { accepted: true, duplicate: true, discarded: false });
+    const [afterDuplicate] = await client`select count(*)::int as total, count(*) filter (where phone_digits = ${phone})::int as same_phone from contact_leads`;
+    assert.equal(afterDuplicate.total, beforeGuards.total + 1);
+    assert.equal(afterDuplicate.same_phone, 1);
+    // Hai liên hệ liên tiếp (lời nhắn khác nhau nhưng cách nhau chưa tới 30 giây) của cùng số: liên hệ sau bị chặn theo khoảng giãn cách.
+    const quick = await submitPublicLead({ ...rateLimitInput, phone, message: "Cần thêm máy in bill", token: token() }, "198.51.100.23", db);
+    assert.equal(quick.accepted, false);
+    if (!quick.accepted && quick.kind === "rate_limited") { assert.equal(quick.scope, "cooldown"); assert.ok(quick.retryAfterSeconds >= 1 && quick.retryAfterSeconds <= 30); } else assert.fail("Liên hệ liên tiếp phải bị chặn theo khoảng giãn cách.");
+    await backdate(phone);
+    // Qua khoảng giãn cách thì lời nhắn khác là liên hệ mới: cùng số được tối đa 5 liên hệ trong 30 phút (đã có 1), liên hệ thứ sáu bị chặn theo số điện thoại dù đổi IP.
+    for (const [index, message] of ["Cần thêm máy in bill", "Hỏi về bảo hành", "Hỏi giá sỉ", "Cần hóa đơn điện tử"].entries()) {
+      assert.equal((await submitPublicLead({ ...rateLimitInput, phone, message, token: token() }, `198.51.100.${30 + index}`, db)).accepted, true, message);
+      await backdate(phone);
+    }
+    const blocked = await submitPublicLead({ ...rateLimitInput, phone, message: "Hỏi thêm về giao hàng", token: token() }, "198.51.100.24", db);
+    assert.equal(blocked.accepted, false);
+    if (!blocked.accepted && blocked.kind === "rate_limited") assert.equal(blocked.scope, "phone"); else assert.fail("Liên hệ thứ sáu phải bị chặn theo số điện thoại.");
+    // Thiếu mã phiên, mã sai, mã mới cấp (gửi quá nhanh): từ chối; ô bẫy có chữ: báo đã nhận nhưng không lưu.
+    const noToken = await submitPublicLead({ ...rateLimitInput, phone: "0911111112", message: "a" }, "198.51.100.25", db);
+    assert.deepEqual(noToken, { accepted: false, kind: "token", reason: "invalid" });
+    const tooFast = await submitPublicLead({ ...rateLimitInput, phone: "0911111112", message: "a", token: issueLeadToken(new Date()) }, "198.51.100.25", db);
+    assert.equal(tooFast.accepted, false);
+    const bot = await submitPublicLead({ ...rateLimitInput, phone: "0911111113", message: "quảng cáo", website: "http://spam.example", token: token() }, "198.51.100.26", db);
+    assert.deepEqual(bot, { accepted: true, duplicate: false, discarded: true });
+    const [afterPhoneGuards] = await client`select count(*)::int as total from contact_leads`;
+    assert.equal(afterPhoneGuards.total, beforeGuards.total + 5);
+    console.log("Đạt: liên hệ trùng không thêm dòng, hai liên hệ liên tiếp bị giãn cách, giới hạn theo số điện thoại chặn dù đổi IP, thiếu mã phiên/gửi quá nhanh bị từ chối, ô bẫy không lưu.");
+
+    // Hỏi mua thiết bị (kiểm theo mã thiết bị, không theo lời nhắn hay slug). Gọi thẳng repository với ngữ cảnh dựng sẵn vì schema tạm không có bảng thiết bị.
+    const deviceA: LeadContext = { kind: "equipment", equipmentId: randomUUID(), slug: "may-a", name: "Máy A", modelCode: null, brand: null, groupName: null, priceVnd: 1_000_000, availability: "in_stock", capturedAt: new Date().toISOString() };
+    const deviceB: LeadContext = { ...deviceA, equipmentId: randomUUID(), slug: "may-b", name: "Máy B" };
+    const lead = (digits: string, message: string) => ({ name: "Khách kiểm thử chống spam", phone: digits, email: null, businessModel: null, branches: null, need: null, message });
+    const devicePhone = "0912000111";
+    assert.equal((await createRateLimitedLead(lead(devicePhone, "Hỏi giá"), "audit-ip-1", deviceA, db)).accepted, true);
+    // Cùng số hỏi lại đúng thiết bị đó (dù đổi lời nhắn, đổi IP, tên thiết bị đã đổi sau đó): từ chối rõ ràng, không lưu.
+    assert.deepEqual(await createRateLimitedLead(lead(devicePhone, "Hỏi bảo hành"), "audit-ip-2", { ...deviceA, name: "Máy A (tên mới)", slug: "may-a-moi" }, db), { accepted: false, reason: "same_device" });
+    await backdate(devicePhone);
+    // Cùng số hỏi thiết bị khác thì được.
+    assert.equal((await createRateLimitedLead(lead(devicePhone, "Hỏi giá"), "audit-ip-3", deviceB, db)).accepted, true);
+    // Cùng IP hỏi cùng thiết bị bằng số khác: được tối đa 2 lần mỗi giờ, lần thứ ba bị từ chối; IP khác thì vẫn được.
+    assert.equal((await createRateLimitedLead(lead("0912000222", "Hỏi giá"), "audit-ip-1", deviceA, db)).accepted, true);
+    assert.deepEqual(await createRateLimitedLead(lead("0912000333", "Hỏi giá"), "audit-ip-1", deviceA, db), { accepted: false, reason: "same_device" });
+    assert.equal((await createRateLimitedLead(lead("0912000333", "Hỏi giá"), "audit-ip-4", deviceA, db)).accepted, true);
+    const [afterDevice] = await client`select count(*)::int as total from contact_leads`;
+    assert.equal(afterDevice.total, beforeGuards.total + 5 + 4);
+    console.log("Đạt: mỗi số chỉ hỏi một thiết bị một lần (theo mã thiết bị), cùng IP hỏi cùng thiết bị tối đa 2 lần mỗi giờ, thiết bị khác vẫn được.");
     console.log("Đạt: audit insert thất bại rollback trạng thái/timestamp/actor; không lưu nửa chừng hoặc thừa audit.");
   } catch (error) {
     console.error("Audit Leads DB thất bại. Kiểm tra DB local/schema hoặc assertion; không in dữ liệu liên hệ/SQL.");

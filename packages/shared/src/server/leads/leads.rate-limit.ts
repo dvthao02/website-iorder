@@ -1,8 +1,9 @@
 // Giới hạn gửi liên hệ từ website, tính theo IP đã băm: tối đa `leadRateLimitMax` liên hệ trong mỗi cửa sổ `leadRateLimitWindowMs`.
-// 1 liên hệ/15 phút (mức cũ) chặn nhầm khách gõ sai rồi gửi lại, nhiều người cùng văn phòng và mạng di động dùng chung IP;
-// 3 liên hệ vẫn đủ chặn spam hàng loạt. Giữ nguyên là chống spam, không phải xác thực.
-export const leadRateLimitWindowMs = 15 * 60 * 1000;
-export const leadRateLimitMax = 3;
+// Nhiều người cùng văn phòng và mạng di động dùng chung IP, khách gõ sai rồi gửi lại, một người hỏi mua vài thiết bị liền nhau: 5 liên hệ
+// mỗi 10 phút (trước là 3 mỗi 15 phút) để khách thật hiếm khi chạm giới hạn và chạm thì chờ tối đa 10 phút; vẫn đủ chặn spam hàng loạt.
+// Giữ nguyên là chống spam, không phải xác thực.
+export const leadRateLimitWindowMs = 10 * 60 * 1000;
+export const leadRateLimitMax = 5;
 
 export type LeadRateLimitDecision = { allowed: true } | { allowed: false; retryAfterSeconds: number };
 
@@ -19,8 +20,14 @@ export function evaluateLeadRateLimit(recent: readonly Date[], now: Date, window
   return { allowed: false, retryAfterSeconds: Math.min(Math.ceil(windowMs / 1000), Math.max(1, Math.ceil((releasesAt - now.getTime()) / 1000))) };
 }
 
-/** Thông báo cho khách, nói rõ chờ bao lâu (làm tròn lên phút) thay vì "chờ ít phút". */
+/** Chờ tới 1 phút thì nói "vài giây"; tới ngần này giây thì nói "ít phút"; lâu hơn (giới hạn theo ngày) thì mời gọi hotline thay vì hẹn một con số. */
+const leadSecondsWaitSeconds = 60;
+const leadShortWaitSeconds = 15 * 60;
+
+/** Thông báo cho khách, không nêu số phút cụ thể (số giây chính xác nằm ở header Retry-After). */
 export function leadRateLimitMessage(retryAfterSeconds: number) {
-  const minutes = Math.max(1, Math.ceil(retryAfterSeconds / 60));
-  return `Bạn đã gửi liên hệ nhiều lần trong thời gian ngắn. Vui lòng thử lại sau ${minutes} phút.`;
+  if (retryAfterSeconds <= leadSecondsWaitSeconds) return "Bạn gửi hơi nhanh. Vui lòng đợi vài giây rồi gửi lại.";
+  return retryAfterSeconds <= leadShortWaitSeconds
+    ? "Bạn đã gửi liên hệ nhiều lần trong thời gian ngắn. Vui lòng thử lại sau ít phút."
+    : "Bạn đã gửi liên hệ nhiều lần. Vui lòng thử lại sau hoặc gọi hotline để được hỗ trợ ngay.";
 }
