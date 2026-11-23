@@ -15,6 +15,7 @@ import type { MatrixModule } from "@/components/admin/ui/role-permission-matrix"
 import { partnerListPageSchema, partnerListQuerySchema, testimonialListPageSchema, testimonialListQuerySchema, type PartnerListQuery, type TestimonialListQuery } from "@iorder/shared/server/supporting/supporting.contract";
 
 import type { getAnalyticsOverview as getAnalyticsOverviewFromCore } from "@iorder/shared/server/analytics/analytics.service";
+import type { LocalBackupLibrary } from "@iorder/shared/server/backup/backup-library";
 import type { BackupStatus, getBackupOverview as getBackupOverviewFromCore } from "@iorder/shared/server/backup/backup-status";
 import { parseDashboardRange } from "@iorder/shared/server/dashboard/dashboard-range";
 import type { getDashboardContentSummary as getDashboardContentSummaryFromCore } from "@iorder/shared/server/dashboard/dashboard-content.service";
@@ -37,7 +38,7 @@ import type { getPublishingReadiness as getPublishingReadinessFromCore } from "@
 import { seoAuditResultSchema } from "@iorder/shared/server/seo-audit/seo-audit.contract";
 import type { SeoAuditResult } from "@iorder/shared/server/seo-audit/seo-audit";
 import type { getRedirects as getRedirectsFromCore } from "@iorder/shared/server/redirects/redirects.service";
-import type { getConsultPopup as getConsultPopupFromCore } from "@iorder/shared/server/settings/consult-popup.service";
+import type { getConsultForm as getConsultFormFromCore, getPromotionPopup as getPromotionPopupFromCore } from "@iorder/shared/server/settings/consult-popup.service";
 import type { getExternalLinks as getExternalLinksFromCore } from "@iorder/shared/server/settings/external-links.service";
 import type { getSiteProfile as getSiteProfileFromCore } from "@iorder/shared/server/settings/profile.service";
 import type { getPublishingConfig as getPublishingConfigFromCore } from "@iorder/shared/server/settings/publishing.service";
@@ -68,7 +69,8 @@ type NavigationTargets = Awaited<ReturnType<typeof getPublishedNavigationTargets
 type SiteProfile = Awaited<ReturnType<typeof getSiteProfileFromCore>>;
 type PublishingConfig = Awaited<ReturnType<typeof getPublishingConfigFromCore>>;
 type ExternalLinks = Awaited<ReturnType<typeof getExternalLinksFromCore>>;
-type ConsultPopup = Awaited<ReturnType<typeof getConsultPopupFromCore>>;
+type ConsultForm = Awaited<ReturnType<typeof getConsultFormFromCore>>;
+type PromotionPopup = Awaited<ReturnType<typeof getPromotionPopupFromCore>>;
 type Redirects = Awaited<ReturnType<typeof getRedirectsFromCore>>;
 type AdminMedia = Awaited<ReturnType<typeof getAdminMediaFromCore>>;
 type AuditLogs = Awaited<ReturnType<typeof getRecentAuditLogsFromCore>>;
@@ -141,9 +143,10 @@ export async function getAdminNotifications(): Promise<AdminNotifications> {
 // null khi người xem không có settings.view.
 export async function getBackupStatus(days?: number): Promise<BackupStatus | null> { return (await getDashboard(days))?.backup ?? null; }
 type BackupOverview = Awaited<ReturnType<typeof getBackupOverviewFromCore>>;
-export async function getBackupOverview(): Promise<(BackupOverview & { scheduled: boolean }) | null> {
-  const payload = await getData<{ backup: BackupOverview; scheduled: boolean }>("/api/v1/admin/backup");
-  return payload ? { ...payload.backup, scheduled: payload.scheduled } : null;
+// local: bản sao lưu đang nằm trên đĩa máy này; null khi database không chạy cục bộ (CMS ẩn các mục tương ứng).
+export async function getBackupOverview(): Promise<(BackupOverview & { scheduled: boolean; local: LocalBackupLibrary | null }) | null> {
+  const payload = await getData<{ backup: BackupOverview; scheduled: boolean; local: LocalBackupLibrary | null }>("/api/v1/admin/backup");
+  return payload ? { ...payload.backup, scheduled: payload.scheduled, local: payload.local ?? null } : null;
 }
 export async function getPublishingReadiness(days?: number): Promise<PublishingReadiness> { return (await getDashboard(days))?.readiness ?? []; }
 // null: người xem không có quyền (403) — màn chỉ ẩn phần kiểm tra SEO.
@@ -256,8 +259,10 @@ export async function getExternalLinks(): Promise<ExternalLinks> { return (await
 async function getSettingVersion(path: string) { const version = (await getData<{ version?: unknown }>(path))?.version; return typeof version === "number" ? version : 0; }
 export async function getSiteProfileVersion() { return getSettingVersion("/api/v1/admin/profile"); }
 export async function getPublishingConfigVersion() { return getSettingVersion("/api/v1/admin/publishing-config"); }
-export async function getConsultPopup(): Promise<ConsultPopup> { return (await getData<{ popup: ConsultPopup }>("/api/v1/admin/consult-popup"))?.popup ?? null; }
-export async function getConsultPopupVersion() { return getSettingVersion("/api/v1/admin/consult-popup"); }
+export async function getConsultForm(): Promise<ConsultForm> { return (await getData<{ form: ConsultForm }>("/api/v1/admin/consult-form"))?.form ?? null; }
+export async function getConsultFormVersion() { return getSettingVersion("/api/v1/admin/consult-form"); }
+export async function getPromotionPopup(): Promise<PromotionPopup> { return (await getData<{ promotion: PromotionPopup }>("/api/v1/admin/promotion-popup"))?.promotion ?? null; }
+export async function getPromotionPopupVersion() { return getSettingVersion("/api/v1/admin/promotion-popup"); }
 export async function getExternalLinksVersion() { return getSettingVersion("/api/v1/admin/external-links"); }
 export async function getRedirects(): Promise<Redirects> { return (await getData<{ redirects: Redirects }>("/api/v1/admin/redirects"))?.redirects ?? []; }
 export async function getPartnersPage(input: PartnerListQuery) {

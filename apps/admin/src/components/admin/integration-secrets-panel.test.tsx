@@ -170,7 +170,7 @@ test("Mã nguồn màn: giá trị và mật khẩu bị xóa khỏi state khi l
   assert.match(panel, /setValues\(\{\}\); setPassword\(""\); setFileNames\(\{\}\);/, "xóa giá trị sau khi lưu");
   assert.ok(!/localStorage|sessionStorage|document\.cookie|process\.env|location\.(search|hash)|console\.(log|info|debug)/.test(panel), "không để lộ giá trị ra ngoài form");
   assert.match(panel, /expectedVersion: secret\.version/, "gửi version để chống ghi đè đồng thời");
-  assert.match(panel, /body: JSON\.stringify\(\{ items: toSet\.map/, "lưu cả nhóm biến của công cụ bằng một yêu cầu, một lần xác nhận mật khẩu");
+  assert.match(panel, /"PUT", \{ items: toSet\.map/, "lưu cả nhóm biến của công cụ bằng một yêu cầu, một lần xác nhận mật khẩu");
   assert.match(panel, /toSet = secrets\.filter\(\(secret\) => !removed\.has\(secret\.key\) && values\[secret\.key\]\?\.trim\(\) && values\[secret\.key\] !== initialValue\(secret\)\)/, "chỉ gửi biến đã sửa");
   assert.match(panel, /action: "create-master-key", password/, "tạo khóa chủ chỉ gửi mật khẩu xác nhận, không có ô nhập khóa chủ");
 

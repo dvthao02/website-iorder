@@ -1,6 +1,6 @@
 "use client";
 
-import { adminApiError } from "@/lib/admin-api";
+import { requestAdminJson } from "@/lib/admin-api";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useRef, useState, type FormEvent } from "react";
@@ -61,7 +61,7 @@ export function EquipmentManagerList({ groups, initialGroupId, initialQuery, ini
     { id: "price", label: "Giá", defaultWidth: 130, minWidth: 110, align: "right", sortKey: "priceVnd", cell: (item) => <span className="admin-text-muted">{item.priceVnd ? `${priceFormatter.format(item.priceVnd)} ₫` : "Liên hệ"}</span> },
     { id: "status", label: "Trạng thái", defaultWidth: 150, minWidth: 130, sortKey: "status", cell: (item) => <AdminStatusBadge tone={statusTones[item.status]}>{statusLabels[item.status]}</AdminStatusBadge> },
     { id: "updatedAt", label: "Cập nhật", defaultWidth: 140, minWidth: 130, sortKey: "updatedAt", sortFirst: "desc", cell: (item) => <span className="admin-text-muted">{dateFormatter.format(new Date(item.updatedAt))}</span> },
-    { id: "actions", label: "Thao tác", defaultWidth: 120, minWidth: 120, align: "right", cell: (item) => <AdminContentActions module="equipment" deleteMutation={item.status === "archived" ? { method: "DELETE", url: `/api/v1/admin/equipment/${item.id}?expectedVersion=${item.version}` } : undefined} editHref={`/admin/equipment/${item.id}`} isArchived={item.status === "archived"} label="thiết bị" mutation={{ method: "PATCH", url: `/api/v1/admin/equipment/${item.id}`, body: { action: item.status === "archived" ? "restore" : "archive", expectedVersion: item.version } }} viewHref={item.status === "published" ? `/thiet-bi/${item.slug}` : undefined} /> },
+    { id: "actions", label: "Thao tác", defaultWidth: 120, minWidth: 120, align: "right", cell: (item) => <AdminContentActions module="equipment" deleteMutation={item.status === "archived" ? { method: "DELETE", url: `/api/v1/admin/equipment/${item.id}?expectedVersion=${item.version}` } : undefined} editHref={`/admin/equipment/${item.id}`} isArchived={item.status === "archived"} label="thiết bị" mutation={{ method: "PATCH", url: `/api/v1/admin/equipment/${item.id}`, body: { action: item.status === "archived" ? "restore" : "archive", expectedVersion: item.version } }} viewHref={item.status === "published" ? `/equipment/${item.slug}` : undefined} /> },
   ], []);
   const groupColumns = useMemo<AdminDataTableColumn<EquipmentGroup>[]>(() => [
     { id: "name", label: "Nhóm thiết bị", defaultWidth: 280, minWidth: 200, sortValue: (group) => group.name, cell: (group) => <Link href={`/admin/equipment/groups?edit=${group.id}`}>{group.name}</Link> },
@@ -99,9 +99,7 @@ function EquipmentGroupActions({ group }: { group: EquipmentGroup }) {
     setBusy(true);
     try {
       const requestUrl = `/api/v1/admin/equipment/${group.id}?kind=groups`;
-      const response = await fetch(requestUrl, { method: "DELETE" });
-      const payload = await response.json().catch(() => null) as { error?: { message?: string } } | null;
-      if (!response.ok) throw adminApiError(payload, "Không thể xóa nhóm thiết bị.");
+      const payload = await requestAdminJson(requestUrl, "DELETE", undefined, "Không thể xóa nhóm thiết bị.");
       parseDeletedEntityId(payload, requestUrl);
       show("Đã xóa nhóm thiết bị khỏi CMS.", "success");
       router.refresh();

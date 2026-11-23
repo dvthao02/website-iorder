@@ -6,7 +6,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { WebsiteOriginProvider } from "../website-origin-context";
 import { SeoAssistant } from "./seo-assistant";
 
-const good = { title: "Phần mềm quản lý nhà hàng cho chủ quán bận rộn", seoTitle: "", seoDescription: "", excerpt: "Hướng dẫn chọn phần mềm quản lý nhà hàng phù hợp quy mô, theo dõi doanh thu và kho theo thời gian thực.", slug: "phan-mem-quan-ly-nha-hang", path: "/tin-tuc/phan-mem-quan-ly-nha-hang", hasCover: true, content: { blocks: [{ type: "paragraph", text: "từ ".repeat(320) }] }, onChange: () => undefined };
+const good = { title: "Phần mềm quản lý nhà hàng cho chủ quán bận rộn", seoTitle: "", seoDescription: "", excerpt: "Hướng dẫn chọn phần mềm quản lý nhà hàng phù hợp quy mô, theo dõi doanh thu và kho theo thời gian thực.", slug: "phan-mem-quan-ly-nha-hang", path: "/news/phan-mem-quan-ly-nha-hang", hasCover: true, content: { blocks: [{ type: "paragraph", text: "từ ".repeat(320) }] }, onChange: () => undefined };
 
 test("Đủ mục thì hiện 'Sẵn sàng lên Google', không có danh sách việc nên làm", () => {
   const html = renderToStaticMarkup(<SeoAssistant {...good} />);
@@ -80,7 +80,7 @@ test("Gần khớp từ khóa: vẫn 'Sẵn sàng', hiện mục 'Làm thêm cho
 });
 
 test("Mục 'Khách đang tìm gì' không hiện sẵn: chỉ hiện sau khi backend báo đã nối Search Console, để chưa nối thì không làm rối", () => {
-  const html = renderToStaticMarkup(<SeoAssistant {...good} onFocusKeywordChange={() => undefined} searchConsolePath="/tin-tuc/bai-viet" />);
+  const html = renderToStaticMarkup(<SeoAssistant {...good} onFocusKeywordChange={() => undefined} searchConsolePath="/news/bai-viet" />);
   assert.doesNotMatch(html, /Khách đang tìm gì/);
   assert.doesNotMatch(html, /Chưa nối Google Search Console/);
 });
@@ -105,6 +105,6 @@ test("guideKind hiện hướng dẫn SEO theo loại trang: việc website tự
 
 test("Xem trước Google hiện địa chỉ khách thấy (Địa chỉ website ở Cài đặt), không phải địa chỉ LAN dùng để mở trang", () => {
   const html = renderToStaticMarkup(<WebsiteOriginProvider origin="http://192.168.1.5:3000" publicOrigin="https://iorder.vn"><SeoAssistant {...good} /></WebsiteOriginProvider>);
-  assert.ok(html.includes("<small>iorder.vn › tin-tuc › phan-mem-quan-ly-nha-hang</small>"));
+  assert.ok(html.includes("<small>iorder.vn › news › phan-mem-quan-ly-nha-hang</small>"));
   assert.ok(!html.includes("192.168"));
 });

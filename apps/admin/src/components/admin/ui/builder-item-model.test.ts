@@ -4,7 +4,7 @@ import { pageBlockInputSchema } from "@iorder/shared/server/pages/pages.contract
 import { builderItemCollections, replaceBuilderItems } from "./builder-item-model";
 
 test("Sửa danh sách item tạo bản mới và giữ nguyên trường khác của thành phần", () => {
-  const block = pageBlockInputSchema.parse({ type: "features", isEnabled: true, data: { eyebrow: "Giới thiệu", title: "Lợi ích", description: "Mô tả", items: [{ title: "Một", description: "A", href: "/lien-he" }] } });
+  const block = pageBlockInputSchema.parse({ type: "features", isEnabled: true, data: { eyebrow: "Giới thiệu", title: "Lợi ích", description: "Mô tả", items: [{ title: "Một", description: "A", href: "/contact" }] } });
   const collection = builderItemCollections(block)[0];
   const updated = replaceBuilderItems(block, collection.path, [...collection.items, collection.create()]);
   assert.equal(block.type === "features" && block.data.items.length, 1);

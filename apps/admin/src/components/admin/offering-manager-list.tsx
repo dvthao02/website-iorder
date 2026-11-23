@@ -37,9 +37,9 @@ const statusLabels: Record<AdminOfferingListItem["status"], string> = { archived
 const statusTones: Record<AdminOfferingListItem["status"], AdminFeedbackTone> = { archived: "error", draft: "neutral", published: "success", review: "warning", scheduled: "info" };
 // Ba loại dùng chung một màn danh sách; trang sửa vẫn theo từng loại để giữ nguyên URL đã có.
 export const offeringTypes: Array<{ type: PublicOfferingType; label: string; editorHref: string; publicPath: string; hint: string }> = [
-  { type: "software", label: "Sản phẩm", editorHref: "/admin/products", publicPath: "/phan-mem", hint: "Phần mềm, ứng dụng" },
-  { type: "solution", label: "Giải pháp", editorHref: "/admin/solutions", publicPath: "/giai-phap", hint: "Hạ tầng, thiết bị trọn gói" },
-  { type: "service", label: "Dịch vụ", editorHref: "/admin/services", publicPath: "/dich-vu", hint: "Tư vấn, triển khai, phát triển theo yêu cầu" },
+  { type: "software", label: "Sản phẩm", editorHref: "/admin/products", publicPath: "/software", hint: "Phần mềm, ứng dụng" },
+  { type: "solution", label: "Giải pháp", editorHref: "/admin/solutions", publicPath: "/solutions", hint: "Hạ tầng, thiết bị trọn gói" },
+  { type: "service", label: "Dịch vụ", editorHref: "/admin/services", publicPath: "/services", hint: "Tư vấn, triển khai, phát triển theo yêu cầu" },
 ];
 const typeInfo = Object.fromEntries(offeringTypes.map((entry) => [entry.type, entry])) as Record<PublicOfferingType, (typeof offeringTypes)[number]>;
 

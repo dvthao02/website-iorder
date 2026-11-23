@@ -2,6 +2,8 @@
 
 import React, { useEffect, useState } from "react";
 
+import { requestAdminJson } from "../../../lib/admin-api";
+
 import type { SearchConsolePageQueries } from "@iorder/shared/server/search-console/search-console.contract";
 import { AdminButton } from "./admin-button";
 
@@ -29,9 +31,9 @@ export function SearchConsoleQueries({ path, onUse, disabled }: { path: string; 
 
   useEffect(() => {
     let cancelled = false;
-    fetch(`/api/v1/admin/search-console?path=${encodeURIComponent(path)}`, { headers: { accept: "application/json" } })
-      .then(async (response) => ({ ok: response.ok, body: await response.json() as { page?: SearchConsolePageQueries } }))
-      .then(({ ok, body }) => { if (!cancelled && ok && body.page) setLoaded({ path, result: body.page }); })
+    // Lỗi (chưa nối, không có quyền, mất mạng) thì ẩn mục này, không báo gì: xem ghi chú ở trên.
+    requestAdminJson(`/api/v1/admin/search-console?path=${encodeURIComponent(path)}`, "GET", undefined, "Không lấy được từ khóa của trang này.")
+      .then((body) => { const page = (body as { page?: SearchConsolePageQueries } | null)?.page; if (!cancelled && page) setLoaded({ path, result: page }); })
       .catch(() => undefined);
     return () => { cancelled = true; };
   }, [path]);

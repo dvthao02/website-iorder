@@ -4,7 +4,7 @@ import { adminApiError, readAdminJson } from "@/lib/admin-api";
 import { ArrowRight, Link2, Plus, RotateCcw, Save, ToggleLeft, ToggleRight, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useRef, useState, type FormEvent } from "react";
-import { redirectInputSchema } from "@iorder/shared/server/redirects/redirects.contract";
+import { describeLinkUpdates, linkUpdateSummarySchema, redirectInputSchema } from "@iorder/shared/server/redirects/redirects.contract";
 
 import { DataTransferActions } from "./data-transfer-actions";
 import { AdminBulkBar } from "./ui/admin-bulk-bar";
@@ -24,9 +24,12 @@ import { AdminFileIcon } from "./ui/admin-file-icon";
 import { useAdminPermissions } from "./ui/admin-permissions";
 import { AdminSidePanel } from "./ui/admin-side-panel";
 import { useRowSelection } from "./ui/content-bulk-bar";
+import { AdminPagination } from "./ui/admin-pagination";
+import { useClientPagination } from "./ui/use-client-pagination";
 import { useBulkAction } from "./ui/use-bulk-action";
 import { useAdminFormValidation } from "./ui/use-admin-form-validation";
 import { useNavigationGuard } from "./ui/use-navigation-guard";
+import { AdminSelect } from "./ui/admin-select";
 
 type RedirectInput = { sourcePath: string; destinationPath: string; statusCode: 301 | 308; isEnabled: boolean };
 type Redirect = RedirectInput & { id: string; version: number };
@@ -82,11 +85,14 @@ export function RedirectsManager({ initialRedirects }: { initialRedirects: Redir
       return matchesQuery && (codeFilter === "all" || String(item.statusCode) === codeFilter) && (statusFilter === "all" || (statusFilter === "enabled" && item.isEnabled) || (statusFilter === "disabled" && !item.isEnabled));
     });
   }, [codeFilter, query, rows, statusFilter]);
-  // Chọn nhiều dòng: bỏ chọn khi đổi từ khóa/bộ lọc; thao tác chỉ áp dụng cho dòng còn hiện trong bảng.
+  // Phân trang trong trình duyệt (cả danh sách đã nạp sẵn); đổi từ khóa/bộ lọc thì về trang 1.
+  const filterKey = `${query.trim()}|${statusFilter}|${codeFilter}`;
+  const paged = useClientPagination(visibleRows, filterKey);
+  // Chọn nhiều dòng: bỏ chọn khi đổi từ khóa/bộ lọc/trang; thao tác chỉ áp dụng cho dòng đang hiện trong bảng.
   const { can } = useAdminPermissions();
-  const selection = useRowSelection(`${query.trim()}|${statusFilter}|${codeFilter}`);
+  const selection = useRowSelection(`${filterKey}|${paged.pagination.page}`);
   const { busy: bulkBusy, run: runBulk } = useBulkAction();
-  const chosen = visibleRows.filter((item) => selection.selectedIds.includes(item.id));
+  const chosen = paged.rows.filter((item) => selection.selectedIds.includes(item.id));
   const enabledChosen = chosen.filter((item) => item.isEnabled);
   const disabledChosen = chosen.filter((item) => !item.isEnabled);
   const updateDenied = can("redirects.update") ? undefined : "Cần quyền sửa chuyển hướng.";
@@ -164,7 +170,10 @@ export function RedirectsManager({ initialRedirects }: { initialRedirects: Redir
       setActiveId(saved.id);
       setForm(values);
       setInitialValues(values);
-      showToast(active ? "Đã lưu chuyển hướng." : "Đã tạo chuyển hướng.", "success");
+      // Máy chủ đã tự đổi các liên kết nội dung đang trỏ tới đường dẫn cũ; báo để người vận hành biết nơi nào vừa thay đổi.
+      const linkUpdates = linkUpdateSummarySchema.safeParse(body.linkUpdates);
+      const linkNote = linkUpdates.success ? describeLinkUpdates(linkUpdates.data) : "";
+      showToast(`${active ? "Đã lưu chuyển hướng." : "Đã tạo chuyển hướng."}${linkNote ? ` ${linkNote}` : ""}`, "success");
       router.refresh();
     } catch (error) {
       const message = error instanceof Error ? error.message : "Không kết nối được máy chủ.";
@@ -224,16 +233,18 @@ export function RedirectsManager({ initialRedirects }: { initialRedirects: Redir
       <AdminListHeader actions={<><DataTransferActions dataset="redirects" label="Chuyển hướng URL" module="redirects" /><AdminButton hideWithoutPermission permission="redirects.create" leadingIcon={<Plus aria-hidden="true" size={16} />} onClick={() => select()}>Tạo chuyển hướng</AdminButton></>} description={`${rows.length} đường dẫn · ${enabledCount} đang bật`} headingLevel={1} title="Chuyển hướng URL" />
       <AdminFilterBar onSubmit={(event) => event.preventDefault()} chips={chips} onClearAll={() => { setQuery(""); setStatusFilter("all"); setCodeFilter("all"); }} search={<AdminSearchField id="redirect-search" label="Tìm chuyển hướng" onChange={(event) => setQuery(event.target.value)} placeholder="Tìm đường dẫn cũ hoặc đích đến" value={query} />}><select aria-label="Lọc trạng thái" id="redirect-status" onChange={(event) => setStatusFilter(event.target.value as RedirectStatusFilter)} value={statusFilter}><option value="all">Tất cả trạng thái</option><option value="enabled">Đang bật</option><option value="disabled">Đang tắt</option></select>{statusCodes.length > 1 ? <select aria-label="Lọc mã chuyển hướng" onChange={(event) => setCodeFilter(event.target.value)} value={codeFilter}><option value="all">Mọi mã</option>{statusCodes.map((code) => <option key={code} value={String(code)}>{code}</option>)}</select> : null}</AdminFilterBar>
       <AdminBulkBar count={chosen.length} onClear={selection.clear}><AdminBulkMenu actions={bulkActions} busy={bulkBusy} /></AdminBulkBar>
-      <AdminDataTable columns={columns} emptyAction={query.trim() || statusFilter !== "all" || codeFilter !== "all" ? <AdminButton onClick={() => { setQuery(""); setStatusFilter("all"); setCodeFilter("all"); }} variant="secondary">Xóa bộ lọc</AdminButton> : undefined} emptyMessage={rows.length ? "Không có chuyển hướng phù hợp với bộ lọc." : "Chưa có chuyển hướng URL."} getRowId={(item) => item.id} getRowLabel={(item) => item.sourcePath} onRowClick={select} onSelectionChange={selection.setSelectedIds} onSettingsOpenChange={setIsColumnSettingsOpen} selectedIds={selection.selectedIds} rows={visibleRows} settingsOpen={isColumnSettingsOpen} tableId="cms-redirects" />
+      <AdminDataTable columns={columns} emptyAction={query.trim() || statusFilter !== "all" || codeFilter !== "all" ? <AdminButton onClick={() => { setQuery(""); setStatusFilter("all"); setCodeFilter("all"); }} variant="secondary">Xóa bộ lọc</AdminButton> : undefined} emptyMessage={rows.length ? "Không có chuyển hướng phù hợp với bộ lọc." : "Chưa có chuyển hướng URL."} getRowId={(item) => item.id} getRowLabel={(item) => item.sourcePath} onRowClick={select} onSelectionChange={selection.setSelectedIds} onSettingsOpenChange={setIsColumnSettingsOpen} selectedIds={selection.selectedIds} rows={paged.rows} settingsOpen={isColumnSettingsOpen} tableId="cms-redirects" />
+      <AdminPagination label="Phân trang chuyển hướng" unit="chuyển hướng" {...paged.pagination} />
     </AdminCard>
     <AdminSidePanel footer={footer} isOpen={form !== null} label={active ? "Chỉnh sửa chuyển hướng" : "Tạo chuyển hướng"} onClose={closeEditor}>
       <header className="admin-list-manager__panel-header"><span className="admin-list-manager__panel-icon"><Link2 aria-hidden="true" size={18} /></span><div><p>{active ? "Chỉnh sửa chuyển hướng" : "Tạo chuyển hướng"}</p><h2>{active?.sourcePath || "Chuyển hướng mới"}</h2><small className={dirty ? "admin-list-manager__dirty" : undefined}>{dirty ? "Có thay đổi chưa lưu." : active ? `${active.destinationPath} · ${active.statusCode}` : "Khai báo URL cũ và đích đến mới."}</small></div></header>
       {form ? <form className="admin-list-manager__form" id="redirect-editor" noValidate onSubmit={save}>
         {validation.summary}
         {saveError ? <AdminNotice tone="error">{saveError}</AdminNotice> : null}
-        <fieldset disabled={busy}><AdminFormField hint="Nhập đường dẫn cũ và đích đến mới trên website. Ví dụ: /trang-cu → /trang-moi." id="redirect-sourcePath" label="Đường dẫn cũ"><input {...validation.props("sourcePath")} className="admin-input" onChange={(event) => setForm({ ...form, sourcePath: event.target.value })} placeholder="/giai-phap-cu" required value={form.sourcePath} />{validation.message("sourcePath")}</AdminFormField><AdminFormField id="redirect-destinationPath" label="Đường dẫn mới"><input {...validation.props("destinationPath")} className="admin-input" onChange={(event) => setForm({ ...form, destinationPath: event.target.value })} placeholder="/giai-phap" required value={form.destinationPath} />{validation.message("destinationPath")}</AdminFormField><div className="admin-list-manager__form-grid"><AdminFormField id="redirect-statusCode" label="Mã chuyển hướng"><select {...validation.props("statusCode")} className="admin-input" onChange={(event) => setForm({ ...form, statusCode: Number(event.target.value) as 301 | 308 })} value={form.statusCode}><option value={301}>301 — Vĩnh viễn</option><option value={308}>308 — Vĩnh viễn, giữ phương thức</option></select>{validation.message("statusCode")}</AdminFormField><label className="admin-list-manager__toggle"><input checked={form.isEnabled} onChange={(event) => setForm({ ...form, isEnabled: event.target.checked })} type="checkbox" />Đang bật</label></div></fieldset>
+        <fieldset disabled={busy}><AdminFormField hint="Nhập đường dẫn cũ và đích đến mới trên website. Ví dụ: /trang-cu → /trang-moi." id="redirect-sourcePath" label="Đường dẫn cũ"><input {...validation.props("sourcePath")} className="admin-input" onChange={(event) => setForm({ ...form, sourcePath: event.target.value })} placeholder="/giai-phap-cu" required value={form.sourcePath} />{validation.message("sourcePath")}</AdminFormField><AdminFormField id="redirect-destinationPath" label="Đường dẫn mới"><input {...validation.props("destinationPath")} className="admin-input" onChange={(event) => setForm({ ...form, destinationPath: event.target.value })} placeholder="/giai-phap" required value={form.destinationPath} />{validation.message("destinationPath")}</AdminFormField><div className="admin-list-manager__form-grid"><AdminFormField id="redirect-statusCode" label="Mã chuyển hướng"><AdminSelect {...validation.props("statusCode")} onChange={(event) => setForm({ ...form, statusCode: Number(event.target.value) as 301 | 308 })} value={form.statusCode}><option value={301}>301 — Vĩnh viễn</option><option value={308}>308 — Vĩnh viễn, giữ phương thức</option></AdminSelect>{validation.message("statusCode")}</AdminFormField><label className="admin-list-manager__toggle"><input checked={form.isEnabled} onChange={(event) => setForm({ ...form, isEnabled: event.target.checked })} type="checkbox" />Đang bật</label></div></fieldset>
         <details className="admin-form-help"><summary>Quy tắc đường dẫn và mã chuyển hướng</summary>
         <AdminNotice tone="info">Chỉ dùng đường dẫn nội bộ bắt đầu bằng <code>/</code>. Nguồn không chứa query (<code>?</code>), fragment (<code>#</code>) hoặc đoạn <code>..</code>. Website giữ query của URL khách truy cập thay cho query cấu hình ở đích. Mã 301 phù hợp hầu hết URL cũ; 308 giữ nguyên HTTP method.</AdminNotice>
+        <AdminNotice tone="info">Khi lưu một chuyển hướng đang bật, các liên kết trong menu (mục URL tùy chỉnh), trang, bài viết, sản phẩm/giải pháp/dịch vụ, thiết bị và cài đặt đang trỏ tới đường dẫn cũ được tự đổi sang đường dẫn mới. Website cũng tự chuyển địa chỉ tiếng Việt cũ (như <code>/chinh-sach-bao-mat</code>) về địa chỉ tiếng Anh chuẩn (<code>/privacy-policy</code>), nên không dùng được địa chỉ cũ đó làm đích nếu nó quay về chính đường dẫn cũ của chuyển hướng.</AdminNotice>
         </details>
       </form> : null}
     </AdminSidePanel>

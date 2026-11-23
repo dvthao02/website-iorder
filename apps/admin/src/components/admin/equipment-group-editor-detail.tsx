@@ -19,6 +19,7 @@ import { createTransientDraftStore } from "./ui/transient-draft-store";
 import { AdminFormField } from "./ui/admin-form-field";
 import { AdminHelpTip } from "./ui/admin-help-tip";
 import { useAdminFormValidation } from "./ui/use-admin-form-validation";
+import { AdminCheckbox } from "./ui/admin-checkbox";
 
 export type EquipmentGroupRecord = EquipmentGroupInput & { id: string; version: number };
 
@@ -120,7 +121,7 @@ export function EquipmentGroupEditorDetail({ group }: { group?: EquipmentGroupRe
       </section>
       <section className="admin-content-section">
         <header><div className="admin-label-row"><h2>Hiển thị</h2><AdminHelpTip label="Giải thích: Hiển thị">Kiểm soát vị trí và khả năng hiển thị trên website.</AdminHelpTip></div></header>
-        <div className="admin-form-grid"><AdminFormField id={validation.props("sortOrder").id} label="Thứ tự hiển thị" error={validation.message("sortOrder")}><input {...validation.props("sortOrder")} min={0} max={10000} onChange={(event) => setForm({ ...form, sortOrder: Number(event.target.value) })} type="number" value={form.sortOrder} /></AdminFormField><label className="admin-check self-end"><input checked={form.isEnabled} disabled={!canPublish} onChange={(event) => setForm({ ...form, isEnabled: event.target.checked })} type="checkbox" />Hiển thị nhóm trên website{canPublish ? null : <small className="font-medium text-[var(--cms-muted)]">Cần quyền xuất bản thiết bị</small>}</label></div>
+        <div className="admin-form-grid"><AdminFormField id={validation.props("sortOrder").id} label="Thứ tự hiển thị" error={validation.message("sortOrder")}><input {...validation.props("sortOrder")} min={0} max={10000} onChange={(event) => setForm({ ...form, sortOrder: Number(event.target.value) })} type="number" value={form.sortOrder} /></AdminFormField><AdminCheckbox className="self-end" checked={form.isEnabled} disabled={!canPublish} onChange={(event) => setForm({ ...form, isEnabled: event.target.checked })}>Hiển thị nhóm trên website{canPublish ? null : <small className="font-medium text-[var(--cms-muted)]">Cần quyền xuất bản thiết bị</small>}</AdminCheckbox></div>
       </section>
       <section className="admin-content-section"><header><div className="admin-label-row"><h2>Ảnh bìa</h2><AdminHelpTip label="Giải thích: Ảnh bìa">Ảnh đại diện cho nhóm thiết bị khi hiển thị trên website.</AdminHelpTip></div></header><div {...validation.props("coverMediaId")} tabIndex={-1}><MediaPicker compact disabled={busy || !canEdit} label="Ảnh bìa" onUploadingChange={handleUploadingChange} onChange={(coverMediaId) => setForm(current => ({ ...current, coverMediaId }))} value={form.coverMediaId} /></div>{validation.message("coverMediaId")}</section>
       </fieldset>

@@ -17,6 +17,7 @@ import { AdminPopover } from "@/components/admin/ui/admin-popover";
 import { AdminHelpTip } from "@/components/admin/ui/admin-help-tip";
 import { AdminSidePanel } from "@/components/admin/ui/admin-side-panel";
 import { useAdminPermissions } from "@/components/admin/ui/admin-permissions";
+import { AdminSelect } from "./ui/admin-select";
 
 // Khung nhập Word kéo theo bộ soạn thảo Tiptap (~500 KB): chỉ tải khi người dùng mở, không nạp cùng màn danh sách.
 const WordImportPanel = dynamic(() => import("@/components/admin/word-import-panel").then((loaded) => loaded.WordImportPanel), { ssr: false });
@@ -147,7 +148,7 @@ function ImportPanel({ dataset, exportHref, label, onClose }: { dataset: Transfe
       <header><div className="admin-label-row"><h2>Nhập {label.toLocaleLowerCase("vi")} từ file</h2><AdminHelpTip label="Hướng dẫn nhập file">Mỗi dòng một mục, khớp theo cột {match.column}: trùng thì cập nhật, mới thì thêm; không xóa mục vắng mặt. {match.note ?? ""} Chọn file tối đa 2 MB, chọn sheet Excel, kiểm tra rồi xác nhận; mỗi mục thay đổi có phiên bản để khôi phục.</AdminHelpTip></div></header>
       <div className="admin-label-row"><span>Tải file mẫu: <a download href={exportHref("xlsx")}>Excel</a> hoặc <a download href={exportHref("csv")}>CSV</a>.</span><AdminHelpTip label="Giải thích cách sửa file">Giữ dòng tiêu đề. Chỉ cập nhật các cột còn trong file, ví dụ {match.example}. Ô trống ở cột số, Có/Không, trạng thái giữ nguyên; ô trống ở cột chữ hoặc danh sách xóa nội dung. Không muốn đổi thì xóa cột khỏi file.</AdminHelpTip>{dataset === "equipment" ? <AdminHelpTip label="Cách ghi thông số kỹ thuật">Trong cột Thông số kỹ thuật, ghi mỗi nhóm trên một dòng dạng [Tên nhóm], tiếp theo mỗi thông số một dòng dạng Tên: Giá trị. Xuống dòng trong ô bằng Alt+Enter. Ô trống xóa thông số; xóa cột để giữ nguyên. Với ký tự đặc biệt, giữ dấu \ trong file xuất.</AdminHelpTip> : null}</div>
       <label className="admin-import__file"><AdminFileIcon action="import" kind={file ? fileKindOf(file.name) : "excel"} /><span>{file ? file.name : "Chọn file .xlsx hoặc .csv"}</span><input accept=".xlsx,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" disabled={busy} onChange={choose} type="file" /></label>
-      {sheets?.length ? <label className="admin-field">Sheet cần nhập<select className="admin-input" disabled={busy} value={sheet} onChange={(event) => { setSheet(event.target.value); setPlan(null); setConfirming(false); }}><option value="">Chọn sheet</option>{sheets.map((name) => <option key={name} value={name}>{name}</option>)}</select></label> : null}
+      {sheets?.length ? <label className="admin-field">Sheet cần nhập<AdminSelect disabled={busy} value={sheet} onChange={(event) => { setSheet(event.target.value); setPlan(null); setConfirming(false); }}><option value="">Chọn sheet</option>{sheets.map((name) => <option key={name} value={name}>{name}</option>)}</AdminSelect></label> : null}
       {error ? <AdminNotice tone="error">{error}</AdminNotice> : null}
       {confirming && plan ? <AdminNotice tone="info">Xác nhận nhập {file?.name}{sheet ? ` · sheet ${sheet}` : ""}: thêm {plan.counts.create}, cập nhật {plan.counts.update}. Dữ liệu sẽ được kiểm tra lại trước khi lưu.</AdminNotice> : null}
       {plan ? <section aria-label="Kết quả xem trước" className="admin-import__preview">

@@ -3,6 +3,8 @@ import { AdminPageBarHelp } from "@/components/admin/ui/admin-page-bar";
 import type { ReactNode } from "react";
 
 type SettingsDetailPageProps = {
+  /** Nội dung tự có khung thẻ riêng nên không bọc thêm section (mặc định có bọc). */
+  bare?: boolean;
   className?: string;
   /** Không còn hiển thị: thanh vị trí của khung CMS đã cho biết nhóm. */
   eyebrow?: string;
@@ -11,10 +13,10 @@ type SettingsDetailPageProps = {
   children: ReactNode;
 };
 
-export function SettingsDetailPage({ className, title, description, children }: SettingsDetailPageProps) {
+export function SettingsDetailPage({ bare = false, className, title, description, children }: SettingsDetailPageProps) {
   return <AdminPage className={className}>
     <h1 className="sr-only">{title}</h1>
     <AdminPageBarHelp>{description}</AdminPageBarHelp>
-    <section className="admin-settings-page__section">{children}</section>
+    {bare ? children : <section className="admin-settings-page__section">{children}</section>}
   </AdminPage>;
 }

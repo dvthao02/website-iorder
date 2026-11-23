@@ -65,6 +65,10 @@
 
   --cms-topbar-height: 56px;
   --cms-shadow-popover: 0 8px 24px rgb(16 24 40 / 12%), 0 1px 2px rgb(16 24 40 / 6%);
+  /* Màn mờ phía sau cửa sổ nổi: soft = panel trượt (vẫn thấy nền), mặc định = hộp thoại giữa màn hình, strong = xem ảnh lớn. */
+  --cms-scrim-soft: rgb(16 24 40 / 18%);
+  --cms-scrim: rgb(16 24 40 / 32%);
+  --cms-scrim-strong: rgb(16 24 40 / 60%);
   --cms-shadow-panel: -12px 0 32px rgb(16 24 40 / 12%);
 
   /* Nhận diện riêng của từng theme (ngoài bảng màu): thanh bên, thanh trên, nút chính, nền trang, đổ bóng thẻ, font tiêu đề.
@@ -216,6 +220,9 @@ html[data-cms-theme="dark"] {
   --cms-nav-bg: #0b0f14; --cms-nav-text: var(--cms-text); --cms-nav-muted: var(--cms-muted); --cms-nav-border: #1d2630; --cms-nav-hover: rgb(255 255 255 / 6%); --cms-nav-active-bg: #1f3150; --cms-nav-active-text: #e3eeff; --cms-nav-accent: var(--cms-primary-strong);
   --cms-topbar-bg: #1b2430; --cms-topbar-border: #2a3644;
   --cms-shadow-popover: 0 8px 24px rgb(0 0 0 / 40%);
+  --cms-scrim-soft: rgb(0 0 0 / 30%);
+  --cms-scrim: rgb(0 0 0 / 50%);
+  --cms-scrim-strong: rgb(0 0 0 / 72%);
   --cms-shadow-panel: -12px 0 32px rgb(0 0 0 / 40%);
 }
 

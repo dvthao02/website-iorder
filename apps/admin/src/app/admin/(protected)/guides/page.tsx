@@ -14,7 +14,7 @@ const statuses = new Set<PostStatus>(["draft", "review", "scheduled", "published
 
 type GuidesSearchParams = { create?: string; edit?: string; page?: string; pageSize?: string; query?: string; status?: string; categoryId?: string; tagId?: string; sort?: string; dir?: string };
 
-// Bài hướng dẫn sử dụng (posts type=guide), hiển thị ở /ho-tro/huong-dan; tách khỏi tệp cài đặt (/admin/resources).
+// Bài hướng dẫn sử dụng (posts type=guide), hiển thị ở /support/guides; tách khỏi tệp cài đặt (/admin/resources).
 export default async function GuidesPage({ searchParams }: { searchParams: Promise<GuidesSearchParams> }) {
   await requireAdminPermission("posts.view");
   const params = await searchParams;

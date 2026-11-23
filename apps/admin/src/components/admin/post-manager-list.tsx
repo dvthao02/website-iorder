@@ -28,7 +28,7 @@ const postTypeLabels: Record<AdminPostListItem["type"], string> = { announcement
 const statusTones: Record<AdminPostListItem["status"], AdminFeedbackTone> = { archived: "neutral", draft: "neutral", published: "success", review: "warning", scheduled: "info" };
 const dateFormatter = new Intl.DateTimeFormat("vi-VN", { dateStyle: "medium" });
 
-function getPublicPostPath(item: AdminPostListItem) { return item.type === "guide" ? `/ho-tro/huong-dan/${item.slug}` : `/tin-tuc/${item.slug}`; }
+function getPublicPostPath(item: AdminPostListItem) { return item.type === "guide" ? `/support/guides/${item.slug}` : `/news/${item.slug}`; }
 
 type TaxonomyOption = { id: string; name: string };
 /** Cột chuyên mục của bảng: với hướng dẫn gọi là "Nhóm" (đúng như nhóm trên website), bài chưa có chuyên mục hiện `empty`. */

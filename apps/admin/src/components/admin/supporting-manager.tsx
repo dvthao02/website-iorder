@@ -40,6 +40,7 @@ import { useAdminClientReady } from "./ui/use-admin-client-ready";
 import { AdminFormField } from "./ui/admin-form-field";
 import { useAdminFormValidation, type AdminFormValidation } from "./ui/use-admin-form-validation";
 import { useNavigationGuard } from "./ui/use-navigation-guard";
+import { AdminCheckbox } from "./ui/admin-checkbox";
 
 type Partner = PartnerInput & {
   id: string;
@@ -527,9 +528,6 @@ function TestimonialForm({ form, onChange, onUploadingChange, validation }: { fo
 
 function Toggle({ checked, label, onChange }: { checked: boolean; label: string; onChange: (value: boolean) => void }) {
   return (
-    <label className="admin-check">
-      <input checked={checked} onChange={(event) => onChange(event.target.checked)} type="checkbox" />
-      {label}
-    </label>
+    <AdminCheckbox checked={checked} onChange={(event) => onChange(event.target.checked)}>{label}</AdminCheckbox>
   );
 }

@@ -57,6 +57,18 @@
   .admin-backup__flush-header { margin: 0; padding: 12px var(--cms-card-padding); }
   .admin-backup .admin-notice { margin-bottom: 12px; }
   .admin-backup__actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .admin-backup__keep { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin: 4px 0 8px; }
+  .admin-backup__keep label { font-size: var(--cms-text-sm); font-weight: 600; }
+  .admin-backup__keep .admin-input { width: 84px; }
+  .admin-backup__keep .admin-help { flex: 1 1 280px; min-width: 0; }
+  .admin-backup__row-actions { display: inline-flex; flex-wrap: nowrap; align-items: center; justify-content: flex-end; gap: 6px; }
+  /* Điện thoại: nút trong bảng chỉ còn biểu tượng (nhãn vẫn đọc được bằng trình đọc màn hình) để cột Thời điểm không bị che. */
+  @media (max-width: 640px) { .admin-backup__row-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; } .admin-backup__row-actions .admin-button { padding-inline: 8px; } }
+  .admin-purge__options { display: grid; gap: 8px; margin: 12px 0 8px; }
+  .admin-purge__options .admin-radio select { width: auto; margin-left: 4px; }
+  .admin-purge__count { margin: 4px 0 6px; color: var(--cms-text); font-size: var(--cms-text-sm); }
+  .admin-backup-steps code { border-radius: var(--cms-radius-sm); background: var(--cms-subtle); padding: 1px 5px; font-size: 12px; overflow-wrap: anywhere; }
+  .admin-backup-steps__command code { background: none; padding: 0; }
   .admin-backup-steps { display: grid; gap: 14px; margin: 14px 0 12px; padding-left: 20px; list-style: decimal; }
   .admin-backup-steps > li::marker { color: var(--cms-muted); font-size: var(--cms-text-sm); }
   .admin-backup-steps strong { font-size: var(--cms-text-sm); font-weight: 600; }

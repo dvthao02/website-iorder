@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 import { getFixedWebsitePage } from "@iorder/shared/server/pages/pages.contract";
-import { adminApiError } from "@/lib/admin-api";
+import { requestAdminJson } from "@/lib/admin-api";
 import { useWebsiteUrl } from "./website-origin-context";
 import { useAdminToast } from "./ui/admin-feedback";
 
@@ -17,16 +17,16 @@ type PublishedPreviewLinkProps = {
 };
 
 export const offeringCatalogPaths: Record<string, string> = {
-  software: "/phan-mem",
-  solution: "/giai-phap",
-  service: "/dich-vu",
+  software: "/software",
+  solution: "/solutions",
+  service: "/services",
 };
 
 function getPublicPath({ kind, slug, contentType }: Omit<PublishedPreviewLinkProps, "status" | "id">) {
   if (!slug) return null;
-  if (kind === "page") return getFixedWebsitePage(slug)?.publicPath ?? `/trang/${slug}`;
-  if (kind === "post") return contentType === "guide" ? `/ho-tro/huong-dan/${slug}` : `/tin-tuc/${slug}`;
-  if (kind === "equipment") return `/thiet-bi/${slug}`;
+  if (kind === "page") return getFixedWebsitePage(slug)?.publicPath ?? `/pages/${slug}`;
+  if (kind === "post") return contentType === "guide" ? `/support/guides/${slug}` : `/news/${slug}`;
+  if (kind === "equipment") return `/equipment/${slug}`;
   const catalogPath = contentType ? offeringCatalogPaths[contentType] : undefined;
   return catalogPath ? `${catalogPath}/${slug}` : null;
 }
@@ -49,9 +49,8 @@ export function PublishedPreviewLink({ kind, status, slug, contentType, id }: Pu
     const tab = window.open("about:blank", "_blank");
     setBusy(true);
     try {
-      const response = await fetch("/api/v1/admin/preview", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ kind, id }) });
-      const payload = await response.json().catch(() => null) as { token?: string } | null;
-      if (!response.ok || !payload?.token) throw adminApiError(payload, "Không tạo được liên kết xem trước.");
+      const payload = await requestAdminJson("/api/v1/admin/preview", "POST", { kind, id }, "Không tạo được liên kết xem trước.") as { token?: string } | null;
+      if (!payload?.token) throw new Error("Không tạo được liên kết xem trước.");
       const url = websiteUrl(`/api/preview?token=${encodeURIComponent(payload.token)}`);
       if (tab) { tab.opener = null; tab.location.href = url; } else window.open(url, "_blank", "noopener");
     } catch (error) {

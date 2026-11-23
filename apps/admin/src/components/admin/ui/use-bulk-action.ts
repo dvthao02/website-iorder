@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 
-import { adminApiError } from "@/lib/admin-api";
+import { adminApiError, readAdminJson } from "@/lib/admin-api";
 import { useAdminConfirm } from "./admin-confirm-dialog";
 import { useAdminToast } from "./admin-feedback";
 
@@ -42,7 +42,7 @@ export function useBulkAction() {
         try {
           const response = await fetch(next.url, { method: next.method, ...(next.body === undefined ? {} : { headers: { "content-type": "application/json" }, body: JSON.stringify(next.body) }) });
           if (response.ok) succeeded++;
-          else failures.push(adminApiError(await response.json().catch(() => null), `Không thể ${verb.toLocaleLowerCase("vi")}.`).message);
+          else failures.push(adminApiError(await readAdminJson(response), `Không thể ${verb.toLocaleLowerCase("vi")}.`, response.status).message);
         } catch {
           failures.push("Mất kết nối tới máy chủ.");
         }

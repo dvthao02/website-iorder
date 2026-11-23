@@ -10,6 +10,8 @@ import { AdminBulkMenu, type AdminBulkMenuAction } from "./ui/admin-bulk-menu";
 import { AdminButton } from "./ui/admin-button";
 import { AdminCard } from "./ui/admin-card";
 import { AdminDataTable, type AdminDataTableColumn } from "./ui/admin-data-table";
+import { AdminPagination } from "./ui/admin-pagination";
+import { useClientPagination } from "./ui/use-client-pagination";
 import { AdminEmptyState } from "./ui/admin-empty-state";
 import { AdminFileIcon } from "./ui/admin-file-icon";
 import { useAdminPermissions } from "./ui/admin-permissions";
@@ -112,12 +114,16 @@ export function TaxonomyManager({ categories, initialKind = "categories", tags }
   const dirty = !equalValues(form, initialValues);
   useNavigationGuard(dirty || busy, busy ? () => showToast("Đang xử lý phân loại. Vui lòng chờ trước khi rời trang.", "info") : undefined);
   const invalidParentIds = activeId && kind === "categories" ? descendantIds(categories, activeId) : new Set<string>();
-  // Chọn nhiều dòng (bỏ chọn khi đổi tab): xuất Excel các mục đã chọn, xóa hàng loạt.
+  // Phân trang trong trình duyệt (cả danh sách đã nạp sẵn); đổi tab thì về trang 1.
+  const pagedCategories = useClientPagination(categories, "categories");
+  const pagedTags = useClientPagination(tags, "tags");
+  const paged = kind === "categories" ? pagedCategories : pagedTags;
+  // Chọn nhiều dòng (bỏ chọn khi đổi tab/trang): xuất Excel các mục đã chọn, xóa hàng loạt.
   const { can } = useAdminPermissions();
   const canEdit = can(activeId ? "taxonomy.update" : "taxonomy.create");
-  const selection = useRowSelection(kind);
+  const selection = useRowSelection(`${kind}|${paged.pagination.page}`);
   const { busy: bulkBusy, run: runBulk } = useBulkAction();
-  const chosen = (kind === "categories" ? categories : tags).filter((item) => selection.selectedIds.includes(item.id));
+  const chosen = paged.rows.filter((item) => selection.selectedIds.includes(item.id));
   const bulkNoun = kind === "categories" ? "chuyên mục" : "thẻ";
   const bulkActions: AdminBulkMenuAction[] = [
     { key: "export", label: "Xuất Excel", icon: <AdminFileIcon action="export" kind="excel" size="sm" />, count: chosen.length, href: `/api/v1/admin/data-transfer/${kind}?format=xlsx&ids=${chosen.map((item) => item.id).join(",")}` },
@@ -282,8 +288,9 @@ export function TaxonomyManager({ categories, initialKind = "categories", tags }
         <AdminBulkBar count={chosen.length} onClear={selection.clear}><AdminBulkMenu actions={bulkActions} busy={bulkBusy} /></AdminBulkBar>
         <>
           {kind === "categories"
-            ? categories.length ? <AdminDataTable columns={categoryColumns} emptyMessage="Chưa có chuyên mục." getRowId={(item) => item.id} getRowLabel={(item) => item.name} onRowClick={selectCategory} onSelectionChange={selection.setSelectedIds} rows={categories} selectedIds={selection.selectedIds} tableId="cms-categories" /> : null
-            : tags.length ? <AdminDataTable columns={tagColumns} emptyMessage="Chưa có thẻ." getRowId={(item) => item.id} getRowLabel={(item) => item.name} onRowClick={selectTag} onSelectionChange={selection.setSelectedIds} rows={tags} selectedIds={selection.selectedIds} tableId="cms-tags" /> : null}
+            ? categories.length ? <AdminDataTable columns={categoryColumns} emptyMessage="Chưa có chuyên mục." getRowId={(item) => item.id} getRowLabel={(item) => item.name} onRowClick={selectCategory} onSelectionChange={selection.setSelectedIds} rows={pagedCategories.rows} selectedIds={selection.selectedIds} tableId="cms-categories" /> : null
+            : tags.length ? <AdminDataTable columns={tagColumns} emptyMessage="Chưa có thẻ." getRowId={(item) => item.id} getRowLabel={(item) => item.name} onRowClick={selectTag} onSelectionChange={selection.setSelectedIds} rows={pagedTags.rows} selectedIds={selection.selectedIds} tableId="cms-tags" /> : null}
+          {(kind === "categories" ? categories.length : tags.length) > 0 ? <AdminPagination label={kind === "categories" ? "Phân trang chuyên mục" : "Phân trang thẻ"} unit={kind === "categories" ? "chuyên mục" : "thẻ"} {...paged.pagination} /> : null}
           {(kind === "categories" ? categories.length : tags.length) === 0 ? (
             <AdminEmptyState
               action={<AdminButton hideWithoutPermission permission="taxonomy.create" disabled={busy || !ready} onClick={() => (kind === "categories" ? selectCategory() : selectTag())}>{kind === "categories" ? "Tạo chuyên mục đầu tiên" : "Tạo thẻ đầu tiên"}</AdminButton>}

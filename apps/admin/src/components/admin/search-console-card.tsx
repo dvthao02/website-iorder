@@ -4,6 +4,7 @@ import Link from "next/link";
 import React, { useEffect, useState } from "react";
 
 import type { SearchConsoleOpportunity, SearchConsoleOverview } from "@iorder/shared/server/search-console/search-console.contract";
+import { AdminApiError, requestAdminJson } from "../../lib/admin-api";
 import { AdminCard } from "./ui/admin-card";
 
 const numberFormat = new Intl.NumberFormat("vi-VN");
@@ -46,13 +47,14 @@ export function SearchConsoleCard() {
     let cancelled = false;
     (async () => {
       try {
-        const response = await fetch("/api/v1/admin/search-console", { headers: { accept: "application/json" } });
-        if (response.status === 401 || response.status === 403) { if (!cancelled) setState({ status: "hidden" }); return; }
-        const body = await response.json() as { overview?: SearchConsoleOverview };
+        const body = await requestAdminJson("/api/v1/admin/search-console", "GET", undefined, "Không lấy được số liệu từ Google Search Console lúc này.") as { overview?: SearchConsoleOverview } | null;
         if (cancelled) return;
-        setState(response.ok && body.overview ? { status: "ready", overview: body.overview } : { status: "ready", overview: { connection: "error", message: "Không lấy được số liệu từ Google Search Console lúc này." } });
-      } catch {
-        if (!cancelled) setState({ status: "ready", overview: { connection: "error", message: "Không kết nối được máy chủ để lấy số liệu Google Search Console." } });
+        setState({ status: "ready", overview: body?.overview ?? { connection: "error", message: "Không lấy được số liệu từ Google Search Console lúc này." } });
+      } catch (error) {
+        if (cancelled) return;
+        // Không có quyền xem cài đặt: ẩn thẻ. Lỗi khác: nêu rõ ngay trong thẻ.
+        if (error instanceof AdminApiError && (error.status === 401 || error.status === 403)) { setState({ status: "hidden" }); return; }
+        setState({ status: "ready", overview: { connection: "error", message: error instanceof AdminApiError ? error.message : "Không kết nối được máy chủ để lấy số liệu Google Search Console." } });
       }
     })();
     return () => { cancelled = true; };

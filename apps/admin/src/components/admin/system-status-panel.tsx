@@ -4,6 +4,8 @@ import { RefreshCw } from "lucide-react";
 import Link from "next/link";
 import React, { useCallback, useEffect, useState } from "react";
 
+import { AdminApiError, requestAdminJson } from "../../lib/admin-api";
+
 import type { SystemCheck, SystemCheckState, SystemStatus } from "@iorder/shared/server/system/system-status.contract";
 
 import { AdminButton } from "./ui/admin-button";
@@ -179,12 +181,11 @@ type CheckResult = { ok: true; status: SystemStatus } | { ok: false; message: st
 /** Hỏi backend tình trạng hệ thống. Hàm thuần: không đổi state. */
 async function requestStatus(): Promise<CheckResult> {
   try {
-    const response = await fetch("/api/v1/admin/system-status", { headers: { accept: "application/json" }, cache: "no-store" });
-    const body = await response.json().catch(() => null) as { status?: SystemStatus; error?: { message?: string } } | null;
-    if (!response.ok || !body?.status) return { ok: false, message: body?.error?.message ?? "Không đọc được tình trạng hệ thống lúc này. Thử lại sau." };
+    const body = await requestAdminJson("/api/v1/admin/system-status", "GET", undefined, "Không đọc được tình trạng hệ thống lúc này. Thử lại sau.", { cache: "no-store" }) as { status?: SystemStatus } | null;
+    if (!body?.status) return { ok: false, message: "Không đọc được tình trạng hệ thống lúc này. Thử lại sau." };
     return { ok: true, status: body.status };
-  } catch {
-    return { ok: false, message: "Không kết nối được máy chủ để kiểm tra." };
+  } catch (error) {
+    return { ok: false, message: error instanceof AdminApiError ? error.message : "Không kết nối được máy chủ để kiểm tra." };
   }
 }
 

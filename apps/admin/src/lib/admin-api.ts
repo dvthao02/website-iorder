@@ -12,8 +12,14 @@ export function apiErrorCode(payload: unknown) {
   return error && typeof error === "object" && "code" in error && typeof error.code === "string" ? error.code : undefined;
 }
 
+/** Phần "error" nguyên văn của phản hồi lỗi (ví dụ { code, message, key }) để màn hình đọc thêm trường riêng của nó. */
+function apiErrorDetails(payload: unknown): Record<string, unknown> | undefined {
+  const error = payload && typeof payload === "object" && "error" in payload ? payload.error : undefined;
+  return error && typeof error === "object" && !Array.isArray(error) ? error as Record<string, unknown> : undefined;
+}
+
 export class AdminApiError extends Error {
-  constructor(message: string, readonly code?: string) {
+  constructor(message: string, readonly code?: string, readonly status?: number, readonly details?: Record<string, unknown>) {
     super(message);
     this.name = "AdminApiError";
   }
@@ -36,19 +42,30 @@ export async function readAdminJson(response: Response): ReturnType<Response["js
 export const versionConflictEvent = "iorder:version-conflict";
 
 /** Lỗi chuẩn từ phản hồi API thất bại; xung đột phiên bản (409) còn báo cho khung CMS. */
-export function adminApiError(payload: unknown, fallback: string) {
+export function adminApiError(payload: unknown, fallback: string, status?: number) {
   const code = apiErrorCode(payload);
   if (code === "VERSION_CONFLICT" && typeof window !== "undefined") window.dispatchEvent(new Event(versionConflictEvent));
-  return new AdminApiError(apiErrorMessage(payload, fallback), code);
+  return new AdminApiError(apiErrorMessage(payload, fallback), code, status, apiErrorDetails(payload));
 }
 
-export async function requestAdminJson(url: string, method: "PATCH" | "POST", body: unknown, fallbackError: string): Promise<unknown> {
-  const response = await fetch(url, {
-    method,
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(body),
-  });
+export type AdminJsonMethod = "GET" | "PATCH" | "POST" | "PUT" | "DELETE";
+
+/**
+ * Gọi API CMS bằng yêu cầu bất kỳ (kể cả tải tệp lên bằng FormData) và trả về JSON đã đọc an toàn; phản hồi lỗi được ném
+ * thành AdminApiError (có mã, trạng thái HTTP và phần "error" nguyên văn). Lỗi mạng (fetch ném) để nguyên cho nơi gọi.
+ */
+export async function requestAdmin(url: string, init: RequestInit, fallbackError: string): Promise<unknown> {
+  const response = await fetch(url, { ...init, headers: { accept: "application/json", ...init.headers } });
   const payload: unknown = await readAdminJson(response);
-  if (!response.ok) throw adminApiError(payload, fallbackError);
+  if (!response.ok) throw adminApiError(payload, fallbackError, response.status);
   return payload;
+}
+
+/** GET/POST/PUT/PATCH/DELETE với thân JSON tùy chọn (body undefined thì không gửi thân và không đặt content-type). */
+export function requestAdminJson(url: string, method: AdminJsonMethod, body: unknown, fallbackError: string, options: { cache?: RequestCache } = {}): Promise<unknown> {
+  return requestAdmin(url, {
+    method,
+    ...(options.cache ? { cache: options.cache } : {}),
+    ...(body === undefined ? {} : { headers: { "content-type": "application/json" }, body: JSON.stringify(body) }),
+  }, fallbackError);
 }

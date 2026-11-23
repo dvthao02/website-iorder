@@ -15,7 +15,7 @@ export function WebsiteOriginProvider({ origin, publicOrigin, children }: Websit
   return <WebsiteOriginContext.Provider value={value}>{children}</WebsiteOriginContext.Provider>;
 }
 
-/** Hàm ghép đường dẫn công khai ("/tin-tuc/bai") thành URL đầy đủ của website, dùng cho mọi liên kết "Xem trên website". */
+/** Hàm ghép đường dẫn công khai ("/news/bai") thành URL đầy đủ của website, dùng cho mọi liên kết "Xem trên website". */
 export function useWebsiteUrl() {
   const origins = useContext(WebsiteOriginContext);
   const origin = origins?.origin;

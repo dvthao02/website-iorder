@@ -7,7 +7,7 @@ import React, { useEffect, useRef, useState, type FormEvent, type ReactNode } fr
 import type { CmsAction, CmsPermissionCode } from "@iorder/shared/server/auth/permissions";
 import { cmsRoleInputSchema, cmsRoleSaveResponseSchema, type CmsRole } from "@iorder/shared/server/roles/roles.contract";
 
-import { apiErrorMessage, requestAdminJson } from "@/lib/admin-api";
+import { requestAdminJson } from "@/lib/admin-api";
 import { AdminButton } from "./ui/admin-button";
 import { AdminCard } from "./ui/admin-card";
 import { useAdminConfirm } from "./ui/admin-confirm-dialog";
@@ -129,9 +129,7 @@ export function RolesManager({ roles, modules, actionLabels, tabs }: RolesManage
     mutationPending.current = true;
     setBusy(true);
     try {
-      const response = await fetch("/api/v1/admin/roles", { method: "DELETE", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: active.id }) });
-      const payload: unknown = await response.json().catch(() => null);
-      if (!response.ok) throw new Error(apiErrorMessage(payload, "Không thể xóa vai trò."));
+      await requestAdminJson("/api/v1/admin/roles", "DELETE", { id: active.id }, "Không thể xóa vai trò.");
       setActiveId(null);
       setForm(null);
       setInitialValues(null);

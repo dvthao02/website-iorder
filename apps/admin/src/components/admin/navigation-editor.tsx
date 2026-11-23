@@ -27,6 +27,8 @@ import { AdminSidePanel } from "./ui/admin-side-panel";
 import { useNavigationGuard } from "./ui/use-navigation-guard";
 import { useRevisionRestore } from "./ui/use-revision-restore";
 import { useDragReorder } from "./ui/use-drag-reorder";
+import { AdminSelect } from "./ui/admin-select";
+import { AdminCheckbox } from "./ui/admin-checkbox";
 
 const locations: NavigationLocation[] = ["header", "header_cta", "footer"];
 const locationLabel: Record<NavigationLocation, string> = {
@@ -390,7 +392,7 @@ export function NavigationEditor({ menus, targets }: { menus: Record<NavigationL
     <input aria-label="Tìm trang có sẵn" className="admin-input" onChange={(event) => setQuickAdd((current) => ({ ...current, query: event.target.value }))} placeholder="Tìm theo tên hoặc đường dẫn…" type="search" value={quickAdd.query} />
     <ul className="admin-nav-quick__list">{available.length ? available.map((target) => {
       const value = `${target.linkType}:${target.id}`;
-      return <li key={value}><label className="admin-check"><input checked={quickAdd.picked.includes(value)} onChange={(event) => setQuickAdd((current) => ({ ...current, picked: event.target.checked ? [...current.picked, value] : current.picked.filter((entry) => entry !== value) }))} type="checkbox" /><span><strong>{target.label}</strong><small>{target.typeLabel} · {target.url}</small></span></label></li>;
+      return <li key={value}><AdminCheckbox checked={quickAdd.picked.includes(value)} onChange={(event) => setQuickAdd((current) => ({ ...current, picked: event.target.checked ? [...current.picked, value] : current.picked.filter((entry) => entry !== value) }))}><span><strong>{target.label}</strong><small>{target.typeLabel} · {target.url}</small></span></AdminCheckbox></li>;
     }) : <li className="admin-help">Không còn trang nào chưa có trong menu.</li>}</ul>
     <AdminButton disabled={!quickAdd.picked.length || busy} onClick={addPicked} size="sm">{quickAdd.picked.length ? `Thêm ${quickAdd.picked.length} mục vào menu` : "Chọn trang để thêm"}</AdminButton>
   </div> : null;
@@ -436,8 +438,8 @@ export function NavigationEditor({ menus, targets }: { menus: Record<NavigationL
         <LinkPicker item={selected} key={selected.key} onCustom={(url) => updateSelected({ linkType: "custom", contentId: null, url })} onLink={(target) => selectPublishedTarget(`${target.linkType}:${target.id}`)} targets={targets} />
         {selectedEditHref ? <AdminButton className="justify-self-start" href={selectedEditHref} leadingIcon={<Pencil aria-hidden="true" size={15} />} size="sm" variant="secondary">Sửa nội dung</AdminButton> : null}
         <div className="admin-form-grid">
-          <label className="admin-field">Khi bấm<select className="admin-input" onChange={(event) => updateSelected({ target: event.target.value as "_self" | "_blank" })} value={selected.target}><option value="_self">Mở trong cùng tab</option><option value="_blank">Mở tab mới</option></select></label>
-          <label className="admin-check self-end"><input checked={selected.isEnabled} onChange={(event) => updateSelected({ isEnabled: event.target.checked })} type="checkbox" />Hiển thị trên website</label>
+          <label className="admin-field">Khi bấm<AdminSelect onChange={(event) => updateSelected({ target: event.target.value as "_self" | "_blank" })} value={selected.target}><option value="_self">Mở trong cùng tab</option><option value="_blank">Mở tab mới</option></AdminSelect></label>
+          <AdminCheckbox className="self-end" checked={selected.isEnabled} onChange={(event) => updateSelected({ isEnabled: event.target.checked })}>Hiển thị trên website</AdminCheckbox>
         </div>
         <div className="admin-nav-editor__item-actions" role="group" aria-label="Vị trí mục">
           <AdminButton disabled={siblingPosition <= 0} onClick={() => updateItems(moveSibling(items, selectedIndex, -1))} size="sm" title="Lên trên (cùng cấp)" variant="secondary"><ChevronUp aria-hidden="true" size={16} />Lên</AdminButton>

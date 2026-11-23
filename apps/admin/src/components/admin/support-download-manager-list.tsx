@@ -19,6 +19,8 @@ import { AdminEmptyState } from "./ui/admin-empty-state";
 import { AdminNotice, AdminStatusBadge, useAdminToast, type AdminFeedbackTone } from "./ui/admin-feedback";
 import { AdminCard } from "./ui/admin-card";
 import { AdminDataTable, type AdminDataTableColumn } from "./ui/admin-data-table";
+import { AdminPagination } from "./ui/admin-pagination";
+import { useClientPagination } from "./ui/use-client-pagination";
 import { AdminFilterBar, type AdminFilterChip } from "./ui/admin-filter-bar";
 import { AdminListHeader } from "./ui/admin-list-header";
 import { AdminListPage } from "./ui/admin-list-page";
@@ -31,6 +33,7 @@ import { useAdminPermissions } from "./ui/admin-permissions";
 import { AdminFormField } from "./ui/admin-form-field";
 import { useAdminFormValidation } from "./ui/use-admin-form-validation";
 import { useAdminClientReady } from "./ui/use-admin-client-ready";
+import { AdminCheckbox } from "./ui/admin-checkbox";
 
 type Filter = "all" | "draft" | "published" | "archived";
 
@@ -200,7 +203,10 @@ export function SupportDownloadManagerList({
     const keyword = query.trim().toLocaleLowerCase("vi");
     return rows.filter((item) => (!keyword || `${item.title} ${item.groupName ?? ""} ${item.originalName ?? ""} ${item.externalUrl ?? ""}`.toLocaleLowerCase("vi").includes(keyword)) && (filter === "all" || item.status === filter));
   }, [filter, query, rows]);
-  const selection = useRowSelection(`${query.trim()}|${filter}`);
+  // Phân trang trong trình duyệt (cả danh sách đã nạp sẵn); đổi từ khóa/bộ lọc thì về trang 1, và dòng đã chọn bỏ khi đổi trang.
+  const filterKey = `${query.trim()}|${filter}`;
+  const paged = useClientPagination(visibleRows, filterKey);
+  const selection = useRowSelection(`${filterKey}|${paged.pagination.page}`);
 
   useNavigationGuard(!revisionRestore.completing && (dirty || busy), () => {
     showToast(busy ? "Đang xử lý tệp cài đặt. Vui lòng chờ trước khi rời trang." : "Bạn có thay đổi chưa lưu. Hãy lưu hoặc bỏ thay đổi trước khi rời trang.", "warning");
@@ -434,7 +440,7 @@ export function SupportDownloadManagerList({
       <AdminFilterBar onSubmit={(event) => event.preventDefault()} chips={chips} onClearAll={() => { setQuery(""); setFilter("all"); }} search={<AdminSearchField id="support-download-search" label="Tìm tệp cài đặt" onChange={(event) => setQuery(event.target.value)} placeholder="Tìm tên hoặc tệp" value={query} />}><select aria-label="Lọc trạng thái" onChange={(event) => setFilter(event.target.value as Filter)} value={filter}>{filterItems.map((item) => <option key={item.value} value={item.value}>{item.value === "all" ? "Tất cả trạng thái" : item.label}</option>)}</select></AdminFilterBar>
     <ContentBulkBar
       deleteRequest={(item) => ({ method: "DELETE", url: `/api/v1/admin/support-downloads/${item.id}?version=${item.draftVersion}` })}
-      items={visibleRows}
+      items={paged.rows}
       module="support_downloads"
       noun="tệp cài đặt"
       onClear={selection.clear}
@@ -443,7 +449,8 @@ export function SupportDownloadManagerList({
         : { action, expectedVersion: item.draftVersion } })}
       selectedIds={selection.selectedIds}
     />
-    <AdminDataTable columns={columns} emptyAction={rows.length ? <AdminButton onClick={() => { setQuery(""); setFilter("all"); }} variant="secondary">Xóa bộ lọc</AdminButton> : <AdminButton hideWithoutPermission permission="support_downloads.create" onClick={create}>Thêm tệp cài đặt</AdminButton>} emptyMessage={rows.length ? "Không có tệp cài đặt phù hợp với bộ lọc." : "Chưa có tệp cài đặt. Bấm “Thêm tệp” để tải PDF hoặc ZIP; hệ thống tự tạo bản nháp để bạn hoàn thiện."} getRowId={(item) => item.id} getRowLabel={(item) => item.title} onRowClick={select} onSelectionChange={selection.setSelectedIds} rows={visibleRows} selectedIds={selection.selectedIds} tableId="support-downloads" />
+    <AdminDataTable columns={columns} emptyAction={rows.length ? <AdminButton onClick={() => { setQuery(""); setFilter("all"); }} variant="secondary">Xóa bộ lọc</AdminButton> : <AdminButton hideWithoutPermission permission="support_downloads.create" onClick={create}>Thêm tệp cài đặt</AdminButton>} emptyMessage={rows.length ? "Không có tệp cài đặt phù hợp với bộ lọc." : "Chưa có tệp cài đặt. Bấm “Thêm tệp” để tải PDF hoặc ZIP; hệ thống tự tạo bản nháp để bạn hoàn thiện."} getRowId={(item) => item.id} getRowLabel={(item) => item.title} onRowClick={select} onSelectionChange={selection.setSelectedIds} rows={paged.rows} selectedIds={selection.selectedIds} tableId="support-downloads" />
+    <AdminPagination label="Phân trang tệp cài đặt" unit="tệp" {...paged.pagination} />
   </>;
 
   const editor = <>
@@ -470,7 +477,7 @@ export function SupportDownloadManagerList({
                 <AdminButton disabled={busy || archived || !canEdit || !form.externalUrl} onClick={() => { importedUrl.current = ""; void importFromLink(form.externalUrl ?? ""); }} type="button" variant="secondary"><Link2 aria-hidden="true" size={16} />Tải về thư viện</AdminButton>
               </div>
             </AdminFormField>
-            <label className="admin-check"><input checked={autoImport} onChange={(event) => setAutoImport(event.target.checked)} type="checkbox" />Tự tải tệp về thư viện khi dán hoặc nhập link</label>
+            <AdminCheckbox checked={autoImport} onChange={(event) => setAutoImport(event.target.checked)}>Tự tải tệp về thư viện khi dán hoặc nhập link</AdminCheckbox>
             <p className="admin-help">Dán link tải trực tiếp. Tệp PDF hoặc ZIP (tối đa 20 MB) được tải về thư viện của iOrder; tệp khác như .exe, .msi, .dmg hoặc tệp lớn hơn giữ nguyên dạng link, website mở link ở tab mới. Mỗi mục dùng một nguồn: chọn tệp thì bỏ link và ngược lại.</p>
             {importNote ? <AdminNotice tone={importNote.tone}>{importNote.text}</AdminNotice> : null}
           </div>
@@ -484,7 +491,7 @@ export function SupportDownloadManagerList({
           <p className="admin-help -mt-2">Các tệp cùng nhóm nằm chung một khối trên trang Hỗ trợ cài đặt (nhóm xếp theo thứ tự tệp đầu tiên của nhóm). Để trống thì vào nhóm &ldquo;Khác&rdquo;.</p>
           <AdminFormField id={validation.props("description").id} label="Mô tả" error={validation.message("description")}><textarea {...validation.props("description")} className="min-h-28" maxLength={10000} onChange={(event) => update("description", event.target.value || null)} value={form.description ?? ""} /></AdminFormField>
           <div className="admin-form-grid"><AdminFormField id={validation.props("meta").id} label="Thông tin phụ" error={validation.message("meta")}><input {...validation.props("meta")} className="admin-input" maxLength={160} onChange={(event) => update("meta", event.target.value || null)} value={form.meta ?? ""} /></AdminFormField><AdminFormField id={validation.props("sortOrder").id} label="Thứ tự" error={validation.message("sortOrder")}><input {...validation.props("sortOrder")} className="admin-input" max={10000} min={0} onChange={(event) => update("sortOrder", Number(event.target.value))} type="number" value={form.sortOrder} /></AdminFormField></div>
-          <label className="admin-check"><input checked={form.isEnabled} disabled={!canPublish} onChange={(event) => update("isEnabled", event.target.checked)} type="checkbox" />Hiển thị công khai trên website</label>
+          <AdminCheckbox checked={form.isEnabled} disabled={!canPublish} onChange={(event) => update("isEnabled", event.target.checked)}>Hiển thị công khai trên website</AdminCheckbox>
           {!canPublish ? <p className="admin-help">Cần quyền xuất bản tệp cài đặt để thay đổi hiển thị trên website.</p> : null}
         </fieldset>
         {active?.downloadUrl && active.status === "published" ? <AdminButton href={active.downloadUrl} target="_blank" variant="secondary"><Download aria-hidden="true" size={16} />Mở tệp công khai</AdminButton> : null}

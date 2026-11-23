@@ -32,6 +32,8 @@ import { pageBlockInputSchema, type PageBlock } from "@iorder/shared/server/page
 import { withOfferingHero } from "@iorder/shared/server/offerings/offering-hero";
 import { useAdminPermissions } from "./ui/admin-permissions";
 import { blockLabel, blockSummary } from "./page-blocks-editor";
+import { AdminCheckbox } from "./ui/admin-checkbox";
+import { AdminSlugField } from "./ui/admin-slug-field";
 
 const offeringBlockTypes = ["hero", "columns", "media_text", "features", "process", "grouped_list", "stats", "testimonials", "partners", "faq", "cta", "lead_form", "rich_text", "image", "video", "pricing", "collection_list"] as const satisfies readonly PageBlock["type"][];
 
@@ -91,7 +93,7 @@ function OfferingLinksEditor({ items, onChange }: { items: LinkItem[]; onChange:
       <span aria-hidden="true" className="admin-list-editor__index">{index + 1}</span>
       <span className="admin-list-editor__pair admin-form-grid">
         <input aria-label={`Tên mục ${index + 1}`} className={inputClassName} maxLength={500} onChange={(event) => patch(index, { title: event.target.value })} placeholder="Tên hiển thị" value={item.title} />
-        <input aria-label={`Đường dẫn mục ${index + 1}`} className={inputClassName} onChange={(event) => patch(index, { href: event.target.value })} pattern="(/(?!/)|https?://).*" placeholder="/lien-he hoặc https://… (không bắt buộc)" title="Bắt đầu bằng / hoặc https://" value={item.href} />
+        <input aria-label={`Đường dẫn mục ${index + 1}`} className={inputClassName} onChange={(event) => patch(index, { href: event.target.value })} pattern="(/(?!/)|https?://).*" placeholder="/contact hoặc https://… (không bắt buộc)" title="Bắt đầu bằng / hoặc https://" value={item.href} />
       </span>
       <AdminListRowControls index={index} label={`mục ${index + 1}`} length={items.length} onMove={(direction) => onChange(moveListItem(items, index, direction))} onRemove={() => onChange(items.filter((_, itemIndex) => itemIndex !== index))} />
     </li>)}</ol> : null}
@@ -222,10 +224,7 @@ export function OfferingEditor({ offering, offeringType, offeringTypeLabel, onSa
     <div className={labelClassName} data-field="tags"><span>Thẻ</span><AdminListEditor addLabel="Thêm thẻ" itemLabel="Thẻ" items={form.tags} maxItems={50} onChange={(items) => update("tags", items)} placeholder="Ví dụ: F&B" /></div>
     <label className={labelClassName} data-field="bestFor">Phù hợp với<input className={inputClassName} maxLength={500} onChange={(event) => update("bestFor", event.target.value)} placeholder="Ví dụ: Nhà hàng 10–50 bàn (hiện trong phần đầu trang)" value={form.bestFor} /></label>
     <label className={labelClassName} data-field="keyValue">Giá trị nổi bật<input className={inputClassName} maxLength={500} onChange={(event) => update("keyValue", event.target.value)} placeholder="Một câu nêu lợi ích lớn nhất (hiện trong phần đầu trang)" value={form.keyValue} /></label>
-    {editingSlug ? <div className="admin-post-editor__slug-edit">
-      <div className={labelClassName}><label className="admin-seo__label" htmlFor="offering-slug">Đường dẫn<span className="admin-help">Địa chỉ không dấu trên website: {publicPath}</span></label><span className="admin-post-editor__slug"><input autoFocus className={inputClassName} id="offering-slug" maxLength={180} onChange={(event) => { setSlugTouched(true); update("slug", event.target.value); }} pattern="[a-z0-9]+(-[a-z0-9]+)*" required value={form.slug} /><AdminButton disabled={!form.title.trim() || toSlug(form.title, 80) === form.slug} onClick={() => { setSlugTouched(true); update("slug", toSlug(form.title, 80)); }} size="sm" variant="secondary">Tạo từ tên</AdminButton><AdminButton onClick={() => setEditingSlug(false)} size="sm" variant="ghost">Xong</AdminButton></span></div>
-      {savedStatus === "published" && form.status === "published" ? <small className="admin-help">{offeringTypeLabel} đang hiển thị: khi lưu với đường dẫn mới, đường dẫn cũ tự chuyển hướng (301) sang đường dẫn mới.</small> : savedStatus === "published" ? <small className="admin-help admin-text-warning">Sau lần lưu này nội dung chưa hiện ngay trên website nên đổi đường dẫn sẽ không tạo chuyển hướng từ đường dẫn cũ.</small> : <small className="admin-help">Chỉ dùng chữ thường không dấu, số và dấu gạch ngang.</small>}
-    </div> : <p className="admin-post-editor__slug-line"><span className="admin-help">Đường dẫn:</span> <span className="admin-post-editor__path">{publicPath}</span><button className="admin-post-editor__link" onClick={() => setEditingSlug(true)} type="button">Sửa</button>{!slugTouched ? <span className="admin-help"> · tự tạo theo tên</span> : null}</p>}
+    <AdminSlugField currentStatus={form.status} editing={editingSlug} fieldClassName={labelClassName} id="offering-slug" inputClassName={inputClassName} maxLength={180} onEditingChange={setEditingSlug} onValueChange={(slug) => { setSlugTouched(true); update("slug", slug); }} publicPath={publicPath} publishedLead={`${offeringTypeLabel} đang hiển thị`} savedStatus={savedStatus} sourceNoun="tên" sourceText={form.title} touched={slugTouched} value={form.slug} />
   </>;
   const heroLayoutDetail = <DetailHeroLayoutFields disabled={processing || !canEdit} name="offering-hero-layout" onChange={hero => update("appearance", { ...form.appearance, hero })} onUploadingChange={handleUploadingChange} value={form.appearance.hero} />;
   const relatedLayoutDetail = <>
@@ -283,7 +282,7 @@ export function OfferingEditor({ offering, offeringType, offeringTypeLabel, onSa
         <section className="admin-content-section">
           <header><h3>Hiển thị</h3></header>
           {offeringType ? null : <label className={labelClassName}>Nhóm nội dung<select className={inputClassName} onChange={(event) => update("type", event.target.value as typeof form.type)} value={form.type}><option value="software">Phần mềm</option><option value="solution">Giải pháp</option><option value="service">Dịch vụ</option></select></label>}
-          <label className="admin-check"><input checked={form.isFeatured} onChange={(event) => update("isFeatured", event.target.checked)} type="checkbox" />Đánh dấu nổi bật</label>
+          <AdminCheckbox checked={form.isFeatured} onChange={(event) => update("isFeatured", event.target.checked)}>Đánh dấu nổi bật</AdminCheckbox>
           <AdminHintedField hint="Số nhỏ hiện trước." label="Thứ tự trong danh sách"><label className={labelClassName}>Thứ tự trong danh sách<input className={inputClassName} max={10_000} min={0} onChange={(event) => update("sortOrder", Number(event.target.value))} type="number" value={form.sortOrder} /></label></AdminHintedField>
         </section>
       </aside>

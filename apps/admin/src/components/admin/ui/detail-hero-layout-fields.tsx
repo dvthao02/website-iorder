@@ -9,6 +9,7 @@ import { AdminButton } from "./admin-button";
 import { AdminListRowControls, moveListItem } from "./admin-list-editor";
 import { AppearanceEditor, MinHeightControl, defaultAppearance } from "../block-appearance-fields";
 import { LayoutPicker, heroLayoutPreviews, type LayoutOption } from "./layout-picker";
+import { AdminSelect } from "./admin-select";
 
 const layoutOptions: ReadonlyArray<LayoutOption<DetailHeroLayout["layout"]>> = [
   { value: "split", label: "Chữ trái · ảnh phải", hint: "Tên, mô tả và nút bên trái; ảnh bìa bên phải.", preview: heroLayoutPreviews.split },
@@ -51,7 +52,7 @@ export function DetailHeroLayoutFields({ name, value, onChange, disabled, onUplo
     <LayoutPicker label="Vị trí ảnh" name={name} onChange={next => set({ layout: next })} options={layoutOptions} value={layout.layout} />
     <HeroExtraImages disabled={disabled} ids={layout.extraMediaIds} onChange={extraMediaIds => set({ extraMediaIds })} onUploadingChange={onUploadingChange} />
     <div className="admin-form-grid">
-      <label className="admin-field">Chiều cao<select className="admin-input" disabled={disabled} onChange={event => set({ height: event.target.value as DetailHeroLayout["height"] })} value={layout.height}><option value="screen">Cả màn hình</option><option value="three_quarter">3/4 màn hình</option><option value="half">Một nửa màn hình</option><option value="auto">Theo nội dung</option><option value="custom">Tùy chỉnh (px, vh, tỉ lệ)</option></select></label>
+      <label className="admin-field">Chiều cao<AdminSelect disabled={disabled} onChange={event => set({ height: event.target.value as DetailHeroLayout["height"] })} value={layout.height}><option value="screen">Cả màn hình</option><option value="three_quarter">3/4 màn hình</option><option value="half">Một nửa màn hình</option><option value="auto">Theo nội dung</option><option value="custom">Tùy chỉnh (px, vh, tỉ lệ)</option></AdminSelect></label>
     </div>
     {layout.height === "custom" ? <MinHeightControl disabled={disabled} minHeight={shown.minHeight} onChange={patch => set({ appearance: { ...shown, ...patch } })} unit={shown.minHeightUnit} /> : null}
     <AppearanceEditor disabled={disabled} onChange={patch => set({ background: "default", appearance: { ...shown, ...patch } })} onUploadingChange={onUploadingChange} options={{ autoLabel: "Xám nhạt (mặc định)", spacing: false, width: true }} value={shown} />

@@ -1,6 +1,6 @@
 "use client";
 
-import { adminApiError, readAdminJson } from "@/lib/admin-api";
+import { adminApiError, readAdminJson, requestAdmin } from "@/lib/admin-api";
 import { FolderOpen, LoaderCircle, Upload, ZoomIn } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useRef, useState, type DragEvent, type PointerEvent } from "react";
@@ -13,6 +13,7 @@ import { AdminHelpTip } from "./ui/admin-help-tip";
 import { AdminImageLightbox } from "./ui/admin-image-lightbox";
 import { mergeMediaAssets } from "./ui/merge-media-assets";
 import { isSelectableMediaType } from "./ui/media-selection-policy";
+import { AdminSelect } from "./ui/admin-select";
 
 type MediaPickerProps = {
   disabled?: boolean;
@@ -171,10 +172,9 @@ export function MediaPicker({ disabled = false, value, onChange, files = false, 
     try {
       const body = new FormData();
       body.set("file", file);
-      const response = await fetch("/api/v1/admin/media", { method: "POST", body, signal: controller.signal });
-      const payload = await response.json().catch(() => null) as { asset?: MediaAsset; error?: { message?: string } } | null;
+      const payload = await requestAdmin("/api/v1/admin/media", { method: "POST", body, signal: controller.signal }, "Không thể tải tệp lên.") as { asset?: MediaAsset } | null;
       if (controller.signal.aborted) return;
-      if (!response.ok || !payload?.asset) throw adminApiError(payload, "Không thể tải tệp lên.");
+      if (!payload?.asset) throw adminApiError(payload, "Không thể tải tệp lên.");
       const parsed = mediaAssetSchema.safeParse(payload.asset);
       if (!parsed.success) throw new Error("Máy chủ đã nhận tệp nhưng phản hồi không hợp lệ. Hãy kiểm tra thư viện trước khi tải lại để tránh trùng tệp.");
       const asset = parsed.data;
@@ -253,11 +253,11 @@ export function MediaPicker({ disabled = false, value, onChange, files = false, 
     <div className="media-picker__library">{value ? <button disabled={disabled || isUploading} onClick={() => inputRef.current?.click()} type="button"><Upload aria-hidden="true" size={16} />{isUploading ? "Đang tải…" : files ? "Tải tệp khác" : "Tải ảnh khác"}</button> : null}<button aria-expanded={isLibraryOpen} disabled={disabled || isUploading} onClick={() => { setLoaded(false); setLibraryError(""); setIsLibraryOpen((current) => !current); }} type="button"><FolderOpen aria-hidden="true" size={16} />{isLibraryOpen ? "Đóng thư viện" : "Chọn từ thư viện"}</button>{value ? <button disabled={disabled || isUploading} onClick={() => onChange(null)} type="button">{files ? "Bỏ tệp" : "Bỏ ảnh"}</button> : null}</div>
     {isLibraryOpen ? <div className="grid gap-3">
       <label>{files ? "Tìm tệp" : "Tìm ảnh"}<input className="admin-input" disabled={disabled || isUploading} maxLength={160} onChange={event => setSearchDraft(event.target.value)} onKeyDown={event => { if (event.key === "Enter") event.preventDefault(); }} placeholder="Tên tệp, mô tả hoặc chú thích…" value={searchDraft} /></label>
-      {files ? <label className="media-picker__library-select">Tệp đã tải lên trước đó<select className="admin-input" disabled={disabled || isUploading || !loaded || searchDraft !== libraryQuery} onChange={(event) => { if (!disabled && !uploading.current && loaded && searchDraft === libraryQuery) onChange(event.target.value || null); }} value={value ?? ""}>
+      {files ? <label className="media-picker__library-select">Tệp đã tải lên trước đó<AdminSelect disabled={disabled || isUploading || !loaded || searchDraft !== libraryQuery} onChange={(event) => { if (!disabled && !uploading.current && loaded && searchDraft === libraryQuery) onChange(event.target.value || null); }} value={value ?? ""}>
         <option value="">Chưa chọn tệp</option>
         {value && !libraryAssets.some(asset => asset.id === value) ? <option value={value}>{selected?.originalName ?? "Tệp đang liên kết"} (đang chọn)</option> : null}
         {libraryAssets.map(asset => <option key={asset.id} value={asset.id}>{asset.originalName}</option>)}
-      </select></label> : <div aria-label="Ảnh trong thư viện" className="media-picker__grid" role="listbox">
+      </AdminSelect></label> : <div aria-label="Ảnh trong thư viện" className="media-picker__grid" role="listbox">
         {libraryAssets.map(asset => <button aria-label={asset.originalName} aria-selected={asset.id === value} className={asset.id === value ? "media-picker__thumb media-picker__thumb--selected" : "media-picker__thumb"} disabled={disabled || isUploading || !loaded || searchDraft !== libraryQuery} key={asset.id} onClick={() => { if (!disabled && !uploading.current && loaded && searchDraft === libraryQuery) { onChange(asset.id); setIsLibraryOpen(false); } }} role="option" title={asset.originalName} type="button">
           <Image alt="" height={96} src={asset.url} width={128} />
           <span>{asset.originalName}</span>

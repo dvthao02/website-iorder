@@ -12,6 +12,8 @@ import { PostsSectionTabs } from "./posts-section-tabs";
 import { AdminButton } from "./ui/admin-button";
 import { AdminCard } from "./ui/admin-card";
 import { AdminDataTable, type AdminDataTableColumn } from "./ui/admin-data-table";
+import { AdminPagination } from "./ui/admin-pagination";
+import { useClientPagination } from "./ui/use-client-pagination";
 import { AdminEmptyState } from "./ui/admin-empty-state";
 import { AdminFormField } from "./ui/admin-form-field";
 import { useAdminConfirm } from "./ui/admin-confirm-dialog";
@@ -44,7 +46,7 @@ const equalForms = (first: AuthorForm | null, second: AuthorForm | null) => JSON
 
 /**
  * Tác giả bài viết: hồ sơ công khai (tên, chức danh, tiểu sử, ảnh, trang cá nhân). Bài viết chọn tác giả từ đây; khi bật "Hiển thị trang tác giả"
- * và có bài đã xuất bản, website có trang riêng /tac-gia/<đường dẫn> liệt kê các bài của họ.
+ * và có bài đã xuất bản, website có trang riêng /author/<đường dẫn> liệt kê các bài của họ.
  */
 export function AuthorsManager({ authors }: { authors: AdminAuthor[] }) {
   const router = useRouter();
@@ -183,6 +185,7 @@ export function AuthorsManager({ authors }: { authors: AdminAuthor[] }) {
     { id: "actions", label: "Thao tác", defaultWidth: 110, minWidth: 100, align: "right", cell: () => <AdminRowEditIcon /> },
   ];
 
+  const paged = useClientPagination(authors, "authors");
   const websiteUrl = useWebsiteUrl();
   const publicUrl = active && form?.slug ? websiteUrl(authorPublicPath(active.slug)) : null;
 
@@ -192,7 +195,7 @@ export function AuthorsManager({ authors }: { authors: AdminAuthor[] }) {
         <AdminListHeader actions={<AdminButton hideWithoutPermission permission="posts.create" disabled={busy || !ready} leadingIcon={<Plus aria-hidden="true" size={16} />} onClick={() => select()}>Thêm tác giả</AdminButton>} description={`${authors.length} tác giả`} title="Tác giả" />
         <PostsSectionTabs active="authors" disabled={busy} />
         <>
-          {authors.length ? <AdminDataTable columns={columns} emptyMessage="Chưa có tác giả." getRowId={(item) => item.id} getRowLabel={(item) => item.name} onRowClick={select} rows={authors} tableId="cms-authors" /> : (
+          {authors.length ? <><AdminDataTable columns={columns} emptyMessage="Chưa có tác giả." getRowId={(item) => item.id} getRowLabel={(item) => item.name} onRowClick={select} rows={paged.rows} tableId="cms-authors" /><AdminPagination label="Phân trang tác giả" unit="tác giả" {...paged.pagination} /></> : (
             <AdminEmptyState
               action={<AdminButton hideWithoutPermission permission="posts.create" disabled={busy || !ready} onClick={() => select()}>Tạo tác giả đầu tiên</AdminButton>}
               description="Tác giả là người thật viết bài: có tên, chức danh, ảnh và trang riêng liệt kê các bài của họ. Bài viết có tác giả thật đáng tin hơn với người đọc và Google."

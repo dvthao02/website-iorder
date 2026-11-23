@@ -22,6 +22,8 @@ import { LayoutPicker, cardStylePreviews, collectionLayoutPreviews, heroLayoutPr
 import { BlockLibrary } from "./ui/block-library";
 import { AdminListEditor, AdminListRowControls, moveListItem } from "./ui/admin-list-editor";
 import { IconPicker } from "./ui/icon-picker";
+import { AdminSelect } from "./ui/admin-select";
+import { AdminCheckbox } from "./ui/admin-checkbox";
 
 type BlockType = PageBlock["type"];
 type CardBlock = Extract<PageBlock, { type: "features" | "industries" | "ecosystem" | "process" }>;
@@ -122,6 +124,10 @@ export function blockLabel(type: BlockType) {
   return blockOptions.find((option) => option.value === type)?.label ?? type;
 }
 
+function blockDisplayName(block: PageBlock) {
+  return block.appearance?.adminLabel?.trim() || blockLabel(block.type);
+}
+
 // Dòng tóm tắt khi khối đang gập, để nhìn được cả trang mà không mở từng khối.
 export function blockSummary(block: PageBlock) {
   switch (block.type) {
@@ -177,16 +183,16 @@ function newBlock(type: BlockType): PageBlock {
     case "partners": return { type, isEnabled: true, data: { eyebrow: null, title: "Đối tác và khách hàng", kind: "all", limit: 12 } };
     case "featured_posts": return { type, isEnabled: true, data: { eyebrow: null, title: "Bài viết nổi bật", limit: 3 } };
     case "faq": return { type, isEnabled: true, data: { eyebrow: null, title: "Câu hỏi thường gặp", items: [{ question: "Câu hỏi mới", answer: "Nội dung trả lời" }] } };
-    case "cta": return { type, isEnabled: true, data: { id: null, eyebrow: null, title: "Sẵn sàng bắt đầu?", action: { label: "Liên hệ tư vấn", href: "/lien-he" } } };
+    case "cta": return { type, isEnabled: true, data: { id: null, eyebrow: null, title: "Sẵn sàng bắt đầu?", action: { label: "Liên hệ tư vấn", href: "/contact" } } };
     case "lead_form": return { type, isEnabled: true, data: { title: "Nhận tư vấn", description: null, submitLabel: "Gửi yêu cầu", needOptions: [] } };
     case "rich_text": return { type, isEnabled: true, data: { heading: null, body: { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "Nội dung mới" }] }] } } };
     case "image": return { type, isEnabled: true, data: { mediaId: "", extraMediaIds: [], alt: null, caption: null } };
     case "video": return { type, isEnabled: true, data: { eyebrow: null, title: null, description: null, url: "", caption: null } };
     case "download_list": return { type, isEnabled: true, data: { eyebrow: null, title: "Tài liệu tải về" } };
     case "media_text": return { type, isEnabled: true, data: { layout: "image_right", tone: "light", eyebrow: null, title: "Tiêu đề mới", description: null, bullets: [], mediaId: null, extraMediaIds: [], primaryAction: null, secondaryAction: null } };
-    case "pricing": return { type, isEnabled: true, data: { eyebrow: null, title: "Bảng giá", description: null, note: null, plans: [{ name: "Cơ bản", price: "Liên hệ", period: null, description: null, features: ["Tính năng 1"], action: { label: "Đăng ký", href: "/lien-he" }, highlighted: false, badge: null }] } };
+    case "pricing": return { type, isEnabled: true, data: { eyebrow: null, title: "Bảng giá", description: null, note: null, plans: [{ name: "Cơ bản", price: "Liên hệ", period: null, description: null, features: ["Tính năng 1"], action: { label: "Đăng ký", href: "/contact" }, highlighted: false, badge: null }] } };
     case "columns": return { type, isEnabled: true, data: { eyebrow: null, title: null, layout: "equal", gap: "md", verticalAlign: "center", stack: "normal", columns: [{ items: [newColumnItem("heading"), newColumnItem("text")] }, { items: [newColumnItem("image")] }] } };
-    case "grouped_list": return { type, isEnabled: true, data: { eyebrow: "Theo ngành hàng", title: "Phù hợp nhiều mô hình kinh doanh", description: null, groupLabel: "Nhóm ngành", showCount: true, groups: [{ title: "Bán buôn, bán lẻ", icon: "store", items: [{ label: "Thời trang", icon: "shirt", href: null }, { label: "Tạp hóa & siêu thị", icon: "shopping-cart", href: null }], action: { label: "Tư vấn triển khai theo mô hình", href: "/lien-he" } }] } };
+    case "grouped_list": return { type, isEnabled: true, data: { eyebrow: "Theo ngành hàng", title: "Phù hợp nhiều mô hình kinh doanh", description: null, groupLabel: "Nhóm ngành", showCount: true, groups: [{ title: "Bán buôn, bán lẻ", icon: "store", items: [{ label: "Thời trang", icon: "shirt", href: null }, { label: "Tạp hóa & siêu thị", icon: "shopping-cart", href: null }], action: { label: "Tư vấn triển khai theo mô hình", href: "/contact" } }] } };
     case "collection_list": return { type, isEnabled: true, data: { source: "posts", eyebrow: null, title: "Bài viết mới nhất", description: null, limit: 6, anchor: null } };
   }
 }
@@ -312,15 +318,15 @@ function ListItem({ noun, number, index, length, onMove, onDelete, children, fie
 
 function ActionFields({ title, value, onChange, optional = true, field }: { title: string; value: Action | null; onChange: (value: Action | null) => void; optional?: boolean; field?: string }) {
   const active = value !== null;
-  return <Section field={field} title={title}>{optional ? <label className="flex items-center gap-2"><input type="checkbox" checked={active} onChange={event => onChange(event.target.checked ? { label: "Xem thêm", href: "/lien-he" } : null)} />Hiển thị nút này</label> : null}{active ? <ActionTarget value={value} onChange={onChange} /> : null}</Section>;
+  return <Section field={field} title={title}>{optional ? <label className="flex items-center gap-2"><input type="checkbox" checked={active} onChange={event => onChange(event.target.checked ? { label: "Xem thêm", href: "/contact" } : null)} />Hiển thị nút này</label> : null}{active ? <ActionTarget value={value} onChange={onChange} /> : null}</Section>;
 }
 
 // Nút dẫn tới đường dẫn tự nhập hoặc tới một liên kết trong Cài đặt (lưu mã `setting:trial`, website tự đổi sang địa chỉ hiện tại).
 function ActionTarget({ value, onChange }: { value: Action; onChange: (value: Action) => void }) {
   const settingKey = settingLinkKey(value.href);
-  const setTarget = (target: string) => onChange({ ...value, href: target === "custom" ? "/lien-he" : settingLinkHref(target as SettingLinkKey) });
+  const setTarget = (target: string) => onChange({ ...value, href: target === "custom" ? "/contact" : settingLinkHref(target as SettingLinkKey) });
   return <><div className="admin-form-grid"><Field label="Nhãn nút" value={value.label} onChange={label => onChange({ ...value, label })} /><AdminHintedField hint={settingKey ? "Địa chỉ lấy từ Cài đặt › Liên kết ngoài, đổi ở đó là mọi nút cùng loại đổi theo. Chưa nhập địa chỉ thì nút dẫn về trang Liên hệ." : undefined} label="Dẫn tới"><label className="admin-field">Dẫn tới<select value={settingKey ?? "custom"} onChange={event => setTarget(event.target.value)}><option value="custom">Đường dẫn tự nhập</option>{settingLinkOptions.map(option => <option key={option.key} value={option.key}>{option.label} (theo Cài đặt)</option>)}</select></label></AdminHintedField></div>
-    {settingKey ? null : <Field label="Đường dẫn (ví dụ /lien-he hoặc https://...)" value={value.href} onChange={href => onChange({ ...value, href })} />}</>;
+    {settingKey ? null : <Field label="Đường dẫn (ví dụ /contact hoặc https://...)" value={value.href} onChange={href => onChange({ ...value, href })} />}</>;
 }
 
 type CardStyle = NonNullable<CardBlock["data"]["cardStyle"]>;
@@ -357,7 +363,7 @@ function CardColor({ value, onChange, disabled }: { value: string | null | undef
 }
 
 function CardItemsEditor({ items, onChange, showIcons, showImages = showIcons, imageHint, disabled, onUploadingChange, bento = false }: { items: CardBlock["data"]["items"]; onChange: (items: CardBlock["data"]["items"]) => void; showIcons: boolean; showImages?: boolean; imageHint?: string; disabled?: boolean; onUploadingChange: (pending: boolean) => void; bento?: boolean }) {
-  return <Section title={`Các thẻ (${items.length})`}>{items.map((item, index) => <ListItem index={index} key={index} length={items.length} noun="Thẻ" onDelete={() => onChange(items.filter((_, itemIndex) => itemIndex !== index))} onMove={direction => onChange(changePosition(items, index, direction))} summary={bento && index === 0 ? `Thẻ lớn · ${item.title}` : item.title}>{showIcons ? <div className="admin-field" data-field="icon">Biểu tượng (để trống: hiện số thứ tự)<IconPicker label={`Biểu tượng thẻ ${index + 1}`} onChange={icon => onChange(patchAt(items, index, { icon }))} value={item.icon ?? null} /></div> : null}{showImages ? <BlockImagesField disabled={disabled} hint={imageHint ?? (showIcons ? "Không bắt buộc. Có ảnh thì thẻ hiện thành thẻ ảnh (ảnh ngang, tỉ lệ 16:10, rộng từ 800px); không có ảnh thì dùng biểu tượng." : "Ảnh minh họa hiện bên phải khi chọn bước này (ảnh chụp màn hình thao tác, ảnh ngang tỉ lệ 16:10, rộng từ 800px). Không bắt buộc.")} ids={[item.mediaId ?? "", ...(item.extraMediaIds ?? [])]} label={`Ảnh thẻ ${index + 1}`} onChange={ids => onChange(patchAt(items, index, { mediaId: ids[0] || null, extraMediaIds: ids.slice(1) }))} onUploadingChange={onUploadingChange} /> : null}<div className="admin-form-grid"><Field field="title" label="Tiêu đề" value={item.title} onChange={title => onChange(patchAt(items, index, { title }))} /><NullableField field="href" label="Đường dẫn (ví dụ /lien-he hoặc https://...)" value={item.href} onChange={href => onChange(patchAt(items, index, { href }))} /></div><Field field="description" label="Mô tả" multiline value={item.description} onChange={description => onChange(patchAt(items, index, { description }))} />{showIcons ? <CardColor disabled={disabled} onChange={background => onChange(patchAt(items, index, { background }))} value={item.background} /> : null}</ListItem>)}<button type="button" onClick={() => onChange([...items, { title: "Mục mới", description: "Mô tả", href: null }])}>Thêm mục</button></Section>;
+  return <Section title={`Các thẻ (${items.length})`}>{items.map((item, index) => <ListItem index={index} key={index} length={items.length} noun="Thẻ" onDelete={() => onChange(items.filter((_, itemIndex) => itemIndex !== index))} onMove={direction => onChange(changePosition(items, index, direction))} summary={bento && index === 0 ? `Thẻ lớn · ${item.title}` : item.title}>{showIcons ? <div className="admin-field" data-field="icon">Biểu tượng (để trống: hiện số thứ tự)<IconPicker label={`Biểu tượng thẻ ${index + 1}`} onChange={icon => onChange(patchAt(items, index, { icon }))} value={item.icon ?? null} /></div> : null}{showImages ? <BlockImagesField disabled={disabled} hint={imageHint ?? (showIcons ? "Không bắt buộc. Có ảnh thì thẻ hiện thành thẻ ảnh (ảnh ngang, tỉ lệ 16:10, rộng từ 800px); không có ảnh thì dùng biểu tượng." : "Ảnh minh họa hiện bên phải khi chọn bước này (ảnh chụp màn hình thao tác, ảnh ngang tỉ lệ 16:10, rộng từ 800px). Không bắt buộc.")} ids={[item.mediaId ?? "", ...(item.extraMediaIds ?? [])]} label={`Ảnh thẻ ${index + 1}`} onChange={ids => onChange(patchAt(items, index, { mediaId: ids[0] || null, extraMediaIds: ids.slice(1) }))} onUploadingChange={onUploadingChange} /> : null}<div className="admin-form-grid"><Field field="title" label="Tiêu đề" value={item.title} onChange={title => onChange(patchAt(items, index, { title }))} /><NullableField field="href" label="Đường dẫn (ví dụ /contact hoặc https://...)" value={item.href} onChange={href => onChange(patchAt(items, index, { href }))} /></div><Field field="description" label="Mô tả" multiline value={item.description} onChange={description => onChange(patchAt(items, index, { description }))} />{showIcons ? <CardColor disabled={disabled} onChange={background => onChange(patchAt(items, index, { background }))} value={item.background} /> : null}</ListItem>)}<button type="button" onClick={() => onChange([...items, { title: "Mục mới", description: "Mô tả", href: null }])}>Thêm mục</button></Section>;
 }
 
 type HeroBlock = Extract<PageBlock, { type: "hero" }>;
@@ -417,12 +423,12 @@ function HeroToneField({ block, onChange, disabled }: { block: HeroBlock; onChan
     else onChange({ ...block, data: { ...data, tone: value as HeroTone }, appearance: { ...appearance, tone: "auto" } });
   }
   return <div className="admin-field">
-    <label className="admin-field">{background ? "Lớp phủ lên ảnh" : "Màu nền"}<select className="admin-input" disabled={disabled} onChange={event => choose(event.target.value)} value={custom ? "custom" : heroToneOf(data)}>
+    <label className="admin-field">{background ? "Lớp phủ lên ảnh" : "Màu nền"}<AdminSelect disabled={disabled} onChange={event => choose(event.target.value)} value={custom ? "custom" : heroToneOf(data)}>
       <option value="light">{background ? "Trắng (chữ đậm)" : "Trắng"}</option>
       <option value="tinted">{background ? "Xanh biển nhạt (chữ đậm)" : "Xanh biển nhạt"}</option>
       {background ? <option value="dark">Tối (chữ trắng)</option> : null}
       <option value="custom">Màu tự chọn…</option>
-    </select></label>
+    </AdminSelect></label>
     {custom ? <>
       <ColorPicker disabled={disabled} hint={`${isDarkColor(color) ? "Màu tối: chữ, nút và menu phía trên tự chuyển sang màu sáng." : "Màu sáng: chữ đậm như bình thường."}${background ? " Độ đậm lớp phủ chỉnh ở mục Giao diện phần đầu trang bên dưới." : ""}`} label={background ? "Màu lớp phủ" : "Màu nền tự chọn"} onChange={next => onChange({ ...block, appearance: { ...appearance, tone: "custom", backgroundColor: next ?? color } })} value={color} />
     </> : null}
@@ -470,7 +476,7 @@ function HeroPanelsFields({ data, set, disabled, onUploadingChange }: { data: He
       {panel.title.trim() ? null : <p className="admin-help admin-text-warning">Khối chưa có tiêu đề sẽ bị bỏ khi lưu.</p>}
       <BlockImagesField disabled={disabled} ids={[panel.mediaId ?? "", ...(panel.extraMediaIds ?? [])]} label={imageLabel} onChange={ids => setPanel(index, { mediaId: ids[0] || null, extraMediaIds: ids.slice(1) })} onUploadingChange={onUploadingChange} />
       <NullableField field="description" label="Mô tả" multiline value={panel.description} onChange={description => setPanel(index, { description })} />
-      <label className="admin-check"><input checked={panel.highlights === undefined} onChange={event => setPanel(index, { highlights: event.target.checked ? undefined : structuredClone(data.highlights) })} type="checkbox" />Dùng điểm nổi bật chung của phần đầu trang</label>
+      <AdminCheckbox checked={panel.highlights === undefined} onChange={event => setPanel(index, { highlights: event.target.checked ? undefined : structuredClone(data.highlights) })}>Dùng điểm nổi bật chung của phần đầu trang</AdminCheckbox>
       <HeroHighlightsFields title={`Điểm nổi bật của mục ${index + 2}`} items={panel.highlights ?? data.highlights} onChange={highlights => setPanel(index, { highlights })} />
       <ActionFields field="primaryAction" title="Nút chính" value={panel.primaryAction} onChange={primaryAction => setPanel(index, { primaryAction })} />
       <ActionFields field="secondaryAction" title="Nút phụ" value={panel.secondaryAction} onChange={secondaryAction => setPanel(index, { secondaryAction })} />
@@ -537,7 +543,7 @@ function newColumnItem(kind: ColumnItem["kind"]): ColumnItem {
     case "heading": return { kind, text: "Tiêu đề mới", level: "h3", align: "left" };
     case "text": return { kind, text: "Nội dung mới", align: "left" };
     case "image": return { kind, mediaId: null, extraMediaIds: [], alt: null, fit: "contain" };
-    case "button": return { kind, label: "Nút mới", href: "/lien-he", style: "primary" };
+    case "button": return { kind, label: "Nút mới", href: "/contact", style: "primary" };
     case "list": return { kind, items: ["Mục đầu tiên"] };
   }
 }
@@ -565,7 +571,7 @@ function ColumnItemFields({ item, onChange, disabled, onUploadingChange }: { ite
     case "button": return <>
       <div className="admin-form-grid">
         <Field field="label" label="Chữ trên nút" value={item.label} onChange={label => onChange({ ...item, label })} />
-        <Field field="href" label="Dẫn tới (/lien-he hoặc https://…)" value={item.href} onChange={href => onChange({ ...item, href })} />
+        <Field field="href" label="Dẫn tới (/contact hoặc https://…)" value={item.href} onChange={href => onChange({ ...item, href })} />
       </div>
       <label className="admin-field">Kiểu nút<select disabled={disabled} onChange={event => onChange({ ...item, style: event.target.value as typeof item.style })} value={item.style}><option value="primary">Nút chính</option><option value="secondary">Nút phụ</option></select></label>
     </>;
@@ -661,9 +667,9 @@ function PricingFields({ block, onChange }: { block: PricingBlock; onChange: (bl
       <Section title={`Tính năng của gói ${index + 1}`}><AdminListEditor addLabel="Thêm tính năng" itemLabel={`Tính năng gói ${index + 1}`} items={plan.features} maxItems={20} maxLength={200} onChange={features => setPlan(index, { features })} placeholder="Ví dụ: Không giới hạn đơn hàng" /></Section>
       <ActionFields field="action" title="Nút của gói" value={plan.action} onChange={action => setPlan(index, { action })} />
       <CardColor onChange={background => setPlan(index, { background })} value={plan.background} />
-      <label className="admin-check"><input checked={plan.highlighted} onChange={event => set({ plans: data.plans.map((entry, planIndex) => ({ ...entry, highlighted: planIndex === index ? event.target.checked : false })) })} type="checkbox" />Gói nổi bật (làm to, viền màu)</label>
+      <AdminCheckbox checked={plan.highlighted} onChange={event => set({ plans: data.plans.map((entry, planIndex) => ({ ...entry, highlighted: planIndex === index ? event.target.checked : false })) })}>Gói nổi bật (làm to, viền màu)</AdminCheckbox>
       
-    </ListItem>)}{data.plans.length < 4 ? <button type="button" onClick={() => set({ plans: [...data.plans, { name: `Gói ${data.plans.length + 1}`, price: "Liên hệ", period: null, description: null, features: [], action: { label: "Đăng ký", href: "/lien-he" }, highlighted: false, badge: null }] })}>Thêm gói</button> : null}</Section>
+    </ListItem>)}{data.plans.length < 4 ? <button type="button" onClick={() => set({ plans: [...data.plans, { name: `Gói ${data.plans.length + 1}`, price: "Liên hệ", period: null, description: null, features: [], action: { label: "Đăng ký", href: "/contact" }, highlighted: false, badge: null }] })}>Thêm gói</button> : null}</Section>
   </>;
 }
 
@@ -680,9 +686,9 @@ function GroupedListFields({ block, onChange }: { block: GroupedListBlock; onCha
     <IntroFields description={data.description} eyebrow={data.eyebrow} onPatch={set} title={data.title} />
     <div className="admin-form-grid">
       <NullableField field="groupLabel" label="Nhãn nhỏ trên tên nhóm (ví dụ: Nhóm ngành)" value={data.groupLabel} onChange={groupLabel => set({ groupLabel })} />
-      <label className="admin-check self-end"><input checked={data.showCount} onChange={event => set({ showCount: event.target.checked })} type="checkbox" />Hiện số mục ở góc mỗi nhóm</label>
+      <AdminCheckbox className="self-end" checked={data.showCount} onChange={event => set({ showCount: event.target.checked })}>Hiện số mục ở góc mỗi nhóm</AdminCheckbox>
     </div>
-    <Section hint="Mỗi nhóm là một thẻ, biểu tượng cùng tông xanh thương hiệu; tiêu đề phần căn trái. 2 nhóm trải hết bề ngang, từ 3 nhóm xếp 3 cột. Mục có đường dẫn thì bấm được (ví dụ /thiet-bi/may-pos-iorder-iod86)." title={`Các nhóm (${data.groups.length}/${maxGroupedListGroups})`}>
+    <Section hint="Mỗi nhóm là một thẻ, biểu tượng cùng tông xanh thương hiệu; tiêu đề phần căn trái. 2 nhóm trải hết bề ngang, từ 3 nhóm xếp 3 cột. Mục có đường dẫn thì bấm được (ví dụ /equipment/may-pos-iorder-iod86)." title={`Các nhóm (${data.groups.length}/${maxGroupedListGroups})`}>
       {data.groups.map((group, index) => <ListItem index={index} key={index} length={data.groups.length} noun="Nhóm" onDelete={() => { if (data.groups.length > 1) set({ groups: data.groups.filter((_, groupIndex) => groupIndex !== index) }); }} onMove={direction => set({ groups: changePosition(data.groups, index, direction) })} summary={group.title}>
         <div className="flex items-end gap-2"><div className="admin-field shrink-0">Biểu tượng<IconPicker label={`Biểu tượng nhóm ${index + 1}`} onChange={icon => setGroup(index, { icon })} value={group.icon} /></div><div className="min-w-0 flex-1"><Field label={`Tên nhóm ${index + 1}`} value={group.title} onChange={title => setGroup(index, { title })} /></div></div>
         {group.title.trim() ? null : <p className="admin-help admin-text-warning">Nhóm cần có tên để lưu được.</p>}
@@ -912,6 +918,7 @@ function BlockBody({ block, disabled, onChange, onUploadingChange, itemSelection
   return <div className="admin-block__body" ref={bodyRef}>
     <div aria-label="Nhóm thiết lập của thành phần" className="admin-block-tabs" role="tablist">{tabs.map(([key, label]) => <button aria-controls={`${id}-panel`} aria-selected={tab === key} className="admin-block-tabs__tab" disabled={Boolean(uploading || (editingItem && !alignable)) && tab !== key} id={`${id}-${key}`} key={key} onClick={() => { if (editingItem) setItemTabState({ key: itemKey, tab: key === "itemLayout" ? "itemLayout" : "content" }); else setTab(key); }} role="tab" title={uploading && tab !== key ? "Đang tải ảnh, đợi xong rồi chuyển tab" : undefined} type="button">{label}</button>)}</div>
     <fieldset disabled={disabled} aria-labelledby={`${id}-${tab}`} className="admin-block-tabs__panel" id={`${id}-panel`} role="tabpanel">
+      {!editingItem && (tab === "content" || (commonLayout && tab === "media")) ? <label className="admin-field">Tên thành phần trong CMS<input maxLength={120} onChange={event => onChange({ ...block, appearance: { ...defaultAppearance, ...block.appearance, adminLabel: event.target.value } })} placeholder={blockLabel(block.type)} value={block.appearance?.adminLabel ?? ""} /><span className="admin-help">Chỉ dùng để nhận diện trong CMS; để trống để dùng tên mặc định.</span></label> : null}
       {tab === "content" ? <BlockFields block={block} disabled={disabled} onUploadingChange={track("content")} onChange={onChange} /> : null}
       {tab === "itemLayout" && itemSelection ? <ItemLayoutFields block={block} disabled={disabled} onChange={onChange} selection={itemSelection} /> : null}
       {tab === "media" || tab === "appearance" ? <>
@@ -1207,7 +1214,7 @@ export function PageBlocksEditor({ blocks, onChange, disabled, onUploadingChange
             }} type="button">
               <ChevronRight aria-hidden="true" className="admin-block__chevron" size={16} />
               <span className="admin-block__index">{index + visibleLeadCount + 1}</span>
-              <strong>{blockLabel(block.type)}</strong>
+              <strong title={blockDisplayName(block)}>{blockDisplayName(block)}</strong>
               <span className="admin-block__summary">{blockSummary(block)}</span>
               {appearanceTags(block).map((tag) => <span className="admin-block__tag" key={tag.label}>{tag.color ? <i aria-hidden="true" style={{ background: tag.color }} /> : null}{tag.label}</span>)}
               {pinned ? <small>Cố định đầu trang</small> : null}
@@ -1242,7 +1249,7 @@ export function PageBlocksEditor({ blocks, onChange, disabled, onUploadingChange
       <header><h3>{fixedAt(openIndex)?.label}</h3>{!readOnly ? <FixedSectionActions disabled={locked} onRemove={() => void removeFixed(fixedAt(openIndex)!)} section={fixedAt(openIndex)!} /> : null}</header>
       <FixedSectionBody key={openIndex} section={fixedAt(openIndex)!} />
     </> : selectedBlock && openIndex !== null ? <>
-      <header><h3>{childLabel ? <><button className="admin-link" onClick={() => setItemSelection(null)} title="Quay lại thiết lập của cả khối" type="button">{blockLabel(selectedBlock.type)}</button> › <span>{childLabel}</span></> : blockLabel(selectedBlock.type)}</h3>{renderActions(selectedBlock, openIndex)}</header>
+      <header><h3>{childLabel ? <><button className="admin-link" onClick={() => setItemSelection(null)} title="Quay lại thiết lập của cả khối" type="button">{blockDisplayName(selectedBlock)}</button> › <span>{childLabel}</span></> : blockDisplayName(selectedBlock)}</h3>{renderActions(selectedBlock, openIndex)}</header>
       <BlockBody itemSelection={itemSelection?.section === openIndex ? itemSelection.item : selectedBlock.type === "hero" ? heroLayoutSelection : componentSettingsSelection} key={`${selectedBlock.type}-${openIndex}`} block={selectedBlock} disabled={locked || Boolean(selectedBlock.appearance?.locked)} onChange={next => update(openIndex, next)} onUploadingChange={(key, pending) => reportUploading(`${openIndex}:${key}`, pending)} />
     </> : <p className="admin-help">Thêm thành phần để bắt đầu nhập nội dung.</p>}</section> : null}
   </section>;

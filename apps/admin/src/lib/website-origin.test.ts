@@ -45,7 +45,7 @@ test("Giá trị hỏng hoặc thiếu không làm hỏng: dùng mặc định",
 });
 
 test("Ghép đường dẫn với địa chỉ gốc; URL tuyệt đối giữ nguyên", () => {
-  assert.equal(websiteUrl("http://192.168.1.5:3000", "/tin-tuc/bai"), "http://192.168.1.5:3000/tin-tuc/bai");
+  assert.equal(websiteUrl("http://192.168.1.5:3000", "/news/bai"), "http://192.168.1.5:3000/news/bai");
   assert.equal(websiteUrl("http://192.168.1.5:3000", "https://cdn.example.com/a.png"), "https://cdn.example.com/a.png");
 });
 

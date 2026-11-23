@@ -4,6 +4,8 @@ import { Copy, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import React, { useCallback, useEffect, useState } from "react";
 
+import { AdminApiError, requestAdminJson } from "../../lib/admin-api";
+
 import type { SearchConsoleDiagnosis } from "@iorder/shared/server/search-console/search-console.contract";
 
 import { AdminButton } from "./ui/admin-button";
@@ -98,12 +100,11 @@ type CheckResult = { ok: true; diagnosis: SearchConsoleDiagnosis } | { ok: false
 /** Hỏi backend kết quả kiểm tra kết nối (backend gọi Google, không dùng bộ nhớ đệm). Hàm thuần: không đổi state. */
 async function requestDiagnosis(): Promise<CheckResult> {
   try {
-    const response = await fetch("/api/v1/admin/search-console?diagnose=1", { headers: { accept: "application/json" }, cache: "no-store" });
-    const body = await response.json().catch(() => null) as { diagnosis?: SearchConsoleDiagnosis; error?: { message?: string } } | null;
-    if (!response.ok || !body?.diagnosis) return { ok: false, message: body?.error?.message ?? "Không kiểm tra được kết nối lúc này. Thử lại sau." };
+    const body = await requestAdminJson("/api/v1/admin/search-console?diagnose=1", "GET", undefined, "Không kiểm tra được kết nối lúc này. Thử lại sau.", { cache: "no-store" }) as { diagnosis?: SearchConsoleDiagnosis } | null;
+    if (!body?.diagnosis) return { ok: false, message: "Không kiểm tra được kết nối lúc này. Thử lại sau." };
     return { ok: true, diagnosis: body.diagnosis };
-  } catch {
-    return { ok: false, message: "Không kết nối được máy chủ để kiểm tra." };
+  } catch (error) {
+    return { ok: false, message: error instanceof AdminApiError ? error.message : "Không kết nối được máy chủ để kiểm tra." };
   }
 }
 

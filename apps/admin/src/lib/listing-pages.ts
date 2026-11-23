@@ -27,14 +27,14 @@ export const listingPageModuleLabel: Record<ListingPageSlug, string> = {
 // editor trang danh sách chỉ sửa phần đầu và bố cục, còn từng trang con lấy dữ liệu từ module tương ứng.
 export const listingChildPages: Record<ListingPageSlug, ReadonlyArray<{ path: string; label: string; source: string; href: string }>> = {
   "listing-news": [
-    { path: "/tin-tuc/<bài viết>", label: "Chi tiết bài viết", source: "Bài viết & Tin tức", href: "/admin/news" },
-    { path: "/tin-tuc/chuyen-muc/<chuyên mục>", label: "Trang chuyên mục", source: "Tên và mô tả lấy từ Chuyên mục & Thẻ", href: "/admin/taxonomy" },
-    { path: "/tin-tuc/the/<thẻ>", label: "Trang thẻ", source: "Tên lấy từ Chuyên mục & Thẻ", href: "/admin/taxonomy" },
+    { path: "/news/<bài viết>", label: "Chi tiết bài viết", source: "Bài viết & Tin tức", href: "/admin/news" },
+    { path: "/news/category/<chuyên mục>", label: "Trang chuyên mục", source: "Tên và mô tả lấy từ Chuyên mục & Thẻ", href: "/admin/taxonomy" },
+    { path: "/news/tag/<thẻ>", label: "Trang thẻ", source: "Tên lấy từ Chuyên mục & Thẻ", href: "/admin/taxonomy" },
   ],
-  "listing-equipment": [{ path: "/thiet-bi/<thiết bị>", label: "Chi tiết thiết bị", source: "Thiết bị", href: "/admin/equipment" }],
+  "listing-equipment": [{ path: "/equipment/<thiết bị>", label: "Chi tiết thiết bị", source: "Thiết bị", href: "/admin/equipment" }],
   "listing-support": [],
-  "listing-guides": [{ path: "/ho-tro/huong-dan/<hướng dẫn>", label: "Chi tiết hướng dẫn", source: "Hướng dẫn sử dụng", href: "/admin/guides" }],
-  "listing-software": [{ path: "/phan-mem/<sản phẩm>", label: "Chi tiết sản phẩm", source: "Sản phẩm", href: "/admin/products?type=software" }],
-  "listing-solution": [{ path: "/giai-phap/<giải pháp>", label: "Chi tiết giải pháp", source: "Giải pháp", href: "/admin/products?type=solution" }],
-  "listing-service": [{ path: "/dich-vu/<dịch vụ>", label: "Chi tiết dịch vụ", source: "Dịch vụ", href: "/admin/products?type=service" }],
+  "listing-guides": [{ path: "/support/guides/<hướng dẫn>", label: "Chi tiết hướng dẫn", source: "Hướng dẫn sử dụng", href: "/admin/guides" }],
+  "listing-software": [{ path: "/software/<sản phẩm>", label: "Chi tiết sản phẩm", source: "Sản phẩm", href: "/admin/products?type=software" }],
+  "listing-solution": [{ path: "/solutions/<giải pháp>", label: "Chi tiết giải pháp", source: "Giải pháp", href: "/admin/products?type=solution" }],
+  "listing-service": [{ path: "/services/<dịch vụ>", label: "Chi tiết dịch vụ", source: "Dịch vụ", href: "/admin/products?type=service" }],
 };

@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 
 type ResourcesSearchParams = { create?: string; edit?: string; tab?: string } & Record<string, string | undefined>;
 
-// Tệp cài đặt (driver, tài liệu) hiển thị ở /ho-tro/cai-dat. Bài hướng dẫn nằm ở /admin/guides.
+// Tệp cài đặt (driver, tài liệu) hiển thị ở /support/setup. Bài hướng dẫn nằm ở /admin/guides.
 export default async function ResourcesPage({ searchParams }: { searchParams: Promise<ResourcesSearchParams> }) {
   const { tab, ...params } = await searchParams;
   // Liên kết cũ "?tab=guides" (thông báo, đánh dấu trang) chuyển sang màn Hướng dẫn, giữ bộ lọc.

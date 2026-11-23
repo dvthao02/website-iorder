@@ -1,6 +1,6 @@
 "use client";
 
-import { adminApiError } from "@/lib/admin-api";
+import { adminApiError, readAdminJson } from "@/lib/admin-api";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Archive, ArchiveRestore, Download, Eye, LoaderCircle, Pencil, Trash2 } from "lucide-react";
@@ -51,9 +51,9 @@ export function AdminContentActions({ deleteMutation, editHref, isArchived = fal
           method: nextMutation.method,
           ...(nextMutation.body === undefined ? {} : { headers: { "content-type": "application/json" }, body: JSON.stringify(nextMutation.body) }),
       });
-      const payload = await response.json().catch(() => null) as { error?: { message?: string } } | null;
+      const payload = await readAdminJson(response);
       if (!response.ok) {
-        show(adminApiError(payload, `Không thể cập nhật ${label}.`).message, "error");
+        show(adminApiError(payload, `Không thể cập nhật ${label}.`, response.status).message, "error");
         return;
       }
 

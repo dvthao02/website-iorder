@@ -5,6 +5,7 @@ import React, { useCallback, useEffect, useState, type ChangeEvent, type FormEve
 
 import { integrationTools, secretMetas, type IntegrationToolId, type SecretKey, type SecretStatus, type SecretsOverview } from "@iorder/shared/server/secrets/secrets.contract";
 
+import { AdminApiError, requestAdminJson } from "../../lib/admin-api";
 import { AdminButton } from "./ui/admin-button";
 import { AdminCard } from "./ui/admin-card";
 import { AdminNotice, AdminStatusBadge, useAdminToast } from "./ui/admin-feedback";
@@ -164,26 +165,21 @@ export function ToolSecretsForm({ tool, secrets, onSaved, onCancel }: { tool: In
     };
     try {
       if (toSet.length) {
-        const response = await fetch("/api/v1/admin/secrets", {
-          method: "PUT",
-          headers: { "content-type": "application/json", accept: "application/json" },
-          body: JSON.stringify({ items: toSet.map((secret) => ({ key: secret.key, value: values[secret.key], expectedVersion: secret.version })), password }),
-          cache: "no-store",
-        });
-        const body = await response.json().catch(() => null) as { statuses?: SecretStatus[]; error?: ApiError } | null;
-        if (!response.ok || !body?.statuses) { fail(body?.error); return; }
+        const body = await requestAdminJson("/api/v1/admin/secrets", "PUT", { items: toSet.map((secret) => ({ key: secret.key, value: values[secret.key], expectedVersion: secret.version })), password }, "Không lưu được lúc này. Thử lại sau.", { cache: "no-store" }) as { statuses?: SecretStatus[] } | null;
+        if (!body?.statuses) { fail(undefined); return; }
         saved.push(...body.statuses);
       }
       for (const secret of toClear) {
-        const response = await fetch("/api/v1/admin/secrets", { method: "DELETE", headers: { "content-type": "application/json", accept: "application/json" }, body: JSON.stringify({ key: secret.key, password }), cache: "no-store" });
-        const body = await response.json().catch(() => null) as { status?: SecretStatus; error?: ApiError } | null;
-        if (!response.ok || !body?.status) { fail(body?.error); return; }
+        const body = await requestAdminJson("/api/v1/admin/secrets", "DELETE", { key: secret.key, password }, "Không lưu được lúc này. Thử lại sau.", { cache: "no-store" }) as { status?: SecretStatus } | null;
+        if (!body?.status) { fail(undefined); return; }
         saved.push(body.status);
       }
       setValues({}); setPassword(""); setFileNames({});
       show(toClear.length && !toSet.length ? "Đã xóa khỏi CMS." : "Đã lưu (khóa bí mật đã mã hóa).", "success");
       onSaved(saved, { close: true });
-    } catch {
+    } catch (requestError) {
+      // Phản hồi lỗi của máy chủ (kèm mã và, với INVALID_SECRET, tên khóa sai); còn lại là mất kết nối.
+      if (requestError instanceof AdminApiError) { fail({ code: requestError.code, message: requestError.message, key: typeof requestError.details?.key === "string" ? requestError.details.key : undefined }); return; }
       setError({ field: "form", message: "Không kết nối được máy chủ. Thử lại sau." });
       if (saved.length) onSaved(saved, { close: false });
     } finally {
@@ -233,17 +229,21 @@ export function MasterKeyForm({ onDone, onCancel }: { onDone: (overview: Secrets
     setBusy(true);
     setError(null);
     try {
-      const response = await fetch("/api/v1/admin/secrets", { method: "POST", headers: { "content-type": "application/json", accept: "application/json" }, body: JSON.stringify({ action: "create-master-key", password }), cache: "no-store" });
-      const body = await response.json().catch(() => null) as { overview?: SecretsOverview; error?: { code?: string; message?: string } } | null;
-      if (!response.ok || !body?.overview) {
+      const body = await requestAdminJson("/api/v1/admin/secrets", "POST", { action: "create-master-key", password }, "Không tạo được khóa chủ lúc này. Thử lại sau.", { cache: "no-store" }) as { overview?: SecretsOverview } | null;
+      if (!body?.overview) {
         setPassword("");
-        setError(errorByCode[body?.error?.code ?? ""] ?? body?.error?.message ?? "Không tạo được khóa chủ lúc này. Thử lại sau.");
+        setError("Không tạo được khóa chủ lúc này. Thử lại sau.");
         return;
       }
       setPassword("");
       show("Đã tạo khóa chủ. Giờ có thể đặt khóa API.", "success");
       onDone(body.overview);
-    } catch {
+    } catch (requestError) {
+      if (requestError instanceof AdminApiError) {
+        setPassword("");
+        setError(errorByCode[requestError.code ?? ""] ?? requestError.message);
+        return;
+      }
       setError("Không kết nối được máy chủ. Thử lại sau.");
     } finally {
       setBusy(false);
@@ -265,12 +265,11 @@ type Loaded = { status: "loading" } | { status: "error"; message: string } | { s
 
 async function requestOverview(): Promise<Loaded> {
   try {
-    const response = await fetch("/api/v1/admin/secrets", { headers: { accept: "application/json" }, cache: "no-store" });
-    const body = await response.json().catch(() => null) as { overview?: SecretsOverview; error?: { message?: string } } | null;
-    if (!response.ok || !body?.overview) return { status: "error", message: body?.error?.message ?? "Không đọc được danh sách khóa lúc này. Thử lại sau." };
+    const body = await requestAdminJson("/api/v1/admin/secrets", "GET", undefined, "Không đọc được danh sách khóa lúc này. Thử lại sau.", { cache: "no-store" }) as { overview?: SecretsOverview } | null;
+    if (!body?.overview) return { status: "error", message: "Không đọc được danh sách khóa lúc này. Thử lại sau." };
     return { status: "ready", overview: body.overview };
-  } catch {
-    return { status: "error", message: "Không kết nối được máy chủ." };
+  } catch (requestError) {
+    return { status: "error", message: requestError instanceof AdminApiError ? requestError.message : "Không kết nối được máy chủ." };
   }
 }
 

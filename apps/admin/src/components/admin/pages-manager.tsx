@@ -40,7 +40,7 @@ const emptyMessages: Record<StaticPageType, string> = {
 };
 const dateFormatter = new Intl.DateTimeFormat("vi-VN", { dateStyle: "medium" });
 
-function getPublicPath(page: AdminPage) { return getFixedWebsitePage(page.slug)?.publicPath ?? `/trang/${page.slug}`; }
+function getPublicPath(page: AdminPage) { return getFixedWebsitePage(page.slug)?.publicPath ?? `/pages/${page.slug}`; }
 const isCustomPage = (page: AdminPage) => !getFixedWebsitePage(page.slug);
 
 // Server tự đọc trang đầy đủ (kèm khối) rồi lưu với trạng thái mới; danh sách không cần giữ khối.
@@ -73,7 +73,7 @@ type PagesManagerProps = {
 
 /**
  * Màn "Trang website": mọi trang trừ Trang chủ (có mục riêng) trong một bảng — trang nội dung có sẵn (Giới thiệu, Liên hệ,
- * Chính sách…), trang danh sách (phần đầu và SEO của /tin-tuc, /thiet-bi…) và trang tự tạo; tab lọc theo loại.
+ * Chính sách…), trang danh sách (phần đầu và SEO của /news, /equipment…) và trang tự tạo; tab lọc theo loại.
  * Chọn nhiều dòng để xuất bản / chuyển về nháp / khôi phục; lưu trữ và xóa chỉ áp dụng cho trang tự tạo (trang có sẵn do code quản lý đường dẫn).
  */
 export function PagesManager({ counts, initialQuery, initialStatus, initialType, result }: PagesManagerProps) {

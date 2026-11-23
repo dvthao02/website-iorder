@@ -32,6 +32,9 @@ import { ContentStatusChoice, PrepublishHints, contentStatusBadge, contentSubmit
 import { SeoAssistant } from "./ui/seo-assistant";
 import { useNavigationGuard } from "./ui/use-navigation-guard";
 import { useUnsavedChanges } from "./ui/use-unsaved-changes";
+import { AdminSelect } from "./ui/admin-select";
+import { AdminCheckbox } from "./ui/admin-checkbox";
+import { AdminSlugField } from "./ui/admin-slug-field";
 
 export type EquipmentGroup = EquipmentGroupInput & { id: string; version: number };
 export type EquipmentItem = EquipmentInput & { id: string; groupName: string; coverUrl: string | null; coverAlt: string | null; version: number; updatedAt: Date };
@@ -152,10 +155,13 @@ export function EquipmentEditor({ groups, item, onDirtyChange, onError, onSaved 
   }
 
   const summary = form.summary ?? "";
-  const publicPath = `/thiet-bi/${form.slug || "duong-dan"}`;
+  const publicPath = `/equipment/${form.slug || "duong-dan"}`;
   const seoContent = { blocks: [{ type: "paragraph", text: summary }] };
   const seoInput = { title: form.name, seoTitle: form.seoTitle ?? "", seoDescription: form.seoDescription ?? "", excerpt: summary, slug: form.slug, hasCover: Boolean(form.coverMediaId), content: seoContent, focusKeyword: form.seo?.focusKeyword };
-  const checks = seoChecks(seoInput);
+  // Mô tả ngắn vừa là tóm tắt vừa là nội dung duy nhất đưa vào trợ lý SEO, nên mục "Nội dung ≥ 300 từ" chỉ đo lại chính nó
+  // (luôn báo thiếu, trong khi trang thiết bị là phần đầu trang và bảng thông số, không phải bài dài). Bỏ mục này ở cả điểm số lẫn danh sách.
+  const checks = seoChecks(seoInput).filter((check) => check.id !== "length");
+  const seoCheckIds = checks.map((check) => check.id);
   const seoIssues = seoPrepublishIssues(seoInput);
   const seoPassed = checks.filter((check) => check.ok).length;
   const goingLive = form.status === "published" || form.status === "scheduled";
@@ -170,20 +176,17 @@ export function EquipmentEditor({ groups, item, onDirtyChange, onError, onSaved 
   // Phần đầu trang và thông số nằm trong trình dựng như mục 1 và 2: tên, giá, bảo hành, mã model, mô tả ngắn, ảnh bìa; thông số theo nhóm.
   const heroDetail = <>
     <label className="admin-field" data-field="title">Tên thiết bị<input maxLength={220} className="admin-input" onChange={(event) => changeName(event.target.value)} placeholder="Nhập tên thiết bị…" value={form.name} /></label>
-    <div className="admin-field" data-field="category">Nhóm thiết bị<select aria-label="Nhóm thiết bị" className="admin-input" onChange={event => update("groupId", event.target.value)} required value={form.groupId}>{allGroups.length ? null : <option value="">Chưa có nhóm — tạo nhóm bên dưới</option>}{allGroups.map(group => <option key={group.id} value={group.id}>{group.name}</option>)}</select><AdminInlineCreate disabled={processing} hint={canPublish ? undefined : "Nhóm mới ở trạng thái ẩn cho tới khi người có quyền xuất bản bật."} label="nhóm thiết bị" onCreate={createGroup} permission="equipment.create" /></div>
+    <div className="admin-field" data-field="category">Nhóm thiết bị<AdminSelect aria-label="Nhóm thiết bị" onChange={event => update("groupId", event.target.value)} required value={form.groupId}>{allGroups.length ? null : <option value="">Chưa có nhóm — tạo nhóm bên dưới</option>}{allGroups.map(group => <option key={group.id} value={group.id}>{group.name}</option>)}</AdminSelect><AdminInlineCreate disabled={processing} hint={canPublish ? undefined : "Nhóm mới ở trạng thái ẩn cho tới khi người có quyền xuất bản bật."} label="nhóm thiết bị" onCreate={createGroup} permission="equipment.create" /></div>
       <div className="admin-form-grid admin-equipment-sale">
         <label className="admin-field" data-field="priceVnd" id="equipment-price">Giá bán (VNĐ)<input className="admin-input" inputMode="numeric" max={Number.MAX_SAFE_INTEGER} min={0} onChange={event => update("priceVnd", Math.max(0, Math.trunc(Number(event.target.value) || 0)))} type="number" value={form.priceVnd} /><small className="admin-help">Hiện trên website: {priceFormatter.format(form.priceVnd)}</small></label>
         <label className="admin-field" data-field="warrantyMonths">Bảo hành (tháng)<input className="admin-input" max={1200} min={0} onChange={event => update("warrantyMonths", Math.max(0, Math.trunc(Number(event.target.value) || 0)))} type="number" value={form.warrantyMonths} /></label>
         <label className="admin-field" data-field="modelCode">Mã model<input className="admin-input" maxLength={80} onChange={event => update("modelCode", event.target.value || null)} placeholder="Ví dụ: SUNMI T2s" value={form.modelCode ?? ""} /></label>
         <label className="admin-field" data-field="brand">Thương hiệu<input className="admin-input" maxLength={80} onChange={event => update("brand", event.target.value || null)} placeholder="Ví dụ: Sunmi, Zywell, iOrder" value={form.brand ?? ""} /><small className="admin-help">Hiện trên trang thiết bị và khai cho Google. Để trống nếu chưa chắc: website sẽ không khai thương hiệu thay vì đoán.</small></label>
-        <AdminHintedField hint="Hiện cạnh giá trên website và khai cho Google (còn hàng, hết hàng…). Hết hàng hoặc ngừng kinh doanh thì nên cập nhật ngay để khách không nhắn hỏi rồi mới biết." label="Tình trạng hàng"><label className="admin-field" data-field="availability">Tình trạng hàng<select className="admin-input" onChange={event => update("availability", event.target.value as EquipmentAvailability)} value={form.availability ?? "in_stock"}>{equipmentAvailabilityValues.map(value => <option key={value} value={value}>{equipmentAvailabilityLabels[value]}</option>)}</select></label></AdminHintedField>
+        <AdminHintedField hint="Hiện cạnh giá trên website và khai cho Google (còn hàng, hết hàng…). Hết hàng hoặc ngừng kinh doanh thì nên cập nhật ngay để khách không nhắn hỏi rồi mới biết." label="Tình trạng hàng"><label className="admin-field" data-field="availability">Tình trạng hàng<AdminSelect onChange={event => update("availability", event.target.value as EquipmentAvailability)} value={form.availability ?? "in_stock"}>{equipmentAvailabilityValues.map(value => <option key={value} value={value}>{equipmentAvailabilityLabels[value]}</option>)}</AdminSelect></label></AdminHintedField>
       </div>
     <label className="admin-field" data-field="summary" htmlFor="equipment-summary">Mô tả ngắn<textarea className="admin-input" id="equipment-summary" maxLength={20_000} onChange={event => update("summary", event.target.value || null)} placeholder="Thiết bị dùng để làm gì, phù hợp với mô hình nào. Hiện trên thẻ ở trang danh sách và đầu trang chi tiết." rows={4} value={summary} /></label>
     <div className="contents" data-field="image"><MediaPicker disabled={isSaving} hint="Hiện trên thẻ ở trang danh sách và đầu trang chi tiết. Nên dùng ảnh nền trắng, thiết bị nằm giữa." label="Ảnh bìa" onChange={coverMediaId => update("coverMediaId", coverMediaId)} onUploadingChange={handleUploadingChange} preview value={form.coverMediaId} /></div>
-    {editingSlug ? <div className="admin-post-editor__slug-edit">
-      <div className="admin-field"><label className="admin-seo__label" htmlFor="equipment-slug">Đường dẫn<span className="admin-help">Địa chỉ không dấu trên website: {publicPath}</span></label><span className="admin-post-editor__slug"><input autoFocus className="admin-input" id="equipment-slug" maxLength={180} onChange={(event) => { setSlugTouched(true); update("slug", event.target.value); }} pattern="[a-z0-9]+(-[a-z0-9]+)*" required value={form.slug} /><AdminButton disabled={!form.name.trim() || toSlug(form.name, 80) === form.slug} onClick={() => { setSlugTouched(true); update("slug", toSlug(form.name, 80)); }} size="sm" variant="secondary">Tạo từ tên</AdminButton><AdminButton onClick={() => setEditingSlug(false)} size="sm" variant="ghost">Xong</AdminButton></span></div>
-      {savedStatus === "published" && form.status === "published" ? <small className="admin-help">Thiết bị đang hiển thị: khi lưu với đường dẫn mới, đường dẫn cũ tự chuyển hướng (301) sang đường dẫn mới.</small> : savedStatus === "published" ? <small className="admin-help admin-text-warning">Sau lần lưu này nội dung chưa hiện ngay trên website nên đổi đường dẫn sẽ không tạo chuyển hướng từ đường dẫn cũ.</small> : <small className="admin-help">Chỉ dùng chữ thường không dấu, số và dấu gạch ngang.</small>}
-    </div> : <p className="admin-post-editor__slug-line"><span className="admin-help">Đường dẫn:</span> <span className="admin-post-editor__path">{publicPath}</span><button className="admin-post-editor__link" onClick={() => setEditingSlug(true)} type="button">Sửa</button>{!slugTouched ? <span className="admin-help"> · tự tạo theo tên</span> : null}</p>}
+    <AdminSlugField currentStatus={form.status} editing={editingSlug} id="equipment-slug" maxLength={180} onEditingChange={setEditingSlug} onValueChange={(slug) => { setSlugTouched(true); update("slug", slug); }} publicPath={publicPath} publishedLead="Thiết bị đang hiển thị" savedStatus={savedStatus} sourceNoun="tên" sourceText={form.name} touched={slugTouched} value={form.slug} />
   </>;
   // Tab "Bố cục khối" của hai mục cố định: bố cục phần đầu trang và giao diện phần thông số (lưu trong cột page_layout).
   const heroLayoutDetail = <DetailHeroLayoutFields disabled={processing || !canEdit} name="equipment-hero-layout" onChange={hero => update("pageLayout", { ...form.pageLayout, hero })} onUploadingChange={handleUploadingChange} value={form.pageLayout?.hero} />;
@@ -209,7 +212,7 @@ export function EquipmentEditor({ groups, item, onDirtyChange, onError, onSaved 
         <details className="admin-post-editor__panel">
           <summary><span><strong>Google &amp; chia sẻ mạng xã hội</strong><small>Mặc định lấy từ tên và mô tả ngắn — chỉ mở khi muốn đặt riêng.</small></span><AdminStatusBadge tone={seoPassed === checks.length ? "success" : "warning"}>SEO {seoPassed}/{checks.length} đạt</AdminStatusBadge></summary>
           <div className="admin-post-editor__panel-body">
-            <SeoAssistant guideKind="equipment" content={seoContent} excerpt={summary} focusKeyword={form.seo?.focusKeyword ?? ""} hasCover={Boolean(form.coverMediaId)} onFocusKeywordChange={focusKeyword => update("seo", { ...form.seo, focusKeyword: focusKeyword || undefined })} onChange={(field, value) => update(field, value || null)} path={publicPath} seoDescription={form.seoDescription ?? ""} seoTitle={form.seoTitle ?? ""} slug={form.slug} title={form.name} />
+            <SeoAssistant checkIds={seoCheckIds} guideKind="equipment" content={seoContent} excerpt={summary} focusKeyword={form.seo?.focusKeyword ?? ""} hasCover={Boolean(form.coverMediaId)} onFocusKeywordChange={focusKeyword => update("seo", { ...form.seo, focusKeyword: focusKeyword || undefined })} onChange={(field, value) => update(field, value || null)} path={publicPath} seoDescription={form.seoDescription ?? ""} seoTitle={form.seoTitle ?? ""} slug={form.slug} title={form.name} />
             <ContentSeoEditor value={form.seo ?? {}} onChange={seo => update("seo", seo)} title={form.seoTitle || form.name} description={form.seoDescription || form.summary || ""} disabled={processing || !canEdit} onUploadingChange={handleUploadingChange} />
             <label className="admin-field">Địa chỉ chính thức của nội dung (nâng cao)<input className="admin-input" onChange={event => update("canonicalUrl", event.target.value || null)} placeholder="Chỉ điền khi nội dung này được sao chép từ một địa chỉ khác" type="url" value={form.canonicalUrl ?? ""} /></label>
           </div>
@@ -230,7 +233,7 @@ export function EquipmentEditor({ groups, item, onDirtyChange, onError, onSaved 
         </section>
         <section className="admin-content-section">
           <header><h3>Phân loại &amp; hiển thị</h3></header>
-          <label className="admin-check"><input checked={form.isFeatured} onChange={event => update("isFeatured", event.target.checked)} type="checkbox" />Đánh dấu nổi bật</label>
+          <AdminCheckbox checked={form.isFeatured} onChange={event => update("isFeatured", event.target.checked)}>Đánh dấu nổi bật</AdminCheckbox>
           <AdminHintedField hint="Số nhỏ hiện trước." label="Thứ tự trong danh sách"><label className="admin-field">Thứ tự trong danh sách<input className="admin-input" max={10_000} min={0} onChange={event => update("sortOrder", Math.max(0, Number(event.target.value) || 0))} type="number" value={form.sortOrder} /></label></AdminHintedField>
         </section>
       </aside>
