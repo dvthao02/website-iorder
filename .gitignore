@@ -55,3 +55,6 @@ next-env.d.ts
 /playwright-report/
 /blob-report/
 /.playwright-mcp/
+
+# Ảnh minh họa sinh ra khi làm việc, không phải mã nguồn
+/output/
