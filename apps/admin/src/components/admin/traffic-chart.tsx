@@ -11,6 +11,13 @@ function label(date: string) {
   return dayLabel.format(new Date(`${date}T00:00:00Z`));
 }
 
+// Khung số liệu đặt theo vị trí cột nên không được tràn khỏi vùng vẽ: cột sát mép trái/phải thì dịch khung vào trong
+// (cùng cách với khung của DayBars). Thiếu bước này, khung ở cột cuối chỉ còn chỗ rộng bằng một cột nên chữ bị bẻ từng từ.
+function tipTransform(index: number, count: number) {
+  const ratio = count > 1 ? index / (count - 1) : 0.5;
+  return ratio < 0.18 ? "translateX(-6px)" : ratio > 0.82 ? "translateX(calc(-100% + 6px))" : "translateX(-50%)";
+}
+
 // Biểu đồ cột một chuỗi (lượt xem theo ngày): không cần chú thích vì tiêu đề đã gọi tên chuỗi.
 // Cột mảnh, bo 4px đầu dữ liệu, khe 2px; rê chuột hoặc dùng phím Tab để xem số của từng ngày.
 export function TrafficChart({ daily, height = 180 }: { daily: Day[]; height?: number }) {
@@ -37,7 +44,7 @@ export function TrafficChart({ daily, height = 180 }: { daily: Day[]; height?: n
           </button>;
         })}
       </div>
-      {current ? <div className="pointer-events-none absolute top-6 z-10 -translate-x-1/2 rounded-[var(--cms-radius-component)] border border-[var(--cms-border)] bg-[var(--cms-card)] px-3 py-2 text-[.72rem] text-[var(--cms-text)] shadow-md" role="status" style={{ left: `${((active! + 0.5) / daily.length) * 100}%` }}>
+      {current ? <div className="pointer-events-none absolute top-6 z-10 whitespace-nowrap rounded-[var(--cms-radius-component)] border border-[var(--cms-border)] bg-[var(--cms-card)] px-3 py-2 text-[.72rem] text-[var(--cms-text)] shadow-md" role="status" style={{ left: `${((active! + 0.5) / daily.length) * 100}%`, transform: tipTransform(active!, daily.length) }}>
         <strong className="block">{label(current.date)}</strong>
         <span className="block">{number.format(current.pageviews)} lượt xem</span>
         <span className="block text-[var(--cms-muted)]">{number.format(current.visitors)} người truy cập</span>
