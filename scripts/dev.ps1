@@ -1,4 +1,4 @@
-# Chay moi truong dev local: PostgreSQL + S3Mock (Docker) va 3 app Next.js (api 3002, admin 3001, website 3000),
+# Chay moi truong dev local: PostgreSQL + SeaweedFS (S3) (Docker) va 3 app Next.js (api 3002, admin 3001, website 3000),
 # moi app mot cua so/tab rieng de xem log.
 #   powershell -ExecutionPolicy Bypass -File scripts/dev.ps1              chay tat ca
 #   powershell -ExecutionPolicy Bypass -File scripts/dev.ps1 -Analytics   them Umami (cong 3005, ton them RAM)
@@ -83,7 +83,7 @@ if (-not $NoDocker) {
       Start-Sleep -Seconds 3
     }
   }
-  Write-Step "Bat PostgreSQL + S3Mock$(if ($Analytics) { ' + Umami' })"
+  Write-Step "Bat PostgreSQL + SeaweedFS (S3)$(if ($Analytics) { ' + Umami' })"
   if ($Analytics) { & docker compose --profile analytics up -d db storage umami } else { & docker compose up -d db storage }
   if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
   $deadline = (Get-Date).AddMinutes(1)
@@ -91,7 +91,7 @@ if (-not $NoDocker) {
     if ((Get-Date) -gt $deadline) { Write-Host "PostgreSQL chua healthy sau 1 phut: docker compose logs db" -ForegroundColor Red; exit 1 }
     Start-Sleep -Seconds 2
   }
-  Write-Host "PostgreSQL 127.0.0.1:5433, S3Mock 127.0.0.1:9090 da san sang."
+  Write-Host "PostgreSQL 127.0.0.1:5433, SeaweedFS (S3) 127.0.0.1:9090 da san sang."
 }
 
 $toStart = @()

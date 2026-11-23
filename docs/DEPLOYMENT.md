@@ -7,7 +7,7 @@ Chuẩn bị `.env` từ `.env.example` và cấu hình giá trị phù hợp; k
 1. **Cả hệ thống bằng Docker:** `docker compose up -d --build`. Compose chạy migration và đảm bảo tài khoản quản trị trước khi khởi động API, CMS và website. Nội dung mẫu chỉ được nạp khi chủ động dùng profile `bootstrap`.
 2. **Phát triển ứng dụng trên host:** `docker compose up -d db storage`, sau đó mở ba terminal chạy `pnpm dev:api`, `pnpm dev:admin`, `pnpm dev`. Windows có `pnpm dev:all`; script không tự migrate hoặc seed. `-Analytics` thêm Umami, `-NoDocker` dùng dịch vụ đã chạy.
 
-Website: `http://localhost:3000`; CMS: `http://localhost:3001`; API: `http://localhost:3002`. PostgreSQL và S3Mock local chỉ mở loopback. `pnpm dev:stop` kết thúc mọi tiến trình đang giữ cổng 3000–3002, kể cả ứng dụng khác: kiểm tra trước khi dùng. Dừng Compose không xóa named volume; đổi tên project/volume có thể khiến dữ liệu cũ không còn được gắn vào stack mới.
+Website: `http://localhost:3000`; CMS: `http://localhost:3001`; API: `http://localhost:3002`. PostgreSQL và SeaweedFS (S3) local chỉ mở loopback. `pnpm dev:stop` kết thúc mọi tiến trình đang giữ cổng 3000–3002, kể cả ứng dụng khác: kiểm tra trước khi dùng. Dừng Compose không xóa named volume; đổi tên project/volume có thể khiến dữ liệu cũ không còn được gắn vào stack mới.
 
 Trước khi chạy migration trên database có dữ liệu, xem SQL, chuẩn bị bản sao và thử trên môi trường riêng. Không chạy seed, import, backfill hoặc lệnh dọn dữ liệu chỉ để khởi động hằng ngày. Nếu database mới chưa có bảng, cần migration; nội dung nền là bước khởi tạo riêng có chủ đích.
 

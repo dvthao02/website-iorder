@@ -51,7 +51,7 @@ services:
       INITIAL_ADMIN_USERNAME: ${INITIAL_ADMIN_USERNAME}
       INITIAL_ADMIN_PASSWORD: ${INITIAL_ADMIN_PASSWORD}
       INITIAL_ADMIN_NAME: ${INITIAL_ADMIN_NAME:-Administrator}
-      S3_ENDPOINT: http://storage:9090
+      S3_ENDPOINT: http://storage:8333
       S3_BUCKET: ${S3_BUCKET}
       S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID}
       S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY}
@@ -59,7 +59,7 @@ services:
       seed-admin:
         condition: service_completed_successfully
       storage:
-        condition: service_started
+        condition: service_healthy
 
   api:
     build:
@@ -73,7 +73,7 @@ services:
       SERVICE_NAME: api
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       LEAD_IP_HASH_SALT: ${LEAD_IP_HASH_SALT:-local-lead-ip-hash-salt}
-      S3_ENDPOINT: http://storage:9090
+      S3_ENDPOINT: http://storage:8333
       S3_BUCKET: ${S3_BUCKET}
       S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID}
       S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY}
@@ -88,7 +88,7 @@ services:
       seed-admin:
         condition: service_completed_successfully
       storage:
-        condition: service_started
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
       interval: 5s
@@ -164,17 +164,26 @@ services:
       timeout: 5s
       retries: 12
 
+  # SeaweedFS: cùng image và cách chạy với production (compose.production.yaml) để local và VPS dùng chung một kiểu lưu trữ S3.
+  # S3 API nghe ở cổng 8333 trong mạng Docker; mở ra máy host ở 127.0.0.1:9090 nên S3_ENDPOINT trong .env và các app chạy bằng pnpm không đổi.
+  # API tự tạo bucket ${S3_BUCKET} khi chưa có.
   storage:
-    image: adobe/s3mock:5.2.3
+    image: chrislusf/seaweedfs@sha256:4e61d15fd35994cb1e43e1e553dff106794841fd9a99ade2fc8c8bfce4d7872d
     mem_limit: 768m
+    command: ["mini", "-dir=/data", "-master.telemetry=false"]
     environment:
-      COM_ADOBE_TESTING_S3MOCK_STORE_INITIAL_BUCKETS: ${S3_BUCKET}
-      COM_ADOBE_TESTING_S3MOCK_STORE_RETAIN_FILES_ON_EXIT: "true"
-      COM_ADOBE_TESTING_S3MOCK_STORE_ROOT: /s3mockroot
+      AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY}
+      S3_BUCKET: ${S3_BUCKET}
     ports:
-      - "127.0.0.1:9090:9090"
+      - "127.0.0.1:9090:8333"
     volumes:
-      - s3-data:/s3mockroot
+      - seaweed-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:9333/cluster/status"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
 
   # Thống kê truy cập (tùy chọn, tốn thêm RAM): docker compose --profile analytics up -d
   umami-db-init:
@@ -208,4 +217,4 @@ services:
 
 volumes:
   postgres-data:
-  s3-data:
+  seaweed-data:
