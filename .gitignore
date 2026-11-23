@@ -58,3 +58,7 @@ next-env.d.ts
 
 # Ảnh minh họa sinh ra khi làm việc, không phải mã nguồn
 /output/
+
+# Tệp hướng dẫn cho trợ lý AI: giữ trên máy làm việc, không đưa lên Git
+AGENTS.md
+CLAUDE.md
