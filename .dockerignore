@@ -12,3 +12,11 @@ docs
 CLAUDE.md
 npm-debug.log*
 pnpm-debug.log*
+**/.next-*
+**/.data
+output
+artifacts
+test-results
+.playwright-mcp
+debug.log
+**/*.tsbuildinfo
