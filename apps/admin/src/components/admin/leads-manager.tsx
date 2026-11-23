@@ -4,7 +4,8 @@ import { adminApiError, readAdminJson } from "@/lib/admin-api";
 import { CheckCircle2, FileSpreadsheet, Inbox, Mail, Phone, PhoneCall } from "lucide-react";
 import { useRef, useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import type { LeadListQuery } from "@iorder/shared/server/leads/leads.contract";
+import type { LeadContext, LeadListQuery } from "@iorder/shared/server/leads/leads.contract";
+import { equipmentAvailabilityLabels, type EquipmentAvailability } from "@iorder/shared/server/equipment/equipment-availability";
 import type { AdminListPage as ListResult } from "@iorder/shared/server/shared/admin-list.contract";
 import { leadStatusUpdateResponseSchema } from "@iorder/shared/server/leads/leads.contract";
 
@@ -39,6 +40,8 @@ type Lead = {
   status: LeadStatus;
   createdAt: Date;
   handledAt: Date | null;
+  /** Thiết bị khách hỏi mua, chụp lúc gửi (tên, giá, tình trạng hàng khi đó); null = liên hệ chung. */
+  context: LeadContext | null;
 };
 
 const statusLabel: Record<LeadStatus, string> = { new: "Mới", contacted: "Đã liên hệ", closed: "Đã xử lý" };
@@ -46,6 +49,8 @@ const statusTone = { new: "warning", contacted: "info", closed: "success" } as c
 const statuses: LeadStatus[] = ["new", "contacted", "closed"];
 const statusIcons: Record<LeadStatus, ReactNode> = { new: <Inbox aria-hidden="true" />, contacted: <PhoneCall aria-hidden="true" />, closed: <CheckCircle2 aria-hidden="true" /> };
 const dateTimeFormatter = new Intl.DateTimeFormat("vi-VN", { dateStyle: "short", timeStyle: "short", timeZone: "Asia/Ho_Chi_Minh" });
+const priceFormatter = new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" });
+const availabilityTone: Record<EquipmentAvailability, "success" | "warning" | "info" | "error" | "neutral"> = { in_stock: "success", limited: "warning", pre_order: "info", out_of_stock: "error", discontinued: "neutral" };
 export function LeadsManager({ initialPage, initialQuery }: { initialPage: ListResult<Lead> & { counts: Record<"all" | LeadStatus, number> }; initialQuery: LeadListQuery }) {
   const { can } = useAdminPermissions();
   const router = useRouter();
@@ -101,6 +106,10 @@ export function LeadsManager({ initialPage, initialQuery }: { initialPage: ListR
     { id: "phone", label: "Điện thoại", defaultWidth: 125, minWidth: 110, cell: (lead) => <a href={`tel:${lead.phone}`}>{lead.phone}</a> },
     { id: "email", label: "Email", defaultWidth: 180, minWidth: 130, cell: (lead) => lead.email ? <a className="admin-text-muted" href={`mailto:${lead.email}`}>{lead.email}</a> : <span className="admin-text-muted">—</span> },
     { id: "need", label: "Nhu cầu", defaultWidth: 190, minWidth: 140, cell: (lead) => <span title={[lead.need, lead.businessModel].filter(Boolean).join(" · ")}>{lead.need ?? "—"}{lead.businessModel ? <span className="admin-text-muted"> · {lead.businessModel}</span> : null}</span> },
+    { id: "device", label: "Thiết bị hỏi mua", defaultWidth: 230, minWidth: 160, cell: (lead) => lead.context ? <span className="grid gap-1">
+      <a className="admin-link" href={`/admin/equipment/${lead.context.equipmentId}`} onClick={(event) => event.stopPropagation()}>{lead.context.name}</a>
+      <span className="admin-text-muted"><AdminStatusBadge tone={availabilityTone[lead.context.availability]}>{equipmentAvailabilityLabels[lead.context.availability]}</AdminStatusBadge> · {priceFormatter.format(lead.context.priceVnd)}</span>
+    </span> : <span className="admin-text-muted">—</span> },
     { id: "createdAt", label: "Gửi lúc", defaultWidth: 125, minWidth: 115, sortKey: "createdAt", sortFirst: "desc", cell: (lead) => <span className="admin-text-muted">{dateTimeFormatter.format(new Date(lead.createdAt))}</span> },
     { id: "status", label: "Trạng thái", defaultWidth: 140, minWidth: 130, cell: (lead) => statusSelect(lead, `Trạng thái của ${lead.name}`) },
   ];
@@ -157,6 +166,11 @@ export function LeadsManager({ initialPage, initialQuery }: { initialPage: ListR
             <div><dt>Mô hình kinh doanh</dt><dd>{openLead.businessModel ?? "—"}</dd></div>
             <div><dt>Số chi nhánh</dt><dd>{openLead.branches ?? "—"}</dd></div>
             <div><dt>Nhu cầu</dt><dd>{openLead.need ?? "—"}</dd></div>
+            {openLead.context ? <div><dt>Thiết bị hỏi mua</dt><dd className="grid gap-1 font-normal">
+              <a className="admin-link font-semibold" href={`/admin/equipment/${openLead.context.equipmentId}`}>{openLead.context.name}</a>
+              <span>{[openLead.context.modelCode ? `Mã / quy cách: ${openLead.context.modelCode}` : null, openLead.context.brand, openLead.context.groupName].filter(Boolean).join(" · ") || "—"}</span>
+              <span><AdminStatusBadge tone={availabilityTone[openLead.context.availability]}>{equipmentAvailabilityLabels[openLead.context.availability]}</AdminStatusBadge> · {priceFormatter.format(openLead.context.priceVnd)} <span className="admin-text-muted">(lúc {dateTimeFormatter.format(new Date(openLead.context.capturedAt))}, có thể khác hiện tại)</span></span>
+            </dd></div> : null}
             <div><dt>Lời nhắn</dt><dd className="whitespace-pre-wrap font-normal">{openLead.message ?? "—"}</dd></div>
             <div><dt>Gửi lúc</dt><dd>{dateTimeFormatter.format(new Date(openLead.createdAt))}</dd></div>
             {openLead.handledAt ? <div><dt>Xử lý lúc</dt><dd>{dateTimeFormatter.format(new Date(openLead.handledAt))}</dd></div> : null}

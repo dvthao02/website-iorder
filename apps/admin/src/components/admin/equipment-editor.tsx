@@ -198,7 +198,7 @@ export function EquipmentEditor({ groups, item, onDirtyChange, onError, onSaved 
   const relatedLayoutDetail = <AppearanceEditor disabled={processing || !canEdit} onChange={patch => update("pageLayout", { ...form.pageLayout, related: { ...defaultAppearance, ...form.pageLayout?.related, ...patch } })} onUploadingChange={handleUploadingChange} options={{ darkAllowed: true, height: true }} value={form.pageLayout?.related} />;
   const consultLayoutDetail = <AppearanceEditor disabled={processing || !canEdit} onChange={patch => update("pageLayout", { ...form.pageLayout, consult: { ...defaultAppearance, ...form.pageLayout?.consult, ...patch } })} onUploadingChange={handleUploadingChange} options={{ darkAllowed: true, autoLabel: "Tối (mặc định)", height: true }} value={form.pageLayout?.consult} />;
   const relatedDetail = <p className="admin-help">Tự hiện tối đa 4 thiết bị khác, ưu tiên cùng nhóm với thiết bị này. Không có nội dung để nhập; chỉnh giao diện ở tab Bố cục khối.</p>;
-  const consultDetail = <p className="admin-help">Dải tư vấn cuối trang: nút Liên hệ mua hàng và số hotline lấy từ Cài đặt › Thông tin website. Chỉnh giao diện ở tab Bố cục khối.</p>;
+  const consultDetail = <p className="admin-help">Dải tư vấn cuối trang: nút Liên hệ mua hàng mở biểu mẫu hỏi mua đúng thiết bị này (liên hệ lưu kèm tên, giá và tình trạng hàng lúc khách gửi, xem ở Khách hàng tiềm năng); số hotline lấy từ Cài đặt › Thông tin website. Chỉnh giao diện ở tab Bố cục khối.</p>;
   const specsDetail = <SpecificationGroupsEditor onChange={specificationGroups => update("specificationGroups", specificationGroups)} value={form.specificationGroups} />;
 
   return (

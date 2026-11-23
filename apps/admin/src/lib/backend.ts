@@ -27,6 +27,7 @@ import type { getEquipment as getEquipmentFromCore, getEquipmentGroups as getEqu
 import type { getEquipmentPage as getEquipmentPageFromCore } from "@iorder/shared/server/equipment/equipment.service";
 import type { getLeadsPage as getLeadsPageFromCore } from "@iorder/shared/server/leads/leads.service";
 import { leadListPageSchema, leadListQuerySchema, type LeadListQuery } from "@iorder/shared/server/leads/leads.contract";
+import { reviveDates } from "./revive-dates";
 import type { getAdminMedia as getAdminMediaFromCore } from "@iorder/shared/server/media/media.service";
 import type { getAdminNavigation as getAdminNavigationFromCore } from "@iorder/shared/server/navigation/navigation.service";
 import type { getPublishedNavigationTargets as getPublishedNavigationTargetsFromCore } from "@iorder/shared/server/navigation/navigation.service";
@@ -80,12 +81,6 @@ type DashboardPayload = { administrator: Administrator; analytics: AnalyticsOver
 type EquipmentPayload = { result: EquipmentPage; equipmentGroups: EquipmentGroups };
 type EquipmentGroupsPayload = { equipmentGroups: EquipmentGroups };
 
-function reviveDates(value: unknown, key = ""): unknown {
-  if (typeof value === "string" && /(?:At|Date)$/.test(key) && !Number.isNaN(Date.parse(value))) return new Date(value);
-  if (Array.isArray(value)) return value.map((item) => reviveDates(item));
-  if (value && typeof value === "object") return Object.fromEntries(Object.entries(value).map(([name, item]) => [name, reviveDates(item, name)]));
-  return value;
-}
 
 // null: 401/403 (chưa đăng nhập hoặc thiếu quyền module); undefined: 404 (không có bản ghi).
 const getBackendJson = cache(async (path: string): Promise<unknown | null | undefined> => {
