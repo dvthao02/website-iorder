@@ -80,6 +80,8 @@ services:
       PUBLISH_WEB_REVALIDATE_URL: http://website:3000/api/internal/revalidate
       PUBLISH_WEB_REVALIDATE_SECRET: ${PUBLISH_WEB_REVALIDATE_SECRET}
       UMAMI_API_URL: http://umami:3000
+      # Mở LAN bằng HTTP (LAN_BIND đặt): cookie phiên không thể là Secure. Không đặt thì giữ Secure ở production.
+      SESSION_COOKIE_SECURE: ${LAN_BIND:+false}
       UMAMI_API_KEY: ${UMAMI_API_KEY:-}
       UMAMI_WEBSITE_ID: ${UMAMI_WEBSITE_ID:-}
     ports:
@@ -104,14 +106,14 @@ services:
       args:
         APP_NAME: admin
         BACKEND_URL: http://api:3000
-        NEXT_PUBLIC_PUBLISH_WEB_URL: http://localhost:3000
+        NEXT_PUBLIC_PUBLISH_WEB_URL: ${NEXT_PUBLIC_PUBLISH_WEB_URL:-http://localhost:3000}
     image: iorder-local-admin
     environment:
       SERVICE_NAME: admin
       BACKEND_URL: http://api:3000
-      NEXT_PUBLIC_PUBLISH_WEB_URL: http://localhost:3000
+      NEXT_PUBLIC_PUBLISH_WEB_URL: ${NEXT_PUBLIC_PUBLISH_WEB_URL:-http://localhost:3000}
     ports:
-      - "127.0.0.1:3001:3000"
+      - "${LAN_BIND:-127.0.0.1}:3001:3000"
     depends_on:
       api:
         condition: service_healthy
@@ -137,7 +139,7 @@ services:
       PUBLISH_WEB_REVALIDATE_SECRET: ${PUBLISH_WEB_REVALIDATE_SECRET}
       UMAMI_WEBSITE_ID: ${UMAMI_WEBSITE_ID:-}
     ports:
-      - "127.0.0.1:3000:3000"
+      - "${LAN_BIND:-127.0.0.1}:3000:3000"
     depends_on:
       api:
         condition: service_healthy

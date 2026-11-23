@@ -21,7 +21,9 @@ const sessionCookie = {
   maxAge: administratorSessionMaxAgeSeconds,
   path: "/",
   sameSite: "lax" as const,
-  secure: process.env.NODE_ENV === "production",
+  // Chỉ gửi qua HTTPS khi chạy production. Compose local đặt SESSION_COOKIE_SECURE=false khi mở cho máy khác trong LAN bằng HTTP (LAN_BIND):
+  // trình duyệt không lưu cookie Secure ở địa chỉ http không phải localhost nên không đăng nhập được.
+  secure: process.env.SESSION_COOKIE_SECURE === "false" ? false : process.env.NODE_ENV === "production",
 };
 
 function phanHoiLoi(ma: string, thongBao: string, trangThai: number) {
