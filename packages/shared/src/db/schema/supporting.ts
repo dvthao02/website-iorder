@@ -91,9 +91,13 @@ export const contactLeads = pgTable(
     message: text("message"),
     status: leadStatusEnum("status").default("new").notNull(),
     ipHash: varchar("ip_hash", { length: 128 }),
+    // Số điện thoại chỉ gồm chữ số (đầu 84 đổi thành 0): giới hạn số lần gửi theo từng số và nhận ra liên hệ trùng, dù khách gõ dấu cách, +84 hay dấu chấm.
+    phoneDigits: varchar("phone_digits", { length: 20 }),
+    // Thiết bị khách hỏi mua, chụp tại thời điểm gửi (leadContextSchema): tên, mã, giá và tình trạng hàng lúc đó, không đổi khi thiết bị sửa sau này. Null = liên hệ chung.
+    context: jsonb("context").$type<unknown>(),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     handledAt: timestamp("handled_at", { withTimezone: true }),
     handledBy: uuid("handled_by").references(() => users.id, { onDelete: "set null" }),
   },
-  (table) => [index("contact_leads_handled_by_index").on(table.handledBy), index("contact_leads_status_created_index").on(table.status, table.createdAt), index("contact_leads_created_index").on(table.createdAt)],
+  (table) => [index("contact_leads_handled_by_index").on(table.handledBy), index("contact_leads_status_created_index").on(table.status, table.createdAt), index("contact_leads_phone_created_index").on(table.phoneDigits, table.createdAt), index("contact_leads_created_index").on(table.createdAt)],
 );

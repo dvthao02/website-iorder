@@ -20,7 +20,7 @@ PostgreSQL là nguồn lưu dữ liệu; Backend là ứng dụng duy nhất k�
 | Sản phẩm | `offerings`, `offering_revisions` | Phần mềm và giải pháp (gồm tư vấn, phát triển theo yêu cầu) phân biệt bằng `type`; nội dung biến thiên nằm trong JSONB. |
 | Thiết bị | `equipment_groups`, `sales_equipment`, `sales_equipment_revisions` | Nhóm, giá VND, thương hiệu, tình trạng hàng, thông số và nội dung trang thiết bị. |
 | Hỗ trợ | `support_downloads`, `support_download_revisions` | Tệp cài đặt có nguồn là media hoặc liên kết ngoài theo hợp đồng. |
-| Nội dung phụ | `partners`, `testimonials`, `contact_leads` | Đối tác, đánh giá và liên hệ. Lead chứa dữ liệu cá nhân. |
+| Nội dung phụ | `partners`, `testimonials`, `contact_leads` | Đối tác, đánh giá và liên hệ. Lead chứa dữ liệu cá nhân; `phone_digits` (số điện thoại chỉ gồm chữ số, đầu 84 thành 0) phục vụ giới hạn theo số và chống trùng; `context` (JSONB, `leadContextSchema`) là ảnh chụp thiết bị khách hỏi mua lúc gửi, do Backend tra từ mã thiết bị chứ không tin dữ liệu trình duyệt gửi. |
 | Media | `media_assets` | Metadata, kích thước, mô tả, `storage_key`; object thật ở S3, không nằm trong dump PostgreSQL. |
 | Cấu trúc | `menus`, `menu_items`, `menu_revisions`, `redirects` | Menu cây, lịch sử và chuyển hướng đường dẫn. |
 | Cấu hình | `site_profile`, `site_settings`, `secure_settings` | Thông tin doanh nghiệp, cấu hình JSONB và khóa kết nối mã hóa. Khóa chủ nằm ngoài DB. Biểu mẫu tư vấn và quảng cáo tự hiện lưu ở hai khóa `consult_form` và `promotion_popup` (mỗi khóa có `version` riêng); khóa gộp cũ `consult_popup` chỉ còn được đọc để chuyển tiếp khi hai khóa mới chưa có. |
