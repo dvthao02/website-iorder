@@ -24,8 +24,11 @@ WORKDIR /app
 ARG APP_NAME
 ARG BACKEND_URL
 ARG NEXT_PUBLIC_PUBLISH_WEB_URL
+# Chỉ Compose local đặt (rewrite /stats/* của website được Next ghi cứng lúc build); production để trống vì Caddy chuyển tiếp.
+ARG UMAMI_URL
 ENV BACKEND_URL=$BACKEND_URL
 ENV NEXT_PUBLIC_PUBLISH_WEB_URL=$NEXT_PUBLIC_PUBLISH_WEB_URL
+ENV UMAMI_URL=$UMAMI_URL
 
 COPY . ./
 RUN pnpm --filter @iorder/${APP_NAME} build

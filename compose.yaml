@@ -132,6 +132,8 @@ services:
       args:
         APP_NAME: website
         BACKEND_URL: http://api:3000
+        # Rewrite /stats/script.js và /stats/api/send của website sang Umami (local không có Caddy); cần chạy kèm profile analytics.
+        UMAMI_URL: http://umami:3000
     image: iorder-local-website
     environment:
       SERVICE_NAME: website
