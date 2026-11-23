@@ -33,7 +33,6 @@ import type { AdminListPage, AdminListQuery } from "@iorder/shared/server/shared
 const offeringIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 const catalogTypeByPath = {
-  services: "service",
   solutions: "solution",
   software: "software",
 } as const;

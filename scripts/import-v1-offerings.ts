@@ -10,6 +10,8 @@ import { offeringContentSchema } from "../packages/shared/src/server/offerings/o
 const v1BaseUrl = "https://iwork.vn";
 // Industry offerings were retired from the CMS and must not be re-imported.
 const offeringTypes = ["software", "solution", "service"] as const;
+// Dịch vụ của site V1 được nhập thành Giải pháp (loại Dịch vụ đã gộp vào Giải pháp).
+const catalogType = (type: (typeof offeringTypes)[number]) => (type === "service" ? "solution" : type);
 
 const v1OfferingSchema = z
   .object({
@@ -68,7 +70,7 @@ async function importV1Offerings() {
       const [existing] = await tx
         .select({ id: offerings.id })
         .from(offerings)
-        .where(and(eq(offerings.type, sourceOffering.type), eq(offerings.slug, sourceOffering.slug), isNull(offerings.deletedAt)))
+        .where(and(eq(offerings.type, catalogType(sourceOffering.type)), eq(offerings.slug, sourceOffering.slug), isNull(offerings.deletedAt)))
         .limit(1);
 
       if (existing) {
@@ -113,7 +115,7 @@ async function createOfferingFromV1(
   const [created] = await tx
     .insert(offerings)
     .values({
-      type: sourceOffering.type,
+      type: catalogType(sourceOffering.type),
       title: sourceOffering.title,
       slug: sourceOffering.slug,
       summary: sourceOffering.summary,

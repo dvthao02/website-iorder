@@ -225,13 +225,13 @@ test("Lỗi trường trống nêu tên dễ hiểu", () => {
 test("Trang danh sách giữ nguyên khối cha và mọi bố cục con để publish dùng đúng một cấu hình", () => {
   for (const layout of ["split", "split_reverse", "background", "centered", "slider"]) {
     const hero = pageBlockInputSchema.parse({ type: "hero", isEnabled: true, appearance: { anchor: "dich-vu", tone: "custom", backgroundColor: "#eef7ff", width: 75 }, data: { eyebrow: null, title: "Dịch vụ", description: "Mô tả", primaryAction: { label: "Tư vấn", href: "/contact" }, secondaryAction: null, layout, highlights: [{ title: "Điểm chung", note: null }], panels: [{ eyebrow: null, title: "Mục 2", description: null, primaryAction: null, secondaryAction: null, mediaId: null, highlights: [{ title: "Điểm riêng", note: null }] }] } });
-    const listing = listingLayoutFromBlocks("listing-service", [hero])!;
+    const listing = listingLayoutFromBlocks("listing-solution", [hero])!;
     assert.deepEqual(listing.hero, hero);
     assert.equal(listing.blocks.filter(block => block.type === "hero").length, 0);
     assert.equal(listing.blocks[0].type, "collection_list");
     assert.equal(listing.hero!.data.layout, layout);
   }
-  const fallback = listingLayoutFromBlocks("listing-service", [], { eyebrow: null, title: "Dịch vụ", description: null })!;
+  const fallback = listingLayoutFromBlocks("listing-solution", [], { eyebrow: null, title: "Giải pháp", description: null })!;
   assert.equal(fallback.hero, undefined);
   assert.deepEqual(fallback.blocks.map(block => block.type), ["collection_list"]);
 });

@@ -105,7 +105,7 @@ export async function auditBuilderHttp(input: { databaseUrl: string; previewSecr
     assert.match(html, /index, nofollow/);
     assert.ok(html.includes('"@type":"Service"'));
     assert.ok(!html.includes('"@type":"BreadcrumbList"'));
-    for (const path of ["/", "/about", "/contact", "/terms-of-use", "/privacy-policy", "/support/faq", "/support/videos", "/support/remote", "/news/bai-kiem-thu", "/support/guides/huong-dan-kiem-thu", "/software/phan-mem-kiem-thu", "/solutions/solution-kiem-thu", "/services/service-kiem-thu", "/equipment/thiet-bi-kiem-thu"]) {
+    for (const path of ["/", "/about", "/contact", "/terms-of-use", "/privacy-policy", "/support/faq", "/support/videos", "/support/remote", "/news/bai-kiem-thu", "/support/guides/huong-dan-kiem-thu", "/software/phan-mem-kiem-thu", "/solutions/solution-kiem-thu", "/equipment/thiet-bi-kiem-thu"]) {
       const response = await fetch(`${website}${path}`);
       assert.equal(response.status, 200, path);
       const content = await response.text();
@@ -116,7 +116,7 @@ export async function auditBuilderHttp(input: { databaseUrl: string; previewSecr
       assert.ok(!content.includes('"@type":"BreadcrumbList"'), path);
     }
     assert.equal((await fetch(`${website}/catalog-khong-hop-le/phan-mem-kiem-thu`)).status, 404);
-    for (const path of ["/news", "/equipment", "/support/setup", "/support/guides", "/software", "/solutions", "/services", "/support"]) assert.equal((await fetch(`${website}${path}`)).status, 200, path);
+    for (const path of ["/news", "/equipment", "/support/setup", "/support/guides", "/software", "/solutions", "/support"]) assert.equal((await fetch(`${website}${path}`)).status, 200, path);
     const conflict = await post("/api/v1/admin/pages", { id: input.page.id, values: input.pageValues, expectedVersion: 1 });
     assert.equal(conflict.status, 409);
     const sitemapBefore = await (await fetch(`${website}/sitemap.xml`)).text();
@@ -424,18 +424,18 @@ export async function auditBuilderHttp(input: { databaseUrl: string; previewSecr
     const [listingImage] = await input.client`select id from media_assets where original_name like 'builder-panel-%' limit 1`;
     assert.ok(listingImage);
     const listingRoutes = [
-      ["listing-service", "/services", "service"], ["listing-software", "/software", "software"], ["listing-solution", "/solutions", "solution"],
+      ["listing-software", "/software", "software"], ["listing-solution", "/solutions", "solution"],
       ["listing-equipment", "/equipment", "equipment"], ["listing-support", "/support/setup", "downloads"], ["listing-news", "/news", "posts"], ["listing-guides", "/support/guides", "guides"],
     ];
-    let serviceId = "";
+    let solutionListingId = "";
     for (const [slug, path, source] of listingRoutes) {
       const existing = await (await fetch(backend + "/api/v1/admin/pages?slug=" + slug, { headers })).json();
-      const hero = { type: "hero", isEnabled: true, appearance: { anchor: "bo-cuc-da-chon", tone: "custom", backgroundColor: "#eef7ff", width: 75 }, data: { eyebrow: "Dữ liệu CMS", title: "Bố cục " + path, description: "Chỉ chọn ở khối cha", layout: slug === "listing-service" ? "split" : "split_reverse", mediaId: listingImage.id, primaryAction: null, secondaryAction: null, highlights: [{ title: "Điểm nổi bật chung", note: null }], panels: [{ eyebrow: null, title: "Mục trượt 2 " + path, description: "Nội dung con", mediaId: listingImage.id, primaryAction: null, secondaryAction: null, highlights: [{ title: "Điểm nổi bật riêng", note: null }] }] } };
+      const hero = { type: "hero", isEnabled: true, appearance: { anchor: "bo-cuc-da-chon", tone: "custom", backgroundColor: "#eef7ff", width: 75 }, data: { eyebrow: "Dữ liệu CMS", title: "Bố cục " + path, description: "Chỉ chọn ở khối cha", layout: slug === "listing-solution" ? "split" : "split_reverse", mediaId: listingImage.id, primaryAction: null, secondaryAction: null, highlights: [{ title: "Điểm nổi bật chung", note: null }], panels: [{ eyebrow: null, title: "Mục trượt 2 " + path, description: "Nội dung con", mediaId: listingImage.id, primaryAction: null, secondaryAction: null, highlights: [{ title: "Điểm nổi bật riêng", note: null }] }] } };
       const response = await post("/api/v1/admin/pages", { id: existing.page.id, expectedVersion: existing.page.draftVersion, values: { ...input.pageValues, slug, template: "listing", title: "Danh sách " + source, blocks: [hero, { type: "collection_list", isEnabled: true, data: { source, eyebrow: null, title: null, description: null, limit: null, anchor: null } }] } });
       assert.equal(response.status, 200, slug);
-      if (slug === "listing-service") serviceId = existing.page.id;
+      if (slug === "listing-solution") solutionListingId = existing.page.id;
     }
-    await page.goto(`${cms}/admin/pages/${serviceId}`, { waitUntil: "domcontentloaded" });
+    await page.goto(`${cms}/admin/pages/${solutionListingId}`, { waitUntil: "domcontentloaded" });
     const listingProperties = page.locator(".admin-blocks__detail");
     const listingNavigation = page.locator(".admin-blocks__navigation");
     await expect(listingProperties.getByRole("tab")).toHaveCount(1);
@@ -470,7 +470,7 @@ export async function auditBuilderHttp(input: { databaseUrl: string; previewSecr
       await expect(listingSite.locator('link[rel="canonical"]')).toHaveCount(1);
       await expect(listingSite.locator('meta[name="description"]')).toHaveCount(1);
     }
-    await listingSite.goto(website + "/services", { waitUntil: "domcontentloaded" });
+    await listingSite.goto(website + "/solutions", { waitUntil: "domcontentloaded" });
     await listingSite.screenshot({ path: ".next/listing-layout-published.png", fullPage: false });
     await listingSite.close();
     const [offering] = await input.client`select id from offerings where slug='phan-mem-kiem-thu'`;

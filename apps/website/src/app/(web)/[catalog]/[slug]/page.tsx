@@ -20,7 +20,6 @@ type OfferingDetailPageProps = {
 };
 
 const catalogLabel = {
-  services: "Dịch vụ",
   solutions: "Giải pháp",
   software: "Phần mềm",
 } as const;

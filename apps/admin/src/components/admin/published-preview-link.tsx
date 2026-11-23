@@ -19,7 +19,6 @@ type PublishedPreviewLinkProps = {
 export const offeringCatalogPaths: Record<string, string> = {
   software: "/software",
   solution: "/solutions",
-  service: "/services",
 };
 
 function getPublicPath({ kind, slug, contentType }: Omit<PublishedPreviewLinkProps, "status" | "id">) {

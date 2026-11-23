@@ -12,14 +12,13 @@ type OfferingListPageProps = {
   params: Promise<{ catalog: string }>;
 };
 
-const listingSlugByPath = { services: "listing-service", solutions: "listing-solution", software: "listing-software" } as const;
+const listingSlugByPath = { solutions: "listing-solution", software: "listing-software" } as const;
 // Tên ngắn trên đường dẫn (breadcrumb) của từng trang danh sách.
-const crumbNames = { services: "Dịch vụ", solutions: "Giải pháp", software: "Phần mềm" } as const;
+const crumbNames = { solutions: "Giải pháp", software: "Phần mềm" } as const;
 // Dải tư vấn cuối trang: người xem hết danh sách mà chưa chọn được vẫn có lối đi tiếp (tư vấn hoặc gọi hotline).
 const closingText = {
   software: { title: "Chưa chắc phần mềm nào phù hợp?", description: "Kể cho iOrder về mô hình kinh doanh của bạn — chúng tôi tư vấn phần mềm, thiết bị đi kèm và hướng dẫn dùng thử miễn phí." },
-  solutions: { title: "Cần giải pháp cho mặt bằng của bạn?", description: "iOrder khảo sát tận nơi, đề xuất phương án hạ tầng và báo giá rõ ràng trước khi triển khai." },
-  services: { title: "Trao đổi quy trình cần cải thiện", description: "Mô tả cách doanh nghiệp đang làm và vấn đề cần xử lý để iOrder xác định phạm vi khảo sát." },
+  solutions: { title: "Cần giải pháp cho doanh nghiệp của bạn?", description: "iOrder khảo sát tận nơi, đề xuất phương án hạ tầng, tư vấn hoặc phần mềm theo yêu cầu và báo giá rõ ràng trước khi triển khai." },
 } as const;
 
 function getCatalogListing(catalog: string) {

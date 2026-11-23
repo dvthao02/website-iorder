@@ -9,7 +9,6 @@ export const transferDatasetModules = {
   "equipment-groups": "equipment",
   "offerings-software": "offerings",
   "offerings-solution": "offerings",
-  "offerings-service": "offerings",
   posts: "posts",
   guides: "posts",
   categories: "taxonomy",

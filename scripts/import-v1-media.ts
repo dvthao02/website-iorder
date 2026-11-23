@@ -9,6 +9,8 @@ import { ensureMediaBucket, hasStoredObject, putStoredObject } from "../packages
 
 const v1BaseUrl = "https://iwork.vn";
 const offeringTypes = ["software", "solution", "service"] as const;
+// Dịch vụ của site V1 nằm trong Giải pháp (loại Dịch vụ đã gộp vào Giải pháp).
+const catalogType = (type: (typeof offeringTypes)[number]) => (type === "service" ? "solution" : type);
 const maximumImportSize = 25 * 1024 * 1024;
 
 const v1OfferingSchema = z.object({
@@ -164,7 +166,7 @@ async function attachOfferingCover({ authorId, type, slug, mediaId }: { authorId
     const [offering] = await tx
       .select()
       .from(offerings)
-      .where(and(eq(offerings.type, type), eq(offerings.slug, slug), isNull(offerings.deletedAt)))
+      .where(and(eq(offerings.type, catalogType(type)), eq(offerings.slug, slug), isNull(offerings.deletedAt)))
       .limit(1);
 
     if (!offering) {

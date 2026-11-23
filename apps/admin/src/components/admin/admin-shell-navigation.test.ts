@@ -32,7 +32,7 @@ test("Menu: Sản phẩm, Thiết bị, Tệp cài đặt, Đối tác nằm chu
   ]);
   const byHref = (href: string) => allItems.find((item) => item.href === href)!;
   assert.equal(byHref("/admin/products").permission, "offerings.view");
-  assert.deepEqual(byHref("/admin/products").subPages, [{ href: "/admin/solutions" }, { href: "/admin/services" }]);
+  assert.deepEqual(byHref("/admin/products").subPages, [{ href: "/admin/solutions" }]);
   assert.equal(byHref("/admin/equipment").permission, "equipment.view");
   assert.equal(byHref("/admin/resources").permission, "support_downloads.view");
   assert.equal(byHref("/admin/partners").permission, "supporting.view");

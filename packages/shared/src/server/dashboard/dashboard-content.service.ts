@@ -34,7 +34,7 @@ export type DashboardContentSummary = {
   leads: { new: number; total: number };
   /** Số khách để lại liên hệ mỗi ngày trong khoảng đã chọn. */
   leadsDaily: DashboardDailyPoint[];
-  offerings: { products: DashboardContentStat; services: DashboardContentStat; solutions: DashboardContentStat };
+  offerings: { products: DashboardContentStat; solutions: DashboardContentStat };
   pages: DashboardContentStat;
   posts: DashboardContentStat;
   recent: DashboardRecentContent[];
@@ -65,7 +65,7 @@ function emptyStat(): DashboardContentStat {
 export async function getDashboardContentSummary(actor: CmsActor, now = new Date(), days: DashboardRange = defaultDashboardRange): Promise<DashboardContentSummary> {
   const since = dailySeriesStart(days, now);
   const when = <T>(permission: CmsPermissionCode, query: () => Promise<T>, fallback: T) => hasCmsPermission(actor, permission) ? query() : Promise.resolve(fallback);
-  const [activityRows, leadDailyRows, pageStats, postStats, productStats, solutionStats, serviceStats, equipmentStats, downloadRows, leadRows, pageRecent, postRecent, offeringRecent, equipmentRecent] = await Promise.all([
+  const [activityRows, leadDailyRows, pageStats, postStats, productStats, solutionStats, equipmentStats, downloadRows, leadRows, pageRecent, postRecent, offeringRecent, equipmentRecent] = await Promise.all([
     Promise.all([
       when("pages.view", () => dailyCounts(pages, pages.updatedAt, since, isNull(pages.deletedAt)), []),
       when("posts.view", () => dailyCounts(posts, posts.updatedAt, since, and(isNull(posts.deletedAt), ne(posts.type, "guide"))), []),
@@ -77,7 +77,6 @@ export async function getDashboardContentSummary(actor: CmsActor, now = new Date
     when("posts.view", () => contentStats(posts, ne(posts.type, "guide")), emptyStat()),
     when("offerings.view", () => contentStats(offerings, eq(offerings.type, "software")), emptyStat()),
     when("offerings.view", () => contentStats(offerings, eq(offerings.type, "solution")), emptyStat()),
-    when("offerings.view", () => contentStats(offerings, eq(offerings.type, "service")), emptyStat()),
     when("equipment.view", () => contentStats(salesEquipment), emptyStat()),
     when("support_downloads.view", () => getDb().select({ total: count(), enabled: sql<number>`count(*) filter (where ${supportDownloads.isEnabled} = true and ${supportDownloads.archivedAt} is null)`.mapWith(Number) }).from(supportDownloads).where(isNull(supportDownloads.deletedAt)), []),
     when("leads.view", () => getDb().select({ total: count(), new: sql<number>`count(*) filter (where ${contactLeads.status} = 'new')`.mapWith(Number) }).from(contactLeads), []),
@@ -97,7 +96,7 @@ export async function getDashboardContentSummary(actor: CmsActor, now = new Date
   return {
     pages: pageStats,
     posts: postStats,
-    offerings: { products: productStats, solutions: solutionStats, services: serviceStats },
+    offerings: { products: productStats, solutions: solutionStats },
     equipment: equipmentStats,
     downloads: downloadRows[0] ?? { enabled: 0, total: 0 },
     leads: leadRows[0] ?? { new: 0, total: 0 },

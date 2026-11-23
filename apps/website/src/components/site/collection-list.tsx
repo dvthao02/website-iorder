@@ -16,7 +16,7 @@ import { PostRows, PostSpotlight } from "./post-collection";
 import { getEnabledSupportDownloads, getEquipment, getPublishedOfferingSummaries, getPublishedPostSummaries } from "@/lib/backend";
 
 const postTypeLabel = { announcement: "Thông báo", case_study: "Câu chuyện khách hàng", guide: "Hướng dẫn", news: "Tin tức", promotion: "Khuyến mãi" } as const;
-const offeringPath = { software: "/software", solution: "/solutions", service: "/services" } as const;
+const offeringPath = { software: "/software", solution: "/solutions" } as const;
 const emptyMessages: Record<CollectionSource, string> = {
   posts: "Chưa có bài viết nào được xuất bản.",
   guides: "Chưa có bài viết hướng dẫn nào được xuất bản.",
@@ -24,7 +24,6 @@ const emptyMessages: Record<CollectionSource, string> = {
   equipment: "Chưa có thiết bị được xuất bản.",
   software: "Chưa có phần mềm nào được xuất bản.",
   solution: "Chưa có giải pháp nào được xuất bản.",
-  service: "Chưa có dịch vụ nào được xuất bản.",
 };
 const dateFormatter = new Intl.DateTimeFormat("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
 const priceFormatter = new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" });
@@ -42,7 +41,7 @@ const moreClass = "mt-auto mb-0 pt-5 text-small font-semibold text-brand-700 gro
 
 const take = <T,>(items: T[], limit: number | null) => (limit ? items.slice(0, limit) : items);
 // Trang tổng hợp của từng nguồn: khối chỉ hiện vài mục (có giới hạn) thì có nút "Xem tất cả" dưới danh sách.
-const listingPath: Partial<Record<CollectionSource, string>> = { posts: "/news", guides: "/support/guides", equipment: "/equipment", software: "/software", solution: "/solutions", service: "/services" };
+const listingPath: Partial<Record<CollectionSource, string>> = { posts: "/news", guides: "/support/guides", equipment: "/equipment", software: "/software", solution: "/solutions" };
 
 // Khối "Danh sách nội dung": dùng trên trang danh sách (/news, /equipment…) và mọi trang khác.
 // Tiêu đề mặc định của site nằm trong @layer base nên class Tailwind trên từng tiêu đề luôn thắng.
@@ -139,8 +138,7 @@ async function renderItems(data: CollectionListData, Card: "h2" | "h3", dark: bo
       return equipment.length ? <EquipmentExplorer dark={dark} grouped={grouped} Heading={Card} items={equipment.map(item => ({ id: item.id, slug: item.slug, name: item.name, modelCode: item.modelCode ?? null, priceVnd: item.priceVnd, availability: item.availability, warrantyMonths: item.warrantyMonths, summary: item.summary ?? null, groupName: item.groupName, coverUrl: item.coverUrl, coverAlt: item.coverAlt ?? null, specificationGroups: item.specificationGroups }))} /> : null;
     }
     case "software":
-    case "solution":
-    case "service": {
+    case "solution": {
       // Dữ liệu từ Backend cũ hoặc cache trước khi có chuyên mục/số liệu thì thiếu hai trường này: coi như trống, không làm sập trang.
       const offerings = take(await getPublishedOfferingSummaries(data.source), data.limit);
       // Nhãn "Nổi bật" chỉ có nghĩa khi có mục không nổi bật đứng cạnh.

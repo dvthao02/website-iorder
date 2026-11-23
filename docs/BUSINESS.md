@@ -6,7 +6,7 @@ Tài liệu này nối công việc của người vận hành với dữ liệu
 |---|---|---|---|
 | Trang chủ, trang thường và trang hệ thống | Trang chủ, Trang website | `pages`, `page_blocks`, `page_revisions` | Website dựng trang và các khối đang bật |
 | Tin tức, bài viết và hướng dẫn | Bài viết & Tin tức, Hướng dẫn sử dụng | `posts`, `post_revisions`, chuyên mục, thẻ, tác giả | Trang chi tiết và danh sách nội dung |
-| Phần mềm, giải pháp, dịch vụ | Sản phẩm & Dịch vụ | `offerings`, `offering_revisions` | Trang danh sách và trang chi tiết theo loại |
+| Phần mềm, giải pháp (tư vấn và phát triển theo yêu cầu thuộc Giải pháp) | Sản phẩm & Giải pháp | `offerings`, `offering_revisions` | Trang danh sách và trang chi tiết theo loại |
 | Thiết bị | Thiết bị và nhóm thiết bị | `sales_equipment`, `equipment_groups`, `sales_equipment_revisions` | Trang thiết bị, thông số, giá và tình trạng hàng |
 | Tệp cài đặt | Tệp cài đặt | `support_downloads`, `support_download_revisions`, `media_assets` | Trang tải tệp hoặc mở liên kết ngoài |
 | Đối tác và đánh giá | Đối tác & Đánh giá | `partners`, `testimonials`, `media_assets` | Các khối lấy nội dung đối tác hoặc đánh giá |

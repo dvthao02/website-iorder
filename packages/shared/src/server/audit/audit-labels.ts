@@ -1,5 +1,5 @@
 export const auditEntityLabels: Record<string, string> = {
-  page: "Trang website", post: "Bài viết", offering: "Sản phẩm/Giải pháp/Dịch vụ",
+  page: "Trang website", post: "Bài viết", offering: "Sản phẩm/Giải pháp",
   equipment: "Thiết bị", equipment_group: "Nhóm thiết bị", media: "Hình ảnh và tệp",
   partner: "Đối tác", testimonial: "Đánh giá", support_download: "Tệp hỗ trợ",
   contact_lead: "Liên hệ khách hàng", user: "Tài khoản", menu: "Menu điều hướng",

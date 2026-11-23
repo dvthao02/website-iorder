@@ -16,7 +16,6 @@ function withDataset<R>(id: TransferDatasetId, run: <TItem extends TransferItem,
     case "equipment-groups": return run(equipmentGroupTransfer());
     case "offerings-software": return run(offeringTransfer("software"));
     case "offerings-solution": return run(offeringTransfer("solution"));
-    case "offerings-service": return run(offeringTransfer("service"));
     case "posts": return run(postTransfer("posts"));
     case "guides": return run(postTransfer("guides"));
     case "categories": return run(categoryTransfer());

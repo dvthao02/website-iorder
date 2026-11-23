@@ -79,7 +79,7 @@ async function main() {
       await client`insert into posts (id,type,title,slug,content,status,created_at,updated_at) values (${id},${index < 6 ? "news" : "guide"},${title},${`post-${index}`},'{}',${status},${stamp},${stamp})`;
       await client`insert into post_categories (post_id,category_id) values (${id},${category})`;
       await client`insert into post_tags (post_id,tag_id) values (${id},${tag})`;
-      await client`insert into offerings (type,title,slug,content,status,created_at,updated_at) values (${index < 6 ? "software" : "service"},${title},${`offering-${index}`},'{}',${status},${stamp},${stamp})`;
+      await client`insert into offerings (type,title,slug,content,status,created_at,updated_at) values (${index < 6 ? "software" : "solution"},${title},${`offering-${index}`},'{}',${status},${stamp},${stamp})`;
     }
     const query = { page: 1, pageSize: 5, query: "" };
     stage = "đọc danh sách";
@@ -171,7 +171,7 @@ async function main() {
     assert.ok(offeringSummary.items.every(item => !Object.hasOwn(item, "content")));
     const offeringSummaryBytes = Buffer.byteLength(JSON.stringify(offeringSummary), "utf8");
     assert.ok(offeringSummaryBytes < Buffer.byteLength(JSON.stringify(fullOfferings), "utf8") / 100);
-    assert.equal((await listAdminOfferingSummariesPage({ ...query, type: "service" }, db)).total, 2);
+    assert.equal((await listAdminOfferingSummariesPage({ ...query, type: "solution" }, db)).total, 2);
     assert.equal((await listAdminOfferingSummariesPage({ ...query, query: "__" }, db)).total, 0);
     console.log(`Offerings summary thực: ${offeringSummaryBytes} byte, đúng ID/thứ tự/count/filter; không content.`);
     stage = "kiểm summary với writer cạnh tranh";

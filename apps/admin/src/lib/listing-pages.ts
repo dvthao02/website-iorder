@@ -9,7 +9,6 @@ export const listingPageModuleHref: Record<ListingPageSlug, string> = {
   "listing-guides": "/admin/guides",
   "listing-software": "/admin/products?type=software",
   "listing-solution": "/admin/products?type=solution",
-  "listing-service": "/admin/products?type=service",
 };
 
 // Tên module sở hữu trang danh sách, để giải thích "danh sách lấy từ đâu".
@@ -18,9 +17,8 @@ export const listingPageModuleLabel: Record<ListingPageSlug, string> = {
   "listing-equipment": "Thiết bị",
   "listing-support": "Tệp cài đặt",
   "listing-guides": "Hướng dẫn sử dụng",
-  "listing-software": "Sản phẩm & Dịch vụ",
-  "listing-solution": "Sản phẩm & Dịch vụ",
-  "listing-service": "Sản phẩm & Dịch vụ",
+  "listing-software": "Sản phẩm & Giải pháp",
+  "listing-solution": "Sản phẩm & Giải pháp",
 };
 
 // Trang con của từng trang danh sách trên website và nơi sửa nội dung của chúng trong CMS:
@@ -36,5 +34,4 @@ export const listingChildPages: Record<ListingPageSlug, ReadonlyArray<{ path: st
   "listing-guides": [{ path: "/support/guides/<hướng dẫn>", label: "Chi tiết hướng dẫn", source: "Hướng dẫn sử dụng", href: "/admin/guides" }],
   "listing-software": [{ path: "/software/<sản phẩm>", label: "Chi tiết sản phẩm", source: "Sản phẩm", href: "/admin/products?type=software" }],
   "listing-solution": [{ path: "/solutions/<giải pháp>", label: "Chi tiết giải pháp", source: "Giải pháp", href: "/admin/products?type=solution" }],
-  "listing-service": [{ path: "/services/<dịch vụ>", label: "Chi tiết dịch vụ", source: "Dịch vụ", href: "/admin/products?type=service" }],
 };

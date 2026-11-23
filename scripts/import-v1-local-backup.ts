@@ -319,7 +319,7 @@ async function main() {
         summary.offerings.skipped += 1;
         continue;
       }
-      const [existing] = await db.select({ id: offerings.id }).from(offerings).where(and(eq(offerings.type, item.type), eq(offerings.slug, item.slug), isNull(offerings.deletedAt))).limit(1);
+      const [existing] = await db.select({ id: offerings.id }).from(offerings).where(and(eq(offerings.type, item.type === "service" ? "solution" : item.type), eq(offerings.slug, item.slug), isNull(offerings.deletedAt))).limit(1);
       if (existing) {
         summary.offerings.skipped += 1;
         continue;
@@ -327,7 +327,7 @@ async function main() {
       const content = offeringContentSchema.parse(item.content_json);
       const values = {
         coverMediaId: item.cover_media_id ? mediaIds.get(item.cover_media_id) ?? null : null,
-        type: item.type,
+        type: item.type === "service" ? "solution" : item.type,
         title: item.title,
         slug: item.slug,
         summary: item.summary,

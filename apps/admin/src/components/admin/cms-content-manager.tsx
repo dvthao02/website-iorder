@@ -281,7 +281,7 @@ export function OfferingEditor({ offering, offeringType, offeringTypeLabel, onSa
         </section>
         <section className="admin-content-section">
           <header><h3>Hiển thị</h3></header>
-          {offeringType ? null : <label className={labelClassName}>Nhóm nội dung<select className={inputClassName} onChange={(event) => update("type", event.target.value as typeof form.type)} value={form.type}><option value="software">Phần mềm</option><option value="solution">Giải pháp</option><option value="service">Dịch vụ</option></select></label>}
+          {offeringType ? null : <label className={labelClassName}>Nhóm nội dung<select className={inputClassName} onChange={(event) => update("type", event.target.value as typeof form.type)} value={form.type}><option value="software">Phần mềm</option><option value="solution">Giải pháp</option></select></label>}
           <AdminCheckbox checked={form.isFeatured} onChange={(event) => update("isFeatured", event.target.checked)}>Đánh dấu nổi bật</AdminCheckbox>
           <AdminHintedField hint="Số nhỏ hiện trước." label="Thứ tự trong danh sách"><label className={labelClassName}>Thứ tự trong danh sách<input className={inputClassName} max={10_000} min={0} onChange={(event) => update("sortOrder", Number(event.target.value))} type="number" value={form.sortOrder} /></label></AdminHintedField>
         </section>

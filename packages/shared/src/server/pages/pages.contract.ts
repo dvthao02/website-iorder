@@ -46,7 +46,6 @@ export const fixedWebsitePages = [
   { slug: "listing-guides", publicPath: "/support/guides", label: "Hướng dẫn sử dụng", template: "listing", kind: "listing", ownerModule: "posts" },
   { slug: "listing-software", publicPath: "/software", label: "Danh sách phần mềm", template: "listing", kind: "listing", ownerModule: "offerings" },
   { slug: "listing-solution", publicPath: "/solutions", label: "Danh sách giải pháp", template: "listing", kind: "listing", ownerModule: "offerings" },
-  { slug: "listing-service", publicPath: "/services", label: "Danh sách dịch vụ", template: "listing", kind: "listing", ownerModule: "offerings" },
 ] as const satisfies ReadonlyArray<FixedWebsitePage>;
 
 export type FixedWebsitePageSlug = (typeof fixedWebsitePages)[number]["slug"];
@@ -79,7 +78,6 @@ export const collectionSources = [
   { value: "equipment", label: "Thiết bị" },
   { value: "software", label: "Phần mềm" },
   { value: "solution", label: "Giải pháp" },
-  { value: "service", label: "Dịch vụ" },
 ] as const;
 export type CollectionSource = (typeof collectionSources)[number]["value"];
 const collectionSourceSchema = z.enum(collectionSources.map(source => source.value) as [CollectionSource, ...CollectionSource[]]);
@@ -321,7 +319,6 @@ export const defaultListingCollections: Record<ListingPageSlug, CollectionListDa
   "listing-guides": [{ source: "guides", eyebrow: null, title: null, description: null, limit: null, anchor: null }],
   "listing-software": [{ source: "software", eyebrow: null, title: null, description: null, limit: null, anchor: null }],
   "listing-solution": [{ source: "solution", eyebrow: null, title: null, description: null, limit: null, anchor: null }],
-  "listing-service": [{ source: "service", eyebrow: null, title: null, description: null, limit: null, anchor: null }],
 };
 
 export type ListingLayout = { header: ListingHeader; hero?: Extract<PageBlock, { type: "hero" }>; blocks: PageBlock[] };

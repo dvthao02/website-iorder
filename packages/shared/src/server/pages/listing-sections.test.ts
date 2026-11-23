@@ -18,7 +18,7 @@ test("Phần nội dung dựng sẵn thuộc về trang danh sách có thật (t
   for (const [slug] of entries) assert.ok(isListingPageSlug(slug), slug);
   for (const slug of ["listing-equipment", "listing-guides", "listing-support"]) assert.ok(defaultListingSections[slug as keyof typeof defaultListingSections]?.length, slug);
   // Trang có mục con (Phần mềm, Giải pháp, Dịch vụ) sinh từ mục con, không có nội dung viết tay ở đây.
-  for (const slug of ["listing-software", "listing-solution", "listing-service"]) assert.ok(!(slug in defaultListingSections), slug);
+  for (const slug of ["listing-software", "listing-solution"]) assert.ok(!(slug in defaultListingSections), slug);
 });
 
 test("Mọi phần dựng sẵn qua được schema khối trang (kể cả biểu tượng và mã neo)", () => {
@@ -41,7 +41,7 @@ test("Phần dựng sẵn không thay khối đầu trang hay khối danh sách,
 });
 
 test("Liên kết trong phần dựng sẵn là đường dẫn nội bộ hợp lệ, trỏ tới các route có thật", () => {
-  const routes = [/^\/software(\/[a-z0-9-]+)?(#[a-z0-9-]+)?$/, /^\/solutions(\/[a-z0-9-]+)?$/, /^\/services(\/[a-z0-9-]+)?$/, /^\/equipment(\/[a-z0-9-]+)?$/, /^\/support\/(guides|setup)(\/[a-z0-9-]+)?$/, /^\/support\/remote$/, /^\/contact$/];
+  const routes = [/^\/software(\/[a-z0-9-]+)?(#[a-z0-9-]+)?$/, /^\/solutions(\/[a-z0-9-]+)?$/, /^\/equipment(\/[a-z0-9-]+)?$/, /^\/support\/(guides|setup)(\/[a-z0-9-]+)?$/, /^\/support\/remote$/, /^\/contact$/];
   for (const [slug, blocks] of entries) {
     for (const href of hrefs(blocks)) assert.ok(routes.some(route => route.test(href)), `${slug}: ${href}`);
   }

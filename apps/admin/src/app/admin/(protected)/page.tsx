@@ -24,7 +24,7 @@ type WorkItem = { label: string; detail: string; href: string };
 type ContentStats = { pending: number; scheduled: number };
 
 const postTypeLabels: Record<string, string> = { news: "Tin tức", promotion: "Khuyến mãi", case_study: "Câu chuyện khách hàng", announcement: "Thông báo", guide: "Hướng dẫn" };
-const offeringTypeLabels: Record<string, string> = { software: "Sản phẩm", solution: "Giải pháp", service: "Dịch vụ" };
+const offeringTypeLabels: Record<string, string> = { software: "Sản phẩm", solution: "Giải pháp" };
 
 // "Cần xử lý" chỉ gồm việc nội dung đang chờ (nháp, chờ duyệt, hẹn giờ). Thiếu SEO đã có thẻ "Việc SEO nên làm" và mục chưa sẵn sàng xuất bản đã có thẻ "Sẵn sàng xuất bản", nên không lặp lại ở đây.
 function contentWarnings(label: string, href: string, { pending, scheduled }: ContentStats): WorkItem[] {
@@ -36,8 +36,7 @@ function contentWarnings(label: string, href: string, { pending, scheduled }: Co
 
 function offeringManagerHref(type: string) {
   if (type === "software") return "/admin/products";
-  if (type === "solution") return "/admin/solutions";
-  return "/admin/services";
+  return "/admin/solutions";
 }
 
 export default async function AdministratorHomePage({ searchParams }: { searchParams: Promise<{ range?: string | string[] }> }) {
@@ -57,7 +56,6 @@ export default async function AdministratorHomePage({ searchParams }: { searchPa
     { label: "Bài viết & Tin tức", stat: content.posts, href: "/admin/news", permission: "posts.view" },
     { label: "Sản phẩm", stat: content.offerings.products, href: "/admin/products?type=software", permission: "offerings.view" },
     { label: "Giải pháp", stat: content.offerings.solutions, href: "/admin/products?type=solution", permission: "offerings.view" },
-    { label: "Dịch vụ", stat: content.offerings.services, href: "/admin/products?type=service", permission: "offerings.view" },
     { label: "Thiết bị", stat: content.equipment, href: "/admin/equipment", permission: "equipment.view" },
   ] satisfies Array<{ permission: CmsPermissionCode } & Record<string, unknown>>).filter((item) => can(item.permission));
   const downloadsRow = can("support_downloads.view") ? { label: "Tệp cài đặt", href: "/admin/resources", segments: contentSegments({ total: content.downloads.total, published: content.downloads.enabled, pending: 0, scheduled: 0 }) } : null;
@@ -83,7 +81,6 @@ export default async function AdministratorHomePage({ searchParams }: { searchPa
     ...contentWarnings("Bài viết & Tin tức", "/admin/news", content.posts),
     ...contentWarnings("Sản phẩm", "/admin/products?type=software", content.offerings.products),
     ...contentWarnings("Giải pháp", "/admin/products?type=solution", content.offerings.solutions),
-    ...contentWarnings("Dịch vụ", "/admin/products?type=service", content.offerings.services),
     ...contentWarnings("Thiết bị", "/admin/equipment", content.equipment),
   ].slice(0, 6);
   const readyChecks = readiness.filter((item) => item.status === "ready").length;

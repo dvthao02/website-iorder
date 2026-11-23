@@ -9,13 +9,12 @@ const liveStatuses = new Set<ContentStatus>(["published", "scheduled"]);
 const typeInfo: Record<PublicOfferingType, { label: string; fileName: string }> = {
   software: { label: "Sản phẩm", fileName: "san-pham" },
   solution: { label: "Giải pháp", fileName: "giai-phap" },
-  service: { label: "Dịch vụ", fileName: "dich-vu" },
 };
 const optional = <T>(value: T | null | undefined) => value ?? null;
 const joinLines = (items: string[]) => items.join("\n");
 
 /**
- * Sản phẩm / Giải pháp / Dịch vụ: mỗi loại một bảng vì slug chỉ duy nhất trong từng loại.
+ * Sản phẩm / Giải pháp: mỗi loại một bảng vì slug chỉ duy nhất trong từng loại.
  * File gồm phần chữ chính; hỏi đáp, bảng giá, ảnh bìa, nội dung liên quan và "Thông tin bổ sung" giữ nguyên (sửa trong CMS).
  */
 export function offeringTransfer(type: PublicOfferingType): TransferDataset<OfferingRow, null> {

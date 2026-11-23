@@ -78,7 +78,7 @@ async function main() {
     await pageBlock(pageTwo.id, 0, { href: "/audit-link-old#neo" });
     const [post] = await clients[0]`insert into posts (type, title, slug, content, cta_url) values ('news', 'B', 'audit-link-b', ${jsonb(rich("/audit-link-old"))}, '/audit-link-old#neo') returning id`;
     await clients[0]`insert into posts (type, title, slug, content, deleted_at) values ('news', 'Đã xóa', 'audit-link-deleted', ${jsonb(rich("/audit-link-old"))}, now())`;
-    await clients[0]`insert into offerings (type, title, slug, content) values ('service', 'O', 'audit-link-o', ${jsonb({ sections: [{ href: "/audit-link-old" }] })})`;
+    await clients[0]`insert into offerings (type, title, slug, content) values ('solution', 'O', 'audit-link-o', ${jsonb({ sections: [{ href: "/audit-link-old" }] })})`;
     await clients[0]`insert into sales_equipment (group_id, name, slug, price_vnd, blocks) values (${randomUUID()}, 'E', 'audit-link-e', 1, ${jsonb([{ href: "/audit-link-old" }])})`;
     await clients[0]`insert into site_settings (key, value) values ('consult_popup', ${jsonb({ ctaHref: "/audit-link-old" })}), ('system.backup.history', ${jsonb([{ href: "/audit-link-old" }])})`;
     const versions = async () => (await clients[0]`select (select version from menus where id = ${menu.id}) as menu, (select draft_version from pages where id = ${pageOne.id}) as page_one, (select draft_version from pages where id = ${pageTwo.id}) as page_two, (select draft_version from posts where id = ${post.id}) as post`)[0];

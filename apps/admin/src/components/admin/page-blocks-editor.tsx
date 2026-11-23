@@ -74,8 +74,8 @@ const libraryBlockOptions: ReadonlyArray<LibraryBlockOption> = [
   { id: "process-stepper", type: "process", label: "Quy trình trượt từng bước", description: "Danh sách bước bên trái, ảnh và mô tả từng bước trượt bên phải.", group: "Giới thiệu" },
 
   { id: "grouped-list", type: "grouped_list", label: "Danh sách theo nhóm", description: "Nhóm ngành, nhóm thiết bị hoặc các nhu cầu thường gặp.", group: "Sản phẩm & nội dung" },
-  { id: "collection-software", type: "collection_list", label: "Danh sách phần mềm", description: "Tự lấy các phần mềm đã xuất bản từ mục Sản phẩm & Dịch vụ.", group: "Sản phẩm & nội dung" },
-  { id: "collection-solution", type: "collection_list", label: "Danh sách giải pháp", description: "Tự lấy các giải pháp đã xuất bản từ mục Sản phẩm & Dịch vụ.", group: "Sản phẩm & nội dung" },
+  { id: "collection-software", type: "collection_list", label: "Danh sách phần mềm", description: "Tự lấy các phần mềm đã xuất bản từ mục Sản phẩm & Giải pháp.", group: "Sản phẩm & nội dung" },
+  { id: "collection-solution", type: "collection_list", label: "Danh sách giải pháp", description: "Tự lấy các giải pháp đã xuất bản từ mục Sản phẩm & Giải pháp.", group: "Sản phẩm & nội dung" },
   { id: "pricing", type: "pricing", label: "Bảng giá", description: "So sánh 1–4 gói với tính năng, giá và nút đăng ký.", group: "Sản phẩm & nội dung" },
 
   { id: "stats", type: "stats", label: "Số liệu nổi bật", description: "Các con số tạo điểm nhấn: cửa hàng, đơn hàng, năm kinh nghiệm…", group: "Tạo niềm tin" },

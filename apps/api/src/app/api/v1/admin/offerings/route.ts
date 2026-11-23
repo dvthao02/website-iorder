@@ -17,7 +17,7 @@ function phanHoiLoi(ma: string, thongBao: string, trangThai: number) {
   return NextResponse.json({ error: { code: ma, message: thongBao } }, { status: trangThai });
 }
 
-const danhMucTheoLoai = { software: "software", solution: "solutions", service: "services" } as const;
+const danhMucTheoLoai = { software: "software", solution: "solutions" } as const;
 
 function lamMoiNoiDungCatalog(type: keyof typeof danhMucTheoLoai, slug: string) {
   const danhMuc = danhMucTheoLoai[type];

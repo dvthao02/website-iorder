@@ -27,7 +27,7 @@ const resourceSchema = z.enum([
   "shared", "page", "page-summaries", "post", "post-summaries", "post-taxonomy",
   "taxonomy", "offering", "offering-summaries", "equipment", "downloads", "partners", "testimonials", "author", "author-summaries",
 ]);
-const offeringTypeSchema = z.enum(["software", "solution", "service"]);
+const offeringTypeSchema = z.enum(["software", "solution"]);
 const postTypeSchema = z.enum(["announcement", "case_study", "guide", "news", "promotion"]);
 
 function invalidRequest(message: string) {

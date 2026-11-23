@@ -3,8 +3,8 @@ import type { NavigationItems, NavigationTarget } from "@iorder/shared/server/na
 // Nơi sửa nội dung mà mục menu trỏ tới (các trang có sẵn không còn mục riêng trên sidebar, nên mở từ đây).
 // Liên kết trực tiếp dùng id; đường dẫn tự nhập thì dò theo URL trong các nội dung đã xuất bản,
 // rồi tới mẫu đường dẫn của từng module (nội dung chưa xuất bản: mở danh sách đã lọc).
-const offeringEditorBase: Record<string, string> = { "Phần mềm": "/admin/products", "Giải pháp": "/admin/solutions", "Dịch vụ": "/admin/services" };
-const catalogTypeByPath: Record<string, string> = { software: "software", solutions: "solution", services: "service" };
+const offeringEditorBase: Record<string, string> = { "Phần mềm": "/admin/products", "Giải pháp": "/admin/solutions" };
+const catalogTypeByPath: Record<string, string> = { software: "software", solutions: "solution" };
 export function contentEditHref(item: Pick<NavigationItems[number], "linkType" | "contentId" | "url">, targets: NavigationTarget[]): string | undefined {
   const path = item.url.split("#")[0].split("?")[0].replace(/(.)\/$/, "$1");
   const target = item.linkType !== "custom" ? targets.find((entry) => entry.id === item.contentId && entry.linkType === item.linkType) : targets.find((entry) => entry.url === path);

@@ -12,7 +12,6 @@ import { listCategories } from "../packages/shared/src/server/taxonomy/taxonomy.
 const catalogRoots = [
   { key: "software", label: "Phần mềm", url: "/software", type: "software" as const },
   { key: "solution", label: "Giải pháp", url: "/solutions", type: "solution" as const },
-  { key: "service", label: "Dịch vụ", url: "/services", type: "service" as const },
 ];
 
 function item(key: string, label: string, url: string, parentKey: string | null = null): NavigationItems[number] {
@@ -50,7 +49,6 @@ async function run() {
     item("footer-products", "Sản phẩm & giải pháp", "/software"),
     item("footer-software", "Phần mềm", "/software", "footer-products"),
     item("footer-solutions", "Giải pháp", "/solutions", "footer-products"),
-    item("footer-services", "Dịch vụ", "/services", "footer-products"),
     item("footer-equipment", "Thiết bị", "/equipment", "footer-products"),
     item("footer-support", "Hỗ trợ", "/support/setup"),
     item("footer-installation", "Hỗ trợ cài đặt", "/support/setup", "footer-support"),

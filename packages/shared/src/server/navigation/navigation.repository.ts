@@ -56,7 +56,7 @@ async function readPublishedNavigationTargets(ids?: TargetIds): Promise<Navigati
     ...postRows.map((row) => ({ id: row.id, linkType: "post" as const, label: row.title, url: postPublicPath(row.slug, row.type), typeLabel: row.type === "guide" ? "Hướng dẫn" : "Bài viết" })),
     ...offeringRows.flatMap((row) => {
       const url = offeringPublicPath(row.slug, row.type);
-      return url ? [{ id: row.id, linkType: "offering" as const, label: row.title, url, typeLabel: row.type === "software" ? "Phần mềm" : row.type === "solution" ? "Giải pháp" : "Dịch vụ" }] : [];
+      return url ? [{ id: row.id, linkType: "offering" as const, label: row.title, url, typeLabel: row.type === "software" ? "Phần mềm" : "Giải pháp" }] : [];
     }),
     ...equipmentRows.map((row) => ({ id: row.id, linkType: "equipment" as const, label: row.name, url: equipmentPublicPath(row.slug), typeLabel: "Thiết bị" })),
   ];

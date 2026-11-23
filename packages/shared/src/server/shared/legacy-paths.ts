@@ -25,7 +25,9 @@ export const legacyPaths: ReadonlyArray<readonly [legacy: string, current: strin
   ["/trang", "/pages"],
   ["/phan-mem", "/software"],
   ["/giai-phap", "/solutions"],
-  ["/dich-vu", "/services"],
+  ["/dich-vu", "/solutions"],
+  // Dịch vụ đã gộp vào Giải pháp (/services/<slug> → /solutions/<slug>).
+  ["/services", "/solutions"],
   // Trang riêng đã gộp vào mục Hướng dẫn.
   ["/huong-dan", "/support/guides"],
 ];

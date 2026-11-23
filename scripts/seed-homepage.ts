@@ -46,7 +46,7 @@ async function run() {
           items: [
             { title: "Phần mềm phù hợp nghiệp vụ", description: "Hỗ trợ bán hàng, quản lý vận hành và báo cáo theo cách trực quan, dễ dùng.", href: "/software" },
             { title: "Thiết bị và hạ tầng đồng bộ", description: "Từ máy POS, máy in đến mạng và camera — triển khai theo nhu cầu thực tế.", href: "/equipment" },
-            { title: "Đồng hành khi triển khai", description: "Khảo sát, cài đặt, đào tạo và hỗ trợ để đội ngũ có thể tự tin vận hành.", href: "/services" },
+            { title: "Đồng hành khi triển khai", description: "Khảo sát, cài đặt, đào tạo và hỗ trợ để đội ngũ có thể tự tin vận hành.", href: "/solutions" },
           ],
         },
         isEnabled: true,

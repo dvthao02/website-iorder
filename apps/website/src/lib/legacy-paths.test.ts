@@ -25,7 +25,14 @@ test("URL tiếng Việt cũ chuyển về URL tiếng Anh chuẩn, giữ phần
   assert.equal(legacyPathRedirect("/dieu-khoan"), "/terms-of-use");
   assert.equal(legacyPathRedirect("/phan-mem/iorder-pos"), "/software/iorder-pos");
   assert.equal(legacyPathRedirect("/giai-phap"), "/solutions");
-  assert.equal(legacyPathRedirect("/dich-vu/bao-tri-it"), "/services/bao-tri-it");
+  assert.equal(legacyPathRedirect("/dich-vu/bao-tri-it"), "/solutions/bao-tri-it");
+});
+
+test("Dịch vụ đã gộp vào Giải pháp: /services và trang con chuyển về /solutions", () => {
+  assert.equal(legacyPathRedirect("/services"), "/solutions");
+  assert.equal(legacyPathRedirect("/services/tu-van-chuyen-doi-so"), "/solutions/tu-van-chuyen-doi-so");
+  assert.equal(legacyPathRedirect("/dich-vu"), "/solutions");
+  for (const pathname of ["/servicesx", "/services-moi", "/solutions", "/solutions/ha-tang-mang-wifi-camera"]) assert.equal(legacyPathRedirect(pathname), null, pathname);
 });
 
 test("tên thư mục cũ /terms và trang /huong-dan đã gộp cũng chuyển về URL chuẩn", () => {

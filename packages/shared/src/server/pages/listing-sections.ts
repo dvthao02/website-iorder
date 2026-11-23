@@ -9,7 +9,7 @@ type BlockInput = z.input<typeof pageBlockInputSchema>;
  * Các phần nội dung dựng sẵn cho các trang danh sách KHÔNG có mục con cùng kiểu: Thiết bị, Hướng dẫn, Hỗ trợ cài đặt. Xếp sau khối danh sách,
  * là khối trang bình thường: người vận hành sửa, tắt, sắp xếp lại hoặc xóa trong CMS › Trang website.
  *
- * Trang có mục con (Phần mềm, Giải pháp, Dịch vụ) KHÔNG nằm ở đây: nội dung của chúng sinh từ chính từng mục con, xem catalog-sections.ts.
+ * Trang có mục con (Phần mềm, Giải pháp) KHÔNG nằm ở đây: nội dung của chúng sinh từ chính từng mục con, xem catalog-sections.ts.
  *
  * Nội dung bám dữ liệu thật đang có trong CMS: thông số từng thiết bị (CMS › Thiết bị), tên và đường dẫn các bài hướng dẫn, trang Hỗ trợ từ xa.
  * Thời hạn bảo hành ghi theo dữ liệu hiện có nên cần cập nhật khi dữ liệu đổi. Phần gợi ý ghép thiết bị theo mô hình và các bước

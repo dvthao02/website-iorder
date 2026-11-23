@@ -327,8 +327,7 @@ async function run() {
     ["listing-support", "Hỗ trợ", "Hỗ trợ cài đặt", "Tải driver, phần mềm và tài liệu cài đặt iOrder.", img.printer],
     ["listing-guides", "Hỗ trợ", "Hướng dẫn sử dụng", "Hướng dẫn từng bước sử dụng phần mềm và thiết bị iOrder.", img.computer],
     ["listing-software", "Sản phẩm", "Phần mềm iOrder", "Phần mềm bán hàng, trạm sạc xe điện và hóa đơn điện tử.", img.hero1],
-    ["listing-solution", "Giải pháp", "Giải pháp hạ tầng", "Mạng, camera, máy chủ và kiểm soát ra vào cho doanh nghiệp.", img.pos],
-    ["listing-service", "Dịch vụ", "Dịch vụ công nghệ", "Tư vấn chuyển đổi số và phát triển phần mềm theo yêu cầu.", img.hero3],
+    ["listing-solution", "Giải pháp", "Giải pháp công nghệ", "Hạ tầng mạng, camera, máy chủ, kiểm soát ra vào, cùng tư vấn chuyển đổi số và phát triển phần mềm theo yêu cầu.", img.pos],
   ];
   for (const [slug, eyebrow, title, description, mediaId] of listingHeroes) {
     await updatePage(slug, (current) => replaceHero(current, { type: "hero", isEnabled: true, data: { eyebrow, title, description, primaryAction: action("Nhận tư vấn", "/contact"), secondaryAction: null, mediaId, layout: "split", highlights: [], footnote: null, slides: [], extraMediaIds: [], tone: null, panels: [] } }), { seoTitle: title.slice(0, 70), seoDescription: description.slice(0, 180) });

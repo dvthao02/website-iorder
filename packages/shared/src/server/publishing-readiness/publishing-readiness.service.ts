@@ -23,7 +23,7 @@ async function publishedCount(table: typeof pages | typeof offerings | typeof po
   return result?.total ?? 0;
 }
 
-async function publishedOfferingCount(type: "software" | "solution" | "service") {
+async function publishedOfferingCount(type: "software" | "solution") {
   const [result] = await getDb()
     .select({ total: count() })
     .from(offerings)
@@ -56,7 +56,6 @@ const itemPermissions: Record<string, CmsPermissionCode> = {
   pages: "pages.view",
   products: "offerings.view",
   solutions: "offerings.view",
-  services: "offerings.view",
   posts: "posts.view",
   equipment: "equipment.view",
   supporting: "supporting.view",
@@ -67,7 +66,7 @@ const itemPermissions: Record<string, CmsPermissionCode> = {
 export async function getPublishingReadiness(actor: CmsActor): Promise<PublishingReadinessItem[]> {
   const can = (permission: CmsPermissionCode) => hasCmsPermission(actor, permission);
   const when = <T>(permission: CmsPermissionCode, query: () => Promise<T>, fallback: T) => can(permission) ? query() : Promise.resolve(fallback);
-  const [config, profile, externalLinks, header, footer, publishedPages, publishedProducts, publishedSolutions, publishedServices, publishedPosts, equipment, equipmentGroupsCount, partnerCount, testimonialCount, downloadCount, missingAltCount] = await Promise.all([
+  const [config, profile, externalLinks, header, footer, publishedPages, publishedProducts, publishedSolutions, publishedPosts, equipment, equipmentGroupsCount, partnerCount, testimonialCount, downloadCount, missingAltCount] = await Promise.all([
     when("settings.view", () => getPublishingConfig(), null),
     when("settings.view", () => getSiteProfile(), null),
     when("settings.view", () => getExternalLinks(), null),
@@ -76,7 +75,6 @@ export async function getPublishingReadiness(actor: CmsActor): Promise<Publishin
     when("pages.view", () => publishedCount(pages), 0),
     when("offerings.view", () => publishedOfferingCount("software"), 0),
     when("offerings.view", () => publishedOfferingCount("solution"), 0),
-    when("offerings.view", () => publishedOfferingCount("service"), 0),
     when("posts.view", () => publishedCount(posts), 0),
     when("equipment.view", () => publishedCount(salesEquipment), 0),
     when("equipment.view", () => enabledCount(equipmentGroups), 0),
@@ -95,7 +93,6 @@ export async function getPublishingReadiness(actor: CmsActor): Promise<Publishin
     { id: "pages", label: "Trang website", detail: `${publishedPages} trang đã xuất bản.`, href: "/admin/pages", status: publishedPages > 0 ? "ready" : "attention" },
     { id: "products", label: "Sản phẩm", detail: `${publishedProducts} sản phẩm đã xuất bản.`, href: "/admin/products?type=software", status: publishedProducts > 0 ? "ready" : "attention" },
     { id: "solutions", label: "Giải pháp", detail: `${publishedSolutions} giải pháp đã xuất bản.`, href: "/admin/products?type=solution", status: publishedSolutions > 0 ? "ready" : "attention" },
-    { id: "services", label: "Dịch vụ", detail: `${publishedServices} dịch vụ đã xuất bản.`, href: "/admin/products?type=service", status: publishedServices > 0 ? "ready" : "attention" },
     { id: "posts", label: "Tin tức và hướng dẫn", detail: `${publishedPosts} bài viết đã xuất bản.`, href: "/admin/news", status: publishedPosts > 0 ? "ready" : "attention" },
     { id: "equipment", label: "Thiết bị", detail: `${equipmentGroupsCount} nhóm và ${equipment} thiết bị đang hiển thị.`, href: "/admin/equipment", status: equipmentGroupsCount > 0 && equipment > 0 ? "ready" : "attention" },
     { id: "supporting", label: "Đối tác và đánh giá", detail: `${partnerCount} đối tác, ${testimonialCount} đánh giá đang hiển thị.`, href: "/admin/partners", status: testimonialCount > 0 ? "ready" : "attention" },

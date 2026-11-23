@@ -2,7 +2,7 @@
 // "auto": việc website đã tự làm (không cần nhập tay). "todo": việc cần người viết nội dung.
 // Giữ đúng với hành vi thật của website (apps/website/src/lib/page-metadata.ts, structured-data.ts); đổi code thì cập nhật ở đây.
 
-export type SeoPageKind = "software" | "solution" | "service" | "post" | "equipment" | "page";
+export type SeoPageKind = "software" | "solution" | "post" | "equipment" | "page";
 
 export type SeoPageGuide = { title: string; auto: readonly string[]; todo: readonly string[] };
 
@@ -33,15 +33,6 @@ export const seoPageGuides: Record<SeoPageKind, SeoPageGuide> = {
       "Mô tả SEO nêu rõ giải pháp dành cho ai và giải quyết việc gì; kết bằng lời kêu gọi như “Nhận tư vấn miễn phí”.",
       "Chọn ảnh bìa và nhập mô tả ảnh nói rõ ảnh thể hiện điều gì.",
       "Liên kết sang trang phần mềm hoặc thiết bị liên quan trong nội dung để Google hiểu mối liên hệ.",
-    ],
-  },
-  service: {
-    title: "Trang dịch vụ",
-    auto: [...commonAuto, "Dữ liệu cấu trúc “Dịch vụ” (Service) và dữ liệu FAQ."],
-    todo: [
-      "Tiêu đề nêu rõ dịch vụ và đối tượng, ví dụ “Dịch vụ lắp đặt máy POS cho nhà hàng”.",
-      "Mô tả SEO nêu khu vực/hình thức phục vụ và kết bằng lời kêu gọi như “Gọi hotline để được báo giá”.",
-      "Có Câu hỏi thường gặp về quy trình, thời gian, chi phí.",
     ],
   },
   post: {

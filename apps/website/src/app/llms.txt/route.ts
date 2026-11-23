@@ -10,7 +10,6 @@ export const dynamic = "force-dynamic";
 const catalogs = [
   { type: "software", prefix: "/software", title: "Phần mềm" },
   { type: "solution", prefix: "/solutions", title: "Giải pháp" },
-  { type: "service", prefix: "/services", title: "Dịch vụ" },
 ] as const;
 // Trang pháp lý ít giúp AI trả lời câu hỏi về sản phẩm, xếp vào mục phụ cuối tệp.
 const legalSlugs = new Set(["terms", "privacy-policy"]);

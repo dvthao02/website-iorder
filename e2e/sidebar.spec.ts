@@ -26,8 +26,8 @@ test("Thu gọn và mở lại thanh điều hướng trên desktop", async ({ p
   await expect.poll(async () => Math.round((await sidebar.boundingBox())!.width)).toBe(232);
 });
 
-// Các module gọn: Sản phẩm/Giải pháp/Dịch vụ chung một màn có tab; Chuyên mục & Thẻ là màn con của Bài viết.
-test("Sản phẩm & Dịch vụ một màn có tab loại; Chuyên mục & Thẻ thuộc Bài viết", async ({ page }) => {
+// Các module gọn: Sản phẩm/Giải pháp chung một màn có tab; Chuyên mục & Thẻ là màn con của Bài viết.
+test("Sản phẩm & Giải pháp một màn có tab loại; Chuyên mục & Thẻ thuộc Bài viết", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 800 });
   await loginAsAdmin(page);
   const sidebar = page.locator(".admin-sidebar");
@@ -38,14 +38,14 @@ test("Sản phẩm & Dịch vụ một màn có tab loại; Chuyên mục & Th�
   await page.goto("/admin/solutions");
   await expect(page).toHaveURL(/\/admin\/products\?type=solution$/);
   await expect(page.getByRole("tab", { name: "Giải pháp" })).toHaveAttribute("aria-selected", "true");
-  await expect(sidebar.getByRole("link", { name: "Sản phẩm & Dịch vụ" })).toHaveAttribute("aria-current", "page");
+  await expect(sidebar.getByRole("link", { name: "Sản phẩm & Giải pháp" })).toHaveAttribute("aria-current", "page");
   await expect(page.getByRole("link", { name: "Tạo giải pháp" })).toHaveAttribute("href", "/admin/solutions/new");
 
   await page.getByRole("tab", { name: "Tất cả" }).click();
   await expect(page).toHaveURL(/\/admin\/products$/);
   await expect(page.getByText("Loại", { exact: true })).toBeVisible();
   await page.getByLabel("Chọn loại cần tạo").click();
-  for (const [label, href] of [["Sản phẩm", "/admin/products/new"], ["Giải pháp", "/admin/solutions/new"], ["Dịch vụ", "/admin/services/new"]]) {
+  for (const [label, href] of [["Sản phẩm", "/admin/products/new"], ["Giải pháp", "/admin/solutions/new"]]) {
     await expect(page.locator(".admin-header-popover--menu").getByRole("link", { name: new RegExp(`^${label}`) })).toHaveAttribute("href", href);
   }
 

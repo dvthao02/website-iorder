@@ -9,7 +9,7 @@ CMS là nơi quản lý nội dung và cấu hình website. Các mục nhìn th�
 | Theo dõi liên hệ khách gửi | Công việc → Khách hàng tiềm năng |
 | Sửa nội dung trang chủ hoặc trang website | Nội dung website → Trang chủ / Trang website |
 | Viết tin tức, bài viết, hướng dẫn | Nội dung website → Bài viết & Tin tức / Hướng dẫn sử dụng |
-| Sửa sản phẩm, giải pháp, dịch vụ, thiết bị hoặc tệp cài đặt | Nội dung website → mục tương ứng |
+| Sửa sản phẩm, giải pháp, thiết bị hoặc tệp cài đặt | Nội dung website → mục tương ứng |
 | Quản lý ảnh và tệp dùng trên website | Nội dung website → Thư viện hình ảnh & tệp |
 | Đổi menu, chuyển hướng, biểu mẫu tư vấn hoặc quảng cáo tự hiện | Cấu trúc website |
 | Đổi thông tin doanh nghiệp, tên miền, SEO và liên kết | Cài đặt website |

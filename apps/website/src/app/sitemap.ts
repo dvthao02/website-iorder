@@ -11,7 +11,7 @@ import { isSitemapEligible } from "@iorder/shared/server/shared/content-seo";
 
 export const revalidate = 0;
 
-const catalogByType = { software: "software", solution: "solutions", service: "services" } as const;
+const catalogByType = { software: "software", solution: "solutions" } as const;
 // Mọi URL public là một Trang: chỉ liệt kê trang đã xuất bản. Trang hệ thống dùng route riêng
 // (publicPath), trang tự tạo nằm dưới /pages/{slug}; phần neo trong trang khác (#) không có URL riêng.
 function pagePath(slug: string) { const fixed = getFixedWebsitePage(slug); return fixed ? (fixed.publicPath.includes("#") ? null : fixed.publicPath) : `/pages/${slug}`; }

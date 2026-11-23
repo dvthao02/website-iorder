@@ -24,7 +24,7 @@ export const issueLabels: Record<SeoIssueCode, string> = {
 // Lỗi khiến trang không lên Google hoặc mất lợi thế thứ hạng: nhắc bằng màu cảnh báo; còn lại là gợi ý hoàn thiện.
 const warningCodes = new Set<SeoIssueCode>(["noindex", "canonical_mismatch", "keyword_conflict", "duplicate_title", "duplicate_description", "missing_description"]);
 
-const kindLabels: Record<string, string> = { page: "Trang", post: "Bài viết", guide: "Hướng dẫn", software: "Sản phẩm", solution: "Giải pháp", service: "Dịch vụ", equipment: "Thiết bị" };
+const kindLabels: Record<string, string> = { page: "Trang", post: "Bài viết", guide: "Hướng dẫn", software: "Sản phẩm", solution: "Giải pháp", equipment: "Thiết bị" };
 
 function kindLabel(row: SeoAuditRow) {
   if (row.kind === "post") return kindLabels[row.type === "guide" ? "guide" : "post"];
@@ -36,7 +36,7 @@ function kindLabel(row: SeoAuditRow) {
 export function editorHref(row: SeoAuditRow) {
   if (row.kind === "page") return row.path === "/" ? "/admin/homepage" : `/admin/pages/${row.id}`;
   if (row.kind === "post") return `${row.type === "guide" ? "/admin/guides" : "/admin/news"}/${row.id}`;
-  if (row.kind === "offering") return `${row.type === "solution" ? "/admin/solutions" : row.type === "service" ? "/admin/services" : "/admin/products"}/${row.id}`;
+  if (row.kind === "offering") return `${row.type === "solution" ? "/admin/solutions" : "/admin/products"}/${row.id}`;
   return `/admin/equipment/${row.id}`;
 }
 

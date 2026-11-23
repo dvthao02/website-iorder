@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-// Danh sách đã gộp vào màn "Sản phẩm & Dịch vụ" (/admin/products, tab theo loại); trang sửa vẫn ở /admin/solutions/<id>.
+// Danh sách đã gộp vào màn "Sản phẩm & Giải pháp" (/admin/products, tab theo loại); trang sửa vẫn ở /admin/solutions/<id>.
 export default async function SolutionsPage({ searchParams }: { searchParams: Promise<{ create?: string; edit?: string; query?: string; status?: string; page?: string; sort?: string; dir?: string }> }) {
   const params = await searchParams;
   if (params.create === "1") redirect("/admin/solutions/new");

@@ -22,7 +22,7 @@ export const offeringSectionAppearanceSchema = z.object({
   consult: blockAppearanceSchema.optional(),
 }).strict();
 
-export const publicOfferingTypeSchema = z.enum(["software", "solution", "service"]);
+export const publicOfferingTypeSchema = z.enum(["software", "solution"]);
 export const offeringSlugSchema = z.string().trim().min(1).max(180);
 
 export const offeringContentSchema = z
@@ -74,7 +74,7 @@ const publicOfferingBaseSchema = z
   })
   .strict();
 
-// Thẻ danh sách (/software, /solutions, /services, khối Danh sách nội dung) còn hiện chuyên mục và số liệu nổi bật,
+// Thẻ danh sách (/software, /solutions, khối Danh sách nội dung) còn hiện chuyên mục và số liệu nổi bật,
 // lấy từ nội dung chi tiết (CMS › Sản phẩm) nên không cần nhập lại.
 export const offeringCardFieldsSchema = z.object({ category: offeringContentSchema.shape.category, metrics: offeringContentSchema.shape.metrics }).partial();
 export const publicOfferingSummarySchema = publicOfferingBaseSchema

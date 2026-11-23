@@ -35,11 +35,10 @@ type OfferingManagerListProps = {
 
 const statusLabels: Record<AdminOfferingListItem["status"], string> = { archived: "Lưu trữ", draft: "Bản nháp", published: "Đã xuất bản", review: "Chờ duyệt", scheduled: "Hẹn giờ" };
 const statusTones: Record<AdminOfferingListItem["status"], AdminFeedbackTone> = { archived: "error", draft: "neutral", published: "success", review: "warning", scheduled: "info" };
-// Ba loại dùng chung một màn danh sách; trang sửa vẫn theo từng loại để giữ nguyên URL đã có.
+// Hai loại dùng chung một màn danh sách; trang sửa vẫn theo từng loại để giữ nguyên URL đã có.
 export const offeringTypes: Array<{ type: PublicOfferingType; label: string; editorHref: string; publicPath: string; hint: string }> = [
   { type: "software", label: "Sản phẩm", editorHref: "/admin/products", publicPath: "/software", hint: "Phần mềm, ứng dụng" },
-  { type: "solution", label: "Giải pháp", editorHref: "/admin/solutions", publicPath: "/solutions", hint: "Hạ tầng, thiết bị trọn gói" },
-  { type: "service", label: "Dịch vụ", editorHref: "/admin/services", publicPath: "/services", hint: "Tư vấn, triển khai, phát triển theo yêu cầu" },
+  { type: "solution", label: "Giải pháp", editorHref: "/admin/solutions", publicPath: "/solutions", hint: "Hạ tầng, thiết bị, tư vấn, phát triển theo yêu cầu" },
 ];
 const typeInfo = Object.fromEntries(offeringTypes.map((entry) => [entry.type, entry])) as Record<PublicOfferingType, (typeof offeringTypes)[number]>;
 
@@ -81,7 +80,7 @@ export function OfferingManagerList({ initialQuery, initialStatus, initialType, 
   return <AdminListPage variant="dense">
     <AdminCard>
       {/* Xuất/nhập theo từng loại (slug chỉ duy nhất trong một loại); tab "Tất cả" chọn loại trước. */}
-      <AdminListHeader actions={<>{initialType === "all" ? null : <DataTransferActions dataset={`offerings-${initialType}`} key={initialType} label={typeInfo[initialType].label} module="offerings" />}<CreateOfferingButton type={initialType} /></>} description={`${result.total} ${noun}${filtered ? " khớp bộ lọc" : ""}`} title="Sản phẩm & Dịch vụ" />
+      <AdminListHeader actions={<>{initialType === "all" ? null : <DataTransferActions dataset={`offerings-${initialType}`} key={initialType} label={typeInfo[initialType].label} module="offerings" />}<CreateOfferingButton type={initialType} /></>} description={`${result.total} ${noun}${filtered ? " khớp bộ lọc" : ""}`} title="Sản phẩm & Giải pháp" />
       <AdminFilterTabs<OfferingTypeFilter> restoreNavigationFocus ariaLabel="Loại nội dung" items={[{ label: "Tất cả", value: "all" }, ...offeringTypes.map((entry) => ({ label: entry.label, value: entry.type }))]} onValueChange={(value) => { clear(); setFilter("type", value === "all" ? undefined : value); }} value={initialType} />
       <AdminFilterBar onSubmit={submitSearch} chips={chips} onClearAll={() => { setQuery(""); navigate({ page: undefined, query: undefined, status: undefined }); }} search={<AdminSearchField id="offering-search" label={`Tìm kiếm ${noun}`} onChange={(event) => setQuery(event.target.value)} placeholder="Tìm theo tên hoặc slug" value={query} />}><label className="sr-only" htmlFor="offering-status">Lọc theo trạng thái</label><select id="offering-status" onChange={(event) => setFilter("status", event.target.value === "all" ? undefined : event.target.value)} value={initialStatus}><option value="all">Tất cả trạng thái</option><option value="draft">Bản nháp</option><option value="review">Chờ duyệt</option><option value="scheduled">Hẹn giờ</option><option value="published">Đã xuất bản</option><option value="archived">Lưu trữ</option></select></AdminFilterBar>
       <ContentBulkBar items={result.items} module="offerings" noun={noun} onClear={clear} request={(item, action) => ({ method: "PATCH", url: `/api/v1/admin/offerings/${item.id}?type=${item.type}`, body: { action, expectedVersion: item.draftVersion } })} deleteRequest={(item) => ({ method: "DELETE", url: `/api/v1/admin/offerings/${item.id}`, body: { expectedVersion: item.draftVersion } })} exportDataset={initialType === "all" ? undefined : `offerings-${initialType}`} exportUnavailable="Chọn tab Sản phẩm, Giải pháp hoặc Dịch vụ để xuất Excel." selectedIds={selectedIds} />

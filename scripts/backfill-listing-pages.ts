@@ -20,7 +20,6 @@ async function legacyContent() {
     "listing-guides": listing?.guides,
     "listing-software": catalog?.software,
     "listing-solution": catalog?.solution,
-    "listing-service": catalog?.service,
   };
   return headers;
 }

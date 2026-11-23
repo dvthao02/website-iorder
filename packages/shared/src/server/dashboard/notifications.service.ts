@@ -63,7 +63,6 @@ export function siteConfigNotifications(config: { siteUrl: string | null; allowS
 const offeringTargets = {
   software: { label: "Sản phẩm", href: "/admin/products?type=software" },
   solution: { label: "Giải pháp", href: "/admin/products?type=solution" },
-  service: { label: "Dịch vụ", href: "/admin/products?type=service" },
 } as const;
 
 /**

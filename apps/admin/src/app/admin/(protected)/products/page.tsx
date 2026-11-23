@@ -10,9 +10,9 @@ export const dynamic = "force-dynamic";
 
 type Status = "draft" | "review" | "scheduled" | "published" | "archived";
 const statuses = new Set<Status>(["draft", "review", "scheduled", "published", "archived"]);
-const types = ["software", "solution", "service"] as const;
+const types = ["software", "solution"] as const;
 
-// Sản phẩm, Giải pháp, Dịch vụ chung một màn danh sách (tab theo loại); /admin/solutions và /admin/services chuyển về đây.
+// Sản phẩm, Giải pháp chung một màn danh sách (tab theo loại); /admin/solutions chuyển về đây.
 export default async function OfferingsPage({ searchParams }: { searchParams: Promise<{ create?: string; edit?: string; page?: string; pageSize?: string; query?: string; status?: string; type?: string; sort?: string; dir?: string }> }) {
   await requireAdminPermission("offerings.view");
   const params = await searchParams;

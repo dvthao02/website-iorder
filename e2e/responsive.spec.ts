@@ -4,11 +4,11 @@ import { loginAsAdmin } from "./helpers";
 
 const cmsRoutes = [
   "/admin", "/admin/analytics", "/admin/pages", "/admin/news", "/admin/resources", "/admin/guides", "/admin/media",
-  "/admin/products", "/admin/solutions", "/admin/services", "/admin/equipment", "/admin/equipment/groups",
+  "/admin/products", "/admin/solutions", "/admin/equipment", "/admin/equipment/groups",
   "/admin/menu", "/admin/taxonomy", "/admin/seo", "/admin/seo/publish-check", "/admin/redirects",
   "/admin/external-links", "/admin/company-profile", "/admin/partners", "/admin/leads",
   "/admin/users", "/admin/roles", "/admin/audit-log", "/admin/appearance",
-  "/admin/homepage", "/admin/news/new", "/admin/guides/new", "/admin/pages/new", "/admin/products/new", "/admin/services/new", "/admin/equipment/new",
+  "/admin/homepage", "/admin/news/new", "/admin/guides/new", "/admin/pages/new", "/admin/products/new", "/admin/equipment/new",
 ];
 
 // Chạy ở project "mobile": trang không được cuộn ngang, ma trận quyền cuộn trong khung riêng.

@@ -1,7 +1,7 @@
 import { getFixedWebsitePage } from "../pages/pages.contract";
 
 // Đường dẫn công khai của từng loại nội dung: một chỗ duy nhất cho menu, xem trước và chuyển hướng khi đổi slug.
-const catalogPrefixes: Record<string, string> = { software: "/software", solution: "/solutions", service: "/services" };
+const catalogPrefixes: Record<string, string> = { software: "/software", solution: "/solutions" };
 
 export function pagePublicPath(slug: string) {
   return getFixedWebsitePage(slug)?.publicPath ?? `/pages/${slug}`;

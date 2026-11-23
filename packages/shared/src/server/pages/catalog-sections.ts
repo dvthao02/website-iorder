@@ -6,8 +6,8 @@ import { pageBlockInputSchema, type ListingPageSlug } from "./pages.contract";
 type BlockInput = z.input<typeof pageBlockInputSchema>;
 
 /**
- * Trang danh sách "cha" có mục con (Phần mềm, Giải pháp, Dịch vụ): nội dung trang cha sinh từ chính các mục con, không viết tay theo chủ đề.
- * Mỗi mục con (một phần mềm, một giải pháp, một dịch vụ) có MỘT phần hoàn chỉnh, ngang hàng nhau và cùng cấu trúc: chuyên mục, tên, mô tả,
+ * Trang danh sách "cha" có mục con (Phần mềm, Giải pháp): nội dung trang cha sinh từ chính các mục con, không viết tay theo chủ đề.
+ * Mỗi mục con (một phần mềm, một giải pháp) có MỘT phần hoàn chỉnh, ngang hàng nhau và cùng cấu trúc: chuyên mục, tên, mô tả,
  * đối tượng phù hợp, lợi ích, các tính năng chính, ảnh bìa và nút sang trang con. Chi tiết đầy đủ (bảng giá, hỏi đáp, phần liên quan…)
  * nằm ở trang con. Cuối trang là hỏi đáp gộp từ câu hỏi của từng mục con, mỗi câu ghi rõ thuộc mục nào.
  *
@@ -15,12 +15,12 @@ type BlockInput = z.input<typeof pageBlockInputSchema>;
  * Kết quả là khối trang bình thường: sửa, tắt, sắp xếp lại hoặc xóa được trong CMS › Trang website.
  * Không có khối kêu gọi (cta, lead_form): website tự thêm dải tư vấn cuối trang khi trang chưa có (apps/website/src/app/(web)/[catalog]/page.tsx).
  */
-export const catalogListingTypes = { "listing-software": "software", "listing-solution": "solution", "listing-service": "service" } as const satisfies Partial<Record<ListingPageSlug, string>>;
+export const catalogListingTypes = { "listing-software": "software", "listing-solution": "solution" } as const satisfies Partial<Record<ListingPageSlug, string>>;
 export type CatalogListingSlug = keyof typeof catalogListingTypes;
 export type CatalogType = (typeof catalogListingTypes)[CatalogListingSlug];
 
 /** Đường dẫn công khai của từng loại (khớp offeringPath ở website). */
-export const catalogPaths: Record<CatalogType, string> = { software: "/software", solution: "/solutions", service: "/services" };
+export const catalogPaths: Record<CatalogType, string> = { software: "/software", solution: "/solutions" };
 
 /** Phần của một mục con cần để dựng trang cha. */
 export type CatalogChild = {

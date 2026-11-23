@@ -91,7 +91,7 @@ async function publicResource<T>(resource: string, params: Record<string, string
 const getSharedContent = cache(() => publicResource<SharedContent>("shared"));
 
 export function getOfferingTypeFromCatalogPath(path: string) {
-  return ({ software: "software", solutions: "solution", services: "service" } as const)[path as "software" | "solutions" | "services"];
+  return ({ software: "software", solutions: "solution" } as const)[path as "software" | "solutions"];
 }
 export async function getUmamiWebsiteId() { return (await getSharedContent()).integrations?.umamiWebsiteId ?? process.env.UMAMI_WEBSITE_ID?.trim() ?? null; }
 export async function getPublishingConfig() { return (await getSharedContent()).settings.config; }

@@ -15,9 +15,9 @@ const child = (overrides: Omit<Partial<CatalogChild>, "content"> & { content?: P
 const parse = (blocks: ReturnType<typeof buildCatalogSections>) => blocks.map(block => pageBlockInputSchema.parse(block) as PageBlock);
 
 test("Ba trang có mục con ánh xạ đúng loại và đường dẫn công khai", () => {
-  assert.deepEqual(catalogListingTypes, { "listing-software": "software", "listing-solution": "solution", "listing-service": "service" });
+  assert.deepEqual(catalogListingTypes, { "listing-software": "software", "listing-solution": "solution" });
   for (const slug of Object.keys(catalogListingTypes)) assert.ok(isListingPageSlug(slug), slug);
-  assert.deepEqual(catalogPaths, { software: "/software", solution: "/solutions", service: "/services" });
+  assert.deepEqual(catalogPaths, { software: "/software", solution: "/solutions" });
 });
 
 test("Mỗi mục con một phần hoàn chỉnh, ngang hàng, lấy tên từ tiêu đề mục con", () => {

@@ -174,7 +174,7 @@ export async function getAuditLogsPage(input: AuditListQuery): Promise<Awaited<R
   if (!parsed.success || parsed.data.page !== query.page || parsed.data.pageSize !== query.pageSize || (query.entityType && parsed.data.items.some(row => row.entityType !== query.entityType))) throw new Error("Dữ liệu phân trang nhật ký không hợp lệ. Vui lòng thử lại.");
   return { ...parsed.data, actors: z.array(auditActorSchema).catch([]).parse(data.actors) };
 }
-export async function getDashboardContentSummary(days?: number): Promise<DashboardContentSummary> { return (await getDashboard(days))?.content ?? { pages: emptyContentStat, posts: emptyContentStat, offerings: { products: emptyContentStat, solutions: emptyContentStat, services: emptyContentStat }, equipment: emptyContentStat, downloads: { enabled: 0, total: 0 }, leads: { new: 0, total: 0 }, recent: [], activity: [], leadsDaily: [] }; }
+export async function getDashboardContentSummary(days?: number): Promise<DashboardContentSummary> { return (await getDashboard(days))?.content ?? { pages: emptyContentStat, posts: emptyContentStat, offerings: { products: emptyContentStat, solutions: emptyContentStat }, equipment: emptyContentStat, downloads: { enabled: 0, total: 0 }, leads: { new: 0, total: 0 }, recent: [], activity: [], leadsDaily: [] }; }
 
 export async function getAdminOfferingsPage(params: { page?: string | number; pageSize?: string | number; query?: string; status?: string; type?: string; sort?: string; dir?: string } = {}): Promise<AdminOfferingsPage> {
   const input = pageListQuerySchema.extend({ type: publicOfferingTypeSchema.optional() }).parse({ ...params, status: params.status || undefined, type: params.type || undefined });
