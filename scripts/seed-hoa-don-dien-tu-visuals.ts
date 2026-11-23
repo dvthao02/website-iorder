@@ -1,4 +1,4 @@
-// Ảnh minh họa có chú thích cho trang Hóa đơn điện tử (/phan-mem/hoa-don-dien-tu-chu-ky-so), dựng từ hai ảnh chụp màn hình iOrder (ảnh ở scripts/data/hoa-don-dien-tu):
+// Ảnh minh họa có chú thích cho trang Hóa đơn điện tử (/software/hoa-don-dien-tu-chu-ky-so), dựng từ hai ảnh chụp màn hình iOrder (ảnh ở scripts/data/hoa-don-dien-tu):
 //  - sơ đồ đơn bán hàng → nhà cung cấp hóa đơn điện tử → hóa đơn (thêm khối Hình ảnh ngay sau phần Tổng quan);
 //  - màn hình Thiết lập kết nối và màn hình Hóa đơn có đánh số vùng cần chú ý (thay ảnh trong hai phần tương ứng; ảnh gốc vẫn dùng ở phần đầu trang).
 // Chỉ thêm, không ghi đè nội dung khác; chạy lại an toàn. Cần chạy `pnpm db:seed:hoa-don-dien-tu` trước.

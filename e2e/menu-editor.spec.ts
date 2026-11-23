@@ -36,8 +36,8 @@ test("Menu: sửa trên trang, tìm & liên kết trang, thêm nhanh, đổi c�
   await page.getByRole("button", { name: "Thêm mục", exact: true }).click();
   await expect(form).toBeVisible();
   const link = form.getByRole("combobox", { name: "Liên kết" });
-  await link.fill("tin-tuc");
-  const option = form.getByRole("option").filter({ hasText: "/tin-tuc" }).first();
+  await link.fill("news");
+  const option = form.getByRole("option").filter({ hasText: "/news" }).first();
   await expect(option).toBeVisible();
   await option.click();
   await expect(form.getByRole("button", { name: "Đổi liên kết" })).toBeVisible();

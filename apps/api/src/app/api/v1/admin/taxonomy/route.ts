@@ -25,9 +25,9 @@ async function handlePOST(request: Request) {
     if (denied) return denied;
     const id = await writeTaxonomy(body.kind, body.id, body.values, user.userId, body.expectedVersion);
     if (!id) return NextResponse.json({ error: { code: "NOT_FOUND", message: "Không tìm thấy chuyên mục hoặc thẻ cần cập nhật." } }, { status: 404 });
-    revalidatePath("/tin-tuc");
-    revalidatePath("/tin-tuc/chuyen-muc/[slug]", "page");
-    revalidatePath("/tin-tuc/the/[slug]", "page");
+    revalidatePath("/news");
+    revalidatePath("/news/category/[slug]", "page");
+    revalidatePath("/news/tag/[slug]", "page");
     revalidatePath("/sitemap.xml");
     return NextResponse.json({ id });
   } catch (error) {
@@ -47,7 +47,7 @@ async function handleDELETE(request: Request) {
   try {
     const deletedId = await deleteAdminTaxonomy(parsed.data.kind, parsed.data.id, user.userId);
     if (!deletedId) return NextResponse.json({ error: { code: "NOT_FOUND", message: "Không tìm thấy phân loại cần xóa." } }, { status: 404 });
-    revalidatePath("/tin-tuc"); revalidatePath("/tin-tuc/chuyen-muc/[slug]", "page"); revalidatePath("/tin-tuc/the/[slug]", "page"); revalidatePath("/sitemap.xml");
+    revalidatePath("/news"); revalidatePath("/news/category/[slug]", "page"); revalidatePath("/news/tag/[slug]", "page"); revalidatePath("/sitemap.xml");
     return NextResponse.json({ deletedId });
   } catch (error) {
     if (error instanceof TaxonomyInUseError) return NextResponse.json({ error: { code: "TAXONOMY_IN_USE", message: error.message } }, { status: 409 });

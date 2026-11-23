@@ -90,7 +90,7 @@ async function CardGrid({ items, visual = false, bento = false, network = false 
     const leadPhoto = photos[0];
     const leadBody = <>
       <div className={`relative min-h-[14rem] flex-1 overflow-hidden lg:min-h-0 ${leadPhoto ? "bg-brand-50" : photoFallback}`}>
-        {leadPhoto ? <CoverPhoto alt={lead.title} className="object-cover transition duration-700 group-hover:scale-[1.03]" photos={galleries[0]} sizes="(min-width: 1024px) 50vw, 100vw" />
+        {leadPhoto ? <CoverPhoto alt={lead.title} className="transition duration-700 group-hover:scale-[1.03]" fit="contain" photos={galleries[0]} sizes="(min-width: 1024px) 50vw, 100vw" />
           : <span aria-hidden="true" className="absolute inset-0 grid place-items-center">{lead.icon ? <BlockIcon name={lead.icon} size={72} strokeWidth={1.3} /> : null}</span>}
       </div>
       <div className="flex flex-col gap-3 border-t border-line p-6 lg:gap-2 lg:p-7">
@@ -108,7 +108,7 @@ async function CardGrid({ items, visual = false, bento = false, network = false 
         const photo = photos[index + 1];
         return <Card background={item.background} className="lg:flex-row" flush href={item.href} item={`items:${index + 1}`} key={`${item.title}-${index}`}>
           <div className={`relative w-full overflow-hidden bg-subtle lg:aspect-auto lg:w-[28%] lg:shrink-0 xl:w-[36%] ${photo ? "aspect-[16/9]" : "aspect-[16/5] sm:aspect-[16/9]"}`}>
-            {photo ? <CoverPhoto alt={item.title} className="object-cover transition duration-500 group-hover:scale-[1.03]" photos={galleries[index + 1]} sizes="(min-width: 1024px) 12vw, 50vw" />
+            {photo ? <CoverPhoto alt={item.title} className="transition duration-500 group-hover:scale-[1.03]" fit="contain" photos={galleries[index + 1]} sizes="(min-width: 1024px) 12vw, 50vw" />
               : <span aria-hidden="true" className={`absolute inset-0 grid place-items-center ${photoFallback}`}>{item.icon ? <BlockIcon name={item.icon} size={40} strokeWidth={1.4} /> : null}</span>}
           </div>
           <div className="flex min-w-0 flex-1 flex-col p-5 lg:py-4">
@@ -149,7 +149,7 @@ async function CardGrid({ items, visual = false, bento = false, network = false 
       const photo = photos[index];
       return <Card background={item.background} className={itemAlignClass[item.align ?? "left"]} flush href={item.href} item={`items:${index}`} key={`${item.title}-${index}`}>
         <div className={`relative w-full overflow-hidden bg-subtle ${photo ? "aspect-[16/10]" : "aspect-[16/5] sm:aspect-[16/10]"}`}>
-          {photo ? <CoverPhoto alt={item.title} className="object-cover transition duration-500 group-hover:scale-[1.03]" photos={galleries[index]} sizes="(min-width: 1280px) 25vw, (min-width: 640px) 50vw, 100vw" />
+          {photo ? <CoverPhoto alt={item.title} className="transition duration-500 group-hover:scale-[1.03]" fit="contain" photos={galleries[index]} sizes="(min-width: 1280px) 25vw, (min-width: 640px) 50vw, 100vw" />
             : <span aria-hidden="true" className={`absolute inset-0 grid place-items-center ${photoFallback}`}>{item.icon ? <BlockIcon name={item.icon} size={56} strokeWidth={1.4} /> : <span className="text-display font-bold">{String(index + 1).padStart(2, "0")}</span>}</span>}
         </div>
         <div className="flex flex-1 flex-col p-5 sm:p-6">

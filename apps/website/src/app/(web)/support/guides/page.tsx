@@ -14,7 +14,7 @@ import { getListingPageContent, listingPageMetadata } from "@/lib/listing-page";
 
 export const revalidate = 0;
 
-export async function generateMetadata(_: unknown, parent: ResolvingMetadata): Promise<Metadata> { return listingPageMetadata(await getListingPageContent("listing-guides"), "/ho-tro/huong-dan", parent); }
+export async function generateMetadata(_: unknown, parent: ResolvingMetadata): Promise<Metadata> { return listingPageMetadata(await getListingPageContent("listing-guides"), "/support/guides", parent); }
 
 // Trang tổng hợp hướng dẫn trong khung tài liệu: phần đầu (tiêu đề, mô tả từ CMS + ô tìm bài không dấu), danh mục nhóm
 // bên trái, giữa là từng nhóm với thẻ bài (biểu tượng, tên, mô tả ngắn). Khối "Danh sách nội dung" nguồn Hướng dẫn của
@@ -29,7 +29,7 @@ export default async function SupportGuidesPage() {
   return <>
     <SiteHeader />
     <main id="noi-dung">
-      <ListingPageHeader hero={content?.hero} header={header} crumbs={[{ name: "Hỗ trợ", path: "/ho-tro" }, { name: "Hướng dẫn sử dụng", path: "/ho-tro/huong-dan" }]}>
+      <ListingPageHeader hero={content?.hero} header={header} crumbs={[{ name: "Hỗ trợ", path: "/support" }, { name: "Hướng dẫn sử dụng", path: "/support/guides" }]}>
         {searchItems.length ? <div className="mt-6 max-w-2xl"><SupportSearch items={searchItems} suggestions={[]} /></div> : null}
       </ListingPageHeader>
       {index.groups.length ? <GuideDocsLayout groups={index.groups}>

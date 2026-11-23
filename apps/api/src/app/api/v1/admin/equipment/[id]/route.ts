@@ -29,7 +29,7 @@ async function handlePATCH(request: Request, { params }: EquipmentRouteProps) {
     if (denied) return denied;
     const equipment = await changeAdminEquipmentState(id, action, administrator.userId, expectedVersion);
     if (!equipment) return fail("NOT_FOUND", "Không tìm thấy thiết bị cần cập nhật.", 404);
-    revalidatePath("/thiet-bi", "layout");
+    revalidatePath("/equipment", "layout");
     return NextResponse.json({ equipment });
   } catch (error) {
     if (error instanceof ContentVersionConflictError) return fail("VERSION_CONFLICT", error.message, 409);
@@ -50,7 +50,7 @@ async function handleDELETE(request: Request, { params }: EquipmentRouteProps) {
     const deleted = await deleteAdminEquipmentGroup(id, administrator.userId);
     if (deleted && "blockedBy" in deleted) return fail("GROUP_IN_USE", "Không thể xóa nhóm khi vẫn còn thiết bị. Hãy chuyển hoặc xóa các thiết bị trong nhóm trước.", 409);
     if (!deleted) return fail("NOT_FOUND", "Không tìm thấy nhóm thiết bị cần xóa.", 404);
-    revalidatePath("/thiet-bi", "layout");
+    revalidatePath("/equipment", "layout");
     return NextResponse.json({ deletedId: deleted.id });
   }
 
@@ -64,7 +64,7 @@ async function handleDELETE(request: Request, { params }: EquipmentRouteProps) {
     return fail("INTERNAL_ERROR", "Không thể xóa thiết bị lúc này.", 500);
   }
   if (!deleted) return fail("NOT_FOUND", "Chỉ có thể xóa thiết bị đang lưu trữ.", 404);
-  revalidatePath("/thiet-bi", "layout");
+  revalidatePath("/equipment", "layout");
   return NextResponse.json({ deletedId: deleted.id });
 }
 

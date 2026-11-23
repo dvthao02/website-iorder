@@ -31,12 +31,12 @@ test("Các khối trang hiển thị có bố cục: phần đầu có ảnh và
 
   const slug = `e2e-khoi-trang-${stamp}`;
   const blocks = [
-    { type: "hero", isEnabled: true, data: { eyebrow: "Nền tảng vận hành", title: "Đơn giản hóa vận hành", description: "Mô tả ngắn cho phần đầu trang.", primaryAction: { label: "Nhận tư vấn", href: "/lien-he" }, secondaryAction: { label: "Xem phần mềm", href: "/phan-mem" }, mediaId: created.mediaId } },
+    { type: "hero", isEnabled: true, data: { eyebrow: "Nền tảng vận hành", title: "Đơn giản hóa vận hành", description: "Mô tả ngắn cho phần đầu trang.", primaryAction: { label: "Nhận tư vấn", href: "/contact" }, secondaryAction: { label: "Xem phần mềm", href: "/software" }, mediaId: created.mediaId } },
     { type: "stats", isEnabled: true, data: { eyebrow: "Con số", title: "iOrder trong số liệu", items: [{ value: "5.000+", label: "Cửa hàng", note: null }, { value: "63", label: "Tỉnh thành", note: "Toàn quốc" }, { value: "24/7", label: "Hỗ trợ", note: null }] } },
-    { type: "features", isEnabled: true, data: { eyebrow: "Hệ sinh thái", title: "Công nghệ phục vụ công việc", description: null, items: [{ title: "Phần mềm", description: "Bán hàng, kho, báo cáo.", href: "/phan-mem" }, { title: "Thiết bị", description: "Máy POS, máy in.", href: "/thiet-bi" }, { title: "Dịch vụ", description: "Triển khai, đào tạo.", href: null }] } },
+    { type: "features", isEnabled: true, data: { eyebrow: "Hệ sinh thái", title: "Công nghệ phục vụ công việc", description: null, items: [{ title: "Phần mềm", description: "Bán hàng, kho, báo cáo.", href: "/software" }, { title: "Thiết bị", description: "Máy POS, máy in.", href: "/equipment" }, { title: "Dịch vụ", description: "Triển khai, đào tạo.", href: null }] } },
     { type: "process", isEnabled: true, data: { eyebrow: "Triển khai", title: "Bốn bước bắt đầu", description: null, items: [{ title: "Khảo sát", description: "Tìm hiểu mô hình.", href: null }, { title: "Cài đặt", description: "Cài phần mềm, thiết bị.", href: null }, { title: "Đào tạo", description: "Hướng dẫn nhân viên.", href: null }, { title: "Đồng hành", description: "Hỗ trợ sau triển khai.", href: null }] } },
     { type: "faq", isEnabled: true, data: { eyebrow: null, title: "Câu hỏi thường gặp", items: [{ question: "Có dùng thử không?", answer: "Có, 14 ngày miễn phí." }, { question: "Mất mạng có bán được không?", answer: "Vẫn bán được, dữ liệu đồng bộ lại khi có mạng." }] } },
-    { type: "cta", isEnabled: true, data: { id: "tu-van", eyebrow: "Bắt đầu", title: "Cùng iOrder thiết kế cách vận hành", action: { label: "Trao đổi với chuyên gia", href: "/lien-he" } } },
+    { type: "cta", isEnabled: true, data: { id: "tu-van", eyebrow: "Bắt đầu", title: "Cùng iOrder thiết kế cách vận hành", action: { label: "Trao đổi với chuyên gia", href: "/contact" } } },
   ];
   const save = await page.request.post("/api/v1/admin/pages", { headers: { origin }, data: { id: null, values: { title: "Kiểm tra khối trang", slug, template: "default", status: "published", seoTitle: null, seoDescription: null, canonicalUrl: null, scheduledAt: null, blocks } } });
   expect(save.status()).toBe(201);
@@ -44,12 +44,12 @@ test("Các khối trang hiển thị có bố cục: phần đầu có ảnh và
 
   const site = await page.context().newPage();
   await site.setViewportSize({ width: 1280, height: 900 });
-  await site.goto(`${webUrl}/trang/${slug}`);
+  await site.goto(`${webUrl}/pages/${slug}`);
   await expect(site.locator("h1")).toHaveText("Đơn giản hóa vận hành");
   await expect(site.getByRole("link", { name: "Nhận tư vấn" })).toHaveClass(/button--primary/);
   await expect(site.locator("section").first().locator("img")).toHaveAttribute("src", /media/);
   await expect(site.getByText("5.000+")).toBeVisible();
-  await expect(site.getByRole("link", { name: /Phần mềm/ }).filter({ hasText: "Xem thêm" })).toHaveAttribute("href", "/phan-mem");
+  await expect(site.getByRole("link", { name: /Phần mềm/ }).filter({ hasText: "Xem thêm" })).toHaveAttribute("href", "/software");
   await expect(site.locator("ol > li")).toHaveCount(4);
   const answer = site.getByText("Có, 14 ngày miễn phí.");
   await expect(answer).toBeHidden();

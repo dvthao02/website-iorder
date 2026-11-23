@@ -6,7 +6,7 @@ import { users } from "./identity";
 import { mediaAssets } from "./media";
 import { timestamps } from "./shared";
 
-// Hồ sơ tác giả công khai (trang /tac-gia/<slug>, Person trong dữ liệu cấu trúc). Khác `users`: tác giả không cần có tài khoản CMS (chuyên gia, khách mời).
+// Hồ sơ tác giả công khai (trang /author/<slug>, Person trong dữ liệu cấu trúc). Khác `users`: tác giả không cần có tài khoản CMS (chuyên gia, khách mời).
 export const postAuthors = pgTable(
   "post_authors",
   {

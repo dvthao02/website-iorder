@@ -52,9 +52,9 @@ export function redirectTransfer(): TransferDataset<RedirectRow, { rows: Redirec
     schema: redirectInputSchema,
     async write(input, existing, actorId) {
       try {
-        const id = await writeRedirect(existing?.id ?? null, input, actorId, existing?.version);
-        if (!id) throw new Error("Không tìm thấy chuyển hướng (có thể vừa bị xóa).");
-        return id;
+        const saved = await writeRedirect(existing?.id ?? null, input, actorId, existing?.version);
+        if (!saved) throw new Error("Không tìm thấy chuyển hướng (có thể vừa bị xóa).");
+        return saved.id;
       } catch (error) {
         if (hasDatabaseErrorCode(error, "23505")) throw new Error("Đường dẫn cũ này đã có chuyển hướng khác.");
         if (error instanceof z.ZodError) throw new Error(error.issues[0]?.message ?? "Chuyển hướng không hợp lệ.");

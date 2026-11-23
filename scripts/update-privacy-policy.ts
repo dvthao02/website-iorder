@@ -8,7 +8,7 @@ import { privacyPolicyChangeNote, privacyPolicyDocument, privacyPolicyFootnote, 
 import { getAdminPageBySlug, saveAdminPage } from "../packages/shared/src/server/pages/pages.service";
 import { sanitizeRichDocument } from "../packages/shared/src/server/shared/rich-text";
 
-// Cập nhật trang "Chính sách bảo mật" (slug privacy-policy, /chinh-sach-bao-mat) theo bản công bố tại https://app.iorder.vn/privacy-policy.
+// Cập nhật trang "Chính sách bảo mật" (slug privacy-policy, /privacy-policy) theo bản công bố tại https://app.iorder.vn/privacy-policy.
 // Nội dung ở packages/shared/src/server/pages/privacy-policy-content.ts. Chỉ đổi: nội dung khối "Văn bản" (thêm khối nếu trang chưa có),
 // dòng "Cập nhật" ở phần đầu trang và mô tả SEO; giữ nguyên tiêu đề, giao diện và mọi thiết lập khác của trang.
 // Lưu qua CMS nên có phiên bản mới kèm lịch sử (bản cũ khôi phục được). Chạy lại nhiều lần an toàn: đã đúng bản này thì không lưu lại.

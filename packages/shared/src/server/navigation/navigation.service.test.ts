@@ -78,7 +78,7 @@ test("preserves content references when reading a menu for CMS", async () => {
     id: menuId,
     location: "header",
     version: 1,
-    items: [{ key: itemId, parentKey: null, label: "Dich vu", url: "/dich-vu/phan-mem", linkType: "offering", contentId, target: "_self", isEnabled: true }],
+    items: [{ key: itemId, parentKey: null, label: "Dich vu", url: "/services/phan-mem", linkType: "offering", contentId, target: "_self", isEnabled: true }],
   });
   const service = createNavigationService(fake.repository);
 
@@ -86,7 +86,7 @@ test("preserves content references when reading a menu for CMS", async () => {
     key: itemId,
     parentKey: null,
     label: "Dich vu",
-    url: "/dich-vu/phan-mem",
+    url: "/services/phan-mem",
     linkType: "offering",
     contentId,
     target: "_self",
@@ -105,7 +105,7 @@ test("validate URL trước khi gọi repository", async () => {
 });
 
 test("chỉ nhận đường dẫn nội bộ và protocol công khai đã cho phép", () => {
-  for (const value of ["/lien-he", "https://iorder.com.vn", "http://localhost:3000", "mailto:support@iorder.com.vn", "tel:+842812345678"]) {
+  for (const value of ["/contact", "https://iorder.com.vn", "http://localhost:3000", "mailto:support@iorder.com.vn", "tel:+842812345678"]) {
     assert.equal(safeLinkSchema.safeParse(value).success, true, value);
   }
   for (const value of ["//evil.example", "javascript:alert(1)", "data:text/html,unsafe", "/duong dan", "\\\\server\\share"]) {
@@ -127,7 +127,7 @@ test("không nhận mục con đứng trước hoặc trỏ tới mục cha khô
 test("lưu version, ghi chú và nhận lại ID ổn định từ repository", async () => {
   const fake = createRepository();
   const service = createNavigationService(fake.repository);
-  const result = await service.saveNavigation("header", [{ key: "menu-new", parentKey: null, label: "Liên hệ", url: "/lien-he", target: "_self", isEnabled: true }], userId, { expectedVersion: 0, changeNote: "  Cập nhật liên hệ  " });
+  const result = await service.saveNavigation("header", [{ key: "menu-new", parentKey: null, label: "Liên hệ", url: "/contact", target: "_self", isEnabled: true }], userId, { expectedVersion: 0, changeNote: "  Cập nhật liên hệ  " });
 
   assert.equal(result.items[0].key, itemId);
   assert.equal(result.version, 1);

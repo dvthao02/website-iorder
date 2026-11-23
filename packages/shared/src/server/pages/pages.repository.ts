@@ -69,7 +69,7 @@ export async function listAdminPagesPage(query: PageListQuery, database = getDb(
   return database.transaction(async tx => {
     const rows = await tx.select(selectPage).from(pages).where(condition).orderBy(...listOrder({ title: vietnameseText(pages.title), status: workflowStatusRank(pages.status), updatedAt: pages.updatedAt }, query, [desc(pages.updatedAt), asc(pages.id)])).limit(query.pageSize).offset((query.page - 1) * query.pageSize);
     const [totals] = await tx.select({ total: count() }).from(pages).where(condition);
-    // Danh sách không tải khối: màn danh sách chỉ cần thông tin dòng (P2-3 trong docs/CMS_V2_AUDIT.md).
+    // Danh sách không tải khối: màn danh sách chỉ cần thông tin dòng.
     return toAdminListPage(rows, query, totals?.total ?? 0);
   }, { isolationLevel: "repeatable read", accessMode: "read only" });
 }
@@ -99,7 +99,7 @@ export async function writePage(id: string | null, input: PageInput, editorId: s
     const values = { seo, title: input.title, slug: input.slug, template: input.template, status: input.status, seoTitle: input.seoTitle, seoDescription: input.seoDescription, canonicalUrl: input.canonicalUrl, scheduledAt: input.scheduledAt, publishedAt, draftVersion: version };
     const [page] = id ? await tx.update(pages).set({ ...values, updatedAt: new Date() }).where(eq(pages.id, id)).returning({ id: pages.id }) : await tx.insert(pages).values(values).returning({ id: pages.id });
     const pathChange = contentPathChange(existing && { status: existing.status, scheduledAt: existing.scheduledAt, path: pagePublicPath(existing.slug) }, { status: input.status, scheduledAt: input.scheduledAt, path: pagePublicPath(input.slug) });
-    await applyContentPathChange(tx, pathChange, editorId);
+    await applyContentPathChange(tx, pathChange, editorId, { kind: "page", id: page.id });
     await tx.delete(pageBlocks).where(eq(pageBlocks.pageId, page.id));
     if (input.blocks.length) await tx.insert(pageBlocks).values(input.blocks.map((block, index) => ({ pageId: page.id, type: block.type, data: block.data, sortOrder: index, isEnabled: block.isEnabled, appearance: block.appearance ?? null })));
     const snapshot = { ...input, seo, publishedAt: publishedAt?.toISOString() ?? null };

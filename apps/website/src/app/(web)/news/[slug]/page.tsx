@@ -35,7 +35,7 @@ export async function generateMetadata({ params }: NewsDetailPageProps, parent: 
   if (!post) return { title: "Không tìm thấy bài viết | iOrder" };
   const author = resolvePostAuthor(post);
   const siteUrl = author ? (await getPublishingConfig()).siteUrl ?? undefined : undefined;
-  return contentMetadata({ title: post.seoTitle ?? post.title, description: post.seoDescription ?? suggestSeoDescription(post.excerpt, post.content), path: `/tin-tuc/${post.slug}`, canonicalUrl: post.canonicalUrl, seo: post.seo, image: post.cover ? { url: post.cover.url, alt: post.cover.altText } : null, authors: author ? [{ name: author.name, url: authorMetaUrl(author, siteUrl) }] : undefined, type: "article", article: { publishedTime: post.publishedAt, modifiedTime: post.updatedAt, section: post.categories[0]?.name, tags: post.tags.map((tag) => tag.name) } }, parent);
+  return contentMetadata({ title: post.seoTitle ?? post.title, description: post.seoDescription ?? suggestSeoDescription(post.excerpt, post.content), path: `/news/${post.slug}`, canonicalUrl: post.canonicalUrl, seo: post.seo, image: post.cover ? { url: post.cover.url, alt: post.cover.altText } : null, authors: author ? [{ name: author.name, url: authorMetaUrl(author, siteUrl) }] : undefined, type: "article", article: { publishedTime: post.publishedAt, modifiedTime: post.updatedAt, section: post.categories[0]?.name, tags: post.tags.map((tag) => tag.name) } }, parent);
 }
 
 const dateFormatter = new Intl.DateTimeFormat("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
@@ -51,13 +51,13 @@ export default async function NewsDetailPage({ params }: NewsDetailPageProps) {
   const post = await getPublishedPostBySlug(slug);
   if (!post) notFound();
   // Bài hướng dẫn có trang riêng; tránh trùng nội dung dưới hai URL.
-  if (post.type === "guide") permanentRedirect(`/ho-tro/huong-dan/${post.slug}`);
+  if (post.type === "guide") permanentRedirect(`/support/guides/${post.slug}`);
   const [config, profile, index, preview] = await Promise.all([getPublishingConfig(), getSiteProfile(), getNewsIndex(), getBuilderPreviewContext()]);
   // Trong khung xem trước của CMS: bấm vào tiêu đề, tóm tắt, ảnh bìa, nội dung, chuyên mục, thẻ thì CMS nhảy tới đúng ô cần sửa.
   const builderBlock = preview?.document.kind === "post" ? 0 : undefined;
   const site = config.siteUrl;
   const author = resolvePostAuthor(post);
-  const path = `/tin-tuc/${post.slug}`;
+  const path = `/news/${post.slug}`;
   const { document, toc } = articleOutline(post.content, post.title);
   // Tóm tắt nhanh tự rút từ câu đầu của từng đề mục; bài cũ (khối v1) không có đề mục nên không có tóm tắt.
   const summary = document.version === 2 ? articleSummary(document.doc) : null;
@@ -70,7 +70,7 @@ export default async function NewsDetailPage({ params }: NewsDetailPageProps) {
   // Đáy trang: bài mới nhất, không lặp bài đang đọc và các bài đã có ở "liên quan" (cột bên).
   const latest = index.posts.filter((item) => item.id !== post.id && !related.includes(item)).slice(0, 3);
   const hasAside = toc.length >= 2 || related.length > 0;
-  const crumbs = [{ name: "Trang chủ", path: "/" }, { name: "Tin tức", path: "/tin-tuc" }, ...(topic ? [{ name: topic.name, path: newsTopicPath(topic.slug) }] : []), { name: post.title, path }];
+  const crumbs = [{ name: "Trang chủ", path: "/" }, { name: "Tin tức", path: "/news" }, ...(topic ? [{ name: topic.name, path: newsTopicPath(topic.slug) }] : []), { name: post.title, path }];
 
   return <>
     <SiteHeader />
@@ -104,14 +104,14 @@ export default async function NewsDetailPage({ params }: NewsDetailPageProps) {
               <p className="mt-1 mb-0 text-small text-muted">Để lại thông tin, đội ngũ iOrder liên hệ lại trong giờ làm việc{profile?.workingHours ? ` (${profile.workingHours})` : ""}.</p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Link className="button button--primary" href="/lien-he">Đăng ký tư vấn</Link>
+              <Link className="button button--primary" href="/contact">Đăng ký tư vấn</Link>
               {profile?.hotline ? <a className="button button--secondary" href={tel(profile.hotline)}><Phone aria-hidden="true" size={16} />{profile.hotline}</a> : null}
             </div>
           </aside>
           <div className="article-foot">
             {post.categories.length || post.tags.length ? <p className="m-0 flex flex-wrap items-center gap-x-3 gap-y-2 text-small text-muted">
               {post.categories.length ? <span data-builder-field="categories">Chủ đề: {post.categories.map((category, position) => <span key={category.id}>{position ? ", " : ""}<Link className="font-semibold text-brand-700 hover:underline" href={newsTopicPath(category.slug)}>{category.name}</Link></span>)}</span> : null}
-              {post.tags.map((tag) => <Link className="article-tag" data-builder-field="tags" href={`/tin-tuc/the/${tag.slug}`} key={tag.id}>#{tag.name}</Link>)}
+              {post.tags.map((tag) => <Link className="article-tag" data-builder-field="tags" href={`/news/tag/${tag.slug}`} key={tag.id}>#{tag.name}</Link>)}
             </p> : null}
             <ShareLinks />
           </div>

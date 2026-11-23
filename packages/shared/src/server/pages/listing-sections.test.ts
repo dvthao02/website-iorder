@@ -41,7 +41,7 @@ test("Phần dựng sẵn không thay khối đầu trang hay khối danh sách,
 });
 
 test("Liên kết trong phần dựng sẵn là đường dẫn nội bộ hợp lệ, trỏ tới các route có thật", () => {
-  const routes = [/^\/phan-mem(\/[a-z0-9-]+)?(#[a-z0-9-]+)?$/, /^\/giai-phap(\/[a-z0-9-]+)?$/, /^\/dich-vu(\/[a-z0-9-]+)?$/, /^\/thiet-bi(\/[a-z0-9-]+)?$/, /^\/ho-tro\/(huong-dan|cai-dat)(\/[a-z0-9-]+)?$/, /^\/ho-tro-tu-xa$/, /^\/lien-he$/];
+  const routes = [/^\/software(\/[a-z0-9-]+)?(#[a-z0-9-]+)?$/, /^\/solutions(\/[a-z0-9-]+)?$/, /^\/services(\/[a-z0-9-]+)?$/, /^\/equipment(\/[a-z0-9-]+)?$/, /^\/support\/(guides|setup)(\/[a-z0-9-]+)?$/, /^\/support\/remote$/, /^\/contact$/];
   for (const [slug, blocks] of entries) {
     for (const href of hrefs(blocks)) assert.ok(routes.some(route => route.test(href)), `${slug}: ${href}`);
   }

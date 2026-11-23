@@ -138,7 +138,7 @@ export async function collectMediaUsage(mediaId: string): Promise<MediaUsage[]> 
     getDb().select({ id: supportDownloads.id, label: supportDownloads.title }).from(supportDownloads).where(and(eq(supportDownloads.fileMediaId, mediaId), isNull(supportDownloads.deletedAt))),
     listPublishingMediaUsage(mediaId),
     getDb().select({ id: users.id, label: users.fullName }).from(users).where(and(eq(users.avatarMediaId, mediaId), isNull(users.deletedAt))),
-    // Ảnh đại diện của tác giả bài viết (dòng "Tác giả" trên bài và trang /tac-gia).
+    // Ảnh đại diện của tác giả bài viết (dòng "Tác giả" trên bài và trang /author).
     getDb().select({ id: postAuthors.id, label: postAuthors.name }).from(postAuthors).where(eq(postAuthors.avatarMediaId, mediaId)),
   ]);
 

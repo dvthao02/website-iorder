@@ -3,7 +3,7 @@ import { test } from "node:test";
 
 import { indexNowRequestBody, isPublicSiteUrl, parseIndexNowKey, resolveIndexNowKey, selectIndexNowUrls, sitemapLocations } from "./indexnow";
 
-const sitemap = `<?xml version="1.0"?><urlset><url><loc>https://iorder.vn/tin-tuc/bai-a</loc></url><url><loc>https://iorder.vn/thiet-bi/ket?a=1&amp;b=2</loc></url><url><loc> https://iorder.vn/ </loc></url></urlset>`;
+const sitemap = `<?xml version="1.0"?><urlset><url><loc>https://iorder.vn/news/bai-a</loc></url><url><loc>https://iorder.vn/equipment/ket?a=1&amp;b=2</loc></url><url><loc> https://iorder.vn/ </loc></url></urlset>`;
 
 test("Khóa IndexNow chỉ nhận 8–128 ký tự chữ, số, gạch ngang; thiếu hoặc sai thì tắt", () => {
   assert.equal(parseIndexNowKey(" abcd1234-EF "), "abcd1234-EF");
@@ -13,12 +13,12 @@ test("Khóa IndexNow chỉ nhận 8–128 ký tự chữ, số, gạch ngang; th
 });
 
 test("Đọc <loc> trong sitemap, giải mã &amp; và bỏ khoảng trắng", () => {
-  assert.deepEqual(sitemapLocations(sitemap), ["https://iorder.vn/tin-tuc/bai-a", "https://iorder.vn/thiet-bi/ket?a=1&b=2", "https://iorder.vn/"]);
+  assert.deepEqual(sitemapLocations(sitemap), ["https://iorder.vn/news/bai-a", "https://iorder.vn/equipment/ket?a=1&b=2", "https://iorder.vn/"]);
 });
 
 test("Chỉ báo URL vừa làm mới mà có trong sitemap: bản nháp, mẫu động và trang ngoài sitemap bị bỏ; không trùng lặp", () => {
-  const urls = selectIndexNowUrls({ paths: ["/tin-tuc/bai-a", "/tin-tuc/bai-a", "/ho-tro/huong-dan/bai-a", "/tin-tuc/[slug]", "/", "/tin-tuc/ban-nhap", "tin-tuc/khong-co-gach"], siteUrl: "https://iorder.vn", sitemap });
-  assert.deepEqual(urls, ["https://iorder.vn/tin-tuc/bai-a", "https://iorder.vn/"]);
+  const urls = selectIndexNowUrls({ paths: ["/news/bai-a", "/news/bai-a", "/support/guides/bai-a", "/news/[slug]", "/", "/news/ban-nhap", "tin-tuc/khong-co-gach"], siteUrl: "https://iorder.vn", sitemap });
+  assert.deepEqual(urls, ["https://iorder.vn/news/bai-a", "https://iorder.vn/"]);
 });
 
 test("Yêu cầu IndexNow có host, khóa và vị trí tệp khóa trên cùng website", () => {

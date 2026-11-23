@@ -8,7 +8,7 @@ export type GuideGroup = { key: string; label: string; items: GuideEntry[] };
 
 // Cùng nhãn với cột "Nhóm" trong CMS › Hướng dẫn sử dụng.
 const generalGroup = uncategorizedGuideGroup;
-export const guideHref = (slug: string) => `/ho-tro/huong-dan/${slug}`;
+export const guideHref = (slug: string) => `/support/guides/${slug}`;
 
 /**
  * Danh mục bài hướng dẫn cho khung tài liệu (thanh bên trái, trang tổng hợp, bài trước/sau): mỗi chuyên mục một nhóm,

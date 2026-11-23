@@ -14,7 +14,7 @@ const post = (n: number, patch: Partial<PublicPostSummary> = {}): PublicPostSumm
 
 test("Bố cục nổi bật: bài đầu to có ảnh có alt, nhãn chủ đề, tóm tắt và 'Đọc tiếp'; các bài sau thành danh sách gọn", () => {
   const html = renderToStaticMarkup(<PostSpotlight posts={[post(1), post(2), post(3)]} />);
-  assert.match(html, /href="\/tin-tuc\/bai-viet-1"/);
+  assert.match(html, /href="\/news\/bai-viet-1"/);
   assert.match(html, /alt="Ảnh bài 1"/);
   assert.match(html, /<h3[^>]*>Bài viết số 1<\/h3>/);
   assert.match(html, /Tóm tắt bài 1/);
@@ -36,7 +36,7 @@ test("Bài chưa có ảnh bìa vẫn hiển thị đủ chữ và liên kết, 
   const bare = (n: number) => post(n, { cover: null });
   const spotlight = renderToStaticMarkup(<PostSpotlight posts={[bare(1), bare(2)]} />);
   assert.doesNotMatch(spotlight, /<img/);
-  assert.match(spotlight, /href="\/tin-tuc\/bai-viet-2"/);
+  assert.match(spotlight, /href="\/news\/bai-viet-2"/);
   const rows = renderToStaticMarkup(<PostRows posts={[bare(1)]} />);
   assert.doesNotMatch(rows, /<img/);
   assert.match(rows, /Bài viết số 1/);

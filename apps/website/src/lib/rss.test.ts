@@ -3,19 +3,19 @@ import { test } from "node:test";
 
 import { buildRssFeed, escapeXml } from "./rss";
 
-const channel = { title: "iOrder – Tin tức", description: "Tin mới", siteUrl: "https://iorder.vn/tin-tuc", feedUrl: "https://iorder.vn/feed.xml" };
+const channel = { title: "iOrder – Tin tức", description: "Tin mới", siteUrl: "https://iorder.vn/news", feedUrl: "https://iorder.vn/feed.xml" };
 
 test("RSS có kênh, liên kết tự tham chiếu, bài mới nhất trước và ngày theo RFC 822", () => {
   const xml = buildRssFeed({ ...channel, items: [
-    { title: "Bài cũ", url: "https://iorder.vn/tin-tuc/cu", description: "Mô tả cũ", publishedAt: new Date("2026-10-01T03:00:00Z"), categories: ["Mẹo bán hàng"] },
-    { title: "Bài mới", url: "https://iorder.vn/tin-tuc/moi", description: null, publishedAt: new Date("2026-11-15T03:00:00Z") },
+    { title: "Bài cũ", url: "https://iorder.vn/news/cu", description: "Mô tả cũ", publishedAt: new Date("2026-10-01T03:00:00Z"), categories: ["Mẹo bán hàng"] },
+    { title: "Bài mới", url: "https://iorder.vn/news/moi", description: null, publishedAt: new Date("2026-11-15T03:00:00Z") },
   ] });
   assert.ok(xml.startsWith('<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0"'));
   assert.ok(xml.indexOf("Bài mới") < xml.indexOf("Bài cũ"));
   assert.ok(xml.includes("<pubDate>Sun, 15 Nov 2026 03:00:00 GMT</pubDate>"));
   assert.ok(xml.includes("<lastBuildDate>Sun, 15 Nov 2026 03:00:00 GMT</lastBuildDate>"));
   assert.ok(xml.includes('<atom:link href="https://iorder.vn/feed.xml" rel="self" type="application/rss+xml" />'));
-  assert.ok(xml.includes('<guid isPermaLink="true">https://iorder.vn/tin-tuc/moi</guid>'));
+  assert.ok(xml.includes('<guid isPermaLink="true">https://iorder.vn/news/moi</guid>'));
   assert.ok(xml.includes("<category>Mẹo bán hàng</category>"));
   assert.equal(xml.match(/<description>/g)?.length, 2, "kênh + bài có mô tả; bài không mô tả không có thẻ rỗng");
   assert.ok(!/<[a-z]+><\/[a-z]+>/.test(xml));
@@ -30,7 +30,7 @@ test("Ký tự đặc biệt được thoát và ký tự điều khiển không
 });
 
 test("Chỉ giữ tối đa số bài quy định, bài mới nhất", () => {
-  const items = Array.from({ length: 50 }, (_, index) => ({ title: `Bài ${index}`, url: `https://iorder.vn/tin-tuc/${index}`, description: null, publishedAt: new Date(Date.UTC(2026, 0, 1 + index)) }));
+  const items = Array.from({ length: 50 }, (_, index) => ({ title: `Bài ${index}`, url: `https://iorder.vn/news/${index}`, description: null, publishedAt: new Date(Date.UTC(2026, 0, 1 + index)) }));
   const xml = buildRssFeed({ ...channel, items }, 30);
   assert.equal(xml.match(/<item>/g)?.length, 30);
   assert.ok(xml.includes("Bài 49") && !xml.includes("Bài 19<"));

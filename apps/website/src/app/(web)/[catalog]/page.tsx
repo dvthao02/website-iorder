@@ -12,14 +12,14 @@ type OfferingListPageProps = {
   params: Promise<{ catalog: string }>;
 };
 
-const listingSlugByPath = { "dich-vu": "listing-service", "giai-phap": "listing-solution", "phan-mem": "listing-software" } as const;
+const listingSlugByPath = { services: "listing-service", solutions: "listing-solution", software: "listing-software" } as const;
 // Tên ngắn trên đường dẫn (breadcrumb) của từng trang danh sách.
-const crumbNames = { "dich-vu": "Dịch vụ", "giai-phap": "Giải pháp", "phan-mem": "Phần mềm" } as const;
+const crumbNames = { services: "Dịch vụ", solutions: "Giải pháp", software: "Phần mềm" } as const;
 // Dải tư vấn cuối trang: người xem hết danh sách mà chưa chọn được vẫn có lối đi tiếp (tư vấn hoặc gọi hotline).
 const closingText = {
-  "phan-mem": { title: "Chưa chắc phần mềm nào phù hợp?", description: "Kể cho iOrder về mô hình kinh doanh của bạn — chúng tôi tư vấn phần mềm, thiết bị đi kèm và hướng dẫn dùng thử miễn phí." },
-  "giai-phap": { title: "Cần giải pháp cho mặt bằng của bạn?", description: "iOrder khảo sát tận nơi, đề xuất phương án hạ tầng và báo giá rõ ràng trước khi triển khai." },
-  "dich-vu": { title: "Trao đổi quy trình cần cải thiện", description: "Mô tả cách doanh nghiệp đang làm và vấn đề cần xử lý để iOrder xác định phạm vi khảo sát." },
+  software: { title: "Chưa chắc phần mềm nào phù hợp?", description: "Kể cho iOrder về mô hình kinh doanh của bạn — chúng tôi tư vấn phần mềm, thiết bị đi kèm và hướng dẫn dùng thử miễn phí." },
+  solutions: { title: "Cần giải pháp cho mặt bằng của bạn?", description: "iOrder khảo sát tận nơi, đề xuất phương án hạ tầng và báo giá rõ ràng trước khi triển khai." },
+  services: { title: "Trao đổi quy trình cần cải thiện", description: "Mô tả cách doanh nghiệp đang làm và vấn đề cần xử lý để iOrder xác định phạm vi khảo sát." },
 } as const;
 
 function getCatalogListing(catalog: string) {

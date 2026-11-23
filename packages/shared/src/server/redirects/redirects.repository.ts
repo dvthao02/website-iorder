@@ -2,7 +2,8 @@ import { and, asc, eq, isNull, or, sql } from "drizzle-orm";
 import { getDb } from "@iorder/shared/db/client";
 import { auditLogs, redirects } from "@iorder/shared/db/schema";
 import type { RedirectInput } from "./redirects.contract";
-import { assertNoRedirectCycle } from "./redirect-cycle";
+import { assertNoRedirectCycle, resolveRedirectDestination } from "./redirect-cycle";
+import { noLinkUpdates, rewriteInternalLinks, type DbTransaction, type LinkUpdateSummary, type SkippedContent } from "./redirect-links";
 import { assertContentVersion } from "../shared/content-version";
 
 export function listRedirects() { return getDb().select().from(redirects).where(isNull(redirects.deletedAt)).orderBy(asc(redirects.sourcePath)); }
@@ -20,16 +21,21 @@ export function saveRedirect(id: string | null, values: RedirectInput, userId: s
     assertNoRedirectCycle(rows, id, values);
     const [after] = id ? await tx.update(redirects).set({ ...values, version: (before?.version ?? 0) + 1, updatedAt: new Date() }).where(and(eq(redirects.id, id), isNull(redirects.deletedAt))).returning() : await tx.insert(redirects).values(values).returning();
     await tx.insert(auditLogs).values({ userId, action: id ? "redirect.update" : "redirect.create", entityType: "redirect", entityId: after.id, beforeData: before ?? null, afterData: values });
-    return after.id;
+    // Chuyển hướng đang bật: liên kết nội bộ trỏ tới đường dẫn cũ được đổi thẳng sang đích cuối cùng (đi hết chuỗi chuyển hướng), cùng transaction.
+    const destinationHash = new URL(values.destinationPath, "https://redirect.invalid").hash;
+    const linkUpdates = values.isEnabled
+      ? await rewriteInternalLinks(tx, { from: values.sourcePath, to: resolveRedirectDestination(rows, values.destinationPath, id) + destinationHash }, { userId, redirectId: after.id })
+      : noLinkUpdates;
+    return { id: after.id, linkUpdates };
   });
 }
-type DbTransaction = Parameters<Parameters<ReturnType<typeof getDb>["transaction"]>[0]>[0];
 
 // Nội dung đã xuất bản đổi đường dẫn: chạy trong transaction lưu nội dung để URL cũ không bao giờ 404.
 // - Chuyển hướng đang chiếm URL mới bị gỡ (ví dụ đổi slug quay lại tên cũ), nếu không trang mới sẽ bị đẩy đi nơi khác.
 // - Chuyển hướng đang trỏ tới URL cũ được trỏ thẳng sang URL mới, không tạo chuỗi nhiều bước.
 // - URL cũ chuyển 301 sang URL mới (cập nhật dòng có sẵn nếu đã có).
-export async function redirectMovedContent(tx: DbTransaction, move: { from: string; to: string }, userId: string) {
+// - Liên kết nội bộ trỏ tới URL cũ trong menu, trang, bài viết… được đổi sang URL mới (trừ nội dung đang lưu: `skip`, vì nó vừa được ghi xong).
+export async function redirectMovedContent(tx: DbTransaction, move: { from: string; to: string }, userId: string, skip?: SkippedContent): Promise<LinkUpdateSummary> {
   await releaseRedirectSource(tx, move.to, userId, "Nội dung đã chuyển về đường dẫn này.");
   // Chỉ đọc các dòng liên quan tới URL cũ, không quét cả bảng trong transaction lưu nội dung.
   const rows = await tx.select().from(redirects).where(and(isNull(redirects.deletedAt), or(eq(redirects.sourcePath, move.from), eq(redirects.destinationPath, move.from))));
@@ -47,6 +53,7 @@ export async function redirectMovedContent(tx: DbTransaction, move: { from: stri
     ? await tx.update(redirects).set({ destinationPath: move.to, isEnabled: true, version: existing.version + 1, updatedAt: now }).where(eq(redirects.id, existing.id)).returning({ id: redirects.id })
     : await tx.insert(redirects).values(values).returning({ id: redirects.id });
   await tx.insert(auditLogs).values({ userId, action: existing ? "redirect.update" : "redirect.create", entityType: "redirect", entityId: saved.id, beforeData: existing ?? null, afterData: { ...values, reason: "Tự tạo khi đổi đường dẫn nội dung đã xuất bản." } });
+  return rewriteInternalLinks(tx, move, { userId, redirectId: saved.id, skip });
 }
 
 // Nội dung xuất bản (hoặc hẹn giờ) tại một đường dẫn: gỡ chuyển hướng đang lấy đường dẫn đó làm nguồn,
@@ -64,8 +71,8 @@ export async function releaseRedirectSource(tx: DbTransaction, path: string, use
 export type ContentPathChange = { moved: { from: string; to: string } | null; claimed: string | null };
 
 // Một chỗ cho mọi lần lưu nội dung: đổi đường dẫn thì chuyển hướng URL cũ, còn không thì chỉ giải phóng URL đang dùng.
-export async function applyContentPathChange(tx: DbTransaction, change: ContentPathChange | null | undefined, userId: string) {
-  if (change?.moved) await redirectMovedContent(tx, change.moved, userId);
+export async function applyContentPathChange(tx: DbTransaction, change: ContentPathChange | null | undefined, userId: string, skip?: SkippedContent) {
+  if (change?.moved) await redirectMovedContent(tx, change.moved, userId, skip);
   else if (change?.claimed) await releaseRedirectSource(tx, change.claimed, userId);
 }
 

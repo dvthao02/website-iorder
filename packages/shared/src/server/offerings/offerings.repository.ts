@@ -191,7 +191,7 @@ export async function createOfferingWithRevision(values: AdminOfferingInput & { 
       throw new Error("Không thể tạo Offering.");
     }
 
-    await applyContentPathChange(tx, pathChange, revision.editorId);
+    await applyContentPathChange(tx, pathChange, revision.editorId, { kind: "offering", id: created.id });
     await tx.insert(offeringRevisions).values({
       offeringId: created.id,
       editorId: revision.editorId,
@@ -222,7 +222,7 @@ export async function updateOfferingWithRevision(id: string, values: AdminOfferi
     if (!updated) {
       return undefined;
     }
-    await applyContentPathChange(tx, pathChange, revision.editorId);
+    await applyContentPathChange(tx, pathChange, revision.editorId, { kind: "offering", id: updated.id });
 
     await tx.insert(offeringRevisions).values({
       offeringId: updated.id,

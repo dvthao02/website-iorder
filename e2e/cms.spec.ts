@@ -77,10 +77,10 @@ test.describe("CMS", () => {
   test("Website public hiển thị trang chủ và tin tức", async ({ page }) => {
     const home = await page.goto(webUrl);
     expect(home?.status()).toBe(200);
-    const news = await page.goto(`${webUrl}/tin-tuc`);
+    const news = await page.goto(`${webUrl}/news`);
     expect(news?.status()).toBe(200);
     // Only assert article links when the database actually has published posts.
-    const links = page.locator("a[href^='/tin-tuc/']");
+    const links = page.locator("a[href^='/news/']");
     if (await links.count()) await expect(links.first()).toBeVisible();
   });
 });

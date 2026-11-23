@@ -85,8 +85,8 @@ test("Trang chủ, Trang website và Sửa nội dung từ Menu", async ({ page 
   const tabs = page.getByRole("tablist", { name: "Loại trang" });
   await tabs.getByRole("tab", { name: /^Trang danh sách/ }).click();
   await expect(page).toHaveURL(/type=listing/);
-  await expect(table.getByText("/tin-tuc", { exact: true })).toBeVisible();
-  await expect(table.getByText("/chinh-sach-bao-mat")).toHaveCount(0);
+  await expect(table.getByText("/news", { exact: true })).toBeVisible();
+  await expect(table.getByText("/privacy-policy")).toHaveCount(0);
   // Chọn nhiều dòng vẫn dùng được (xuất bản / chuyển về nháp); trang có sẵn không lưu trữ được nên "Lưu trữ" mờ kèm lý do.
   await table.locator("tbody input[type=checkbox]").first().check();
   await page.locator("summary[aria-label=\"Chọn thao tác cho các dòng đã chọn\"]").click();

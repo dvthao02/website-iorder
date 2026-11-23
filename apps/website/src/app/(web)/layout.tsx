@@ -16,7 +16,7 @@ export const revalidate = 0;
 export default async function PublicLayout({ children }: { children: ReactNode }) {
   const [profile, footerNavigation, externalLinks, publishing, storedPopup, draft] = await Promise.all([getSiteProfile(), getNavigation("footer"), getExternalLinks(), getPublishingConfig(), getConsultPopup(), draftMode()]);
   const builder = await getBuilderPreviewContext();
-  // Cửa sổ tư vấn tự hiện: chưa cấu hình trong CMS thì dùng mặc định; không hiện khi xem trước bản nháp hoặc trong trình dựng trang.
+  // Biểu mẫu tư vấn và quảng cáo tự hiện (hai cấu hình độc lập): chưa cấu hình trong CMS thì dùng mặc định; không hiện khi xem trước bản nháp hoặc trong trình dựng trang.
   const popup = storedPopup ?? defaultConsultPopup;
   const popupEnabled = popup.form.enabled || popup.promo.enabled;
   const popupMedia = popup.promo.enabled && !builder && !draft.isEnabled ? (await loadBlockImages([popup.promo.mediaId]))[0] : undefined;

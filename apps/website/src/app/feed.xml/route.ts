@@ -15,11 +15,11 @@ export async function GET() {
   const xml = buildRssFeed({
     title: `${siteName} – Tin tức`,
     description: config.defaultDescription ?? `Tin tức và bài viết mới nhất từ ${siteName}.`,
-    siteUrl: new URL("/tin-tuc", site).toString(),
+    siteUrl: new URL("/news", site).toString(),
     feedUrl: new URL("/feed.xml", site).toString(),
     items: posts.filter((post) => post.type !== "guide" && isSitemapEligible(post.seo)).map((post) => ({
       title: post.title,
-      url: new URL(`/tin-tuc/${post.slug}`, site).toString(),
+      url: new URL(`/news/${post.slug}`, site).toString(),
       description: post.excerpt,
       publishedAt: post.publishedAt ?? post.createdAt,
       categories: post.categories.map((category) => category.name),

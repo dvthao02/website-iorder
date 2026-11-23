@@ -110,7 +110,7 @@ test("Chọn thuộc tính: ưu tiên Tên miền, rồi https, rồi www; bỏ 
   assert.equal(pickProperty(entries("https://iorder.vn/", "sc-domain:iorder.vn"), "https://iorder.vn"), "sc-domain:iorder.vn");
   assert.equal(pickProperty(entries("https://www.iorder.vn/", "https://iorder.vn/"), "https://iorder.vn"), "https://iorder.vn/");
   assert.equal(pickProperty(entries("https://www.iorder.vn/"), "https://iorder.vn"), "https://www.iorder.vn/");
-  assert.equal(pickProperty(entries("sc-domain:iorder.vn"), "https://www.iorder.vn/trang"), "sc-domain:iorder.vn");
+  assert.equal(pickProperty(entries("sc-domain:iorder.vn"), "https://www.iorder.vn/pages"), "sc-domain:iorder.vn");
   assert.equal(pickProperty([{ siteUrl: "sc-domain:iorder.vn", permissionLevel: "siteUnverifiedUser" }], "https://iorder.vn"), undefined);
   assert.equal(pickProperty(entries("sc-domain:khac.vn"), "https://iorder.vn"), undefined);
   assert.equal(pickProperty(entries("sc-domain:iorder.vn"), null), undefined);
@@ -120,7 +120,7 @@ test("Chọn thuộc tính: ưu tiên Tên miền, rồi https, rồi www; bỏ 
 test("Chưa có khóa: not_configured và không gọi ra ngoài", async () => {
   const { service, google } = setup({ env: {} });
   assert.deepEqual(await service.getOverview(), { connection: "not_configured" });
-  assert.deepEqual(await service.getPageQueries("/tin-tuc/bai"), { connection: "not_configured" });
+  assert.deepEqual(await service.getPageQueries("/news/bai"), { connection: "not_configured" });
   assert.deepEqual(await service.diagnose(), { configured: false });
   assert.equal(google.calls.length, 0);
 });
@@ -203,13 +203,13 @@ test("Google lỗi khi làm mới: dùng số liệu cũ đã có thay vì báo 
 
 test("Cụm của một trang: lọc đúng địa chỉ đầy đủ của trang, tối đa 10, sắp theo lượt hiện; thiếu địa chỉ website thì báo lỗi", async () => {
   const { service, google } = setup();
-  const result = await service.getPageQueries("/tin-tuc/ten-bai");
+  const result = await service.getPageQueries("/news/ten-bai");
   assert.equal(result.connection, "connected");
   assert.deepEqual(result.connection === "connected" ? result.queries.map((item) => item.query) : [], ["phần mềm quản lý bán hàng", "máy in bếp"]);
   const body = JSON.parse(google.calls.filter((call) => call.url.includes("/searchAnalytics/query")).at(-1)!.body);
-  assert.deepEqual(body.dimensionFilterGroups, [{ groupType: "and", filters: [{ dimension: "page", operator: "equals", expression: "https://iorder.vn/tin-tuc/ten-bai" }] }]);
+  assert.deepEqual(body.dimensionFilterGroups, [{ groupType: "and", filters: [{ dimension: "page", operator: "equals", expression: "https://iorder.vn/news/ten-bai" }] }]);
   assert.equal(body.rowLimit, 10);
-  const missing = await setup({ siteUrl: null }).service.getPageQueries("/tin-tuc/bai");
+  const missing = await setup({ siteUrl: null }).service.getPageQueries("/news/bai");
   assert.match(missing.connection === "error" ? missing.message : "", /Tên miền & SEO/);
 });
 
@@ -280,7 +280,7 @@ test("Khóa nhập ở CMS: dùng khi biến môi trường chưa đặt (nguồ
 });
 
 test("Đường dẫn trang gửi lên API: chỉ nhận đường dẫn tương đối an toàn", () => {
-  for (const good of ["/", "/tin-tuc/bai-viet-1", "/ho-tro/huong-dan/cai-dat-may-in", "/phan-mem/ten%20san-pham"]) assert.equal(searchConsolePagePathSchema.safeParse(good).success, true, good);
+  for (const good of ["/", "/news/bai-viet-1", "/support/guides/cai-dat-may-in", "/software/ten%20san-pham"]) assert.equal(searchConsolePagePathSchema.safeParse(good).success, true, good);
   for (const bad of ["", "tin-tuc", "https://evil.example/", "//evil.example", "/a/../b", "/a//b", "/a?x=1", "/a#b", `/${"a".repeat(300)}`]) assert.equal(searchConsolePagePathSchema.safeParse(bad).success, false, bad);
 });
 

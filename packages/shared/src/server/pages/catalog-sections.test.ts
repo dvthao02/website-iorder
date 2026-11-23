@@ -17,7 +17,7 @@ const parse = (blocks: ReturnType<typeof buildCatalogSections>) => blocks.map(bl
 test("Ba trang có mục con ánh xạ đúng loại và đường dẫn công khai", () => {
   assert.deepEqual(catalogListingTypes, { "listing-software": "software", "listing-solution": "solution", "listing-service": "service" });
   for (const slug of Object.keys(catalogListingTypes)) assert.ok(isListingPageSlug(slug), slug);
-  assert.deepEqual(catalogPaths, { software: "/phan-mem", solution: "/giai-phap", service: "/dich-vu" });
+  assert.deepEqual(catalogPaths, { software: "/software", solution: "/solutions", service: "/services" });
 });
 
 test("Mỗi mục con một phần hoàn chỉnh, ngang hàng, lấy tên từ tiêu đề mục con", () => {
@@ -34,7 +34,7 @@ test("Mỗi mục con một phần hoàn chỉnh, ngang hàng, lấy tên từ t
   assert.equal(first.data.eyebrow, "Quản lý bán hàng");
   assert.equal(first.data.mediaId, cover);
   assert.deepEqual(first.data.bullets, ["Tính năng 1", "Tính năng 2"]);
-  assert.deepEqual(first.data.primaryAction, { label: "Xem chi tiết", href: "/phan-mem/phan-mem-a" });
+  assert.deepEqual(first.data.primaryAction, { label: "Xem chi tiết", href: "/software/phan-mem-a" });
 });
 
 test("Mô tả gồm mô tả gốc, đối tượng phù hợp và lợi ích; không thêm gì ngoài dữ liệu mục con", () => {
@@ -46,7 +46,7 @@ test("Nút Xem bảng giá chỉ có khi mục con có bảng giá, trỏ tới 
   const [plain, priced] = parse(buildCatalogSections([child(), child({ slug: "phan-mem-b", title: "B", content: { pricing: { plans: [] } } })]));
   assert.ok(plain.type === "media_text" && priced.type === "media_text");
   assert.equal(plain.data.secondaryAction, null);
-  assert.deepEqual(priced.data.secondaryAction, { label: "Xem bảng giá", href: "/phan-mem/phan-mem-b#bang-gia" });
+  assert.deepEqual(priced.data.secondaryAction, { label: "Xem bảng giá", href: "/software/phan-mem-b#bang-gia" });
 });
 
 test("Hỏi đáp gộp từ câu hỏi từng mục con, mỗi câu ghi rõ thuộc mục nào; không có câu hỏi thì không tạo khối", () => {

@@ -1,7 +1,7 @@
 import type { RichDocument, RichNode } from "../shared/rich-text";
 
 /**
- * Nội dung trang "Chính sách bảo mật" (slug `privacy-policy`, /chinh-sach-bao-mat), theo bản công bố tại https://app.iorder.vn/privacy-policy.
+ * Nội dung trang "Chính sách bảo mật" (slug `privacy-policy`, /privacy-policy), theo bản công bố tại https://app.iorder.vn/privacy-policy.
  * Giữ nguyên lời văn của bản gốc; chỉ chuẩn hóa dấu cách/dấu câu, sửa lỗi chính tả hiển nhiên ("rằng buộc" → "ràng buộc"),
  * tách các tiêu đề dài ở mục 2 thành tiêu đề ngắn + câu dẫn (để mục lục gọn, không đổi nghĩa) và định dạng lại phần liên hệ ở mục 5.
  * Bản gốc có vài câu diễn đạt chưa rõ nghĩa (mục 6); giữ nguyên để chủ sở hữu văn bản rà soát, không tự sửa nội dung pháp lý.

@@ -7,7 +7,7 @@ const links = { appLogin: "https://app.iorder.vn/login", trial: "https://app.ior
 
 test("Mã setting: đổi sang địa chỉ trong Cài đặt, đường dẫn thường giữ nguyên", () => {
   assert.equal(resolveSettingHref(settingLinkHref("trial"), links), links.trial);
-  assert.equal(resolveSettingHref("/lien-he#tu-van", links), "/lien-he#tu-van");
+  assert.equal(resolveSettingHref("/contact#tu-van", links), "/contact#tu-van");
   assert.equal(resolveSettingHref("https://example.com", links), "https://example.com");
 });
 
@@ -20,6 +20,6 @@ test("Cài đặt chưa có địa chỉ hoặc mã lạ thì về trang Liên h
 });
 
 test("Đổi mọi href lồng trong dữ liệu khối, không đụng trường khác", () => {
-  const data = { title: "setting:trial", primaryAction: { label: "Dùng thử", href: "setting:trial" }, panels: [{ secondaryAction: { label: "Xem", href: "/phan-mem" } }], items: [{ href: null }] };
-  assert.deepEqual(resolveSettingLinks(data, links), { title: "setting:trial", primaryAction: { label: "Dùng thử", href: links.trial }, panels: [{ secondaryAction: { label: "Xem", href: "/phan-mem" } }], items: [{ href: null }] });
+  const data = { title: "setting:trial", primaryAction: { label: "Dùng thử", href: "setting:trial" }, panels: [{ secondaryAction: { label: "Xem", href: "/software" } }], items: [{ href: null }] };
+  assert.deepEqual(resolveSettingLinks(data, links), { title: "setting:trial", primaryAction: { label: "Dùng thử", href: links.trial }, panels: [{ secondaryAction: { label: "Xem", href: "/software" } }], items: [{ href: null }] });
 });

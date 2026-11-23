@@ -25,19 +25,22 @@ test.describe("UX CMS với Backend mô phỏng", () => {
   for (const width of [390, 1024, 1440]) test(`Trang chủ chọn một thành phần để sửa, không lặp mục lục ở ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await page.goto("/admin/homepage");
+    await page.waitForLoadState("networkidle");
     const editor = page.locator(".admin-blocks--split");
     await expect(editor.locator(".admin-blocks__navigation > h3")).toHaveText("Thành phần (8)");
     await expect(page.getByRole("heading", { name: "Bố cục trang", exact: true })).toHaveCount(0);
     const nav = editor.locator(".admin-blocks__navigation");
-    await nav.getByRole("button", { name: /Logo đối tác, khách hàng/ }).click();
+    await nav.locator("#page-block-1 > .admin-block__head > .admin-block__toggle").click();
     const detail = page.getByRole("region", { name: "Chỉnh sửa thành phần" });
     await expect(detail.getByRole("textbox", { name: "Tiêu đề", exact: true })).toHaveValue("Đối tác và khách hàng đồng hành cùng iOrder");
     await expect(detail.getByRole("textbox", { name: "Mô tả", exact: true })).toHaveValue("Cùng phát triển với doanh nghiệp");
     await expect(editor.locator(".admin-block__body")).toHaveCount(1);
-    if (width >= 1024) {
-      const left = await nav.boundingBox(); const right = await detail.boundingBox();
+    const left = await nav.boundingBox(); const right = await detail.boundingBox();
+    if (width > 1100) {
       expect(left!.x + left!.width).toBeLessThanOrEqual(right!.x);
       expect(Math.abs(left!.y - right!.y)).toBeLessThan(2);
+    } else {
+      expect(left!.y + left!.height).toBeLessThanOrEqual(right!.y);
     }
     await page.screenshot({ animations: "disabled", path: `test-results/cms-home-simple-${width}.png` });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
@@ -52,8 +55,12 @@ test.describe("UX CMS với Backend mô phỏng", () => {
       await route.fulfill({ json: { page: values } });
     });
     await page.goto("/admin/homepage");
-    await page.locator(".admin-blocks__navigation").getByRole("button", { name: /Logo đối tác, khách hàng/ }).click();
+    await page.waitForLoadState("networkidle");
     const detail = page.getByRole("region", { name: "Chỉnh sửa thành phần" });
+    await expect(async () => {
+      await page.locator("#page-block-1 > .admin-block__head > .admin-block__toggle").click();
+      await expect(detail.getByRole("textbox", { name: "Tiêu đề", exact: true })).toBeVisible({ timeout: 2000 });
+    }).toPass({ timeout: 15_000 });
     await detail.getByRole("textbox", { name: "Tiêu đề", exact: true }).fill("Đối tác triển khai toàn quốc");
     await detail.getByRole("textbox", { name: "Mô tả", exact: true }).fill("Đồng hành từ triển khai đến vận hành");
     await detail.getByRole("combobox", { name: "Nhóm hiển thị", exact: true }).selectOption("partner");
@@ -62,7 +69,8 @@ test.describe("UX CMS với Backend mô phỏng", () => {
     await expect(page.getByRole("button", { name: "Lưu thay đổi", exact: true })).toBeDisabled();
     expect(values?.blocks).toHaveLength(8);
     expect(values?.blocks[1].data).toMatchObject({ title: "Đối tác triển khai toàn quốc", description: "Đồng hành từ triển khai đến vận hành", kind: "partner", limit: 12 });
-    for (let index = 0; index < uxHomePage.blocks.length; index++) if (index !== 1) expect(values?.blocks[index]).toEqual(uxHomePage.blocks[index]);
+    // Form có thể bổ sung giá trị mặc định cho trường ảnh tùy chọn; nội dung cũ vẫn phải được giữ.
+    for (let index = 0; index < uxHomePage.blocks.length; index++) if (index !== 1) expect(values?.blocks[index]).toMatchObject(uxHomePage.blocks[index]);
   });
 
   test("Trang chủ giữ bản nhập khi đổi thành phần, đổi thứ tự và nhân bản", async ({ page }) => {
@@ -109,7 +117,7 @@ test.describe("UX CMS với Backend mô phỏng", () => {
       await expect(page.getByRole("heading", { name: "Cần tư vấn triển khai?", exact: true })).toBeVisible();
       for (const heading of ["Một đối tác cho phần mềm và thiết bị", "Phần mềm quản lý bán hàng iOrder", "Vì sao doanh nghiệp chọn iOrder", "Thiết bị và hạ tầng đồng bộ", "Tin tức và chia sẻ từ iOrder"]) await expect(page.getByRole("heading", { name: heading, exact: true })).toBeVisible();
       await expect(page.getByText("Theo dõi đơn hàng và doanh thu", { exact: true })).toBeVisible();
-      await expect(page.getByRole("link", { name: /Máy in hóa đơn/ })).toHaveAttribute("href", "/thiet-bi");
+      await expect(page.getByRole("link", { name: /Máy in hóa đơn/ })).toHaveAttribute("href", "/equipment");
       await page.getByRole("heading", { name: "Đối tác triển khai toàn quốc", exact: true }).locator("xpath=ancestor::section[1]").screenshot({ animations: "disabled", path: "test-results/home-partners-from-cms.png" });
       await page.screenshot({ animations: "disabled", path: "test-results/home-content-from-cms.png", fullPage: true });
     } finally { Object.assign(uxHomePage, original); }

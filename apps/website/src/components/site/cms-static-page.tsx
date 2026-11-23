@@ -13,18 +13,18 @@ import { getPublishedPage } from "@/lib/backend";
 import { suggestPageSeoDescription } from "@iorder/shared/server/shared/seo";
 import { faqItemsOfBlocks, webPageKindOf } from "@/lib/structured-data";
 
-// Metadata cho trang quản lý trong CMS (trang hệ thống hoặc /trang/{slug}).
+// Metadata cho trang quản lý trong CMS (trang hệ thống hoặc /pages/{slug}).
 export async function cmsStaticMetadata(slug: string, parent: ResolvingMetadata): Promise<Metadata> {
   const page = await getPublishedPage(slug);
   if (!page) return { title: "Không tìm thấy trang | iOrder" };
-  return contentMetadata({ title: page.seoTitle || page.title, description: page.seoDescription || suggestPageSeoDescription(page.blocks), path: getFixedWebsitePage(slug)?.publicPath ?? `/trang/${slug}`, canonicalUrl: page.canonicalUrl, seo: page.seo }, parent);
+  return contentMetadata({ title: page.seoTitle || page.title, description: page.seoDescription || suggestPageSeoDescription(page.blocks), path: getFixedWebsitePage(slug)?.publicPath ?? `/pages/${slug}`, canonicalUrl: page.canonicalUrl, seo: page.seo }, parent);
 }
-// Trang quản lý trong CMS (giới thiệu, liên hệ, điều khoản, chính sách, hỗ trợ từ xa, /trang/{slug}): các khối CMS
+// Trang quản lý trong CMS (giới thiệu, liên hệ, điều khoản, chính sách, hỗ trợ từ xa, /pages/{slug}): các khối CMS
 // và dữ liệu cấu trúc breadcrumb "Trang chủ › tên trang" cho Google.
 export async function CmsStaticPage({ slug }: { slug: string }) {
   const page = await getPublishedPage(slug);
   if (!page) notFound();
-  const path = getFixedWebsitePage(slug)?.publicPath ?? `/trang/${slug}`;
+  const path = getFixedWebsitePage(slug)?.publicPath ?? `/pages/${slug}`;
   const profile = staticPageProfile(slug, page.template);
   const enabled = page.blocks.filter(block => block.isEnabled);
   const intro = enabled[0]?.type === "hero" ? enabled[0] : undefined;

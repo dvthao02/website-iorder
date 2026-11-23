@@ -15,7 +15,7 @@ async function run() {
   const blocks = page.blocks.map((block) => {
     if (block.type !== "cta" || block.data.action.href !== "mailto:contact@iorder.vn") return block;
     changed = true;
-    return { ...block, data: { ...block.data, action: { ...block.data.action, href: "/lien-he" } } };
+    return { ...block, data: { ...block.data, action: { ...block.data.action, href: "/contact" } } };
   });
 
   if (!blocks.some((block) => block.type === "testimonials")) {

@@ -22,14 +22,19 @@ async function handlePOST(request: Request) {
     const body = redirectRequestSchema.parse(await request.json());
     const denied = denyUnless(user, body.id ? "redirects.update" : "redirects.create");
     if (denied) return denied;
-    const id = await writeRedirect(body.id, body.values, user.userId, body.expectedVersion);
-    if (!id) return NextResponse.json({ error: { code: "NOT_FOUND", message: "Không tìm thấy chuyển hướng cần cập nhật." } }, { status: 404 });
-    // publish-web caches each path's redirect lookup (including "none") under the public tag.
+    const saved = await writeRedirect(body.id, body.values, user.userId, body.expectedVersion);
+    if (!saved) return NextResponse.json({ error: { code: "NOT_FOUND", message: "Không tìm thấy chuyển hướng cần cập nhật." } }, { status: 404 });
+    // publish-web caches each path's redirect lookup (including "none") under the public tag; liên kết vừa đổi trong menu/trang/bài viết cũng nằm trong cache đó.
     revalidatePath("/", "layout");
-    return NextResponse.json({ id });
+    // linkUpdates: các liên kết nội dung đã tự đổi sang đường dẫn mới, để CMS báo cho người vận hành.
+    return NextResponse.json({ id: saved.id, linkUpdates: saved.linkUpdates });
   } catch (error) {
     if (error instanceof ContentVersionConflictError) return NextResponse.json({ error: { code: "VERSION_CONFLICT", message: error.message } }, { status: 409 });
-    if (error instanceof z.ZodError || error instanceof SyntaxError) return NextResponse.json({ error: { code: "INVALID_INPUT", message: "Kiểm tra đường dẫn nguồn, đích và mã chuyển hướng trước khi lưu." } }, { status: 400 });
+    if (error instanceof z.ZodError || error instanceof SyntaxError) {
+      // Lỗi nghiệp vụ (ví dụ vòng lặp chuyển hướng) có thông điệp tiếng Việt riêng; lỗi kiểu dữ liệu giữ thông điệp chung.
+      const detail = error instanceof z.ZodError ? error.issues.find((issue) => issue.code === "custom")?.message : undefined;
+      return NextResponse.json({ error: { code: "INVALID_INPUT", message: detail ?? "Kiểm tra đường dẫn nguồn, đích và mã chuyển hướng trước khi lưu." } }, { status: 400 });
+    }
     if (hasDatabaseErrorCode(error, "23505")) return NextResponse.json({ error: { code: "DUPLICATE_SOURCE", message: "Đường dẫn nguồn đã có trong danh sách chuyển hướng." } }, { status: 409 });
     return NextResponse.json({ error: { code: "INTERNAL_ERROR", message: "Không thể lưu chuyển hướng lúc này." } }, { status: 500 });
   }

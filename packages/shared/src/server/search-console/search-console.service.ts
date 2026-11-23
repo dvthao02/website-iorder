@@ -238,7 +238,7 @@ export function createSearchConsoleService({ fetch: fetcher, env, now, readFile,
     }
   }
 
-  /** Những cụm khách gõ để thấy một trang cụ thể (tối đa 10, nhiều lượt hiện nhất). `path` là đường dẫn công khai, ví dụ /tin-tuc/ten-bai. */
+  /** Những cụm khách gõ để thấy một trang cụ thể (tối đa 10, nhiều lượt hiện nhất). `path` là đường dẫn công khai, ví dụ /news/ten-bai. */
   async function getPageQueries(path: string): Promise<SearchConsolePageQueries> {
     await syncCmsSource();
     const key = `page:${path}`;

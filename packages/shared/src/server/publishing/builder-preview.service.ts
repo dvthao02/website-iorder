@@ -21,7 +21,7 @@ export async function readBuilderPreview(token: string | null | undefined) {
   if (claims?.kind !== "builder") return undefined;
   const preview = await findBuilderPreview(claims.id);
   if (!preview) return undefined;
-  const path = preview.document.kind === "post" ? postPublicPath(preview.document.values.slug, preview.document.values.type) : preview.document.kind === "page" ? pagePublicPath(preview.document.values.slug) : preview.document.kind === "equipment" ? `/thiet-bi/${preview.document.values.slug}` : offeringPublicPath(preview.document.values.slug, preview.document.values.type);
+  const path = preview.document.kind === "post" ? postPublicPath(preview.document.values.slug, preview.document.values.type) : preview.document.kind === "page" ? pagePublicPath(preview.document.values.slug) : preview.document.kind === "equipment" ? `/equipment/${preview.document.values.slug}` : offeringPublicPath(preview.document.values.slug, preview.document.values.type);
   return path ? { ...preview, path } : undefined;
 }
 

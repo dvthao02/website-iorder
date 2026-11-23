@@ -14,5 +14,6 @@ export async function getRedirects() {
   });
 }
 export async function getEnabledRedirect(sourcePath: string) { return findEnabledRedirect(sourcePath); }
+/** Trả `{ id, linkUpdates }`: kèm tóm tắt các liên kết nội dung vừa được đổi sang đường dẫn mới (xem redirect-links.ts). */
 export async function writeRedirect(id: string | null, input: unknown, userId: string, expectedVersion?: number) { return saveRedirect(id, redirectInputSchema.parse(input), userId, undefined, { expectedVersion }); }
 export async function deleteAdminRedirect(id: string, userId: string, expectedVersion?: number) { return z.string().uuid().safeParse(id).success ? deleteRedirect(id, userId, undefined, { expectedVersion }) : undefined; }

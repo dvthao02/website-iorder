@@ -15,7 +15,7 @@ process.env.DATABASE_URL = isolatedUrl.toString();
 process.env.PREVIEW_SECRET = randomBytes(32).toString("hex");
 const actor = randomUUID();
 const cookie = randomBytes(32).toString("base64url");
-const common = { status: "published", scheduledAt: null, seoTitle: "Tiêu đề SEO cũ", seoDescription: "Mô tả SEO cũ vẫn được giữ nguyên.", canonicalUrl: "https://example.com/trang/kiem-thu" } as const;
+const common = { status: "published", scheduledAt: null, seoTitle: "Tiêu đề SEO cũ", seoDescription: "Mô tả SEO cũ vẫn được giữ nguyên.", canonicalUrl: "https://example.com/pages/kiem-thu" } as const;
 const seo = { index: true, follow: false, sitemap: true, breadcrumbs: false, openGraph: { title: "Chia sẻ Facebook", description: "Mô tả Facebook" }, twitter: { title: "Chia sẻ X", card: "summary" as const }, structuredData: [{ type: "Service" as const, name: "Dịch vụ kiểm thử" }] };
 const textBlock = { type: "rich_text" as const, data: { heading: "Nội dung đã lưu", body: "Thông tin được truyền đầy đủ từ CMS." }, isEnabled: true };
 const blocks = [textBlock,
@@ -88,7 +88,7 @@ async function main() {
     assert.equal((await pageService.getAdminPageById(page.id))?.title, pageValues.title);
     const renamed = await pageService.saveAdminPage(page.id, { ...pageValues, slug: "kiem-thu-doi-url" }, actor, { expectedVersion: 3 });
     assert.equal(renamed?.draftVersion, 4);
-    const redirects = await client`select status_code from redirects where source_path='/trang/kiem-thu-builder' and destination_path='/trang/kiem-thu-doi-url'`;
+    const redirects = await client`select status_code from redirects where source_path='/pages/kiem-thu-builder' and destination_path='/pages/kiem-thu-doi-url'`;
     assert.equal(redirects[0]?.status_code, 301);
     await assert.rejects(pageService.saveAdminPage(page.id, { ...pageValues, slug: "home" }, actor, { expectedVersion: 4 }));
     step = "bài viết và hướng dẫn";
@@ -161,7 +161,7 @@ async function main() {
     assert.ok(preview);
     const live = await previewService.readBuilderPreview(preview.token);
     assert.ok(live);
-    assert.equal(live.path, "/trang/kiem-thu-doi-url");
+    assert.equal(live.path, "/pages/kiem-thu-doi-url");
     assert.equal((await previewService.builderPreviewPublicContent(live)).page?.title, previewValues.title);
     assert.equal(await previewRepo.writeBuilderPreview(actor, { ...request, sequence: 1 }), undefined);
     const otherActor = randomUUID();

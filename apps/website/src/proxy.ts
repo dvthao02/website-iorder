@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getEnabledRedirect } from "@/lib/backend";
-import { englishPathRedirect, lowercasePathname } from "@/lib/legacy-paths";
+import { builtInRedirect, redirectLoopsBack } from "@iorder/shared/server/shared/legacy-paths";
 import { logger } from "@iorder/shared/server/shared/logger";
 import { builderPreviewHeader, fetchBuilderPreview } from "@/lib/builder-preview";
 
@@ -40,16 +40,22 @@ export async function proxy(request: NextRequest) {
   } catch (error) {
     logger.error("Không kiểm tra được chuyển hướng URL từ Backend; tiếp tục hiển thị trang.", { request, error });
   }
+  // Dòng chuyển hướng lưu từ trước khi CMS kiểm tra vòng lặp (ví dụ /privacy-policy → /chinh-sach-bao-mat, mà /chinh-sach-bao-mat lại bị chuyển về /privacy-policy)
+  // làm trình duyệt lặp vô hạn và trang không mở được. Bỏ qua dòng đó để trang vẫn hiển thị; CMS cũng không cho lưu dòng như vậy nữa.
+  if (redirect && redirectLoopsBack(pathname, redirect.destinationPath)) {
+    logger.warn("Bỏ qua chuyển hướng URL vì đích quay về chính đường dẫn này; hãy xóa hoặc sửa dòng đó trong CMS.", { request, sourcePath: pathname, destinationPath: redirect.destinationPath });
+    redirect = null;
+  }
   if (redirect) {
     const destination = new URL(redirect.destinationPath, request.url);
     destination.search = request.nextUrl.search;
     return NextResponse.redirect(destination, redirect.statusCode);
   }
 
-  // URL tiếng Anh (tên thư mục route) gõ nhầm → URL tiếng Việt chuẩn, để mỗi trang chỉ có một địa chỉ. Chạy sau bảng redirects của CMS.
-  // Cùng lượt còn đưa URL viết hoa (/TIN-TUC) về chữ thường, vì Next khớp route không phân biệt hoa thường và một trang sẽ có hai địa chỉ.
-  const lowered = lowercasePathname(pathname);
-  const canonical = englishPathRedirect(lowered) ?? (lowered !== pathname ? lowered : null);
+  // URL tiếng Việt cũ (/tin-tuc, /gioi-thieu…) → URL tiếng Anh chuẩn (/news, /about…), để mỗi trang chỉ có một địa chỉ. Chạy sau bảng redirects của CMS.
+  // Cùng lượt còn đưa URL viết hoa (/NEWS) về chữ thường, vì Next khớp route không phân biệt hoa thường và một trang sẽ có hai địa chỉ.
+  // Quy tắc nằm ở packages/shared (builtInRedirect) để CMS biết và không cho lưu chuyển hướng tạo vòng lặp với chúng.
+  const canonical = builtInRedirect(pathname);
   if (!canonical) return NextResponse.next({ request: { headers: forwarded } });
   const destination = new URL(canonical, request.url);
   destination.search = request.nextUrl.search;

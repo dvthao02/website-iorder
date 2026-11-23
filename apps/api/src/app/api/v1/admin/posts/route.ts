@@ -18,14 +18,14 @@ function phanHoiLoi(ma: string, thongBao: string, trangThai: number) {
 }
 
 function lamMoiNoiDungBaiViet(slug: string) {
-  revalidatePath("/tin-tuc");
-  revalidatePath("/ho-tro/huong-dan");
-  revalidatePath(`/tin-tuc/${slug}`);
-  revalidatePath(`/ho-tro/huong-dan/${slug}`);
-  revalidatePath("/tin-tuc/[slug]", "page");
-  revalidatePath("/ho-tro/huong-dan/[slug]", "page");
-  revalidatePath("/tin-tuc/chuyen-muc/[slug]", "page");
-  revalidatePath("/tin-tuc/the/[slug]", "page");
+  revalidatePath("/news");
+  revalidatePath("/support/guides");
+  revalidatePath(`/news/${slug}`);
+  revalidatePath(`/support/guides/${slug}`);
+  revalidatePath("/news/[slug]", "page");
+  revalidatePath("/support/guides/[slug]", "page");
+  revalidatePath("/news/category/[slug]", "page");
+  revalidatePath("/news/tag/[slug]", "page");
   revalidatePath("/sitemap.xml");
 }
 

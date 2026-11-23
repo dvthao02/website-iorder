@@ -19,7 +19,7 @@ export async function generateMetadata({ params }: Props, parent: ResolvingMetad
   if (!tag) return { title: "Không tìm thấy thẻ | iOrder" };
   // Thẻ chưa có bài là trang mỏng: vẫn mở được nhưng không để Google lập chỉ mục.
   const empty = (await getPublishedPostsByTaxonomy("tag", slug)).length === 0;
-  return contentMetadata({ title: `Bài viết về “${tag.name}” – Tin tức iOrder`, description: describe(tag.name), path: `/tin-tuc/the/${tag.slug}`, seo: empty ? { index: false } : undefined }, parent);
+  return contentMetadata({ title: `Bài viết về “${tag.name}” – Tin tức iOrder`, description: describe(tag.name), path: `/news/tag/${tag.slug}`, seo: empty ? { index: false } : undefined }, parent);
 }
 
 export default async function TagPage({ params }: Props) {
@@ -28,7 +28,7 @@ export default async function TagPage({ params }: Props) {
   if (!tag) notFound();
   const posts = await getPublishedPostsByTaxonomy("tag", slug);
   return <><SiteHeader /><main id="noi-dung">
-    <PageHero crumbs={[{ name: "Tin tức", path: "/tin-tuc" }, { name: `#${tag.name}`, path: `/tin-tuc/the/${tag.slug}` }]} description={describe(tag.name)} eyebrow="Thẻ bài viết" title={`#${tag.name}`} />
+    <PageHero crumbs={[{ name: "Tin tức", path: "/news" }, { name: `#${tag.name}`, path: `/news/tag/${tag.slug}` }]} description={describe(tag.name)} eyebrow="Thẻ bài viết" title={`#${tag.name}`} />
     <TaxonomyPostList posts={posts} />
   </main></>;
 }

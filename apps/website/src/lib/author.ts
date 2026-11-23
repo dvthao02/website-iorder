@@ -4,7 +4,7 @@ import { authorPublicPath, type PostAuthorProfile } from "@iorder/shared/server/
 export type PostAuthor = {
   name: string;
   jobTitle: string | null;
-  /** Trang riêng trên website (/tac-gia/...) khi tác giả đã bật trang; null: không có trang để liên kết. */
+  /** Trang riêng trên website (/author/...) khi tác giả đã bật trang; null: không có trang để liên kết. */
   pagePath: string | null;
   /** Hồ sơ bên ngoài (LinkedIn, Facebook…). */
   profileUrl: string | null;

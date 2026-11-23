@@ -90,7 +90,7 @@ export async function auditBuilderHttp(input: { databaseUrl: string; previewSecr
     const liveHtml = await live.text();
     assert.match(liveHtml, /PREVIEW HTTP CHƯA LƯU/);
     assert.match(liveHtml, /data-builder-block="0"/);
-    const publicPath = `/trang/${input.page.slug}`;
+    const publicPath = `/pages/${input.page.slug}`;
     const published = await fetch(`${website}${publicPath}`, { headers: { "x-iorder-builder-preview": preview.token } });
     const html = await published.text();
     assert.equal(published.status, 200);
@@ -105,7 +105,7 @@ export async function auditBuilderHttp(input: { databaseUrl: string; previewSecr
     assert.match(html, /index, nofollow/);
     assert.ok(html.includes('"@type":"Service"'));
     assert.ok(!html.includes('"@type":"BreadcrumbList"'));
-    for (const path of ["/", "/gioi-thieu", "/lien-he", "/dieu-khoan", "/chinh-sach-bao-mat", "/ho-tro/faq", "/ho-tro/video", "/ho-tro-tu-xa", "/tin-tuc/bai-kiem-thu", "/ho-tro/huong-dan/huong-dan-kiem-thu", "/phan-mem/phan-mem-kiem-thu", "/giai-phap/solution-kiem-thu", "/dich-vu/service-kiem-thu", "/thiet-bi/thiet-bi-kiem-thu"]) {
+    for (const path of ["/", "/about", "/contact", "/terms-of-use", "/privacy-policy", "/support/faq", "/support/videos", "/support/remote", "/news/bai-kiem-thu", "/support/guides/huong-dan-kiem-thu", "/software/phan-mem-kiem-thu", "/solutions/solution-kiem-thu", "/services/service-kiem-thu", "/equipment/thiet-bi-kiem-thu"]) {
       const response = await fetch(`${website}${path}`);
       assert.equal(response.status, 200, path);
       const content = await response.text();
@@ -116,7 +116,7 @@ export async function auditBuilderHttp(input: { databaseUrl: string; previewSecr
       assert.ok(!content.includes('"@type":"BreadcrumbList"'), path);
     }
     assert.equal((await fetch(`${website}/catalog-khong-hop-le/phan-mem-kiem-thu`)).status, 404);
-    for (const path of ["/tin-tuc", "/thiet-bi", "/ho-tro/cai-dat", "/ho-tro/huong-dan", "/phan-mem", "/giai-phap", "/dich-vu", "/ho-tro"]) assert.equal((await fetch(`${website}${path}`)).status, 200, path);
+    for (const path of ["/news", "/equipment", "/support/setup", "/support/guides", "/software", "/solutions", "/services", "/support"]) assert.equal((await fetch(`${website}${path}`)).status, 200, path);
     const conflict = await post("/api/v1/admin/pages", { id: input.page.id, values: input.pageValues, expectedVersion: 1 });
     assert.equal(conflict.status, 409);
     const sitemapBefore = await (await fetch(`${website}/sitemap.xml`)).text();
@@ -126,7 +126,7 @@ export async function auditBuilderHttp(input: { databaseUrl: string; previewSecr
     let sitemapAfter = "";
     for (let i = 0; i < 20; i++) { sitemapAfter = await (await fetch(`${website}/sitemap.xml`)).text(); if (!sitemapAfter.includes(publicPath)) break; await wait(250); }
     assert.ok(!sitemapAfter.includes(publicPath));
-    const moved = await fetch(`${website}/trang/kiem-thu-builder`, { redirect: "manual" });
+    const moved = await fetch(`${website}/pages/kiem-thu-builder`, { redirect: "manual" });
     assert.equal(moved.status, 301);
     stage = "mở Chromium";
     browser = await chromium.launch({ headless: true });
@@ -424,8 +424,8 @@ export async function auditBuilderHttp(input: { databaseUrl: string; previewSecr
     const [listingImage] = await input.client`select id from media_assets where original_name like 'builder-panel-%' limit 1`;
     assert.ok(listingImage);
     const listingRoutes = [
-      ["listing-service", "/dich-vu", "service"], ["listing-software", "/phan-mem", "software"], ["listing-solution", "/giai-phap", "solution"],
-      ["listing-equipment", "/thiet-bi", "equipment"], ["listing-support", "/ho-tro/cai-dat", "downloads"], ["listing-news", "/tin-tuc", "posts"], ["listing-guides", "/ho-tro/huong-dan", "guides"],
+      ["listing-service", "/services", "service"], ["listing-software", "/software", "software"], ["listing-solution", "/solutions", "solution"],
+      ["listing-equipment", "/equipment", "equipment"], ["listing-support", "/support/setup", "downloads"], ["listing-news", "/news", "posts"], ["listing-guides", "/support/guides", "guides"],
     ];
     let serviceId = "";
     for (const [slug, path, source] of listingRoutes) {
@@ -470,7 +470,7 @@ export async function auditBuilderHttp(input: { databaseUrl: string; previewSecr
       await expect(listingSite.locator('link[rel="canonical"]')).toHaveCount(1);
       await expect(listingSite.locator('meta[name="description"]')).toHaveCount(1);
     }
-    await listingSite.goto(website + "/dich-vu", { waitUntil: "domcontentloaded" });
+    await listingSite.goto(website + "/services", { waitUntil: "domcontentloaded" });
     await listingSite.screenshot({ path: ".next/listing-layout-published.png", fullPage: false });
     await listingSite.close();
     const [offering] = await input.client`select id from offerings where slug='phan-mem-kiem-thu'`;

@@ -20,7 +20,7 @@ export type CatalogListingSlug = keyof typeof catalogListingTypes;
 export type CatalogType = (typeof catalogListingTypes)[CatalogListingSlug];
 
 /** Đường dẫn công khai của từng loại (khớp offeringPath ở website). */
-export const catalogPaths: Record<CatalogType, string> = { software: "/phan-mem", solution: "/giai-phap", service: "/dich-vu" };
+export const catalogPaths: Record<CatalogType, string> = { software: "/software", solution: "/solutions", service: "/services" };
 
 /** Phần của một mục con cần để dựng trang cha. */
 export type CatalogChild = {

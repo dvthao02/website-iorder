@@ -56,7 +56,7 @@ test("Gọi Umami bằng API key, 7 ngày giờ Việt Nam, điền đủ ngày 
     calls.push({ url, authorization: new Headers(init?.headers).get("authorization") });
     if (url.pathname.endsWith("/stats")) return json({ pageviews: "120", visitors: 40, visits: 50, bounces: 20, totaltime: 3000, comparison: { pageviews: 60, visitors: 20, visits: 25, bounces: 5, totaltime: 1000 } });
     if (url.pathname.endsWith("/pageviews")) return json({ pageviews: [{ x: "2026-10-12 00:00:00", y: 30 }, { x: "2026-10-16T00:00:00Z", y: 90 }], sessions: [{ x: "2026-10-16 00:00:00", y: 35 }] });
-    return json([{ x: "/tin-tuc", y: 25 }, { x: null, y: 3 }, { x: "/", y: 10 }]);
+    return json([{ x: "/news", y: 25 }, { x: null, y: 3 }, { x: "/", y: 10 }]);
   };
   const overview = await createAnalyticsService({ fetch: fetcher as typeof fetch, env, now }).getAnalyticsOverview();
 
@@ -67,7 +67,7 @@ test("Gọi Umami bằng API key, 7 ngày giờ Việt Nam, điền đủ ngày 
   assert.deepEqual(overview.daily.map((day) => day.date), ["2026-10-10", "2026-10-11", "2026-10-12", "2026-10-13", "2026-10-14", "2026-10-15", "2026-10-16"]);
   assert.deepEqual(overview.daily.map((day) => day.pageviews), [0, 0, 30, 0, 0, 0, 90]);
   assert.equal(overview.daily[6].visitors, 35);
-  assert.deepEqual(overview.topPages, [{ path: "/tin-tuc", visitors: 25 }, { path: "/", visitors: 10 }]);
+  assert.deepEqual(overview.topPages, [{ path: "/news", visitors: 25 }, { path: "/", visitors: 10 }]);
 
   assert.equal(calls.length, 3);
   for (const call of calls) {

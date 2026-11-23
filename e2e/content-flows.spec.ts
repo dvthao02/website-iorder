@@ -64,7 +64,7 @@ test("Xuất bản bài viết trong CMS rồi thấy ngay trên website", async
   createdPosts.push(((await response.json()) as { post: { id: string } }).post.id);
 
   const publicPage = await page.context().newPage();
-  await publicPage.goto(`${webUrl}/tin-tuc/${slug}`);
+  await publicPage.goto(`${webUrl}/news/${slug}`);
   await expect(publicPage.getByRole("heading", { level: 1 })).toHaveText(title);
   await expect(publicPage.getByText("Đoạn nội dung hiển thị trên website.")).toBeVisible();
   await publicPage.close();
@@ -86,14 +86,14 @@ test("Xem trước bản nháp: chỉ người có liên kết từ CMS thấy, 
 
   // Khách thường: bài nháp không tồn tại.
   const visitor = await browser.newContext();
-  expect((await (await visitor.newPage()).goto(`${webUrl}/tin-tuc/${slug}`))?.status()).toBe(404);
+  expect((await (await visitor.newPage()).goto(`${webUrl}/news/${slug}`))?.status()).toBe(404);
   // Token giả hoặc bị sửa: bị từ chối, không bật chế độ xem trước.
   expect((await visitor.request.get(`${webUrl}/api/preview?token=v1.abc.def`, { maxRedirects: 0 })).status()).toBe(404);
   await visitor.close();
 
   await page.goto(`/admin/news/${id}`);
   const [preview] = await Promise.all([page.context().waitForEvent("page"), page.getByRole("button", { name: /Xem trước bản nháp/ }).click()]);
-  await preview.waitForURL(new RegExp(`/tin-tuc/${slug}$`));
+  await preview.waitForURL(new RegExp(`/news/${slug}$`));
   await expect(preview.getByRole("heading", { level: 1 })).toHaveText(title);
   await expect(preview.getByText("Nội dung nháp chưa công khai.")).toBeVisible();
   await expect(preview.getByRole("status").filter({ hasText: "Đang xem bản nháp." })).toBeVisible();

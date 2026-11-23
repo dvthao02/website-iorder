@@ -28,8 +28,8 @@ async function migrateContactLinks(userId: string) {
     const [item] = await getDb().select({ id: menuItems.id, url: menuItems.url }).from(menuItems).where(and(eq(menuItems.menuId, menu.id), eq(menuItems.url, "/#tu-van"))).limit(1);
     if (!item) continue;
     await getDb().transaction(async (tx) => {
-      await tx.update(menuItems).set({ url: "/lien-he", updatedAt: new Date() }).where(eq(menuItems.id, item.id));
-      await tx.insert(auditLogs).values({ userId, action: "navigation.contact_cta_migrate", entityType: "menu_item", entityId: item.id, beforeData: { url: item.url }, afterData: { url: "/lien-he" } });
+      await tx.update(menuItems).set({ url: "/contact", updatedAt: new Date() }).where(eq(menuItems.id, item.id));
+      await tx.insert(auditLogs).values({ userId, action: "navigation.contact_cta_migrate", entityType: "menu_item", entityId: item.id, beforeData: { url: item.url }, afterData: { url: "/contact" } });
     });
   }
 }

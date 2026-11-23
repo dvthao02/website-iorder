@@ -64,6 +64,8 @@ export const blockAppearanceSchema = z.object({
   hidden: z.boolean().optional(),
   // Khóa chỉnh sửa trong CMS (khối trang và phần cố định): form bị khóa, không ẩn/xóa/kéo thả được cho tới khi mở khóa. Website bỏ qua.
   locked: z.boolean().optional(),
+  // Tên nhận diện trong CMS, không dùng làm tiêu đề trên website.
+  adminLabel: z.string().trim().max(120).optional(),
   verticalAlign: blockVerticalAlignSchema.optional(),
 }).strict();
 export type BlockAppearance = z.infer<typeof blockAppearanceSchema>;

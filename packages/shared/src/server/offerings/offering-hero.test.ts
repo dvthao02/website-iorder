@@ -23,12 +23,12 @@ test("Phần đầu trang sản phẩm dựng thành thành phần hợp lệ t�
   assert.deepEqual(hero.data.extraMediaIds, [extra]);
   assert.equal(hero.data.layout, "background");
   assert.deepEqual(hero.data.highlights.map((item) => item.title), ["Phù hợp với", "Giá trị nổi bật"]);
-  assert.equal(hero.data.primaryAction?.href, "/lien-he");
+  assert.equal(hero.data.primaryAction?.href, "/contact");
   assert.equal(hero.data.secondaryAction, null);
 });
 
 test("Có bảng giá thì thêm nút Xem bảng giá và gán mã neo cho phần bảng giá", () => {
-  const pricing = pageBlockInputSchema.parse({ type: "pricing", isEnabled: true, data: { eyebrow: null, title: "Bảng giá", description: null, note: null, plans: [{ name: "Cơ bản", price: "1.000đ", period: "/Năm", description: null, features: ["A"], action: { label: "Dùng thử", href: "/lien-he" }, highlighted: false, badge: null }] } });
+  const pricing = pageBlockInputSchema.parse({ type: "pricing", isEnabled: true, data: { eyebrow: null, title: "Bảng giá", description: null, note: null, plans: [{ name: "Cơ bản", price: "1.000đ", period: "/Năm", description: null, features: ["A"], action: { label: "Dùng thử", href: "/contact" }, highlighted: false, badge: null }] } });
   const blocks = withOfferingHero([pricing], source);
   assert.equal(blocks[0].type, "hero");
   assert.equal(blocks[0].type === "hero" && blocks[0].data.secondaryAction?.href, "#bang-gia");

@@ -4,7 +4,7 @@ import { webUrl } from "./helpers";
 // Tin tức: chủ đề, khối nổi bật, trang chủ đề, bài viết (thời gian đọc, chia sẻ, bài liên quan). Chỉ đọc.
 test("Tin tức: thanh chủ đề, bài nổi bật, trang chủ đề và bài viết", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
-  const response = await page.goto(`${webUrl}/tin-tuc`);
+  const response = await page.goto(`${webUrl}/news`);
   expect(response?.status()).toBe(200);
   await expect(page.locator("h1")).toHaveCount(1);
   const lead = page.locator(".news-lead");
@@ -12,14 +12,14 @@ test("Tin tức: thanh chủ đề, bài nổi bật, trang chủ đề và bài
   const topics = page.getByRole("navigation", { name: "Chủ đề tin tức" });
   await expect(topics.getByRole("link", { name: "Tất cả" })).toHaveAttribute("aria-current", "page");
   // Trang không tồn tại thì 404, tham số sai coi là trang 1.
-  expect((await page.request.get(`${webUrl}/tin-tuc?trang=999`)).status()).toBe(404);
-  expect((await page.request.get(`${webUrl}/tin-tuc?trang=abc`)).status()).toBe(200);
+  expect((await page.request.get(`${webUrl}/news?trang=999`)).status()).toBe(404);
+  expect((await page.request.get(`${webUrl}/news?trang=abc`)).status()).toBe(200);
 
   const topic = topics.getByRole("link").nth(1);
   if (await topic.count()) {
     const name = (await topic.textContent())!.replace(/\d+$/, "").trim();
     await topic.click();
-    await expect(page).toHaveURL(/\/tin-tuc\/chuyen-muc\/.+/);
+    await expect(page).toHaveURL(/\/news\/category\/.+/);
     await expect(page.locator("h1")).toHaveText(name);
     await expect(page.getByRole("navigation", { name: "Chủ đề tin tức" }).locator('[aria-current="page"]')).toContainText(name);
     await page.goBack();
@@ -27,7 +27,7 @@ test("Tin tức: thanh chủ đề, bài nổi bật, trang chủ đề và bài
 
   const title = (await lead.locator(".news-lead__title").textContent())!.trim();
   await lead.click();
-  await expect(page).toHaveURL(/\/tin-tuc\/.+/);
+  await expect(page).toHaveURL(/\/news\/.+/);
   await expect(page.locator("h1")).toHaveText(title);
   await expect(page.getByText(/\d+ phút đọc/)).toBeVisible();
   // Chia sẻ ở đầu và cuối bài; cột bên (máy tính) có bài viết mới nhất.

@@ -18,7 +18,7 @@ type NewsPageProps = { searchParams: Promise<{ trang?: string | string[] }> };
 
 export async function generateMetadata({ searchParams }: NewsPageProps, parent: ResolvingMetadata): Promise<Metadata> {
   const page = parseNewsPage((await searchParams).trang);
-  const metadata = await listingPageMetadata(await getListingPageContent("listing-news"), page > 1 ? `/tin-tuc?trang=${page}` : "/tin-tuc", parent);
+  const metadata = await listingPageMetadata(await getListingPageContent("listing-news"), page > 1 ? `/news?trang=${page}` : "/news", parent);
   return page > 1 && typeof metadata.title === "string" ? { ...metadata, title: `${metadata.title} – Trang ${page}` } : metadata;
 }
 
@@ -38,7 +38,7 @@ export default async function NewsPage({ searchParams }: NewsPageProps) {
   return <>
     <SiteHeader />
     <main id="noi-dung">
-      <ListingPageHeader hero={content?.hero} header={header} crumbs={[{ name: "Tin tức", path: "/tin-tuc" }]}>
+      <ListingPageHeader hero={content?.hero} header={header} crumbs={[{ name: "Tin tức", path: "/news" }]}>
         {searchItems.length ? <div className="mt-6 max-w-xl"><SupportSearch items={searchItems} label="Tìm bài viết" placeholder="Tìm bài viết…" suggestions={[]} /></div> : null}
       </ListingPageHeader>
       <NewsTopics active={null} topics={index.topics} />
@@ -46,7 +46,7 @@ export default async function NewsPage({ searchParams }: NewsPageProps) {
       {grid.length ? <section aria-labelledby="bai-viet-moi" className="news-section"><Container>
         <h2 className="mb-6 text-h3 font-bold tracking-tight text-ink" id="bai-viet-moi">{page > 1 ? `Bài viết – trang ${page}` : "Bài viết mới"}</h2>
         <NewsGrid posts={grid} />
-        <NewsPagination basePath="/tin-tuc" page={page} totalPages={totalPages} />
+        <NewsPagination basePath="/news" page={page} totalPages={totalPages} />
       </Container></section> : null}
       {!index.posts.length ? <p className="site-container py-12 text-muted">Chưa có bài viết được xuất bản.</p> : null}
       {otherBlocks.length ? <PageBlockRenderer blocks={otherBlocks} previous="white" /> : null}

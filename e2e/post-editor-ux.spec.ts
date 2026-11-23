@@ -26,7 +26,7 @@ test("Soạn bài: tiêu đề và nội dung ở màn đầu, đường dẫn t
   await expect(page).toHaveURL(/\/admin\/news\/new$/);
 
   await title.fill("Bài thử bố cục mới");
-  await expect(page.locator(".admin-post-editor__path")).toHaveText("/tin-tuc/bai-thu-bo-cuc-moi");
+  await expect(page.locator(".admin-post-editor__path")).toHaveText("/news/bai-thu-bo-cuc-moi");
   await page.getByRole("button", { name: "Sửa", exact: true }).click();
   await expect(page.getByLabel("Đường dẫn", { exact: true })).toHaveValue("bai-thu-bo-cuc-moi");
   await page.getByRole("button", { name: "Xong", exact: true }).click();

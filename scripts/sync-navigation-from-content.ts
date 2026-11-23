@@ -10,9 +10,9 @@ import { listPublishedOfferings } from "../packages/shared/src/server/offerings/
 import { listCategories } from "../packages/shared/src/server/taxonomy/taxonomy.repository";
 
 const catalogRoots = [
-  { key: "software", label: "Phần mềm", url: "/phan-mem", type: "software" as const },
-  { key: "solution", label: "Giải pháp", url: "/giai-phap", type: "solution" as const },
-  { key: "service", label: "Dịch vụ", url: "/dich-vu", type: "service" as const },
+  { key: "software", label: "Phần mềm", url: "/software", type: "software" as const },
+  { key: "solution", label: "Giải pháp", url: "/solutions", type: "solution" as const },
+  { key: "service", label: "Dịch vụ", url: "/services", type: "service" as const },
 ];
 
 function item(key: string, label: string, url: string, parentKey: string | null = null): NavigationItems[number] {
@@ -34,36 +34,36 @@ async function run() {
     headerItems.push(...catalog.offerings.map(offering => item(`${catalog.key}-${offering.slug}`, offering.title, `${catalog.url}/${offering.slug}`, catalog.key)));
   }
   headerItems.push(
-    item("equipment", "Thiết bị", "/thiet-bi"),
-    item("support", "Hỗ trợ", "/ho-tro/cai-dat"),
-    item("support-installation", "Hỗ trợ cài đặt", "/ho-tro/cai-dat", "support"),
-    item("support-faq", "Câu hỏi thường gặp", "/ho-tro/faq", "support"),
-    item("support-videos", "Video hướng dẫn", "/ho-tro/video", "support"),
-    item("support-remote", "Hỗ trợ từ xa", "/ho-tro-tu-xa", "support"),
-    item("news", "Tin tức", "/tin-tuc"),
-    ...categories.map(category => item(`category-${category.slug}`, category.name, `/tin-tuc/chuyen-muc/${category.slug}`, "news")),
-    item("guides", "Hướng dẫn sử dụng", "/ho-tro/huong-dan", "support"),
-    item("consultation", "Tư vấn triển khai", "/lien-he"),
+    item("equipment", "Thiết bị", "/equipment"),
+    item("support", "Hỗ trợ", "/support/setup"),
+    item("support-installation", "Hỗ trợ cài đặt", "/support/setup", "support"),
+    item("support-faq", "Câu hỏi thường gặp", "/support/faq", "support"),
+    item("support-videos", "Video hướng dẫn", "/support/videos", "support"),
+    item("support-remote", "Hỗ trợ từ xa", "/support/remote", "support"),
+    item("news", "Tin tức", "/news"),
+    ...categories.map(category => item(`category-${category.slug}`, category.name, `/news/category/${category.slug}`, "news")),
+    item("guides", "Hướng dẫn sử dụng", "/support/guides", "support"),
+    item("consultation", "Tư vấn triển khai", "/contact"),
   );
 
   const footerItems: NavigationItems = [
-    item("footer-products", "Sản phẩm & giải pháp", "/phan-mem"),
-    item("footer-software", "Phần mềm", "/phan-mem", "footer-products"),
-    item("footer-solutions", "Giải pháp", "/giai-phap", "footer-products"),
-    item("footer-services", "Dịch vụ", "/dich-vu", "footer-products"),
-    item("footer-equipment", "Thiết bị", "/thiet-bi", "footer-products"),
-    item("footer-support", "Hỗ trợ", "/ho-tro/cai-dat"),
-    item("footer-installation", "Hỗ trợ cài đặt", "/ho-tro/cai-dat", "footer-support"),
-    item("footer-faq", "Câu hỏi thường gặp", "/ho-tro/faq", "footer-support"),
-    item("footer-video", "Video hướng dẫn", "/ho-tro/video", "footer-support"),
-    item("footer-remote", "Hỗ trợ từ xa", "/ho-tro-tu-xa", "footer-support"),
-    item("footer-resources", "Tài nguyên", "/tin-tuc"),
-    item("footer-news", "Tin tức", "/tin-tuc", "footer-resources"),
-    item("footer-guides", "Hướng dẫn sử dụng", "/ho-tro/huong-dan", "footer-support"),
-    item("footer-about", "Về iOrder", "/gioi-thieu", "footer-resources"),
-    item("footer-contact", "Liên hệ", "/lien-he", "footer-resources"),
-    item("footer-terms", "Điều khoản dịch vụ", "/dieu-khoan", "footer-resources"),
-    item("footer-privacy", "Chính sách bảo mật", "/chinh-sach-bao-mat", "footer-resources"),
+    item("footer-products", "Sản phẩm & giải pháp", "/software"),
+    item("footer-software", "Phần mềm", "/software", "footer-products"),
+    item("footer-solutions", "Giải pháp", "/solutions", "footer-products"),
+    item("footer-services", "Dịch vụ", "/services", "footer-products"),
+    item("footer-equipment", "Thiết bị", "/equipment", "footer-products"),
+    item("footer-support", "Hỗ trợ", "/support/setup"),
+    item("footer-installation", "Hỗ trợ cài đặt", "/support/setup", "footer-support"),
+    item("footer-faq", "Câu hỏi thường gặp", "/support/faq", "footer-support"),
+    item("footer-video", "Video hướng dẫn", "/support/videos", "footer-support"),
+    item("footer-remote", "Hỗ trợ từ xa", "/support/remote", "footer-support"),
+    item("footer-resources", "Tài nguyên", "/news"),
+    item("footer-news", "Tin tức", "/news", "footer-resources"),
+    item("footer-guides", "Hướng dẫn sử dụng", "/support/guides", "footer-support"),
+    item("footer-about", "Về iOrder", "/about", "footer-resources"),
+    item("footer-contact", "Liên hệ", "/contact", "footer-resources"),
+    item("footer-terms", "Điều khoản dịch vụ", "/terms-of-use", "footer-resources"),
+    item("footer-privacy", "Chính sách bảo mật", "/privacy-policy", "footer-resources"),
   ];
 
   await Promise.all([saveNavigation("header", headerItems, author.id), saveNavigation("footer", footerItems, author.id)]);

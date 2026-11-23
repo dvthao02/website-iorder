@@ -1,4 +1,4 @@
-// Thêm trang giới thiệu "Phần mềm quản lý bán hàng cho trạm dừng nghỉ" vào Phần mềm (/phan-mem), mục menu và một khối giới thiệu ở Trang chủ.
+// Thêm trang giới thiệu "Phần mềm quản lý bán hàng cho trạm dừng nghỉ" vào Phần mềm (/software), mục menu và một khối giới thiệu ở Trang chủ.
 // Chỉ thêm, không ghi đè: chạy lại an toàn (bỏ qua ảnh, sản phẩm, mục menu, khối trang chủ đã có). Ảnh chụp màn hình đã làm mờ số liệu và tên cửa hàng (scripts/data/rest-stop).
 import "dotenv/config";
 import { readFile } from "node:fs/promises";
@@ -14,7 +14,7 @@ import { getAdminPageBySlug, saveAdminPage } from "../packages/shared/src/server
 import type { PageBlock } from "../packages/shared/src/server/pages/pages.contract";
 
 const slug = "phan-mem-ban-hang-tram-dung-nghi";
-const path = `/phan-mem/${slug}`;
+const path = `/software/${slug}`;
 const anchor = "tram-dung-nghi"; // khối ảnh động đã thêm trước đây, nay được thay
 const gridAnchor = "phan-mem-theo-mo-hinh";
 const sliderAnchor = "hinh-anh-thuc-te";
@@ -42,7 +42,7 @@ async function run() {
   const report = await image(uid, "tram-dung-nghi-bao-cao-an-danh.png", "Báo cáo chi tiết bán hàng với bộ lọc chi nhánh, thời gian và hàng hóa", "Báo cáo bán hàng nhiều góc nhìn, xuất file và in báo cáo");
 
   const blocks: PageBlock[] = [
-    { type: "media_text", isEnabled: true, data: { layout: "image_right", tone: "light", eyebrow: "Trung tâm điều hành", title: "Một nơi quản lý toàn bộ cửa hàng trong trạm", description: "Trạm dừng nghỉ thường có nhiều hộ kinh doanh và cửa hàng hoạt động cạnh nhau. iOrder gom tất cả về một trung tâm điều hành: quản trị viên và kế toán vào chi nhánh trung tâm, người bán vào đúng cửa hàng của mình.", bullets: ["Chi nhánh trung tâm dành cho quản trị viên và kế toán", "Danh sách cửa hàng, tìm nhanh theo tên", "Mỗi cửa hàng bán và đối soát độc lập"], mediaId: hub, extraMediaIds: [], primaryAction: action("Nhận tư vấn", "/lien-he"), secondaryAction: null } },
+    { type: "media_text", isEnabled: true, data: { layout: "image_right", tone: "light", eyebrow: "Trung tâm điều hành", title: "Một nơi quản lý toàn bộ cửa hàng trong trạm", description: "Trạm dừng nghỉ thường có nhiều hộ kinh doanh và cửa hàng hoạt động cạnh nhau. iOrder gom tất cả về một trung tâm điều hành: quản trị viên và kế toán vào chi nhánh trung tâm, người bán vào đúng cửa hàng của mình.", bullets: ["Chi nhánh trung tâm dành cho quản trị viên và kế toán", "Danh sách cửa hàng, tìm nhanh theo tên", "Mỗi cửa hàng bán và đối soát độc lập"], mediaId: hub, extraMediaIds: [], primaryAction: action("Nhận tư vấn", "/contact"), secondaryAction: null } },
     { type: "media_text", isEnabled: true, data: { layout: "image_left", tone: "tinted", eyebrow: "Tổng quan", title: "Theo dõi bán hàng toàn trạm theo thời gian thực", description: "Màn hình Tổng quan cho biết ngay số hóa đơn, doanh thu và đơn hủy trong ngày. Biểu đồ chia doanh thu theo từng cửa hàng, kèm dòng hoạt động gần đây để biết ai vừa bán hay vừa đăng nhập.", bullets: ["Số hóa đơn, doanh thu và đơn hủy trong ngày", "Biểu đồ doanh thu theo cửa hàng và theo chi nhánh", "Dòng hoạt động gần đây của nhân viên"], mediaId: overview, extraMediaIds: [], primaryAction: null, secondaryAction: null } },
     { type: "media_text", isEnabled: true, data: { layout: "image_right", tone: "light", eyebrow: "Hàng hóa", title: "Quản lý hàng hóa tập trung, áp dụng theo từng cửa hàng", description: "Một danh mục hàng hóa dùng chung cho cả trạm: nhóm hàng, đơn vị tính, giá bán, thuế và tồn kho. Mỗi mặt hàng chọn được phạm vi áp dụng cho từng cửa hàng.", bullets: ["Hàng hóa, combo, hàng chứa nguyên liệu và vé xe", "Cây nhóm hàng, lọc theo tồn kho và tỷ lệ thuế", "Nhập file và xuất file hàng loạt"], mediaId: goods, extraMediaIds: [], primaryAction: null, secondaryAction: null } },
     { type: "media_text", isEnabled: true, data: { layout: "image_left", tone: "tinted", eyebrow: "Báo cáo", title: "Báo cáo bán hàng nhiều góc nhìn", description: "Xem báo cáo theo chi nhánh, danh mục, chi tiết hoặc tổng hợp, lọc theo khoảng thời gian, cửa hàng và hàng hóa. Xuất file hoặc in báo cáo ngay trên màn hình.", bullets: ["Báo cáo theo chi nhánh, danh mục, chi tiết và theo ngày", "Lọc theo thời gian, cửa hàng và hàng hóa", "Xuất file và in báo cáo"], mediaId: report, extraMediaIds: [], primaryAction: null, secondaryAction: null } },
@@ -61,7 +61,7 @@ async function run() {
       { question: "Có xuất hoặc in báo cáo được không?", answer: "Có. Các báo cáo bán hàng có thể xuất file hoặc in trực tiếp, lọc theo chi nhánh, thời gian và hàng hóa." },
       { question: "Muốn triển khai cho trạm của tôi thì liên hệ ở đâu?", answer: "Để lại thông tin ở trang Liên hệ, iOrder sẽ khảo sát số cửa hàng, nhóm hàng và đề xuất phương án triển khai phù hợp." },
     ] } },
-    { type: "cta", isEnabled: true, data: { id: "tu-van", eyebrow: "Triển khai cho trạm dừng nghỉ", title: "Nhận tư vấn phần mềm bán hàng cho trạm của bạn", action: action("Nhận tư vấn", "/lien-he") } },
+    { type: "cta", isEnabled: true, data: { id: "tu-van", eyebrow: "Triển khai cho trạm dừng nghỉ", title: "Nhận tư vấn phần mềm bán hàng cho trạm của bạn", action: action("Nhận tư vấn", "/contact") } },
   ];
 
   // ---------- Sản phẩm (chỉ tạo nếu chưa có) ----------
@@ -81,7 +81,7 @@ async function run() {
         features: ["Trung tâm điều hành đa chi nhánh", "Danh mục hàng hóa, combo và vé xe", "Theo dõi doanh thu theo từng cửa hàng", "Sổ quỹ và báo cáo bán hàng"],
         benefits: ["Nhìn toàn trạm trên một màn hình", "Đối soát nhanh cho kế toán"],
         faq: blocks.flatMap((block) => block.type === "faq" ? block.data.items.map((item) => [item.question, item.answer] as [string, string]) : []),
-        items: [{ title: "Phần mềm quản lý bán hàng iOrder", href: "/phan-mem/phan-mem-quan-ly-ban-hang-iorder" }, { title: "Thiết bị bán hàng", href: "/thiet-bi" }, { title: "Liên hệ tư vấn", href: "/lien-he" }],
+        items: [{ title: "Phần mềm quản lý bán hàng iOrder", href: "/software/phan-mem-quan-ly-ban-hang-iorder" }, { title: "Thiết bị bán hàng", href: "/equipment" }, { title: "Liên hệ tư vấn", href: "/contact" }],
         pricing: null, appearance: {}, blocks,
       },
       icon: "store", status: "published", scheduledAt: null, sortOrder: 3, isFeatured: true,
@@ -94,7 +94,7 @@ async function run() {
   for (const [location, label] of [["header", "Phần mềm bán hàng cho trạm dừng nghỉ"], ["footer", "Bán hàng cho trạm dừng nghỉ"]] as const) {
     const current = await getAdminNavigation(location);
     if (current.items.some((entry) => entry.url === path)) { log(`Menu ${location}: đã có, bỏ qua`); continue; }
-    const parent = current.items.find((entry) => entry.parentKey === null && entry.url === "/phan-mem");
+    const parent = current.items.find((entry) => entry.parentKey === null && entry.url === "/software");
     if (!parent) { log(`Menu ${location}: không thấy mục "Sản phẩm", bỏ qua`); continue; }
     const items = current.items.map(({ key, label: name, url, parentKey, linkType, contentId, target, isEnabled }) => ({ key, label: name, url, parentKey, linkType, contentId, target, isEnabled }));
     const created = { key: `${location}-${slug}`, label, url: path, parentKey: parent.key, linkType: "custom" as const, contentId: null, target: "_self" as const, isEnabled: true };
@@ -120,10 +120,10 @@ async function run() {
       cardStyle: "visual", eyebrow: "Phần mềm theo mô hình kinh doanh", title: "Chọn phần mềm phù hợp với cách bạn kinh doanh",
       description: "Mỗi mô hình có một phần mềm riêng, cùng một nền tảng và đội ngũ hỗ trợ iOrder.",
       items: [
-        card("Quản lý bán hàng iOrder", "Cho nhà hàng, quán cà phê, cửa hàng bán lẻ và chuỗi: bán hàng, gọi món, kho và báo cáo.", "/phan-mem/phan-mem-quan-ly-ban-hang-iorder", await coverOf("phan-mem-quan-ly-ban-hang-iorder")),
+        card("Quản lý bán hàng iOrder", "Cho nhà hàng, quán cà phê, cửa hàng bán lẻ và chuỗi: bán hàng, gọi món, kho và báo cáo.", "/software/phan-mem-quan-ly-ban-hang-iorder", await coverOf("phan-mem-quan-ly-ban-hang-iorder")),
         card("Bán hàng cho trạm dừng nghỉ", "Cho trạm có nhiều cửa hàng, hộ kinh doanh: trung tâm điều hành, hàng hóa dùng chung, doanh thu theo cửa hàng.", path, goods),
-        card("Quản lý trạm sạc xe điện", "Cho chủ trạm sạc, bãi đỗ xe: theo dõi trụ sạc, phiên sạc, thanh toán và doanh thu.", "/phan-mem/phan-mem-quan-ly-tram-sac-xe-dien-iorder-ev", await coverOf("phan-mem-quan-ly-tram-sac-xe-dien-iorder-ev")),
-        card("Hóa đơn điện tử, chữ ký số", "Cho doanh nghiệp và hộ kinh doanh: xuất hóa đơn ngay khi bán, ký số và gửi cho khách.", "/phan-mem/hoa-don-dien-tu-chu-ky-so", await coverOf("hoa-don-dien-tu-chu-ky-so")),
+        card("Quản lý trạm sạc xe điện", "Cho chủ trạm sạc, bãi đỗ xe: theo dõi trụ sạc, phiên sạc, thanh toán và doanh thu.", "/software/phan-mem-quan-ly-tram-sac-xe-dien-iorder-ev", await coverOf("phan-mem-quan-ly-tram-sac-xe-dien-iorder-ev")),
+        card("Hóa đơn điện tử, chữ ký số", "Cho doanh nghiệp và hộ kinh doanh: xuất hóa đơn ngay khi bán, ký số và gửi cho khách.", "/software/hoa-don-dien-tu-chu-ky-so", await coverOf("hoa-don-dien-tu-chu-ky-so")),
       ],
     },
     appearance: { anchor: gridAnchor, tone: "auto", spacing: "auto", width: null, backgroundColor: null, backgroundMediaId: null, backgroundOverlay: 80 },
@@ -153,14 +153,14 @@ async function run() {
   const productImageIds = ["32c35f63-0180-418f-acbd-90b3139ab155", "c989e473-051a-446b-af15-ee53f464c97b", "7c7eea26-f915-490a-ad0b-bba4afeb5dac", "b7c6af00-12ae-49cf-b05e-c1755f7236e7", "f2bedba7-b043-4f84-831f-f7b33b5f2f1a", "99c91bf8-c895-48aa-a323-462a3bce2833"];
   const present = new Set((await db.select({ id: mediaAssets.id }).from(mediaAssets).where(and(inArray(mediaAssets.id, productImageIds), isNull(mediaAssets.deletedAt)))).map((row) => row.id));
   const product = productImageIds.every((id) => present.has(id));
-  const posPage = "/phan-mem/phan-mem-quan-ly-ban-hang-iorder";
+  const posPage = "/software/phan-mem-quan-ly-ban-hang-iorder";
   const slide = (title: string, description: string, mediaId: string, href: string = path) => ({ title, description, href, mediaId, icon: null, background: null });
   const sliderItems = product
     ? [
       slide("Bán hàng tại quầy", "Chọn món, thu ngân, in bếp và in hóa đơn ngay trên một màn hình.", productImageIds[0], posPage),
       slide("Ứng dụng trên điện thoại", "Chủ cửa hàng xem doanh thu, đơn hàng và lợi nhuận mọi lúc.", productImageIds[4], posPage),
       slide("Báo cáo doanh thu", "Doanh thu, hàng bán chạy và nhân viên nổi bật trên một màn hình.", productImageIds[3], posPage),
-      slide("Bộ thiết bị bán hàng", "Máy POS, máy in hóa đơn, máy in bếp và két tiền.", productImageIds[5], "/thiet-bi"),
+      slide("Bộ thiết bị bán hàng", "Máy POS, máy in hóa đơn, máy in bếp và két tiền.", productImageIds[5], "/equipment"),
       slide("Quản lý bàn", "Theo dõi bàn trống và bàn đang phục vụ theo từng khu vực.", productImageIds[1], posPage),
       slide("Quản lý hóa đơn", "Tra cứu, lọc và xem lại hóa đơn theo thời gian và trạng thái.", productImageIds[2], posPage),
     ]

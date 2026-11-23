@@ -5,15 +5,15 @@ import { webUrl } from "./helpers";
 // Esc đóng và trả focus về thẻ; thẻ vẫn là liên kết tới trang chi tiết. Chỉ đọc, không đổi dữ liệu.
 test("Thiết bị: bấm thẻ mở chi tiết ngay dưới hàng, Esc đóng, thẻ vẫn là liên kết", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto(`${webUrl}/thiet-bi`);
+  await page.goto(`${webUrl}/equipment`);
   const tiles = page.locator(".equipment-tile");
   test.skip(await tiles.count() === 0, "Chưa có thiết bị được xuất bản");
   const tile = tiles.first();
-  await expect(tile).toHaveAttribute("href", /^\/thiet-bi\/.+/);
+  await expect(tile).toHaveAttribute("href", /^\/equipment\/.+/);
   await expect(tile).toHaveAttribute("aria-expanded", "false");
 
   await tile.click();
-  await expect(page).toHaveURL(/\/thiet-bi$/);
+  await expect(page).toHaveURL(/\/equipment$/);
   await expect(tile).toHaveAttribute("aria-expanded", "true");
   const panel = page.getByRole("region", { name: /^Chi tiết / });
   await expect(panel).toBeVisible();
@@ -32,5 +32,5 @@ test("Thiết bị: bấm thẻ mở chi tiết ngay dưới hàng, Esc đóng, 
   // Bàn phím: Enter trên thẻ cũng mở chi tiết (không rời trang).
   await page.keyboard.press("Enter");
   await expect(page.getByRole("region", { name: /^Chi tiết / })).toBeVisible();
-  await expect(page).toHaveURL(/\/thiet-bi$/);
+  await expect(page).toHaveURL(/\/equipment$/);
 });

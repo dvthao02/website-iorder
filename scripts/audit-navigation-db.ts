@@ -31,7 +31,7 @@ async function main() {
     await clients[0]`alter table menu_revisions add foreign key (menu_id) references menus(id) on delete cascade`;
     await clients[0]`alter table menu_revisions add foreign key (editor_id) references users(id) on delete set null`;
     await clients[0]`alter table audit_logs add foreign key (user_id) references users(id) on delete set null`;
-    const items: NavigationItems = [{ key: "parent", parentKey: null, label: "Cha", url: "/", linkType: "custom", contentId: null, target: "_self", isEnabled: true }, { key: "child", parentKey: "parent", label: "Con", url: "/lien-he", linkType: "custom", contentId: null, target: "_self", isEnabled: true }];
+    const items: NavigationItems = [{ key: "parent", parentKey: null, label: "Cha", url: "/", linkType: "custom", contentId: null, target: "_self", isEnabled: true }, { key: "child", parentKey: "parent", label: "Con", url: "/contact", linkType: "custom", contentId: null, target: "_self", isEnabled: true }];
     const input = { location: "header" as const, name: "Menu kiểm thử", items, userId: randomUUID(), expectedVersion: 0, changeNote: "Fixture riêng" };
     await clients[0]`insert into users (id, username, full_name, password_hash) values (${input.userId}, 'menu_fixture', 'Người kiểm thử', 'khong-phai-hash-dang-nhap')`;
     const first = await writeNavigation(input, databases[0]);

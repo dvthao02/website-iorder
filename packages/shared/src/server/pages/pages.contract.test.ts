@@ -117,7 +117,7 @@ test("Phần đầu trang cũ nhận nhiều ảnh và màu nền mặc định 
 });
 
 test("Khối danh sách theo nhóm: biểu tượng phải thuộc bộ có sẵn, mặc định hiện số mục", () => {
-  const group = { title: "Bán buôn, bán lẻ", icon: "store", items: [{ label: "Thời trang", icon: "shirt", href: null }], action: { label: "Tư vấn triển khai", href: "/lien-he" } };
+  const group = { title: "Bán buôn, bán lẻ", icon: "store", items: [{ label: "Thời trang", icon: "shirt", href: null }], action: { label: "Tư vấn triển khai", href: "/contact" } };
   const parsed = pageBlockInputSchema.parse({ type: "grouped_list", isEnabled: true, data: { eyebrow: "Theo ngành hàng", title: "Phù hợp nhiều mô hình kinh doanh", description: null, groupLabel: "Nhóm ngành", groups: [group] } });
   assert.equal(parsed.type === "grouped_list" && parsed.data.showCount, true);
   assert.equal(pageBlockInputSchema.safeParse({ type: "grouped_list", isEnabled: true, data: { eyebrow: null, title: "A", description: null, groupLabel: null, groups: [{ ...group, icon: "khong-co" }] } }).success, false);
@@ -145,6 +145,9 @@ test("Khối video YouTube: bắt buộc link YouTube hợp lệ, các chữ kh�
 
 test("Giao diện khối: dữ liệu cũ nhận mặc định; màu, ảnh nền, độ rộng được kiểm tra", () => {
   const faq = (appearance: unknown) => pageBlockInputSchema.safeParse({ type: "faq", isEnabled: true, data: { eyebrow: null, title: "Hỏi đáp", items: [{ question: "Q", answer: "A" }] }, appearance });
+  const named = faq({ adminLabel: "  Tên trong CMS  " });
+  assert.equal(named.success && named.data.appearance?.adminLabel, "Tên trong CMS");
+  assert.equal(faq({ adminLabel: "x".repeat(121) }).success, false);
   const old = faq({ anchor: null, tone: "white", spacing: "auto" });
   assert.ok(old.success);
   assert.deepEqual(old.data.appearance, { anchor: null, tone: "white", spacing: "auto", width: null, backgroundColor: null, backgroundMediaId: null, backgroundOverlay: 80 });
@@ -221,7 +224,7 @@ test("Lỗi trường trống nêu tên dễ hiểu", () => {
 
 test("Trang danh sách giữ nguyên khối cha và mọi bố cục con để publish dùng đúng một cấu hình", () => {
   for (const layout of ["split", "split_reverse", "background", "centered", "slider"]) {
-    const hero = pageBlockInputSchema.parse({ type: "hero", isEnabled: true, appearance: { anchor: "dich-vu", tone: "custom", backgroundColor: "#eef7ff", width: 75 }, data: { eyebrow: null, title: "Dịch vụ", description: "Mô tả", primaryAction: { label: "Tư vấn", href: "/lien-he" }, secondaryAction: null, layout, highlights: [{ title: "Điểm chung", note: null }], panels: [{ eyebrow: null, title: "Mục 2", description: null, primaryAction: null, secondaryAction: null, mediaId: null, highlights: [{ title: "Điểm riêng", note: null }] }] } });
+    const hero = pageBlockInputSchema.parse({ type: "hero", isEnabled: true, appearance: { anchor: "dich-vu", tone: "custom", backgroundColor: "#eef7ff", width: 75 }, data: { eyebrow: null, title: "Dịch vụ", description: "Mô tả", primaryAction: { label: "Tư vấn", href: "/contact" }, secondaryAction: null, layout, highlights: [{ title: "Điểm chung", note: null }], panels: [{ eyebrow: null, title: "Mục 2", description: null, primaryAction: null, secondaryAction: null, mediaId: null, highlights: [{ title: "Điểm riêng", note: null }] }] } });
     const listing = listingLayoutFromBlocks("listing-service", [hero])!;
     assert.deepEqual(listing.hero, hero);
     assert.equal(listing.blocks.filter(block => block.type === "hero").length, 0);
@@ -246,7 +249,7 @@ test("Khối nhiều cột: 2–4 cột, mục lồng một cấp, điền mặc
   assert.equal(pageBlockInputSchema.safeParse({ ...base, data: { ...base.data, columns: [{ items: [] }] } }).success, false, "ít hơn 2 cột");
   assert.equal(pageBlockInputSchema.safeParse({ ...base, data: { ...base.data, columns: [1, 2, 3, 4, 5].map(() => ({ items: [] })) } }).success, false, "quá 4 cột");
   assert.equal(pageBlockInputSchema.safeParse({ ...base, data: { ...base.data, columns: [{ items: [{ kind: "columns", columns: [] }] }, { items: [] }] } }).success, false, "không lồng cột trong cột");
-  assert.equal(pageBlockInputSchema.safeParse({ ...base, data: { ...base.data, columns: [{ items: [{ kind: "button", label: "", href: "/lien-he" }] }, { items: [] }] } }).success, false, "nút thiếu chữ");
+  assert.equal(pageBlockInputSchema.safeParse({ ...base, data: { ...base.data, columns: [{ items: [{ kind: "button", label: "", href: "/contact" }] }, { items: [] }] } }).success, false, "nút thiếu chữ");
 });
 
 test("Căn chữ riêng của mục con (thẻ, số liệu): tùy chọn, dữ liệu cũ vẫn hợp lệ, chặn giá trị lạ", () => {
@@ -327,7 +330,7 @@ test("Lưới thẻ nhận kiểu dải ảnh trượt (slider)", () => {
 });
 
 test("Lưới thẻ nhận kiểu ảnh ghép (mosaic)", () => {
-  const features = (cardStyle: string) => ({ type: "features", isEnabled: true, data: { cardStyle, eyebrow: null, title: "Hệ sinh thái", description: null, items: [{ title: "Phần mềm", description: "Bán hàng\nTrạm sạc", href: "/phan-mem", icon: null, mediaId: null }] } });
+  const features = (cardStyle: string) => ({ type: "features", isEnabled: true, data: { cardStyle, eyebrow: null, title: "Hệ sinh thái", description: null, items: [{ title: "Phần mềm", description: "Bán hàng\nTrạm sạc", href: "/software", icon: null, mediaId: null }] } });
   assert.ok(pageBlockInputSchema.safeParse(features("mosaic")).success);
   assert.equal(pageBlockInputSchema.safeParse(features("mosaics")).success, false);
 });

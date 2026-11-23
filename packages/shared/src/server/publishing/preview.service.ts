@@ -10,7 +10,7 @@ export async function previewPath(kind: PreviewKind, id: string): Promise<string
   if (kind === "builder") {
     const preview = await findBuilderPreview(id);
     if (!preview) return undefined;
-    return preview.document.kind === "page" ? pagePublicPath(preview.document.values.slug) : preview.document.kind === "equipment" ? `/thiet-bi/${preview.document.values.slug}` : offeringPublicPath(preview.document.values.slug, preview.document.values.type) ?? undefined;
+    return preview.document.kind === "page" ? pagePublicPath(preview.document.values.slug) : preview.document.kind === "equipment" ? `/equipment/${preview.document.values.slug}` : offeringPublicPath(preview.document.values.slug, preview.document.values.type) ?? undefined;
   }
   if (kind === "post") {
     const post = await findAdminPostById(id);

@@ -43,7 +43,7 @@ export default async function CategoryPage({ params, searchParams }: Props) {
   const { grid, totalPages } = paginateNews(posts, page, false);
   if (page > totalPages) notFound();
   return <><SiteHeader /><main id="noi-dung">
-    <PageHero crumbs={[{ name: "Tin tức", path: "/tin-tuc" }, { name: category.name, path: newsTopicPath(category.slug) }]} description={describe(category.name, category.description)} eyebrow="Chủ đề" title={category.name} />
+    <PageHero crumbs={[{ name: "Tin tức", path: "/news" }, { name: category.name, path: newsTopicPath(category.slug) }]} description={describe(category.name, category.description)} eyebrow="Chủ đề" title={category.name} />
     <NewsTopics active={category.slug} topics={index.topics} />
     <section aria-labelledby="bai-viet-chu-de" className="news-section"><Container>
       {/* Tiêu đề ẩn để thứ tự đề mục liền mạch: H1 tên chuyên mục → H2 → tiêu đề từng bài (H3). */}

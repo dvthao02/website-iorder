@@ -26,8 +26,8 @@ test("Hộp tác giả: chữ cái đầu, tên là liên kết tới trang riê
   assert.match(guest, /<strong class="article-author__name">ngô văn an<\/strong>/);
   assert.match(guest, /Chuyên viên triển khai/);
   assert.doesNotMatch(guest, /<a /);
-  const own = renderToStaticMarkup(<ArticleAuthorBox author={{ name: "An", jobTitle: null, pagePath: "/tac-gia/an", profileUrl: null }} />);
-  assert.match(own, /<a class="article-author__name"[^>]*href="\/tac-gia\/an"[^>]*>An<\/a>/);
+  const own = renderToStaticMarkup(<ArticleAuthorBox author={{ name: "An", jobTitle: null, pagePath: "/author/an", profileUrl: null }} />);
+  assert.match(own, /<a class="article-author__name"[^>]*href="\/author\/an"[^>]*>An<\/a>/);
   assert.match(own, /rel="author"/);
   assert.match(renderToStaticMarkup(<ArticleAuthorBox author={{ name: "An", jobTitle: null, pagePath: null, profileUrl: "https://example.com/an" }} />), /href="https:\/\/example.com\/an" rel="author noopener" target="_blank"/);
   assert.equal(renderToStaticMarkup(<ArticleAuthorBox author={null} />), "");
@@ -37,8 +37,8 @@ test("Hộp tác giả: chữ cái đầu, tên là liên kết tới trang riê
 test("Bài cũ hơn bên trái (rel prev), mới hơn bên phải (rel next); thiếu một phía thì chỉ hiện phía còn lại, không có phía nào thì không vẽ", () => {
   const both = renderToStaticMarkup(<ArticlePager newer={post(1)} older={post(3)} />);
   assert.ok(both.indexOf("Bài cũ hơn") < both.indexOf("Bài mới hơn"), "bài cũ hơn đứng trước (bên trái)");
-  assert.match(both, /href="\/tin-tuc\/bai-viet-3"[^>]*rel="prev"|rel="prev"[^>]*href="\/tin-tuc\/bai-viet-3"/);
-  assert.match(both, /href="\/tin-tuc\/bai-viet-1"[^>]*rel="next"|rel="next"[^>]*href="\/tin-tuc\/bai-viet-1"/);
+  assert.match(both, /href="\/news\/bai-viet-3"[^>]*rel="prev"|rel="prev"[^>]*href="\/news\/bai-viet-3"/);
+  assert.match(both, /href="\/news\/bai-viet-1"[^>]*rel="next"|rel="next"[^>]*href="\/news\/bai-viet-1"/);
   const onlyNewer = renderToStaticMarkup(<ArticlePager newer={post(1)} older={null} />);
   assert.doesNotMatch(onlyNewer, /Bài cũ hơn/);
   assert.match(onlyNewer, /Bài viết số 1/);

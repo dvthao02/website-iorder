@@ -16,13 +16,13 @@ export const revalidate = 0;
 
 const description = "Tra cứu hướng dẫn sử dụng, tải phần mềm và driver cài đặt, xem câu hỏi thường gặp hoặc liên hệ đội ngũ kỹ thuật iOrder để được hỗ trợ nhanh.";
 export async function generateMetadata(_: unknown, parent: ResolvingMetadata): Promise<Metadata> {
-  return contentMetadata({ title: "Trung tâm hỗ trợ iOrder", description, path: "/ho-tro" }, parent);
+  return contentMetadata({ title: "Trung tâm hỗ trợ iOrder", description, path: "/support" }, parent);
 }
 
 const tel = (phone: string) => `tel:${phone.replace(/[^\d+]/g, "")}`;
 type Channel = { href: string; title: string; text: string; meta?: string; icon: LucideIcon };
 
-// Trung tâm hỗ trợ (/ho-tro): một nơi để tìm mọi kênh hỗ trợ. Toàn bộ nội dung lấy từ CMS — bài hướng dẫn, tệp cài đặt,
+// Trung tâm hỗ trợ (/support): một nơi để tìm mọi kênh hỗ trợ. Toàn bộ nội dung lấy từ CMS — bài hướng dẫn, tệp cài đặt,
 // câu hỏi của trang "Câu hỏi thường gặp", trang Video / Hỗ trợ từ xa (chỉ hiện khi đã xuất bản), hotline, email,
 // giờ làm việc trong Cài đặt — nên thêm/ẩn nội dung ở CMS là trang tự đổi theo, không cần sửa code.
 // Bố cục: phần đầu gọn (tên trang, ô tìm, một dòng hotline) → "Hướng dẫn theo tính năng" (lưới thẻ) → các kênh hỗ trợ
@@ -35,25 +35,25 @@ export default async function SupportCenterPage() {
   const faqs = (faqPage?.blocks ?? []).flatMap((block) => block.isEnabled && block.type === "faq" ? block.data.items : []);
 
   const guideDescriptions = await Promise.all(guides.map(guideDescription));
-  const guideItems = guides.map((guide, index) => ({ href: `/ho-tro/huong-dan/${guide.slug}`, title: guide.title, description: guideDescriptions[index], categories: guide.categories.map((category) => category.name) }));
+  const guideItems = guides.map((guide, index) => ({ href: `/support/guides/${guide.slug}`, title: guide.title, description: guideDescriptions[index], categories: guide.categories.map((category) => category.name) }));
 
   const channels: Channel[] = [
-    downloads.length ? { href: "/ho-tro/cai-dat", title: "Hỗ trợ cài đặt", text: "Tải phần mềm, driver máy in, máy quét và công cụ cài đặt.", meta: `${downloads.length} tệp`, icon: Download } : null,
-    videosPage ? { href: "/ho-tro/video", title: videosPage.title, text: "Xem thao tác trực quan qua video ngắn.", icon: MonitorPlay } : null,
-    faqPage ? { href: "/ho-tro/faq", title: faqPage.title, text: "Câu trả lời nhanh cho các thắc mắc hay gặp.", meta: faqs.length ? `${faqs.length} câu hỏi` : undefined, icon: CircleHelp } : null,
-    remotePage ? { href: "/ho-tro-tu-xa", title: remotePage.title, text: "Kỹ thuật viên kết nối vào máy để xử lý giúp bạn.", icon: Headset } : null,
-    { href: "/lien-he", title: "Gửi yêu cầu hỗ trợ", text: "Để lại thông tin, iOrder liên hệ lại trong giờ làm việc.", icon: MessageSquareText },
+    downloads.length ? { href: "/support/setup", title: "Hỗ trợ cài đặt", text: "Tải phần mềm, driver máy in, máy quét và công cụ cài đặt.", meta: `${downloads.length} tệp`, icon: Download } : null,
+    videosPage ? { href: "/support/videos", title: videosPage.title, text: "Xem thao tác trực quan qua video ngắn.", icon: MonitorPlay } : null,
+    faqPage ? { href: "/support/faq", title: faqPage.title, text: "Câu trả lời nhanh cho các thắc mắc hay gặp.", meta: faqs.length ? `${faqs.length} câu hỏi` : undefined, icon: CircleHelp } : null,
+    remotePage ? { href: "/support/remote", title: remotePage.title, text: "Kỹ thuật viên kết nối vào máy để xử lý giúp bạn.", icon: Headset } : null,
+    { href: "/contact", title: "Gửi yêu cầu hỗ trợ", text: "Để lại thông tin, iOrder liên hệ lại trong giờ làm việc.", icon: MessageSquareText },
   ].filter((channel): channel is Channel => channel !== null);
 
   const searchItems: SupportSearchItem[] = [
     ...guideItems.map((item) => ({ title: item.title, href: item.href, kind: "Hướng dẫn", text: [item.description, ...item.categories].filter(Boolean).join(" ") })),
-    ...downloads.map((download) => ({ title: download.title, href: "/ho-tro/cai-dat", kind: "Tệp cài đặt", text: download.description })),
-    ...faqs.map((faq) => ({ title: faq.question, href: "/ho-tro/faq", kind: "Câu hỏi", text: faq.answer })),
+    ...downloads.map((download) => ({ title: download.title, href: "/support/setup", kind: "Tệp cài đặt", text: download.description })),
+    ...faqs.map((faq) => ({ title: faq.question, href: "/support/faq", kind: "Câu hỏi", text: faq.answer })),
   ];
 
   return <>
     <SiteHeader />
-    <BreadcrumbJsonLd crumbs={[{ name: "Hỗ trợ", path: "/ho-tro" }]} />
+    <BreadcrumbJsonLd crumbs={[{ name: "Hỗ trợ", path: "/support" }]} />
     <main id="noi-dung">
       {/* Phần đầu gọn: tên trang + ô tìm + một dòng gọi trực tiếp. Liên hệ đầy đủ (email, Zalo, gửi yêu cầu) nằm ở
           "Chọn cách nhận hỗ trợ" và dải cuối trang nên không lặp lại ở đây. */}
@@ -74,7 +74,7 @@ export default async function SupportCenterPage() {
             <h2 className="mb-0 text-h2 font-bold tracking-tight text-ink" id="huong-dan-tinh-nang">Hướng dẫn theo tính năng</h2>
             <p className="mt-2 mb-0 text-body text-muted">Cách dùng từng phần của iOrder: bán hàng, hóa đơn, kho, kết ca, báo cáo…</p>
           </div>
-          <Link className="text-small font-semibold text-brand-700 hover:underline" href="/ho-tro/huong-dan">Tất cả {guideItems.length} bài hướng dẫn →</Link>
+          <Link className="text-small font-semibold text-brand-700 hover:underline" href="/support/guides">Tất cả {guideItems.length} bài hướng dẫn →</Link>
         </div>
         <ul className="m-0 grid list-none gap-3 p-0 sm:grid-cols-2 lg:grid-cols-4">{guideItems.slice(0, 8).map((item) => {
           const Icon = iconFor(item.title);
@@ -106,7 +106,7 @@ export default async function SupportCenterPage() {
       {downloads.length ? <section className="bg-white"><Container className="grid gap-8 py-12 sm:py-16 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:items-center lg:gap-12">
         <div>
           <SectionHeading align="left" className="mb-0" description="Phần mềm, driver và công cụ cần cho máy bán hàng, máy in, máy quét." title="Tải phần mềm & driver" />
-          <Link className="mt-5 inline-flex items-center gap-1.5 font-semibold text-brand-700 hover:underline" href="/ho-tro/cai-dat">{downloads.length > 4 ? `Xem tất cả ${downloads.length} tệp` : "Xem hướng dẫn cài đặt"} <ChevronRight aria-hidden="true" size={16} /></Link>
+          <Link className="mt-5 inline-flex items-center gap-1.5 font-semibold text-brand-700 hover:underline" href="/support/setup">{downloads.length > 4 ? `Xem tất cả ${downloads.length} tệp` : "Xem hướng dẫn cài đặt"} <ChevronRight aria-hidden="true" size={16} /></Link>
         </div>
         <DownloadList columns={1} grouped={false} items={downloads.slice(0, 4)} />
       </Container></section> : null}
@@ -114,7 +114,7 @@ export default async function SupportCenterPage() {
       {faqs.length ? <section className="bg-surface-tinted"><Container className="py-12 sm:py-16" width="narrow">
         <SectionHeading align="left" className="mb-6" title="Câu hỏi thường gặp" />
         <FaqList items={faqs.slice(0, 6)} />
-        {faqs.length > 6 ? <p className="mt-6 mb-0 text-center"><Link className="font-semibold text-brand-700 hover:underline" href="/ho-tro/faq">Xem tất cả {faqs.length} câu hỏi →</Link></p> : null}
+        {faqs.length > 6 ? <p className="mt-6 mb-0 text-center"><Link className="font-semibold text-brand-700 hover:underline" href="/support/faq">Xem tất cả {faqs.length} câu hỏi →</Link></p> : null}
       </Container></section> : null}
 
       <section aria-label="Liên hệ đội ngũ hỗ trợ" className="support-band relative isolate overflow-clip"><DarkGlow /><Container className="flex flex-col items-start gap-6 py-12 md:flex-row md:items-center md:justify-between">
@@ -124,8 +124,8 @@ export default async function SupportCenterPage() {
         </div>
         <div className="flex flex-wrap gap-3">
           {profile?.hotline ? <a className="button button--light" href={tel(profile.hotline)}><Phone aria-hidden="true" size={18} />Gọi {profile.hotline}</a> : null}
-          {remotePage ? <Link className="button button--outline-light" href="/ho-tro-tu-xa">Hỗ trợ từ xa</Link> : null}
-          <Link className="button button--outline-light" href="/lien-he">Gửi yêu cầu hỗ trợ</Link>
+          {remotePage ? <Link className="button button--outline-light" href="/support/remote">Hỗ trợ từ xa</Link> : null}
+          <Link className="button button--outline-light" href="/contact">Gửi yêu cầu hỗ trợ</Link>
         </div>
       </Container></section>
     </main>

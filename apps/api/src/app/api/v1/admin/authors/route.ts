@@ -24,9 +24,9 @@ function requestedVisibility(values: unknown) {
 
 // Đổi tác giả đổi cả dòng "Tác giả" trên bài và trang riêng của họ.
 function revalidateAuthorPages() {
-  revalidatePath("/tac-gia/[slug]", "page");
-  revalidatePath("/tin-tuc/[slug]", "page");
-  revalidatePath("/ho-tro/huong-dan/[slug]", "page");
+  revalidatePath("/author/[slug]", "page");
+  revalidatePath("/news/[slug]", "page");
+  revalidatePath("/support/guides/[slug]", "page");
   revalidatePath("/sitemap.xml");
 }
 

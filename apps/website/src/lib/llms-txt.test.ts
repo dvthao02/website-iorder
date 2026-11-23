@@ -8,11 +8,11 @@ test("llms.txt có tiêu đề, tóm tắt, ghi chú và các mục liên kết 
     name: "iOrder",
     summary: "Phần mềm quản lý bán hàng.",
     notes: ["Hotline: 1900 0000"],
-    sections: [{ title: "Phần mềm", links: [{ title: "iOrder POS", url: "https://iorder.vn/phan-mem/pos", description: "Bán hàng, kho, báo cáo." }, { title: "Không mô tả", url: "https://iorder.vn/phan-mem/khac" }] }],
+    sections: [{ title: "Phần mềm", links: [{ title: "iOrder POS", url: "https://iorder.vn/software/pos", description: "Bán hàng, kho, báo cáo." }, { title: "Không mô tả", url: "https://iorder.vn/software/khac" }] }],
   });
   assert.equal(text, [
     "# iOrder", "", "> Phần mềm quản lý bán hàng.", "", "Hotline: 1900 0000", "",
-    "## Phần mềm", "", "- [iOrder POS](https://iorder.vn/phan-mem/pos): Bán hàng, kho, báo cáo.", "- [Không mô tả](https://iorder.vn/phan-mem/khac)", "",
+    "## Phần mềm", "", "- [iOrder POS](https://iorder.vn/software/pos): Bán hàng, kho, báo cáo.", "- [Không mô tả](https://iorder.vn/software/khac)", "",
   ].join("\n"));
 });
 

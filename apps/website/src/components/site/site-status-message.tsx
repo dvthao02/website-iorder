@@ -19,7 +19,7 @@ export function SiteStatusMessage({ eyebrow, title, description, kind = "not-fou
       <div className="mt-4 flex flex-wrap justify-center gap-3">
         {onRetry ? <button className="button button--primary" onClick={onRetry} type="button"><RefreshCw aria-hidden="true" size={18} />Thử lại</button> : null}
         <Link className={`button ${onRetry ? "button--secondary" : "button--primary"}`} href="/">Về trang chủ</Link>
-        {kind === "not-found" ? <Link className="button button--secondary" href="/lien-he">Liên hệ hỗ trợ</Link> : null}
+        {kind === "not-found" ? <Link className="button button--secondary" href="/contact">Liên hệ hỗ trợ</Link> : null}
       </div>
     </div>
   </main>;

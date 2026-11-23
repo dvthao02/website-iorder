@@ -148,7 +148,7 @@ async function seedV1Posts() {
         ],
       });
       const publishedAt = new Date(`${sourcePost.publishedOn}T09:00:00+07:00`);
-      const sourceUrl = `${v1Source}/tin-tuc/${sourcePost.slug}`;
+      const sourceUrl = `${v1Source}/news/${sourcePost.slug}`;
       const snapshot = { sourceUrl, source: "iwork.vn", title: sourcePost.title, excerpt: sourcePost.excerpt, content };
       const [created] = await tx
         .insert(posts)

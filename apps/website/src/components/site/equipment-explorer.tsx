@@ -77,7 +77,7 @@ export function EquipmentExplorer({ items, grouped, dark = false, Heading = "h3"
       <ul className="equipment-grid m-0 grid list-none grid-cols-2 gap-5 p-0 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
         {group.items.map((item, itemIndex) => <Fragment key={item.id}>
           <li>
-            <Link aria-controls={selected === item.id ? `thiet-bi-chi-tiet-${item.id}` : undefined} aria-expanded={selected === item.id} className={selected === item.id ? "equipment-tile equipment-tile--active" : "equipment-tile"} href={`/thiet-bi/${item.slug}`} onClick={(event) => toggle(event, item.id)} ref={(element) => { if (element) cards.current.set(item.id, element); else cards.current.delete(item.id); }}>
+            <Link aria-controls={selected === item.id ? `thiet-bi-chi-tiet-${item.id}` : undefined} aria-expanded={selected === item.id} className={selected === item.id ? "equipment-tile equipment-tile--active" : "equipment-tile"} href={`/equipment/${item.slug}`} onClick={(event) => toggle(event, item.id)} ref={(element) => { if (element) cards.current.set(item.id, element); else cards.current.delete(item.id); }}>
               <span className="equipment-tile__media">{item.coverUrl ? <Image alt={item.coverAlt ?? item.name} className="equipment-tile__image" height={360} sizes="(min-width: 1280px) 260px, (min-width: 640px) 30vw, 45vw" src={item.coverUrl} width={480} /> : <EquipmentImagePlaceholder />}</span>
               <span className="equipment-tile__body">
                 <span className="equipment-tile__name">{item.name}</span>
@@ -105,8 +105,8 @@ export function EquipmentExplorer({ items, grouped, dark = false, Heading = "h3"
                   <ul className="m-0 grid list-none gap-1.5 p-0">{spec.items.map((row, rowIndex) => <li className="text-body text-ink/85" key={rowIndex}>{freeText(row.label) ? row.value : <><span className="text-muted">{row.label}:</span> {row.value}</>}</li>)}</ul>
                 </section>)}</div> : null}
                 <div className="mt-5 flex flex-wrap gap-3">
-                  <Link className="button button--primary" href="/lien-he">Liên hệ mua hàng</Link>
-                  <Link className="button button--secondary" href={`/thiet-bi/${active.slug}`}>Xem trang chi tiết<ArrowRight aria-hidden="true" size={18} /></Link>
+                  <Link className="button button--primary" href="/contact">Liên hệ mua hàng</Link>
+                  <Link className="button button--secondary" href={`/equipment/${active.slug}`}>Xem trang chi tiết<ArrowRight aria-hidden="true" size={18} /></Link>
                 </div>
               </div>
             </div>

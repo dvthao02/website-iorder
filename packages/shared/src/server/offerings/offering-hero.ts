@@ -32,7 +32,7 @@ export function offeringHeroBlock(source: HeroSource): Extract<PageBlock, { type
       eyebrow: content.category ? clip(content.category, 160) : null,
       title: source.title,
       description: source.summary,
-      primaryAction: { label: "Nhận tư vấn miễn phí", href: "/lien-he" },
+      primaryAction: { label: "Nhận tư vấn miễn phí", href: "/contact" },
       secondaryAction: hasPricing ? { label: "Xem bảng giá", href: "#bang-gia" } : null,
       mediaId: source.coverMediaId,
       layout: layout?.layout ?? "split",

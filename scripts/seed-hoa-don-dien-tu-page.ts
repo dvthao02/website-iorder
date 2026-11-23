@@ -1,4 +1,4 @@
-// Dựng trang "Hóa đơn điện tử - Chữ ký số" (/phan-mem/hoa-don-dien-tu-chu-ky-so) từ hai màn hình thật của iOrder:
+// Dựng trang "Hóa đơn điện tử - Chữ ký số" (/software/hoa-don-dien-tu-chu-ky-so) từ hai màn hình thật của iOrder:
 // Thiết lập kết nối hóa đơn điện tử (VNPT, Viettel, MobiFone, BKAV, MeInvoice, VietInvoice) và màn hình Hóa đơn (cột Hoá đơn điện tử, bộ lọc Xuất HDDT).
 // Ảnh nằm ở scripts/data/hoa-don-dien-tu; ảnh màn hình Hóa đơn đã làm mờ tên cửa hàng, doanh thu, mã đơn, tên bàn và khách hàng.
 // Nội dung chỉ nêu những gì nhìn thấy trên màn hình và những gì trang đã nói trước đó. Chỉ thêm, không ghi đè: trang đã có phần "Kết nối" thì bỏ qua.

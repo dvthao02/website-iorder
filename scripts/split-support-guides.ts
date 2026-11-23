@@ -9,12 +9,12 @@ import { getFixedWebsitePage, type AdminPage, type CollectionListData, type Page
 import { getAdminPageBySlug, saveAdminPage } from "../packages/shared/src/server/pages/pages.service";
 
 // Tách "Hướng dẫn sử dụng" khỏi trang "Hỗ trợ cài đặt" trên dữ liệu đã có:
-// 1. Bỏ khối danh sách hướng dẫn khỏi /ho-tro/cai-dat (còn trong lịch sử phiên bản của trang).
-// 2. Tạo trang danh sách /ho-tro/huong-dan nếu chưa có, giữ tiêu đề/mô tả của khối vừa bỏ.
-// 3. Đổi liên kết menu "/ho-tro/cai-dat#huong-dan" thành "/ho-tro/huong-dan".
+// 1. Bỏ khối danh sách hướng dẫn khỏi /support/setup (còn trong lịch sử phiên bản của trang).
+// 2. Tạo trang danh sách /support/guides nếu chưa có, giữ tiêu đề/mô tả của khối vừa bỏ.
+// 3. Đổi liên kết menu "/support/setup#huong-dan" thành "/support/guides".
 // Chạy lại nhiều lần an toàn: bước nào đã xong thì bỏ qua.
-const legacyGuidesUrl = "/ho-tro/cai-dat#huong-dan";
-const guidesUrl = "/ho-tro/huong-dan";
+const legacyGuidesUrl = "/support/setup#huong-dan";
+const guidesUrl = "/support/guides";
 
 function pageValues(page: AdminPage, blocks: PageBlock[]) {
   const { title, slug, template, status, seoTitle, seoDescription, canonicalUrl, scheduledAt } = page;
@@ -31,7 +31,7 @@ async function splitSupportPage(userId: string): Promise<CollectionListData | un
   if (!page || !guides) return undefined;
   // Trang chỉ còn một danh sách: bỏ mã neo/tiêu đề phụ "Tệp cài đặt" dư thừa thì để người vận hành tự quyết trong CMS.
   await saveAdminPage(page.id, pageValues(page, page.blocks.filter(block => !isGuidesList(block))), userId, { expectedVersion: page.draftVersion });
-  console.log("Đã bỏ danh sách hướng dẫn khỏi /ho-tro/cai-dat.");
+  console.log("Đã bỏ danh sách hướng dẫn khỏi /support/setup.");
   return guides.data;
 }
 

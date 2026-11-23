@@ -8,9 +8,9 @@ import { buildLlmsTxt, type LlmsLink } from "@/lib/llms-txt";
 export const dynamic = "force-dynamic";
 
 const catalogs = [
-  { type: "software", prefix: "/phan-mem", title: "Phần mềm" },
-  { type: "solution", prefix: "/giai-phap", title: "Giải pháp" },
-  { type: "service", prefix: "/dich-vu", title: "Dịch vụ" },
+  { type: "software", prefix: "/software", title: "Phần mềm" },
+  { type: "solution", prefix: "/solutions", title: "Giải pháp" },
+  { type: "service", prefix: "/services", title: "Dịch vụ" },
 ] as const;
 // Trang pháp lý ít giúp AI trả lời câu hỏi về sản phẩm, xếp vào mục phụ cuối tệp.
 const legalSlugs = new Set(["terms", "privacy-policy"]);
@@ -34,7 +34,7 @@ export async function GET() {
   const pageLinks = await Promise.all(pages.filter((page) => isSitemapEligible(page.seo)).map(async (page): Promise<{ legal: boolean; link: LlmsLink } | null> => {
     const fixed = getFixedWebsitePage(page.slug);
     if (fixed?.publicPath.includes("#")) return null;
-    const path = fixed ? fixed.publicPath : `/trang/${page.slug}`;
+    const path = fixed ? fixed.publicPath : `/pages/${page.slug}`;
     // Trang hệ thống dùng tên cố định; trang tự tạo lấy tiêu đề và mô tả từ CMS.
     const content = fixed ? undefined : await getPublishedPage(page.slug);
     return { legal: legalSlugs.has(page.slug), link: { title: fixed?.label ?? content?.title ?? page.slug, url: url(path), description: content?.seoDescription } };
@@ -56,9 +56,9 @@ export async function GET() {
     sections: [
       { title: "Trang chính", links: visiblePages.filter((entry) => !entry.legal).map((entry) => entry.link) },
       ...catalogs.map((catalog, index) => ({ title: catalog.title, links: offeringLists[index].filter((item) => isSitemapEligible(item.seo)).slice(0, maxPerSection).map((item) => ({ title: item.title, url: url(`${catalog.prefix}/${item.slug}`), description: item.summary })) })),
-      { title: "Thiết bị bán hàng", links: equipment.filter((item) => isSitemapEligible(item.seo)).slice(0, maxPerSection).map((item) => ({ title: item.name, url: url(`/thiet-bi/${item.slug}`), description: [item.summary, item.priceVnd ? `Giá ${priceFormatter.format(item.priceVnd)} ₫.` : "", equipmentAvailabilityNotice(item.availability) ? `${equipmentAvailabilityNotice(item.availability)}.` : ""].filter(Boolean).join(" ") })) },
-      { title: "Hướng dẫn sử dụng", links: eligiblePosts.filter((post) => post.type === "guide").slice(0, maxPerSection).map((post) => ({ title: post.title, url: url(`/ho-tro/huong-dan/${post.slug}`), description: post.excerpt })) },
-      { title: "Tin tức", links: eligiblePosts.filter((post) => post.type !== "guide").slice(0, 20).map((post) => ({ title: post.title, url: url(`/tin-tuc/${post.slug}`), description: post.excerpt })) },
+      { title: "Thiết bị bán hàng", links: equipment.filter((item) => isSitemapEligible(item.seo)).slice(0, maxPerSection).map((item) => ({ title: item.name, url: url(`/equipment/${item.slug}`), description: [item.summary, item.priceVnd ? `Giá ${priceFormatter.format(item.priceVnd)} ₫.` : "", equipmentAvailabilityNotice(item.availability) ? `${equipmentAvailabilityNotice(item.availability)}.` : ""].filter(Boolean).join(" ") })) },
+      { title: "Hướng dẫn sử dụng", links: eligiblePosts.filter((post) => post.type === "guide").slice(0, maxPerSection).map((post) => ({ title: post.title, url: url(`/support/guides/${post.slug}`), description: post.excerpt })) },
+      { title: "Tin tức", links: eligiblePosts.filter((post) => post.type !== "guide").slice(0, 20).map((post) => ({ title: post.title, url: url(`/news/${post.slug}`), description: post.excerpt })) },
       { title: "Kênh chính thức", links: official },
       { title: "Optional", links: [...visiblePages.filter((entry) => entry.legal).map((entry) => entry.link), { title: "Sơ đồ website (sitemap)", url: url("/sitemap.xml") }, { title: "Nguồn cấp RSS tin tức", url: url("/feed.xml") }] },
     ],

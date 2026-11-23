@@ -11,13 +11,13 @@ const postDate = (post: PublicPostSummary) => dateFormatter.format(post.publishe
 
 /**
  * Thanh chủ đề dưới phần đầu trang Tin tức / chuyên mục: chữ thường, mục đang xem gạch chân xanh (cùng kiểu menu đầu trang),
- * trượt ngang trên điện thoại. "Tất cả" về /tin-tuc.
+ * trượt ngang trên điện thoại. "Tất cả" về /news.
  */
 export function NewsTopics({ topics, active }: { topics: NewsTopic[]; active: string | null }) {
   if (!topics.length) return null;
   return <nav aria-label="Chủ đề tin tức" className="news-topics">
     <ul className="site-container news-topics__list">
-      <li><Link aria-current={active === null ? "page" : undefined} href="/tin-tuc">Tất cả</Link></li>
+      <li><Link aria-current={active === null ? "page" : undefined} href="/news">Tất cả</Link></li>
       {topics.map((topic) => <li key={topic.slug}><Link aria-current={active === topic.slug ? "page" : undefined} href={newsTopicPath(topic.slug)}>{topic.name}<span className="news-topics__count">{topic.count}</span></Link></li>)}
     </ul>
   </nav>;

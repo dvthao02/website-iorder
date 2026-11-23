@@ -74,7 +74,7 @@ const publicOfferingBaseSchema = z
   })
   .strict();
 
-// Thẻ danh sách (/phan-mem, /giai-phap, /dich-vu, khối Danh sách nội dung) còn hiện chuyên mục và số liệu nổi bật,
+// Thẻ danh sách (/software, /solutions, /services, khối Danh sách nội dung) còn hiện chuyên mục và số liệu nổi bật,
 // lấy từ nội dung chi tiết (CMS › Sản phẩm) nên không cần nhập lại.
 export const offeringCardFieldsSchema = z.object({ category: offeringContentSchema.shape.category, metrics: offeringContentSchema.shape.metrics }).partial();
 export const publicOfferingSummarySchema = publicOfferingBaseSchema

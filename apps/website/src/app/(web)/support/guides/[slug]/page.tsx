@@ -40,7 +40,7 @@ export async function generateMetadata({ params }: SupportGuideDetailPageProps, 
   const author = post?.type === "guide" ? resolvePostAuthor(post) : null;
   const siteUrl = author ? (await getPublishingConfig()).siteUrl ?? undefined : undefined;
   return post?.type === "guide"
-    ? contentMetadata({ title: post.seoTitle ?? guideTitle(post.title), description: post.seoDescription ?? suggestSeoDescription(post.excerpt, post.content), path: `/ho-tro/huong-dan/${post.slug}`, canonicalUrl: post.canonicalUrl, seo: post.seo, image: post.cover ? { url: post.cover.url, alt: post.cover.altText } : null, authors: author ? [{ name: author.name, url: authorMetaUrl(author, siteUrl) }] : undefined, type: "article", article: { publishedTime: post.publishedAt, modifiedTime: post.updatedAt, section: post.categories[0]?.name, tags: post.tags.map((tag) => tag.name) } }, parent)
+    ? contentMetadata({ title: post.seoTitle ?? guideTitle(post.title), description: post.seoDescription ?? suggestSeoDescription(post.excerpt, post.content), path: `/support/guides/${post.slug}`, canonicalUrl: post.canonicalUrl, seo: post.seo, image: post.cover ? { url: post.cover.url, alt: post.cover.altText } : null, authors: author ? [{ name: author.name, url: authorMetaUrl(author, siteUrl) }] : undefined, type: "article", article: { publishedTime: post.publishedAt, modifiedTime: post.updatedAt, section: post.categories[0]?.name, tags: post.tags.map((tag) => tag.name) } }, parent)
     : { title: "Không tìm thấy hướng dẫn | iOrder" };
 }
 
@@ -53,7 +53,7 @@ export default async function SupportGuideDetailPage({ params }: SupportGuideDet
   const [config, profile, index, remotePage] = await Promise.all([getPublishingConfig(), getSiteProfile(), getGuideIndex(), getPublishedPage("remote-support")]);
   const site = config.siteUrl;
   const author = resolvePostAuthor(post);
-  const href = `/ho-tro/huong-dan/${post.slug}`;
+  const href = `/support/guides/${post.slug}`;
   const { document, toc } = articleOutline(post.content, post.title);
   const position = index.entries.findIndex((entry) => entry.href === href);
   const previous = position > 0 ? index.entries[position - 1] : null;
@@ -67,13 +67,13 @@ export default async function SupportGuideDetailPage({ params }: SupportGuideDet
     <>
       <SiteHeader />
       <ReadingProgress target=".guide-article" />
-      {site ? <ContentJsonLd seo={post.seo} title={post.title} description={post.seoDescription} path={href} defaults={[articleJsonLd(site, { title: post.title, description: post.seoDescription ?? suggestSeoDescription(post.excerpt, post.content), path: href, imagePath: await articleImagePath(post.cover?.url, config.defaultOgMediaId), publishedAt: post.publishedAt, modifiedAt: post.updatedAt, section: category?.name, keywords: post.tags.map((tag) => tag.name), author: author ? { name: author.name, jobTitle: author.jobTitle, pagePath: author.pagePath, profileUrl: author.profileUrl } : null, publisherName: profile?.companyName ?? "iOrder" }), breadcrumbJsonLd(site, [{ name: "Trang chủ", path: "/" }, { name: "Hỗ trợ", path: "/ho-tro" }, { name: "Hướng dẫn sử dụng", path: "/ho-tro/huong-dan" }, { name: post.title, path: href }])]} /> : null}
+      {site ? <ContentJsonLd seo={post.seo} title={post.title} description={post.seoDescription} path={href} defaults={[articleJsonLd(site, { title: post.title, description: post.seoDescription ?? suggestSeoDescription(post.excerpt, post.content), path: href, imagePath: await articleImagePath(post.cover?.url, config.defaultOgMediaId), publishedAt: post.publishedAt, modifiedAt: post.updatedAt, section: category?.name, keywords: post.tags.map((tag) => tag.name), author: author ? { name: author.name, jobTitle: author.jobTitle, pagePath: author.pagePath, profileUrl: author.profileUrl } : null, publisherName: profile?.companyName ?? "iOrder" }), breadcrumbJsonLd(site, [{ name: "Trang chủ", path: "/" }, { name: "Hỗ trợ", path: "/support" }, { name: "Hướng dẫn sử dụng", path: "/support/guides" }, { name: post.title, path: href }])]} /> : null}
       <main id="noi-dung">
         <GuideDocsLayout activeHref={href} groups={index.groups} toc={toc.length >= 2 ? <ArticleToc entries={toc} /> : null}>
           <article className="guide-article" data-builder-block={builderBlock}>
             <nav aria-label="Đường dẫn"><ol className="m-0 flex list-none flex-wrap items-center gap-1.5 p-0 text-small text-muted">
-              <li><Link className="transition hover:text-brand-700" href="/ho-tro">Hỗ trợ</Link></li>
-              <li className="flex items-center gap-1.5"><ChevronRight aria-hidden="true" size={14} /><Link className="transition hover:text-brand-700" href="/ho-tro/huong-dan">Hướng dẫn sử dụng</Link></li>
+              <li><Link className="transition hover:text-brand-700" href="/support">Hỗ trợ</Link></li>
+              <li className="flex items-center gap-1.5"><ChevronRight aria-hidden="true" size={14} /><Link className="transition hover:text-brand-700" href="/support/guides">Hướng dẫn sử dụng</Link></li>
               {category ? <li className="flex items-center gap-1.5"><ChevronRight aria-hidden="true" size={14} />{category.name}</li> : null}
               <li className="flex min-w-0 items-center gap-1.5"><ChevronRight aria-hidden="true" size={14} /><span aria-current="page" className="truncate font-semibold text-ink">{post.title}</span></li>
             </ol></nav>
@@ -94,8 +94,8 @@ export default async function SupportGuideDetailPage({ params }: SupportGuideDet
             </div>
             <div className="flex flex-wrap gap-2">
               {profile?.hotline ? <a className="button button--primary" href={`tel:${profile.hotline.replace(/[^\d+]/g, "")}`}><Phone aria-hidden="true" size={17} />{profile.hotline}</a> : null}
-              {remotePage ? <Link className="button button--secondary" href="/ho-tro-tu-xa"><Headset aria-hidden="true" size={17} />Hỗ trợ từ xa</Link> : null}
-              <Link className="button button--secondary" href="/lien-he"><MessageSquareText aria-hidden="true" size={17} />Gửi yêu cầu</Link>
+              {remotePage ? <Link className="button button--secondary" href="/support/remote"><Headset aria-hidden="true" size={17} />Hỗ trợ từ xa</Link> : null}
+              <Link className="button button--secondary" href="/contact"><MessageSquareText aria-hidden="true" size={17} />Gửi yêu cầu</Link>
             </div>
           </aside>
         </GuideDocsLayout>

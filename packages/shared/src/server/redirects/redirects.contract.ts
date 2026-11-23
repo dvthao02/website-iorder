@@ -22,3 +22,17 @@ export const redirectRequestSchema = z.object({ id: z.string().uuid().nullable()
   if (value.id && value.expectedVersion === undefined) context.addIssue({ code: "custom", path: ["expectedVersion"], message: "Vui lòng tải lại để lấy phiên bản trước khi lưu." });
 });
 export type RedirectInput = z.infer<typeof redirectInputSchema>;
+
+// Kết quả lưu chuyển hướng: các liên kết nội dung (menu, trang, bài viết…) đã tự đổi sang đường dẫn mới. API trả về, CMS dùng để báo người vận hành.
+export const linkUpdateSummarySchema = z.object({
+  links: z.number().int().nonnegative(),
+  places: z.array(z.object({ label: z.string(), items: z.number().int().nonnegative(), links: z.number().int().nonnegative() })),
+});
+export type LinkUpdateSummary = z.infer<typeof linkUpdateSummarySchema>;
+export type LinkUpdatePlace = LinkUpdateSummary["places"][number];
+
+/** Câu báo sau khi lưu chuyển hướng; rỗng khi không có liên kết nào phải đổi. */
+export function describeLinkUpdates(summary: LinkUpdateSummary) {
+  if (!summary.links) return "";
+  return `Đã đổi ${summary.links} liên kết trỏ tới đường dẫn cũ sang đường dẫn mới (${summary.places.map((place) => `${place.label}: ${place.items}`).join(", ")}).`;
+}

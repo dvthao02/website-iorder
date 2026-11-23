@@ -12,7 +12,7 @@ async function main() {
     console.log("  Cần một trong hai biến trong .env (xem .env.example):");
     console.log("  - GOOGLE_SERVICE_ACCOUNT_FILE = đường dẫn tới tệp khóa JSON (đặt ngoài thư mục dự án)");
     console.log("  - GOOGLE_SERVICE_ACCOUNT_JSON = nội dung tệp JSON trên một dòng (cho Docker/máy chủ)");
-    console.log("  Các bước ở phía Google: docs/PROJECT.md, mục \"Google Search Console\".");
+    console.log("  Các bước ở phía Google: docs/INTEGRATIONS.md, mục \"Google Search Console\".");
     return;
   }
 

@@ -7,7 +7,7 @@ const slugSchema = z.string().trim().min(1).max(140).regex(/^[a-z0-9]+(?:-[a-z0-
 const optionalText = (max: number) => z.string().trim().max(max).nullable().transform((value) => value || null);
 const httpUrl = z.string().trim().url().max(2000).refine((value) => /^https?:\/\//i.test(value), "Dùng địa chỉ bắt đầu bằng http:// hoặc https://.");
 
-/** Hồ sơ tác giả công khai. `isEnabled`: bật thì trang riêng /tac-gia/<slug> hiện trên website (cần có bài đã xuất bản). */
+/** Hồ sơ tác giả công khai. `isEnabled`: bật thì trang riêng /author/<slug> hiện trên website (cần có bài đã xuất bản). */
 export const authorInputSchema = z.object({
   name: z.string().trim().min(1).max(120),
   slug: slugSchema,
@@ -30,7 +30,7 @@ export const authorRequestSchema = z.object({
 /** Dòng trong CMS: kèm số bài đang dùng tác giả này và địa chỉ ảnh đại diện. */
 export type AdminAuthor = AuthorInput & { id: string; version: number; postCount: number; avatarUrl: string | null; updatedAt: Date };
 
-/** Tác giả công khai trên trang /tac-gia/<slug>. */
+/** Tác giả công khai trên trang /author/<slug>. */
 export const publicAuthorSchema = z.object({
   id: z.string().uuid(),
   slug: z.string(),
@@ -56,5 +56,5 @@ export type PostAuthorProfile = z.infer<typeof postAuthorProfileSchema>;
 
 /** Đường dẫn công khai của trang tác giả (một chỗ duy nhất cho website, sitemap, CMS). */
 export function authorPublicPath(slug: string) {
-  return `/tac-gia/${slug}`;
+  return `/author/${slug}`;
 }

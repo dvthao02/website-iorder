@@ -72,7 +72,7 @@ export async function listPublishedPostsByTaxonomy(kind: "category" | "tag", slu
   return withTaxonomyBatch(rows);
 }
 
-/** Bài đang hiển thị của một tác giả (trang /tac-gia/<slug>), mới nhất trước. */
+/** Bài đang hiển thị của một tác giả (trang /author/<slug>), mới nhất trước. */
 export async function listPublishedPostsByAuthor(authorId: string) {
   const rows = await getDb()
     .select({ id: posts.id, type: posts.type, title: posts.title, slug: posts.slug, seo: posts.seo, excerpt: posts.excerpt, publishedAt: posts.publishedAt, createdAt: posts.createdAt, updatedAt: posts.updatedAt, coverStorageKey: mediaAssets.storageKey, coverAltText: mediaAssets.altText })
@@ -248,7 +248,7 @@ export async function createPostWithRevision(
     if (!created) {
       throw new Error("Không thể tạo bài viết.");
     }
-    await applyContentPathChange(tx, pathChange, revision.editorId);
+    await applyContentPathChange(tx, pathChange, revision.editorId, { kind: "post", id: created.id });
     if (categoryIds.length) await tx.insert(postCategories).values(categoryIds.map(categoryId => ({ postId: created.id, categoryId })));
     if (tagIds.length) await tx.insert(postTags).values(tagIds.map(tagId => ({ postId: created.id, tagId })));
 
@@ -288,7 +288,7 @@ export async function updatePostWithRevision(
     if (!updated) {
       return undefined;
     }
-    await applyContentPathChange(tx, pathChange, revision.editorId);
+    await applyContentPathChange(tx, pathChange, revision.editorId, { kind: "post", id });
     await tx.delete(postCategories).where(eq(postCategories.postId, id));
     await tx.delete(postTags).where(eq(postTags.postId, id));
     if (categoryIds.length) await tx.insert(postCategories).values(categoryIds.map(categoryId => ({ postId: id, categoryId })));

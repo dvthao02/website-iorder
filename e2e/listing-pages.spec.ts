@@ -16,12 +16,12 @@ test.describe("Trang danh sách là Trang website", () => {
     await expect(page.getByRole("heading", { name: "Hướng dẫn sử dụng" })).toBeVisible();
     await expect(page.getByRole("table")).toBeVisible();
 
-    const support = await (await request.get(`${webUrl}/ho-tro/cai-dat`)).text();
+    const support = await (await request.get(`${webUrl}/support/setup`)).text();
     expect(support).not.toContain('id="huong-dan"');
-    const guides = await request.get(`${webUrl}/ho-tro/huong-dan`);
+    const guides = await request.get(`${webUrl}/support/guides`);
     expect(guides.status()).toBe(200);
-    // Đường dẫn cũ /huong-dan (retiredPaths trong legacy-paths.ts) chuyển 301 về /ho-tro/huong-dan.
+    // Đường dẫn cũ /huong-dan (bảng legacyPaths trong legacy-paths.ts) chuyển 301 về /support/guides.
     const legacy = await request.get(`${webUrl}/huong-dan`, { maxRedirects: 0 });
-    expect(legacy.headers().location).toContain("/ho-tro/huong-dan");
+    expect(legacy.headers().location).toContain("/support/guides");
   });
 });

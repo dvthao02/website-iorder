@@ -3,8 +3,6 @@ import path from "node:path";
 import { config as loadEnvironment } from "dotenv";
 import type { NextConfig } from "next";
 
-import { publicRewrites } from "./src/lib/legacy-paths";
-
 const workspaceRoot = path.join(__dirname, "../..");
 
 // Next resolves env files from an app's directory in a workspace. Local
@@ -31,6 +29,8 @@ const nextConfig: NextConfig = {
   output: "standalone",
   // Không lộ tên framework qua tiêu đề X-Powered-By.
   poweredByHeader: false,
+  // Mặc định .next. NEXT_DIST_DIR cho phép chạy bản kiểm tra riêng (E2E với Backend mô phỏng) khi `next dev` đang chạy (cả hai dùng chung .next sẽ làm hỏng nhau).
+  distDir: process.env.NEXT_DIST_DIR || ".next",
   outputFileTracingRoot: workspaceRoot,
   experimental: {
     turbopackFileSystemCacheForDev: false,
@@ -47,8 +47,6 @@ const nextConfig: NextConfig = {
   // reachable through the CMS host alone; server-side reads call BACKEND_URL.
   async rewrites() {
     return {
-      // URL public là tiếng Việt không dấu; thư mục route trong mã nguồn là tiếng Anh.
-      beforeFiles: publicRewrites(),
       afterFiles: [
         { source: "/api/v1/leads", destination: `${process.env.BACKEND_URL ?? "http://localhost:3002"}/api/v1/leads` },
         { source: "/media/:path*", destination: `${process.env.BACKEND_URL ?? "http://localhost:3002"}/media/:path*` },

@@ -8,6 +8,7 @@ import type { BlockFrame } from "@iorder/shared/server/pages/block-layout";
 import type { CollectionListData, CollectionSource } from "@iorder/shared/server/pages/pages.contract";
 
 import { FrameSection, SectionHeading, TextLink } from "@/components/ui";
+import { CoverPhoto } from "./cover-photo";
 import { DownloadList } from "./download-list";
 import { EquipmentExplorer } from "./equipment-explorer";
 import { EquipmentImagePlaceholder } from "./equipment-image-placeholder";
@@ -15,7 +16,7 @@ import { PostRows, PostSpotlight } from "./post-collection";
 import { getEnabledSupportDownloads, getEquipment, getPublishedOfferingSummaries, getPublishedPostSummaries } from "@/lib/backend";
 
 const postTypeLabel = { announcement: "Thông báo", case_study: "Câu chuyện khách hàng", guide: "Hướng dẫn", news: "Tin tức", promotion: "Khuyến mãi" } as const;
-const offeringPath = { software: "/phan-mem", solution: "/giai-phap", service: "/dich-vu" } as const;
+const offeringPath = { software: "/software", solution: "/solutions", service: "/services" } as const;
 const emptyMessages: Record<CollectionSource, string> = {
   posts: "Chưa có bài viết nào được xuất bản.",
   guides: "Chưa có bài viết hướng dẫn nào được xuất bản.",
@@ -32,6 +33,8 @@ const priceFormatter = new Intl.NumberFormat("vi-VN", { style: "currency", curre
 const cardClass = "feature-card group flex h-full flex-col overflow-hidden rounded-card border border-line bg-white shadow-card";
 const bodyClass = "flex flex-1 flex-col p-5 sm:p-6";
 const chipClass = "inline-flex w-fit items-center rounded-full bg-brand-50 px-2.5 py-0.5 text-caption font-semibold text-brand-700";
+// Khung ảnh bìa phần mềm / giải pháp / dịch vụ: 16:10, ảnh hiện đủ bằng CoverPhoto fit="contain" (ảnh chụp giao diện, ảnh dọc, sơ đồ ngang dài đều có tỉ lệ khác nhau).
+const offeringFrameClass = "relative block aspect-[16/10] w-full overflow-hidden bg-brand-50";
 const titleClass = "mb-0 text-h3 font-bold tracking-tight text-ink";
 const textClass = "mt-2 mb-0 text-body text-muted";
 const metaClass = "mt-auto mb-0 pt-5 text-small text-faint";
@@ -39,9 +42,9 @@ const moreClass = "mt-auto mb-0 pt-5 text-small font-semibold text-brand-700 gro
 
 const take = <T,>(items: T[], limit: number | null) => (limit ? items.slice(0, limit) : items);
 // Trang tổng hợp của từng nguồn: khối chỉ hiện vài mục (có giới hạn) thì có nút "Xem tất cả" dưới danh sách.
-const listingPath: Partial<Record<CollectionSource, string>> = { posts: "/tin-tuc", guides: "/ho-tro/huong-dan", equipment: "/thiet-bi", software: "/phan-mem", solution: "/giai-phap", service: "/dich-vu" };
+const listingPath: Partial<Record<CollectionSource, string>> = { posts: "/news", guides: "/support/guides", equipment: "/equipment", software: "/software", solution: "/solutions", service: "/services" };
 
-// Khối "Danh sách nội dung": dùng trên trang danh sách (/tin-tuc, /thiet-bi…) và mọi trang khác.
+// Khối "Danh sách nội dung": dùng trên trang danh sách (/news, /equipment…) và mọi trang khác.
 // Tiêu đề mặc định của site nằm trong @layer base nên class Tailwind trên từng tiêu đề luôn thắng.
 // Khi khối không có tiêu đề (thường là ngay dưới phần đầu trang danh sách), thẻ dùng h2.
 export async function CollectionList({ data, frame }: { data: CollectionListData; frame: BlockFrame }) {
@@ -64,7 +67,7 @@ export async function CollectionList({ data, frame }: { data: CollectionListData
 export function PostCard({ post, Heading = "h3" }: { post: PublicPostSummary; Heading?: "h2" | "h3" }) {
   const label = post.categories[0]?.name ?? postTypeLabel[post.type];
   const date = post.publishedAt ?? post.createdAt;
-  return <Link className={cardClass} href={post.type === "guide" ? `/ho-tro/huong-dan/${post.slug}` : `/tin-tuc/${post.slug}`}>
+  return <Link className={cardClass} href={post.type === "guide" ? `/support/guides/${post.slug}` : `/news/${post.slug}`}>
     {/* Có ảnh: nhãn chuyên mục nằm đè góc ảnh (nhìn thấy ngay chủ đề); chưa có ảnh: nhãn là dòng chữ phía trên tiêu đề. */}
     {post.cover ? <span className="post-media card-media aspect-[16/9]">
       <Image alt={post.cover.altText ?? post.title} height={338} sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw" src={post.cover.url} width={600} />
@@ -82,7 +85,7 @@ export function PostCard({ post, Heading = "h3" }: { post: PublicPostSummary; He
 type EquipmentItem = Awaited<ReturnType<typeof getEquipment>>[number];
 // Thẻ thiết bị: dùng ở danh sách thiết bị và phần "Thiết bị khác" của trang chi tiết thiết bị.
 export function EquipmentCard({ item, Heading = "h3" }: { item: EquipmentItem; Heading?: "h2" | "h3" }) {
-  return <Link className="equipment-tile group" href={`/thiet-bi/${item.slug}`}>
+  return <Link className="equipment-tile group" href={`/equipment/${item.slug}`}>
     <div className="equipment-tile__media">{item.coverUrl ? <Image alt={item.coverAlt ?? item.name} className="equipment-tile__image" height={450} sizes="(min-width: 1280px) 25vw, (min-width: 640px) 50vw, 100vw" src={item.coverUrl} width={600} /> : <EquipmentImagePlaceholder />}</div>
     <div className="equipment-tile__body">
       <p className={`mb-1 ${chipClass}`}>{item.groupName}</p>
@@ -113,7 +116,7 @@ async function renderItems(data: CollectionListData, Card: "h2" | "h3", dark: bo
     case "guides": {
       const guides = take(await getPublishedPostSummaries("guide"), data.limit);
       // Thẻ gọn dạng hàng (biểu tượng sách, tiêu đề, tóm tắt, ngày), 3 cột trên máy tính: bài hướng dẫn thường không có ảnh bìa.
-      return guides.length ? <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{guides.map(guide => <Link className="group flex h-full items-start gap-4 rounded-card border border-line bg-white p-5 shadow-card transition hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-raised" href={`/ho-tro/huong-dan/${guide.slug}`} key={guide.id}>
+      return guides.length ? <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{guides.map(guide => <Link className="group flex h-full items-start gap-4 rounded-card border border-line bg-white p-5 shadow-card transition hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-raised" href={`/support/guides/${guide.slug}`} key={guide.id}>
         <span aria-hidden="true" className="grid size-11 shrink-0 place-items-center rounded-control bg-brand-50 text-brand-600 transition group-hover:bg-brand-600 group-hover:text-white"><BookOpen size={20} /></span>
         <span className="flex min-w-0 flex-1 flex-col">
           {guide.categories[0] ? <span className={`mb-1.5 ${chipClass}`}>{guide.categories[0].name}</span> : null}
@@ -144,7 +147,7 @@ async function renderItems(data: CollectionListData, Card: "h2" | "h3", dark: bo
       const markFeatured = offerings.some(offering => !offering.isFeatured);
       // Hai mục thì hai cột rộng vừa phải (không để trống một ô của lưới ba cột).
       return offerings.length ? <div className={`grid gap-5 sm:grid-cols-2 ${offerings.length === 2 ? "lg:mx-auto lg:max-w-5xl" : "lg:grid-cols-3"}`}>{offerings.map(offering => <Link className={cardClass} href={`${offeringPath[data.source as keyof typeof offeringPath]}/${offering.slug}`} key={offering.id}>
-        {offering.cover ? <Image alt={offering.cover.altText ?? `Ảnh minh họa ${offering.title}`} className="aspect-[16/10] w-full bg-brand-50 object-cover transition duration-500 group-hover:scale-[1.02]" height={offering.cover.height ?? 630} sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw" src={offering.cover.url} width={offering.cover.width ?? 1200} /> : null}
+        {offering.cover ? <span className={offeringFrameClass}><CoverPhoto alt={`Ảnh minh họa ${offering.title}`} className="transition duration-500 group-hover:scale-[1.02]" fit="contain" photos={[{ url: offering.cover.url, altText: offering.cover.altText ?? null }]} sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw" /></span> : null}
         <div className={bodyClass}>
           {offering.category || (markFeatured && offering.isFeatured) ? <p className="mb-3 flex flex-wrap gap-2">
             {markFeatured && offering.isFeatured ? <span className="inline-flex w-fit items-center rounded-full bg-brand-600 px-2.5 py-0.5 text-caption font-semibold text-white">Nổi bật</span> : null}

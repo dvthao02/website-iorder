@@ -29,7 +29,7 @@ test("Sửa tác giả bắt buộc expectedVersion, tạo mới thì không", (
 });
 
 test("Đường dẫn công khai của trang tác giả", () => {
-  assert.equal(authorPublicPath("nguyen-van-an"), "/tac-gia/nguyen-van-an");
+  assert.equal(authorPublicPath("nguyen-van-an"), "/author/nguyen-van-an");
 });
 
 test("Dữ liệu công khai của tác giả: chặt chẽ, ảnh có thể trống", () => {

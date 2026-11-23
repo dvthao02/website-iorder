@@ -6,7 +6,7 @@ import { getPublishedPostSummaries, getTaxonomy } from "@/lib/backend";
 export type NewsTopic = { slug: string; name: string; count: number };
 
 export { newsLabel, newsPostPath } from "./post-links";
-export const newsTopicPath = (slug: string) => `/tin-tuc/chuyen-muc/${slug}`;
+export const newsTopicPath = (slug: string) => `/news/category/${slug}`;
 
 /**
  * Dữ liệu trang Tin tức: mọi bài trừ hướng dẫn (hướng dẫn có trang riêng), mới nhất trước; các chủ đề là chuyên mục

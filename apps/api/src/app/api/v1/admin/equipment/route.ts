@@ -53,7 +53,7 @@ async function handlePOST(request: Request) {
     const id = await writeEquipment(body.kind, body.id, body.values, user.userId, undefined, body.expectedVersion, { onlyIfHidden });
     if (!id && body.id && onlyIfHidden) return forbiddenResponse("Bạn không có quyền sửa nhóm thiết bị đang hiển thị trên website.");
     if (!id) return fail("NOT_FOUND", "Không tìm thấy thiết bị hoặc nhóm.", 404);
-    revalidatePath("/thiet-bi", "layout");
+    revalidatePath("/equipment", "layout");
     return NextResponse.json({ id, ...(body.kind === "items" ? { version: body.id ? body.expectedVersion! + 1 : 1 } : {}) });
   } catch (error) {
     if (error instanceof EquipmentVersionConflictError || error instanceof ContentVersionConflictError) return fail("VERSION_CONFLICT", error.message, 409);

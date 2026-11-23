@@ -23,11 +23,11 @@ const qa = (question: string, answer: string) => ({ question, answer });
 const entry = (label: string, icon: BlockIcon, href: string | null = null) => ({ label, icon, href });
 
 /** Đường dẫn bài hướng dẫn (CMS › Bài viết, loại Hướng dẫn). */
-const guide = (slug: string) => `/ho-tro/huong-dan/${slug}`;
-const device = (slug: string) => `/thiet-bi/${slug}`;
+const guide = (slug: string) => `/support/guides/${slug}`;
+const device = (slug: string) => `/equipment/${slug}`;
 
 export const defaultListingSections: Partial<Record<ListingPageSlug, BlockInput[]>> = {
-  // ───────────── /thiet-bi ─────────────
+  // ───────────── /equipment ─────────────
   "listing-equipment": [
     {
       type: "grouped_list", isEnabled: true, appearance: { anchor: "chon-theo-mo-hinh" },
@@ -43,7 +43,7 @@ export const defaultListingSections: Partial<Record<ListingPageSlug, BlockInput[
               entry("Máy in hóa đơn nhiệt 80mm: hóa đơn, phiếu bếp/bar", "receipt", device("may-in-hoa-don-nhiet-80mm")),
               entry("Két đựng tiền: tự mở khi in hóa đơn", "wallet", device("ket-dung-tien")),
             ],
-            action: { label: "Tư vấn cấu hình", href: "/lien-he" },
+            action: { label: "Tư vấn cấu hình", href: "/contact" },
           },
           {
             title: "Nhà hàng, quán ăn", icon: "utensils",
@@ -52,7 +52,7 @@ export const defaultListingSections: Partial<Record<ListingPageSlug, BlockInput[
               entry("Máy in hóa đơn nhiệt 80mm: in hóa đơn, báo bếp", "receipt", device("may-in-hoa-don-nhiet-80mm")),
               entry("Két đựng tiền: 5 ngăn giấy, 4 ngăn xu", "wallet", device("ket-dung-tien")),
             ],
-            action: { label: "Tư vấn cấu hình", href: "/lien-he" },
+            action: { label: "Tư vấn cấu hình", href: "/contact" },
           },
           {
             title: "Cửa hàng bán lẻ", icon: "store",
@@ -61,7 +61,7 @@ export const defaultListingSections: Partial<Record<ListingPageSlug, BlockInput[
               entry("Máy in hóa đơn nhiệt 80mm: 250 mm/giây, tự cắt giấy", "receipt", device("may-in-hoa-don-nhiet-80mm")),
               entry("Két đựng tiền: thép sơn tĩnh điện", "wallet", device("ket-dung-tien")),
             ],
-            action: { label: "Tư vấn cấu hình", href: "/lien-he" },
+            action: { label: "Tư vấn cấu hình", href: "/contact" },
           },
         ],
       },
@@ -109,11 +109,11 @@ export const defaultListingSections: Partial<Record<ListingPageSlug, BlockInput[
     },
     {
       type: "cta", isEnabled: true,
-      data: { id: null, eyebrow: "Tư vấn", title: "Cần tư vấn chọn thiết bị?", action: { label: "Liên hệ mua hàng", href: "/lien-he" } },
+      data: { id: null, eyebrow: "Tư vấn", title: "Cần tư vấn chọn thiết bị?", action: { label: "Liên hệ mua hàng", href: "/contact" } },
     },
   ],
 
-  // ───────────── /ho-tro/huong-dan ─────────────
+  // ───────────── /support/guides ─────────────
   "listing-guides": [
     {
       type: "process", isEnabled: true, appearance: { anchor: "bat-dau" },
@@ -134,15 +134,15 @@ export const defaultListingSections: Partial<Record<ListingPageSlug, BlockInput[
         eyebrow: "Cần hỗ trợ thêm", title: "Chưa tìm thấy điều bạn cần?",
         description: null,
         items: [
-          card("Hỗ trợ cài đặt", "Tải driver, công cụ cài đặt và xem cách kết nối máy in.", "wrench", "/ho-tro/cai-dat"),
-          card("Hỗ trợ từ xa", "Kỹ thuật viên kết nối vào máy để xử lý giúp bạn.", "headphones", "/ho-tro-tu-xa"),
-          card("Gửi yêu cầu hỗ trợ", "Để lại thông tin, iOrder liên hệ lại trong giờ làm việc.", "users", "/lien-he"),
+          card("Hỗ trợ cài đặt", "Tải driver, công cụ cài đặt và xem cách kết nối máy in.", "wrench", "/support/setup"),
+          card("Hỗ trợ từ xa", "Kỹ thuật viên kết nối vào máy để xử lý giúp bạn.", "headphones", "/support/remote"),
+          card("Gửi yêu cầu hỗ trợ", "Để lại thông tin, iOrder liên hệ lại trong giờ làm việc.", "users", "/contact"),
         ],
       },
     },
   ],
 
-  // ───────────── /ho-tro/cai-dat ─────────────
+  // ───────────── /support/setup ─────────────
   "listing-support": [
     {
       type: "process", isEnabled: true, appearance: { anchor: "cai-may-in" },
@@ -162,9 +162,9 @@ export const defaultListingSections: Partial<Record<ListingPageSlug, BlockInput[
         eyebrow: "Cần hỗ trợ thêm", title: "Chưa tự cài được? Chọn cách nhận hỗ trợ",
         description: null,
         items: [
-          card("Hướng dẫn sử dụng", "Cách dùng từng phần của iOrder: bán hàng, kho, hóa đơn, kết ca, báo cáo.", "book", "/ho-tro/huong-dan"),
-          card("Hỗ trợ từ xa", "Kỹ thuật viên kết nối vào máy để xử lý giúp bạn.", "headphones", "/ho-tro-tu-xa"),
-          card("Gửi yêu cầu hỗ trợ", "Để lại thông tin, iOrder liên hệ lại trong giờ làm việc.", "users", "/lien-he"),
+          card("Hướng dẫn sử dụng", "Cách dùng từng phần của iOrder: bán hàng, kho, hóa đơn, kết ca, báo cáo.", "book", "/support/guides"),
+          card("Hỗ trợ từ xa", "Kỹ thuật viên kết nối vào máy để xử lý giúp bạn.", "headphones", "/support/remote"),
+          card("Gửi yêu cầu hỗ trợ", "Để lại thông tin, iOrder liên hệ lại trong giờ làm việc.", "users", "/contact"),
         ],
       },
     },

@@ -28,7 +28,7 @@ async function handlePOST(request: Request) {
     const denied = denyPublishUnless(user, "support_downloads.publish", { requestedStatus: values.isEnabled ? "published" : "draft" });
     if (denied) return denied;
     const download = await createAdminSupportDownload(values, user.userId, changeNote);
-    revalidatePath("/ho-tro/cai-dat");
+    revalidatePath("/support/setup");
     return NextResponse.json({ download }, { status: 201 });
   } catch (error) {
     return error instanceof z.ZodError ? fail("INVALID_INPUT", "Kiểm tra tiêu đề, thông tin và tệp liên kết trước khi lưu.", 400)

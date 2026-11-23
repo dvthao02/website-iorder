@@ -23,7 +23,7 @@ const priceFormatter = new Intl.NumberFormat("vi-VN", { style: "currency", curre
 export async function generateMetadata({ params }: Props, parent: ResolvingMetadata) {
   const { slug } = await params;
   const item = (await getEquipment(true)).find(row => row.slug === slug);
-  return item ? contentMetadata({ title: item.seoTitle || `${item.name} | Thiết bị bán hàng iOrder`, description: item.seoDescription || item.summary, path: `/thiet-bi/${item.slug}`, canonicalUrl: item.canonicalUrl, seo: item.seo, image: item.coverUrl ? { url: item.coverUrl, alt: item.coverAlt } : null }, parent) : { title: "Không tìm thấy thiết bị | iOrder" };
+  return item ? contentMetadata({ title: item.seoTitle || `${item.name} | Thiết bị bán hàng iOrder`, description: item.seoDescription || item.summary, path: `/equipment/${item.slug}`, canonicalUrl: item.canonicalUrl, seo: item.seo, image: item.coverUrl ? { url: item.coverUrl, alt: item.coverAlt } : null }, parent) : { title: "Không tìm thấy thiết bị | iOrder" };
 }
 // Trang chi tiết thiết bị: phần đầu một màn hình (ảnh trong khung, giá, bảo hành, nút liên hệ) → thông số kỹ thuật theo nhóm
 // → thiết bị khác (ưu tiên cùng nhóm, tối đa 4) → dải tư vấn chọn thiết bị (hotline từ Cài đặt).
@@ -46,10 +46,10 @@ export default async function EquipmentDetail({ params }: Props) {
   const relatedDark = relatedFrame.tone === "dark";
   // Ảnh trượt thêm của phần đầu trang (CMS: Bố cục khối › Ảnh trượt thêm).
   const heroExtraImages = (await loadBlockImages(item.pageLayout?.hero?.extraMediaIds ?? [])).map(media => ({ url: media.url, alt: media.altText ?? item.name, width: media.width, height: media.height }));
-  return <><SiteHeader />{site ? <ContentJsonLd seo={item.seo} title={item.name} description={item.seoDescription || item.summary} path={`/thiet-bi/${item.slug}`} faq={faqItemsOfBlocks(item.blocks ?? [])} defaults={[productJsonLd(site, { name: item.name, description: item.seoDescription || item.summary, path: `/thiet-bi/${item.slug}`, imagePath: item.coverUrl ?? null, sku: item.modelCode, priceVnd: item.priceVnd, availability: item.availability, brand: item.brand }), breadcrumbJsonLd(site, [{ name: "Trang chủ", path: "/" }, { name: "Thiết bị", path: "/thiet-bi" }, { name: item.name, path: `/thiet-bi/${item.slug}` }])]} /> : null}
+  return <><SiteHeader />{site ? <ContentJsonLd seo={item.seo} title={item.name} description={item.seoDescription || item.summary} path={`/equipment/${item.slug}`} faq={faqItemsOfBlocks(item.blocks ?? [])} defaults={[productJsonLd(site, { name: item.name, description: item.seoDescription || item.summary, path: `/equipment/${item.slug}`, imagePath: item.coverUrl ?? null, sku: item.modelCode, priceVnd: item.priceVnd, availability: item.availability, brand: item.brand }), breadcrumbJsonLd(site, [{ name: "Trang chủ", path: "/" }, { name: "Thiết bị", path: "/equipment" }, { name: item.name, path: `/equipment/${item.slug}` }])]} /> : null}
     <main id="noi-dung">
       <BuilderAnchor active={inBuilder} index={-1}>
-      <DetailHero extraImages={heroExtraImages} background={item.pageLayout?.hero?.background} height={item.pageLayout?.hero?.height} layout={item.pageLayout?.hero?.layout} appearance={item.pageLayout?.hero?.appearance} back={{ href: "/thiet-bi", label: "Tất cả thiết bị" }} image={item.coverUrl ? { url: item.coverUrl, alt: item.coverAlt ?? item.name } : null} imageStyle="product" label={item.groupName} primary={{ label: "Liên hệ mua hàng", href: "/lien-he" }} secondary={{ label: "Xem thiết bị khác", href: "/thiet-bi" }} summary={item.summary} title={item.name}>
+      <DetailHero extraImages={heroExtraImages} background={item.pageLayout?.hero?.background} height={item.pageLayout?.hero?.height} layout={item.pageLayout?.hero?.layout} appearance={item.pageLayout?.hero?.appearance} back={{ href: "/equipment", label: "Tất cả thiết bị" }} image={item.coverUrl ? { url: item.coverUrl, alt: item.coverAlt ?? item.name } : null} imageStyle="product" label={item.groupName} primary={{ label: "Liên hệ mua hàng", href: "/contact" }} secondary={{ label: "Xem thiết bị khác", href: "/equipment" }} summary={item.summary} title={item.name}>
         <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2">
           <p className="m-0 text-3xl font-bold tracking-tight text-brand-700" data-builder-field="priceVnd">{priceFormatter.format(item.priceVnd)}</p>
           <span data-builder-field="availability"><AvailabilityBadge always availability={item.availability} /></span>
@@ -79,7 +79,7 @@ export default async function EquipmentDetail({ params }: Props) {
       {others.length && !relatedFrame.hidden ? <BuilderAnchor active={inBuilder} index={-11}><FrameSection frame={relatedFrame}>
         <div className="mb-10 flex flex-col gap-5 sm:mb-12 md:flex-row md:items-end md:justify-between">
           <SectionHeading align="left" className="" dark={relatedDark} eyebrow="Thiết bị" title="Thiết bị khác" />
-          <TextLink className={`button ${relatedDark ? "button--outline-light" : "button--secondary"} shrink-0 self-start md:self-auto`} href="/thiet-bi">Xem tất cả →</TextLink>
+          <TextLink className={`button ${relatedDark ? "button--outline-light" : "button--secondary"} shrink-0 self-start md:self-auto`} href="/equipment">Xem tất cả →</TextLink>
         </div>
         <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">{others.map(other => <EquipmentCard item={other} key={other.id} />)}</div>
       </FrameSection></BuilderAnchor> : null}

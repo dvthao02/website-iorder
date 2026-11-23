@@ -1,14 +1,14 @@
 import { getFixedWebsitePage } from "../pages/pages.contract";
 
 // Đường dẫn công khai của từng loại nội dung: một chỗ duy nhất cho menu, xem trước và chuyển hướng khi đổi slug.
-const catalogPrefixes: Record<string, string> = { software: "/phan-mem", solution: "/giai-phap", service: "/dich-vu" };
+const catalogPrefixes: Record<string, string> = { software: "/software", solution: "/solutions", service: "/services" };
 
 export function pagePublicPath(slug: string) {
-  return getFixedWebsitePage(slug)?.publicPath ?? `/trang/${slug}`;
+  return getFixedWebsitePage(slug)?.publicPath ?? `/pages/${slug}`;
 }
 
 export function postPublicPath(slug: string, type: string) {
-  return type === "guide" ? `/ho-tro/huong-dan/${slug}` : `/tin-tuc/${slug}`;
+  return type === "guide" ? `/support/guides/${slug}` : `/news/${slug}`;
 }
 
 export function offeringPublicPath(slug: string, type: string) {
@@ -17,7 +17,7 @@ export function offeringPublicPath(slug: string, type: string) {
 }
 
 export function equipmentPublicPath(slug: string) {
-  return `/thiet-bi/${slug}`;
+  return `/equipment/${slug}`;
 }
 
 type PathState = { status: string; scheduledAt?: Date | null; path: string | null };

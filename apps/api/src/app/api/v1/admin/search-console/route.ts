@@ -9,7 +9,7 @@ import { withRequestContext } from "@/lib/request-context";
 export const runtime = "nodejs";
 
 // Chỉ đọc số liệu tìm kiếm từ Google Search Console. Cùng quyền với màn "Kiểm tra xuất bản" (settings.view); proxy đã kiểm
-// quyền theo đường dẫn, ở đây kiểm lại cho chắc. Không có tham số: tổng quan 28 ngày. ?path=/tin-tuc/ten-bai: cụm khách gõ để thấy trang đó.
+// quyền theo đường dẫn, ở đây kiểm lại cho chắc. Không có tham số: tổng quan 28 ngày. ?path=/news/ten-bai: cụm khách gõ để thấy trang đó.
 // ?diagnose=1: "Kiểm tra kết nối" của màn Cài đặt Google Search Console (email tài khoản dịch vụ, website nó thấy, thuộc tính, lý do chưa nối được).
 // Khóa tài khoản dịch vụ chỉ nằm ở tiến trình này, không bao giờ có trong phản hồi.
 async function handleGET(request: Request) {

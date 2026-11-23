@@ -19,9 +19,9 @@ type RouteProps = { params: Promise<{ dataset: string }> };
 
 // Đường dẫn website cần làm mới sau khi nhập.
 const publicPaths: Record<TransferDatasetId, string[]> = {
-  equipment: ["/thiet-bi"], "equipment-groups": ["/thiet-bi"],
-  "offerings-software": ["/phan-mem"], "offerings-solution": ["/giai-phap"], "offerings-service": ["/dich-vu"],
-  posts: ["/tin-tuc"], guides: ["/ho-tro/huong-dan"], categories: ["/tin-tuc"], tags: ["/tin-tuc"],
+  equipment: ["/equipment"], "equipment-groups": ["/equipment"],
+  "offerings-software": ["/software"], "offerings-solution": ["/solutions"], "offerings-service": ["/services"],
+  posts: ["/news"], guides: ["/support/guides"], categories: ["/news"], tags: ["/news"],
   // Đối tác/đánh giá hiện ở nhiều trang; chuyển hướng được website lưu cache theo từng đường dẫn: làm mới toàn bộ.
   partners: ["/"], testimonials: ["/"], redirects: ["/"],
 };

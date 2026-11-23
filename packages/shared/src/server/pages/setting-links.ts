@@ -10,7 +10,7 @@ export type SettingLinkKey = (typeof settingLinkOptions)[number]["key"];
 
 const prefix = "setting:";
 // Cài đặt chưa có địa chỉ thì nút dẫn về trang Liên hệ để khách vẫn có lối đi tiếp.
-export const settingLinkFallback = "/lien-he";
+export const settingLinkFallback = "/contact";
 
 export const settingLinkHref = (key: SettingLinkKey) => `${prefix}${key}`;
 export function settingLinkKey(href: string | null | undefined): SettingLinkKey | null {

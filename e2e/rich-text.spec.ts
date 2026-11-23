@@ -57,7 +57,7 @@ test("Soạn bài kiểu Word: nhập file .docx, xuất bản, website có mụ
   created.posts.push(post!.id);
 
   const site = await page.context().newPage();
-  await site.goto(`${webUrl}/tin-tuc/${slug}`);
+  await site.goto(`${webUrl}/news/${slug}`);
   const toc = site.getByRole("navigation", { name: "Mục lục bài viết" });
   await expect(toc.getByRole("link")).toHaveText(["Phần một", "Phần hai"]);
   await expect(toc.getByRole("link", { name: "Phần hai" })).toHaveAttribute("href", "#phan-hai");
@@ -175,7 +175,7 @@ test("Ảnh trong bài: đổi kích thước, căn trái cho chữ chạy quanh
 
   const site = await page.context().newPage();
   await site.setViewportSize({ width: 1280, height: 900 });
-  await site.goto(`${webUrl}/tin-tuc/${slug}`);
+  await site.goto(`${webUrl}/news/${slug}`);
   const figure = site.locator("article figure").filter({ has: site.getByAltText("Ảnh minh họa") });
   await expect(figure).toHaveCSS("float", "left");
   // Độ rộng trên website khớp % đã kéo trong CMS.

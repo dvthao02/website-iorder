@@ -58,7 +58,7 @@ async function handlePATCH(request: Request, { params }: SupportDownloadRoutePro
       return phanHoiLoi("NOT_FOUND", "Không tìm thấy mục Hỗ trợ cần cập nhật.", 404);
     }
 
-    revalidatePath("/ho-tro/cai-dat");
+    revalidatePath("/support/setup");
     return NextResponse.json({ download });
   } catch (error: unknown) {
     if (error instanceof z.ZodError) {
@@ -84,7 +84,7 @@ async function handleDELETE(request: Request, { params }: SupportDownloadRoutePr
   try {
     const deletedId = await deleteArchivedAdminSupportDownload(id, administrator.userId, expectedVersion);
     if (!deletedId) return phanHoiLoi("NOT_FOUND", "Chỉ có thể xóa tài nguyên đang lưu trữ.", 404);
-    revalidatePath("/ho-tro/cai-dat");
+    revalidatePath("/support/setup");
     return NextResponse.json({ deletedId });
   } catch (error) {
     if (error instanceof SupportDownloadVersionConflictError) return phanHoiLoi("VERSION_CONFLICT", error.message, 409);

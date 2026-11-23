@@ -25,10 +25,10 @@ test("Có hồ sơ ngoài thì tên là liên kết rel=author mở tab mới", 
 });
 
 test("Có trang riêng trên website thì tên là liên kết nội bộ (ưu tiên hơn hồ sơ ngoài), không mở tab mới", () => {
-  const html = renderToStaticMarkup(<AuthorByline author={{ ...author, pagePath: "/tac-gia/nguyen-van-an", profileUrl: "https://www.linkedin.com/in/an" }} />);
+  const html = renderToStaticMarkup(<AuthorByline author={{ ...author, pagePath: "/author/nguyen-van-an", profileUrl: "https://www.linkedin.com/in/an" }} />);
   // Next Link xuất thuộc tính theo thứ tự riêng nên kiểm từng thuộc tính, không dựa vào thứ tự.
   const link = /<a ([^>]*)>Nguyễn Văn An<\/a>/.exec(html)?.[1] ?? "";
-  assert.match(link, /href="\/tac-gia\/nguyen-van-an"/);
+  assert.match(link, /href="\/author\/nguyen-van-an"/);
   assert.match(link, /rel="author"/);
   assert.doesNotMatch(html, /linkedin|_blank/);
 });

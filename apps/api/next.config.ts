@@ -25,6 +25,8 @@ const nextConfig: NextConfig = {
   output: "standalone",
   // Không lộ tên framework qua tiêu đề X-Powered-By.
   poweredByHeader: false,
+  // Cho phép build kiểm tra riêng khi phiên dev đang dùng .next.
+  distDir: process.env.NEXT_DIST_DIR || ".next",
   outputFileTracingRoot: workspaceRoot,
   experimental: {
     turbopackFileSystemCacheForDev: false,

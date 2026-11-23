@@ -20,9 +20,9 @@ type OfferingDetailPageProps = {
 };
 
 const catalogLabel = {
-  "dich-vu": "Dịch vụ",
-  "giai-phap": "Giải pháp",
-  "phan-mem": "Phần mềm",
+  services: "Dịch vụ",
+  solutions: "Giải pháp",
+  software: "Phần mềm",
 } as const;
 
 export async function generateMetadata({ params }: OfferingDetailPageProps, parent: ResolvingMetadata): Promise<Metadata> {
@@ -90,7 +90,7 @@ export default async function OfferingDetailPage({ params }: OfferingDetailPageP
           extraImages={heroExtraImages}
           image={offering.cover ? { url: offering.cover.url, alt: offering.cover.altText ?? (type === "software" ? `Giao diện ${offering.title}` : `Ảnh minh họa ${offering.title}`), width: offering.cover.width, height: offering.cover.height } : null}
           label={offering.content.category ?? label}
-          primary={{ label: "Nhận tư vấn miễn phí", href: "/lien-he" }}
+          primary={{ label: "Nhận tư vấn miễn phí", href: "/contact" }}
           secondary={offering.content.pricing ? { label: "Xem bảng giá", href: "#bang-gia" } : null}
           summary={offering.summary}
           title={offering.title}

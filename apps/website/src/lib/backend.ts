@@ -91,13 +91,13 @@ async function publicResource<T>(resource: string, params: Record<string, string
 const getSharedContent = cache(() => publicResource<SharedContent>("shared"));
 
 export function getOfferingTypeFromCatalogPath(path: string) {
-  return ({ "phan-mem": "software", "giai-phap": "solution", "dich-vu": "service" } as const)[path as "phan-mem" | "giai-phap" | "dich-vu"];
+  return ({ software: "software", solutions: "solution", services: "service" } as const)[path as "software" | "solutions" | "services"];
 }
 export async function getUmamiWebsiteId() { return (await getSharedContent()).integrations?.umamiWebsiteId ?? process.env.UMAMI_WEBSITE_ID?.trim() ?? null; }
 export async function getPublishingConfig() { return (await getSharedContent()).settings.config; }
 export async function getSiteProfile() { return (await getSharedContent()).settings.profile; }
 export async function getExternalLinks() { return (await getSharedContent()).settings.externalLinks; }
-/** Cấu hình cửa sổ tư vấn đã lưu ở CMS; chưa lưu thì null (website dùng `defaultConsultPopup`). */
+/** Biểu mẫu tư vấn và quảng cáo đã lưu ở CMS (mỗi phần có dữ liệu và lịch riêng); chưa lưu gì thì null (website dùng `defaultConsultPopup`). */
 export async function getConsultPopup() { return (await getSharedContent()).settings.consultPopup ?? null; }
 export async function getCatalogContent() { return (await getSharedContent()).settings.catalogContent; }
 export async function getListingContent() { return (await getSharedContent()).settings.listingContent; }
