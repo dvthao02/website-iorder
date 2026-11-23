@@ -1,1 +1,0 @@
-ALTER TABLE "sales_equipment" ADD COLUMN "scheduled_at" timestamp with time zone;

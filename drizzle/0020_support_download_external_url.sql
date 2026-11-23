@@ -1,1 +1,0 @@
-ALTER TABLE "support_downloads" ADD COLUMN "external_url" varchar(1000);

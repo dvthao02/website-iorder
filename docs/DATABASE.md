@@ -17,7 +17,7 @@ PostgreSQL là nguồn lưu dữ liệu; Backend là ứng dụng duy nhất k�
 | Truy cập | `users`, `roles`, `permissions`, `user_roles`, `role_permissions`, `sessions`, `login_throttle_buckets` | Tài khoản, vai trò, quyền, phiên và giới hạn đăng nhập. Danh mục quyền trong code; role thực tế trong DB. |
 | Trang | `pages`, `page_blocks`, `page_revisions` | Một trang có nhiều khối theo `sort_order`, lịch sử chứa snapshot. `type`, `data`, `appearance` theo `pageBlockInputSchema` và `blockAppearanceSchema`. |
 | Bài viết | `posts`, `post_revisions`, `post_authors`, `categories`, `tags`, `post_categories`, `post_tags` | Bài tin và hướng dẫn dùng cùng bảng, phân loại bằng `type`; tác giả hiển thị khác tài khoản CMS tạo bài. |
-| Sản phẩm | `offerings`, `offering_revisions` | Phần mềm, giải pháp và dịch vụ phân biệt bằng `type`; nội dung biến thiên nằm trong JSONB. |
+| Sản phẩm | `offerings`, `offering_revisions` | Phần mềm và giải pháp (gồm tư vấn, phát triển theo yêu cầu) phân biệt bằng `type`; nội dung biến thiên nằm trong JSONB. |
 | Thiết bị | `equipment_groups`, `sales_equipment`, `sales_equipment_revisions` | Nhóm, giá VND, thương hiệu, tình trạng hàng, thông số và nội dung trang thiết bị. |
 | Hỗ trợ | `support_downloads`, `support_download_revisions` | Tệp cài đặt có nguồn là media hoặc liên kết ngoài theo hợp đồng. |
 | Nội dung phụ | `partners`, `testimonials`, `contact_leads` | Đối tác, đánh giá và liên hệ. Lead chứa dữ liệu cá nhân. |
@@ -36,6 +36,37 @@ Sao lưu database chỉ chứa metadata media và giá trị mã hóa, không ch
 
 ## 4. Migration và kiểm tra
 
-Các tệp SQL hiện đến `0027_foreign_key_indexes`. `pnpm db:check` kiểm tra metadata migration, không xác nhận migration đã chạy trên database cụ thể. Khi thay schema: rà dữ liệu cũ và tính tương thích, sinh/kiểm SQL, thử áp và kiểm tra dữ liệu trên database tạm, chuẩn bị sao lưu và phương án quay lui. Không tự chạy migration hay backfill phá hủy trên database người dùng.
+Toàn bộ schema nằm trong **một** migration `drizzle/0000_initial_schema.sql`: kiểu enum, bảng, chỉ mục và khóa ngoại (đã gộp từ 30 migration cũ ngày 23/11/2026; kết quả trên database trống giống hệt chuỗi cũ về cột, ràng buộc, khóa ngoại, chỉ mục và enum). Migration không chứa dữ liệu: tài khoản quản trị do `pnpm db:seed:admin` tạo, nội dung nền nạp riêng từ `scripts/data/base-content.sql`. Database đã dựng từ chuỗi cũ chỉ cần bảng `drizzle.__drizzle_migrations` còn đúng một dòng ứng với tệp này (dòng đó mang mốc thời gian `when` của `drizzle/meta/_journal.json`, nên `pnpm db:migrate` không chạy lại). Bản sao lưu tạo trước ngày gộp mang 30 dòng migration nên CMS từ chối phục hồi (nhiều hơn mã đang chạy); muốn dùng lại phải checkout commit trước khi gộp. `pnpm db:check` kiểm tra metadata migration, không xác nhận migration đã chạy trên database cụ thể. Khi thay schema: rà dữ liệu cũ và tính tương thích, sinh/kiểm SQL, thử áp và kiểm tra dữ liệu trên database tạm, chuẩn bị sao lưu và phương án quay lui. Không tự chạy migration hay backfill phá hủy trên database người dùng.
+
+Migration mới: sửa schema rồi `pnpm db:generate` (thêm tệp `0001_…` sau tệp khởi tạo); migration chỉ chuyển đổi dữ liệu thì `pnpm exec drizzle-kit generate --custom --name=<tên>` rồi viết SQL.
+
+### Mẫu migration đổi liên kết đã lưu
+
+Khi đổi hoặc gộp URL public, liên kết đã lưu trong dữ liệu phải đổi theo cùng migration. Mẫu dưới đây khớp theo tiền tố đoạn đường dẫn (kèm `/con`, `?query`, `#neo`), giữ nguyên nguồn của chuyển hướng (đó là URL cũ cần chuyển hướng) và lịch sử phiên bản (`*_revisions`), chạy lại không đổi thêm gì. Thay `/duong-dan-cu` và `/duong-dan-moi`; thêm bảng hoặc cột lưu liên kết nội bộ mới thì thêm vào ba danh sách (và vào `rewriteInternalLinks` ở `packages/shared/src/server/redirects/redirect-links.ts`). Thêm một dòng ở `legacyPaths` (`packages/shared/src/server/shared/legacy-paths.ts`) để website chuyển 301 URL cũ.
+
+```sql
+DO $$
+DECLARE
+  target text[];
+  starts_with text := '^/duong-dan-cu([/#?]|$)';
+BEGIN
+  -- Cột chữ: đường dẫn đứng đầu giá trị.
+  FOREACH target SLICE 1 IN ARRAY ARRAY[['menu_items', 'url'], ['redirects', 'destination_path'], ['posts', 'cta_url']] LOOP
+    EXECUTE format('UPDATE %1$I SET %2$I = regexp_replace(%2$I, %3$L, %4$L) WHERE %2$I ~ %3$L', target[1], target[2], starts_with, '/duong-dan-moi\1');
+  END LOOP;
+  -- Canonical URL: giữ nguyên tên miền, chỉ đổi phần đường dẫn.
+  FOREACH target SLICE 1 IN ARRAY ARRAY[['pages', 'canonical_url'], ['posts', 'canonical_url'], ['offerings', 'canonical_url'], ['sales_equipment', 'canonical_url']] LOOP
+    EXECUTE format('UPDATE %1$I SET %2$I = regexp_replace(%2$I, %3$L, %4$L) WHERE %2$I ~ %3$L', target[1], target[2], '^(https?://[^/]+)/duong-dan-cu([/#?]|$)', '\1/duong-dan-moi\2');
+  END LOOP;
+  -- Cột JSON: chuỗi bắt đầu bằng đường dẫn, kết thúc ở / # ? hoặc dấu nháy đóng.
+  FOREACH target SLICE 1 IN ARRAY ARRAY[['page_blocks', 'data'], ['posts', 'content'], ['offerings', 'content'], ['sales_equipment', 'blocks'], ['sales_equipment', 'page_layout']] LOOP
+    EXECUTE format('UPDATE %1$I SET %2$I = regexp_replace(%2$I::text, %3$L, %4$L, ''g'')::jsonb WHERE %2$I::text ~ %3$L', target[1], target[2], '"/duong-dan-cu([/#?"])', '"/duong-dan-moi\1');
+  END LOOP;
+  -- Cài đặt website, trừ khóa hệ thống (lịch sử sao lưu, trạng thái chạy nền).
+  UPDATE site_settings SET value = regexp_replace(value::text, '"/duong-dan-cu([/#?"])', '"/duong-dan-moi\1', 'g')::jsonb
+    WHERE key NOT LIKE 'system.%' AND value::text ~ '"/duong-dan-cu([/#?"])';
+END
+$$;
+```
 
 `pnpm db:generate` sinh migration; `pnpm db:migrate` áp migration lên database được cấu hình; `pnpm db:studio` mở trình quản lý. Các lệnh seed, import, backfill và cleanup có thể ghi hoặc xóa dữ liệu: đọc lệnh và xác nhận đích trước khi chạy. Không lưu ảnh chụp số lượng dữ liệu local thành hiện trạng cố định trong tài liệu.

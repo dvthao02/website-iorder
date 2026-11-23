@@ -1,6 +1,5 @@
 import assert from "node:assert/strict";
 import { createHash, randomBytes, randomUUID } from "node:crypto";
-import { readFile } from "node:fs/promises";
 import { config } from "dotenv";
 import postgres from "postgres";
 
@@ -34,20 +33,7 @@ async function main() {
     for (const { tablename } of tables) await client`create table ${client(scope)}.${client(tablename)} (like public.${client(tablename)} including all)`;
     await client`select set_config('search_path', ${scope}, false)`;
     assert.equal((await client`select current_schema() as name`)[0].name, scope);
-    // Chỉ thay schema tạm: dựng trạng thái trước 0017/0018 kể cả khi local đã được nâng cấp.
-    for (const table of ["pages", "posts", "offerings", "sales_equipment"]) await client`alter table ${client(table)} drop column if exists seo`;
-    await client`alter table sales_equipment drop column if exists blocks`;
-    await client`insert into pages (title,slug,seo_title,seo_description,canonical_url) values ('Trang trước migration','truoc-migration',${common.seoTitle},${common.seoDescription},${common.canonicalUrl})`;
-    step = "migration";
-    for (const name of ["0017_cms_builder_seo.sql", "0018_equipment_builder_seo.sql"]) {
-      const sql = (await readFile(`drizzle/${name}`, "utf8")).replaceAll('"public".', `"${scope}".`);
-      for (const statement of sql.split("--> statement-breakpoint").filter(value => value.trim())) await client.unsafe(statement);
-    }
-    const [legacy] = await client`select seo_title,seo_description,canonical_url,seo from pages where slug='truoc-migration'`;
-    assert.equal(legacy.seo_title, common.seoTitle);
-    assert.equal(legacy.seo_description, common.seoDescription);
-    assert.equal(legacy.canonical_url, common.canonicalUrl);
-    assert.deepEqual(legacy.seo, {});
+    // Schema tạm sao từ public (đã đủ cột SEO/builder từ migration khởi tạo).
     await client`insert into users (id,username,full_name,password_hash) values (${actor},'builder-audit','Người kiểm thử','khong-dung-de-dang-nhap')`;
     const roleId = randomUUID();
     await client`insert into roles (id,code,name) values (${roleId},'admin','Quản trị')`;
@@ -103,7 +89,7 @@ async function main() {
     step = "catalog";
     const offeringValues = { ...common, title: "Phần mềm kiểm thử", slug: "phan-mem-kiem-thu", type: "software", summary: "Tóm tắt catalog", content: { description: "Mô tả cũ được giữ", tags: [], bestFor: null, keyValue: null, metrics: [], features: [], benefits: [], faq: [], items: [], category: null, blocks }, icon: null, sortOrder: 0, isFeatured: false, seo };
     const offering = await offeringService.createAdminOffering(offeringValues, actor);
-    for (const type of ["solution", "service"]) await offeringService.createAdminOffering({ ...offeringValues, type, slug: `${type}-kiem-thu` }, actor);
+    for (const type of ["solution"]) await offeringService.createAdminOffering({ ...offeringValues, type, slug: `${type}-kiem-thu` }, actor);
     const { seo: offeringSeo, ...offeringLegacy } = offeringValues;
     assert.ok(offeringSeo);
     assert.deepEqual((await offeringService.updateAdminOffering(offering.id, offeringLegacy, actor, undefined, 1))?.seo, seo);

@@ -1,1 +1,0 @@
-ALTER TABLE "sales_equipment" ADD COLUMN "page_layout" jsonb;

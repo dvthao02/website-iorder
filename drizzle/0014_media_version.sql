@@ -1,1 +1,0 @@
-ALTER TABLE "media_assets" ADD COLUMN "version" integer DEFAULT 0 NOT NULL;

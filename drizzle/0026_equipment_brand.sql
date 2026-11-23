@@ -1,1 +1,0 @@
-ALTER TABLE "sales_equipment" ADD COLUMN "brand" varchar(80);
