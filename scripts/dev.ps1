@@ -84,7 +84,7 @@ if (-not $NoDocker) {
     }
   }
   Write-Step "Bat PostgreSQL + S3Mock$(if ($Analytics) { ' + Umami' })"
-  if ($Analytics) { & docker compose --profile analytics up -d } else { & docker compose up -d db storage }
+  if ($Analytics) { & docker compose --profile analytics up -d db storage umami } else { & docker compose up -d db storage }
   if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
   $deadline = (Get-Date).AddMinutes(1)
   while ((& docker compose ps db --format "{{.Health}}") -ne "healthy") {
