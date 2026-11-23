@@ -159,10 +159,10 @@ export function TextLink({ href, className, children, field }: { href: string; c
 }
 
 // Hàng nút: chính + phụ (phụ đổi sang viền sáng khi nằm trên nền tối/ảnh).
-export function Actions({ primary, secondary, dark = false, center = false, className = "mt-8" }: { primary?: ActionData | null; secondary?: ActionData | null; dark?: boolean; center?: boolean; className?: string }) {
-  if (!primary && !secondary) return null;
+export function Actions({ primary, primaryNode, secondary, dark = false, center = false, className = "mt-8" }: { primary?: ActionData | null; /** Thay nút chính bằng thành phần riêng (ví dụ nút mở biểu mẫu hỏi mua thiết bị). */ primaryNode?: ReactNode; secondary?: ActionData | null; dark?: boolean; center?: boolean; className?: string }) {
+  if (!primary && !primaryNode && !secondary) return null;
   return <div className={`flex flex-wrap gap-3 ${center ? "justify-center" : ""} ${className}`.trim()}>
-    {primary ? <ButtonLink action={primary} field="primaryAction" variant="primary" /> : null}
+    {primaryNode ?? (primary ? <ButtonLink action={primary} field="primaryAction" variant="primary" /> : null)}
     {secondary ? <ButtonLink action={secondary} field="secondaryAction" variant={dark ? "outline-light" : "secondary"} /> : null}
   </div>;
 }

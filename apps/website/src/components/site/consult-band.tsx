@@ -1,4 +1,5 @@
 import { Phone } from "lucide-react";
+import type { ReactNode } from "react";
 import type { BlockFrame } from "@iorder/shared/server/pages/block-layout";
 import { ButtonLink, FrameSection } from "@/components/ui";
 
@@ -6,7 +7,7 @@ import { ButtonLink, FrameSection } from "@/components/ui";
 // sang trang Liên hệ hoặc gọi hotline (lấy từ Cài đặt › Thông tin website). Mặc định nền tối, một điểm nhấn duy nhất cuối trang;
 // `frame` (Bố cục khối trong CMS) đổi nền, khoảng cách, ảnh nền và chữ đổi theo nền sáng/tối.
 const defaultFrame: BlockFrame = { tone: "dark", spacing: "sm", anchor: null };
-export function ConsultBand({ title, description, hotline, actionLabel = "Nhận tư vấn miễn phí", frame = defaultFrame }: { title: string; description: string; hotline: string | null; actionLabel?: string; frame?: BlockFrame }) {
+export function ConsultBand({ title, description, hotline, actionLabel = "Nhận tư vấn miễn phí", actionNode, frame = defaultFrame }: { title: string; description: string; hotline: string | null; actionLabel?: string; /** Thay nút chính (sang trang Liên hệ) bằng thành phần riêng, ví dụ nút mở biểu mẫu hỏi mua thiết bị. */ actionNode?: ReactNode; frame?: BlockFrame }) {
   const dark = frame.tone === "dark";
   return <FrameSection frame={frame} glow>
     <div className="flex flex-col gap-8 md:flex-row md:items-center md:justify-between">
@@ -15,7 +16,7 @@ export function ConsultBand({ title, description, hotline, actionLabel = "Nhận
         <p className={`mt-3 mb-0 text-lead ${dark ? "text-white/75" : "text-muted"}`}>{description}</p>
       </div>
       <div className="flex flex-wrap gap-3">
-        <ButtonLink action={{ label: actionLabel, href: "/contact" }} variant={dark ? "light" : "primary"} />
+        {actionNode ?? <ButtonLink action={{ label: actionLabel, href: "/contact" }} variant={dark ? "light" : "primary"} />}
         {hotline ? <a className={`button ${dark ? "button--outline-light" : "button--secondary"}`} href={`tel:${hotline.replace(/[^\d+]/g, "")}`}><Phone aria-hidden="true" size={18} />{hotline}</a> : null}
       </div>
     </div>

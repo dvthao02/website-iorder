@@ -6,6 +6,7 @@ import { Fragment, useEffect, useRef, useState, useSyncExternalStore, type CSSPr
 
 import { AvailabilityBadge } from "./availability-badge";
 import { EquipmentImagePlaceholder } from "./equipment-image-placeholder";
+import { EquipmentInquiry } from "./equipment-inquiry";
 import { SiteLink as Link } from "./site-link";
 import type { EquipmentAvailability } from "@iorder/shared/server/equipment/equipment-availability";
 
@@ -105,7 +106,7 @@ export function EquipmentExplorer({ items, grouped, dark = false, Heading = "h3"
                   <ul className="m-0 grid list-none gap-1.5 p-0">{spec.items.map((row, rowIndex) => <li className="text-body text-ink/85" key={rowIndex}>{freeText(row.label) ? row.value : <><span className="text-muted">{row.label}:</span> {row.value}</>}</li>)}</ul>
                 </section>)}</div> : null}
                 <div className="mt-5 flex flex-wrap gap-3">
-                  <Link className="button button--primary" href="/contact">Liên hệ mua hàng</Link>
+                  <EquipmentInquiry equipment={{ slug: active.slug, name: active.name, modelCode: active.modelCode, priceVnd: active.priceVnd, availability: active.availability }} />
                   <Link className="button button--secondary" href={`/equipment/${active.slug}`}>Xem trang chi tiết<ArrowRight aria-hidden="true" size={18} /></Link>
                 </div>
               </div>

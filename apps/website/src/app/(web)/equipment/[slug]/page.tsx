@@ -9,6 +9,7 @@ import { FrameSection, IconTile, SectionHeading, TextLink } from "@/components/u
 import { withBackgroundImage } from "@/lib/frame-media";
 import { sectionFrame } from "@iorder/shared/server/pages/block-layout";
 import { ConsultBand } from "@/components/site/consult-band";
+import { EquipmentInquiry } from "@/components/site/equipment-inquiry";
 import { EquipmentCard } from "@/components/site/collection-list";
 import { getEquipment, getPublishingConfig, getSiteProfile } from "@/lib/backend";
 import { ContentJsonLd } from "@/components/site/content-json-ld";
@@ -35,6 +36,8 @@ export default async function EquipmentDetail({ params }: Props) {
   const others = [...all.filter(row => row.id !== item.id && row.groupName === item.groupName), ...all.filter(row => row.id !== item.id && row.groupName !== item.groupName)].slice(0, 4);
   const [config, profile] = await Promise.all([getPublishingConfig(), getSiteProfile()]);
   const site = config.siteUrl;
+  // Thiết bị đang xem cho nút Liên hệ mua hàng: chỉ mã gửi lên Backend, phần còn lại để hộp thoại hiển thị cho khách.
+  const inquiry = { slug: item.slug, name: item.name, modelCode: item.modelCode ?? null, priceVnd: item.priceVnd, availability: item.availability };
   // Trong canvas CMS: phần đầu trang là mục 1 (chỉ số -1), thông số kỹ thuật là mục 2 (chỉ số -2) của trình dựng.
   const inBuilder = Boolean(await getBuilderPreviewContext());
   // Giao diện (Bố cục khối) của các phần cố định; ảnh nền lưu theo mã media nên phải tra thành địa chỉ ảnh.
@@ -49,7 +52,7 @@ export default async function EquipmentDetail({ params }: Props) {
   return <><SiteHeader />{site ? <ContentJsonLd seo={item.seo} title={item.name} description={item.seoDescription || item.summary} path={`/equipment/${item.slug}`} faq={faqItemsOfBlocks(item.blocks ?? [])} defaults={[productJsonLd(site, { name: item.name, description: item.seoDescription || item.summary, path: `/equipment/${item.slug}`, imagePath: item.coverUrl ?? null, sku: item.modelCode, priceVnd: item.priceVnd, availability: item.availability, brand: item.brand }), breadcrumbJsonLd(site, [{ name: "Trang chủ", path: "/" }, { name: "Thiết bị", path: "/equipment" }, { name: item.name, path: `/equipment/${item.slug}` }])]} /> : null}
     <main id="noi-dung">
       <BuilderAnchor active={inBuilder} index={-1}>
-      <DetailHero extraImages={heroExtraImages} background={item.pageLayout?.hero?.background} height={item.pageLayout?.hero?.height} layout={item.pageLayout?.hero?.layout} appearance={item.pageLayout?.hero?.appearance} back={{ href: "/equipment", label: "Tất cả thiết bị" }} image={item.coverUrl ? { url: item.coverUrl, alt: item.coverAlt ?? item.name } : null} imageStyle="product" label={item.groupName} primary={{ label: "Liên hệ mua hàng", href: "/contact" }} secondary={{ label: "Xem thiết bị khác", href: "/equipment" }} summary={item.summary} title={item.name}>
+      <DetailHero extraImages={heroExtraImages} background={item.pageLayout?.hero?.background} height={item.pageLayout?.hero?.height} layout={item.pageLayout?.hero?.layout} appearance={item.pageLayout?.hero?.appearance} back={{ href: "/equipment", label: "Tất cả thiết bị" }} image={item.coverUrl ? { url: item.coverUrl, alt: item.coverAlt ?? item.name } : null} imageStyle="product" label={item.groupName} primaryNode={<EquipmentInquiry equipment={inquiry} field="primaryAction" hotline={profile?.hotline ?? null} />} secondary={{ label: "Xem thiết bị khác", href: "/equipment" }} summary={item.summary} title={item.name}>
         <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2">
           <p className="m-0 text-3xl font-bold tracking-tight text-brand-700" data-builder-field="priceVnd">{priceFormatter.format(item.priceVnd)}</p>
           <span data-builder-field="availability"><AvailabilityBadge always availability={item.availability} /></span>
@@ -83,7 +86,7 @@ export default async function EquipmentDetail({ params }: Props) {
         </div>
         <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">{others.map(other => <EquipmentCard item={other} key={other.id} />)}</div>
       </FrameSection></BuilderAnchor> : null}
-      {consultFrame.hidden ? null : <BuilderAnchor active={inBuilder} index={-12}><ConsultBand actionLabel="Liên hệ mua hàng" description="iOrder tư vấn cấu hình theo mô hình bán hàng, giao máy, cài đặt và hướng dẫn sử dụng tại cửa hàng." frame={consultFrame} hotline={profile?.hotline ?? null} title="Cần tư vấn chọn thiết bị?" /></BuilderAnchor>}
+      {consultFrame.hidden ? null : <BuilderAnchor active={inBuilder} index={-12}><ConsultBand actionNode={<EquipmentInquiry className={`button ${consultFrame.tone === "dark" ? "button--light" : "button--primary"}`} equipment={inquiry} hotline={profile?.hotline ?? null} />} actionLabel="Liên hệ mua hàng" description="iOrder tư vấn cấu hình theo mô hình bán hàng, giao máy, cài đặt và hướng dẫn sử dụng tại cửa hàng." frame={consultFrame} hotline={profile?.hotline ?? null} title="Cần tư vấn chọn thiết bị?" /></BuilderAnchor>}
     </main>
   </>;
 }

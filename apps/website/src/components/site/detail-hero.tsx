@@ -18,7 +18,7 @@ type DetailImage = { url: string; alt: string; width?: number | null; height?: n
 // `background`: nền sẵn (xám nhạt / trắng / xanh nhạt / tối); `appearance`: màu tự chọn và ảnh nền phủ lớp màu (cùng vỏ chung với khối trang),
 // ghi đè nền sẵn. Nền tối hoặc màu tối thì chữ chuyển sang màu sáng (CSS .card-on-dark, cùng quy tắc với thẻ có màu nền riêng).
 const surfaces = { default: { className: "bg-[#f7f9fc]", color: "#f7f9fc", dark: false }, white: { className: "bg-white", color: "#ffffff", dark: false }, tinted: { className: "bg-surface-tinted", color: "var(--color-surface-tinted)", dark: false }, dark: { className: "bg-navy", color: "var(--color-navy)", dark: true } } as const;
-export async function DetailHero({ back, label, title, summary, image: coverImage, extraImages = [], imageStyle = "cover", primary, secondary, fill = true, height, layout = "split", background = "default", appearance, children }: {
+export async function DetailHero({ back, label, title, summary, image: coverImage, extraImages = [], imageStyle = "cover", primary, primaryNode, secondary, fill = true, height, layout = "split", background = "default", appearance, children }: {
   back: { href: string; label: string };
   label?: string | null;
   title: string;
@@ -28,6 +28,8 @@ export async function DetailHero({ back, label, title, summary, image: coverImag
   extraImages?: DetailImage[];
   imageStyle?: "cover" | "product";
   primary?: ActionData | null;
+  /** Thay nút chính bằng thành phần riêng (xem Actions). */
+  primaryNode?: ReactNode;
   secondary?: ActionData | null;
   fill?: boolean;
   /** Chiều cao chọn trong CMS: cả màn hình / 3/4 / một nửa / theo nội dung. Có `height` thì thay cho `fill`. */
@@ -72,7 +74,7 @@ export async function DetailHero({ back, label, title, summary, image: coverImag
         <h1 className="mb-0 text-[2.25rem] leading-[1.12] font-bold tracking-tight text-balance text-ink sm:text-5xl" data-builder-field="title">{title}</h1>
         {summary ? <p className="mt-5 text-lg leading-8 text-muted sm:text-xl" data-builder-field="summary">{summary}</p> : null}
         {children}
-        <Actions center={centered} dark={dark} primary={primary} secondary={secondary} />
+        <Actions center={centered} dark={dark} primary={primary} primaryNode={primaryNode} secondary={secondary} />
       </div>
       {image ? imageStyle === "product"
         ? <div className="rounded-card border border-line bg-white p-4 shadow-card" data-builder-field="image">{slides

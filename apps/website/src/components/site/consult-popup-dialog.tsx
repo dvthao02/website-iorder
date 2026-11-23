@@ -7,7 +7,7 @@ import { useCallback, useEffect, useId, useRef, useState, type FormEvent, type R
 import { isPopupExternalLink, type ConsultPopup as ConsultPopupSettings } from "@iorder/shared/server/settings/consult-popup.contract";
 import { consultPopupPromoLayout, consultPopupPromoPresentation } from "@iorder/shared/server/settings/consult-popup.presentation";
 import { consultPopupImageSizes, consultPopupRemember, consultPopupSubmittedDays, type ConsultPopupKind } from "@/lib/consult-popup-behavior";
-import { submitLead } from "@/lib/submit-lead";
+import { submitLead, warmLeadToken } from "@/lib/submit-lead";
 import { Field, inputClassName } from "./lead-form";
 import { SiteLink } from "./site-link";
 
@@ -69,6 +69,8 @@ function PopupContent({ popup, image, hotline, pathname, close, kind, storageKey
   const [busy, setBusy] = useState(false);
   const [success, setSuccess] = useState(false);
   const [message, setMessage] = useState("");
+  // Biểu mẫu tư vấn hiện ra thì xin mã phiên gửi trước (xem leads.guard.ts).
+  useEffect(() => { if (kind === "form") warmLeadToken(); }, [kind]);
   const promo = kind === "promo";
   const repeatDays = promo ? popup.promo.repeatDays : popup.form.repeatDays;
   const dismiss = useCallback(() => close(repeatDays), [close, repeatDays]);

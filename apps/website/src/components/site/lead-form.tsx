@@ -1,10 +1,10 @@
 "use client";
 
 import { ArrowRight, ChevronDown, Clock, Mail, MapPin, Phone, ShieldCheck } from "lucide-react";
-import React, { useState, type FormEvent, type ReactNode } from "react";
+import React, { useEffect, useState, type FormEvent, type ReactNode } from "react";
 // Đường dẫn tương đối (không dùng "@/"): bài kiểm thử chạy từ thư mục gốc, nơi bí danh "@/" chưa được khai báo.
 import { addressLines } from "../../lib/address-lines";
-import { submitLead } from "../../lib/submit-lead";
+import { submitLead, warmLeadToken } from "../../lib/submit-lead";
 
 type Contact = { hotline: string | null; email: string | null; workingHours: string | null; address?: string | null };
 type LeadFormProps = { title: string; description: string | null; submitLabel: string; needOptions: string[]; trialTitle?: string | null; trialLabel?: string | null; dark?: boolean; trialUrl?: string | null; contact?: Contact | null };
@@ -29,6 +29,8 @@ export function LeadForm({ title, description, submitLabel, needOptions, trialTi
   const [message, setMessage] = useState("");
   const [success, setSuccess] = useState(false);
   const [busy, setBusy] = useState(false);
+  // Xin mã phiên gửi ngay khi biểu mẫu hiện ra để lúc bấm Gửi mã đã đủ tuổi (chống gửi tự động, xem leads.guard.ts).
+  useEffect(() => { warmLeadToken(); }, []);
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setBusy(true); setMessage("");
     // currentTarget is cleared once the event finishes dispatching, so keep the form before awaiting.
