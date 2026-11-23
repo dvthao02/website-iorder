@@ -12,7 +12,7 @@ Tài liệu này nối công việc của người vận hành với dữ liệu
 | Đối tác và đánh giá | Đối tác & Đánh giá | `partners`, `testimonials`, `media_assets` | Các khối lấy nội dung đối tác hoặc đánh giá |
 | Ảnh và tệp | Thư viện hình ảnh & tệp | `media_assets` và object trong S3 | Tệp dùng trong nội dung, có thể kiểm tra nơi sử dụng |
 | Điều hướng và thiết lập | Menu, Chuyển hướng URL, Cài đặt website | `menus`, `menu_items`, `menu_revisions`, `redirects`, `site_profile`, `site_settings` | Menu, liên kết và thông tin chung của website |
-| Khách hàng tiềm năng | Khách hàng tiềm năng | `contact_leads` | Nhân viên xem, xử lý trạng thái và xuất dữ liệu theo quyền |
+| Khách hàng tiềm năng | Khách hàng tiềm năng | `contact_leads` | Nhân viên xem, xử lý trạng thái và xuất dữ liệu theo quyền. Liên hệ hỏi mua thiết bị lưu kèm thiết bị khách hỏi (tên, mã, giá, tình trạng hàng lúc gửi) trong `context` |
 | Người dùng và vận hành | Người dùng & vai trò, Tình trạng hệ thống, Nhật ký, Sao lưu | `users`, `roles`, `permissions`, `sessions`, `audit_logs`, cấu hình | Quản lý truy cập, theo dõi và khôi phục hệ thống |
 
 ## Một lần lưu nội dung đi qua đâu?
