@@ -1,6 +1,6 @@
 export type LeadSubmitResult = { ok: boolean; message: string };
 
-// Gửi liên hệ tới Backend (qua rewrite `/api/v1/leads`): dùng chung cho biểu mẫu trong trang và cửa sổ tư vấn.
+// Gửi liên hệ tới Backend (qua rewrite `/api/v1/leads`): dùng chung cho biểu mẫu trong trang và biểu mẫu tư vấn tự hiện.
 export async function submitLead(payload: Record<string, FormDataEntryValue>): Promise<LeadSubmitResult> {
   try {
     const response = await fetch("/api/v1/leads", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) });

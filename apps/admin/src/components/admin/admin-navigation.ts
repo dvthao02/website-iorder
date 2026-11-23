@@ -20,6 +20,7 @@ import {
   Link as LinkIcon,
   Menu,
   MessageSquareText,
+  Megaphone,
   Newspaper,
   Package,
   PanelsTopLeft,
@@ -92,7 +93,8 @@ export const navigationGroups = ensureUniqueNavigationPaths([
     items: [
       { href: "/admin/menu", label: "Menu & Điều hướng", icon: Menu, permission: "navigation.view" },
       { href: "/admin/redirects", label: "Chuyển hướng URL", icon: ArrowRightLeft, permission: "redirects.view" },
-      { href: "/admin/consult-popup", label: "Cửa sổ tư vấn", icon: MessageSquareText, permission: "settings.view" },
+      { href: "/admin/consult-popup", label: "Biểu mẫu tư vấn", icon: MessageSquareText, permission: "settings.view" },
+      { href: "/admin/promotion-popup", label: "Quảng cáo", icon: Megaphone, permission: "settings.view" },
     ],
   },
   {

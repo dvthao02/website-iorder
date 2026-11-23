@@ -29,6 +29,8 @@ const resourceModules: Record<string, CmsModuleKey> = {
   "publishing-config": "settings",
   "external-links": "settings",
   "consult-popup": "settings",
+  "consult-form": "settings",
+  "promotion-popup": "settings",
   // Cùng quyền với màn "Kiểm tra xuất bản" chứa nó; service tự lọc nội dung theo quyền xem từng module.
   "seo-audit": "settings",
   // Số liệu tìm kiếm đọc từ Google Search Console (chỉ đọc), cùng quyền với màn "Kiểm tra xuất bản".
@@ -79,7 +81,7 @@ export function requiredAdminPermissions(pathname: string, method: string): CmsP
     const targetModule = revisionTargetModules[segments[1] as keyof typeof revisionTargetModules];
     const revisionAction = action === "view" ? "view" : "update";
     if (!targetModule) return [];
-    // Trang danh sách (/tin-tuc, /thiet-bi…) cũng do module sở hữu sửa; route tự thu hẹp theo slug của trang.
+    // Trang danh sách (/news, /equipment…) cũng do module sở hữu sửa; route tự thu hẹp theo slug của trang.
     if (targetModule === "pages") return [...permissionsFor("pages", [revisionAction]), ...listingPageOwnerModules.flatMap((module) => permissionsFor(module, [revisionAction]))];
     return permissionsFor(targetModule, [revisionAction]);
   }
@@ -100,7 +102,7 @@ export function requiredAdminPermissions(pathname: string, method: string): CmsP
   const resourceModule = resourceModules[resource];
   if (!resourceModule) return [];
   const required = permissionsFor(resourceModule, action === "create" && upsertResources.has(resource) ? ["create", "update"] : [action]);
-  // Listing pages (/tin-tuc, /thiet-bi…) are also editable by their owning module;
+  // Listing pages (/news, /equipment…) are also editable by their owning module;
   // the pages route handler narrows this to the exact page.
   // PATCH (đổi trạng thái) cũng vậy: route kiểm đúng quyền sửa + xuất bản theo slug của trang.
   if (resource === "pages" && (action === "view" || action === "create" || action === "update")) {

@@ -52,10 +52,19 @@ const routeTable: Array<[string, string, CmsPermissionCode[] | null]> = [
   ["/api/v1/admin/redirects", "DELETE", ["redirects.delete"]],
   ["/api/v1/admin/publishing-config", "PUT", ["settings.update"]],
   ["/api/v1/admin/external-links", "PUT", ["settings.update"]],
+  ["/api/v1/admin/consult-form", "GET", ["settings.view"]],
+  ["/api/v1/admin/consult-form", "PUT", ["settings.update"]],
+  ["/api/v1/admin/promotion-popup", "GET", ["settings.view"]],
+  ["/api/v1/admin/promotion-popup", "PUT", ["settings.update"]],
   ["/api/v1/admin/profile", "GET", ["settings.view"]],
   ["/api/v1/admin/seo-audit", "GET", ["settings.view"]],
   ["/api/v1/admin/backup", "GET", ["system.view"]],
   ["/api/v1/admin/backup", "POST", []],
+  // Dọn nhật ký: module audit chỉ có view nên POST chỉ Super Admin.
+  ["/api/v1/admin/audit", "GET", ["audit.view"]],
+  ["/api/v1/admin/audit", "POST", []],
+  // Tải bản sao lưu: proxy chỉ đòi system.view như mọi GET của module; route tự đòi thêm Super Admin (xem test bên dưới).
+  ["/api/v1/admin/backup/download", "GET", ["system.view"]],
   // Tình trạng hệ thống: quyền riêng system.view, chỉ đọc (mọi method khác chỉ Super Admin).
   ["/api/v1/admin/system-status", "GET", ["system.view"]],
   ["/api/v1/admin/system-status", "POST", []],
@@ -172,6 +181,8 @@ test("Ma trận role mặc định × thao tác tiêu biểu", () => {
     ["sysops", "/api/v1/admin/audit", "GET", true],
     ["sysops", "/api/v1/admin/backup", "GET", true],
     ["sysops", "/api/v1/admin/backup", "POST", false],
+    ["sysops", "/api/v1/admin/audit", "GET", true],
+    ["sysops", "/api/v1/admin/audit", "POST", false],
     // Sao lưu là thông tin hạ tầng: vai trò nội dung/cấu hình/phân tích không còn thấy, dù có settings.view.
     ["content_manager", "/api/v1/admin/backup", "GET", false],
     ["marketing", "/api/v1/admin/backup", "GET", false],
@@ -208,6 +219,14 @@ test("Khóa API ở CMS chỉ Super Admin: không vai trò mặc định nào (k
   assert.ok(/createMasterKeyRequestSchema\.parse/.test(route) && (route.match(/export const (POST|PUT|DELETE)/g) ?? []).length === 3, "POST chỉ để tạo khóa chủ (kèm mật khẩu), cùng PUT và DELETE; không có method nào khác");
   // Giá trị khóa người dùng gửi lên không được đưa lại vào phản hồi hay log.
   assert.ok(!/NextResponse\.json\(\{[^}]*\bvalue\b/.test(route) && !/logger\.[a-z]+\([^)]*\bbody\b/.test(route), "phản hồi và log không chứa body.value");
+});
+
+test("Tải bản sao lưu chứa cả dữ liệu nhạy cảm: route tự kiểm Super Admin (vai trò Vận hành qua được proxy nhưng không qua được route) và không cache", () => {
+  const route = readFileSync(path.join(process.cwd(), "apps/api/src/app/api/v1/admin/backup/download/route.ts"), "utf8");
+  assert.ok(route.includes("isSuperAdmin(administrator)"));
+  assert.ok(route.indexOf("isSuperAdmin(administrator)") < route.indexOf("prepareBackupDownload("), "kiểm quyền trước khi đóng gói");
+  assert.match(route, /"cache-control": "no-store"/);
+  assert.equal((route.match(/export const (GET|POST|PUT|DELETE|PATCH)\b/g) ?? []).length, 1, "chỉ có GET");
 });
 
 test("Vai trò Vận hành hệ thống: chỉ quyền xem (không có create/update/delete/publish), đúng ba mô-đun cần để theo dõi (bảng điều khiển, nhật ký, tình trạng hệ thống)", () => {

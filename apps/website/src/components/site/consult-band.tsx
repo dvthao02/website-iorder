@@ -15,7 +15,7 @@ export function ConsultBand({ title, description, hotline, actionLabel = "Nhận
         <p className={`mt-3 mb-0 text-lead ${dark ? "text-white/75" : "text-muted"}`}>{description}</p>
       </div>
       <div className="flex flex-wrap gap-3">
-        <ButtonLink action={{ label: actionLabel, href: "/lien-he" }} variant={dark ? "light" : "primary"} />
+        <ButtonLink action={{ label: actionLabel, href: "/contact" }} variant={dark ? "light" : "primary"} />
         {hotline ? <a className={`button ${dark ? "button--outline-light" : "button--secondary"}`} href={`tel:${hotline.replace(/[^\d+]/g, "")}`}><Phone aria-hidden="true" size={18} />{hotline}</a> : null}
       </div>
     </div>

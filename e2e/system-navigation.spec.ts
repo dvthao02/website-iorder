@@ -56,7 +56,7 @@ test("Thanh bên có 5 nhóm theo công việc; theo dõi hiệu quả nằm chu
   await loginAsAdmin(page);
   await expect(page.locator(".admin-sidebar .admin-navigation__group-toggle")).toHaveText(["Công việc", "Nội dung website", "Cấu trúc website", "Cài đặt website", "Hệ thống"]);
   await expect(itemsOf(page, "Công việc")).toHaveText(["Bảng điều khiển", "Khách hàng tiềm năng", "Thống kê truy cập", "Google Search Console", "Kiểm tra trước xuất bản"]);
-  await expect(itemsOf(page, "Cấu trúc website")).toHaveText(["Menu & Điều hướng", "Chuyển hướng URL", "Cửa sổ tư vấn"]);
+  await expect(itemsOf(page, "Cấu trúc website")).toHaveText(["Menu & Điều hướng", "Chuyển hướng URL", "Biểu mẫu tư vấn", "Quảng cáo"]);
   await expect(itemsOf(page, "Cài đặt website")).toHaveText(["Thông tin doanh nghiệp", "Tên miền & SEO", "Liên kết & Mạng xã hội"]);
   await expect(itemsOf(page, "Hệ thống")).toHaveText(["Tình trạng hệ thống", "Sao lưu & phục hồi", "Người dùng & vai trò", "Nhật ký hoạt động", "Kết nối & khóa API"]);
 

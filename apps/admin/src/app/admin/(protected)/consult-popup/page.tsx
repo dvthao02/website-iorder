@@ -1,15 +1,18 @@
 import { requireAdminPermission } from "@/lib/admin-guard";
-import { ConsultPopupEditor } from "@/components/admin/consult-popup-editor";
+import { ConsultFormEditor } from "@/components/admin/consult-form-editor";
 import { SettingsDetailPage } from "@/components/admin/settings-detail-page";
-import { getConsultPopup, getConsultPopupVersion } from "@/lib/backend";
+import { getConsultForm, getConsultFormVersion, getPromotionPopup } from "@/lib/backend";
+import { defaultPromotionPopup } from "@iorder/shared/server/settings/consult-popup.contract";
 
 export const dynamic = "force-dynamic";
 
 export default async function ConsultPopupPage() {
   await requireAdminPermission("settings.view");
+  const [form, version, promotion] = await Promise.all([getConsultForm(), getConsultFormVersion(), getPromotionPopup()]);
   return <SettingsDetailPage
-    description="Bật riêng biểu mẫu tư vấn, quảng cáo hoặc cả hai. Nội dung, phạm vi và tần suất đều chỉnh tại đây."
-    eyebrow="Cài đặt"
-    title="Cửa sổ tư vấn"
-  ><ConsultPopupEditor initial={await getConsultPopup()} initialVersion={await getConsultPopupVersion()} /></SettingsDetailPage>;
+    bare
+    description="Thu họ tên, số điện thoại và nhu cầu của khách. Cấu hình này không ảnh hưởng tới quảng cáo."
+    eyebrow="Khách hàng tiềm năng"
+    title="Biểu mẫu tư vấn"
+  ><ConsultFormEditor initial={form} initialVersion={version} promotionEnabled={(promotion ?? defaultPromotionPopup).enabled} /></SettingsDetailPage>;
 }
