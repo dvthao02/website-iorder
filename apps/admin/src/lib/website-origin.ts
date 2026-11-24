@@ -2,7 +2,8 @@
 // Quy tắc dựa trên nơi người dùng đang mở CMS, nên không cần build lại khi đổi môi trường:
 //  - CMS mở bằng localhost hoặc IP/tên máy trong mạng nội bộ (192.168.x, 10.x, 172.16–31.x, *.local, tên một chữ):
 //    website chạy cùng máy đó. Giữ cổng của địa chỉ website cấu hình sẵn (mặc định 3000), chỉ đổi tên máy. Không dùng tên miền
-//    đã cấu hình ở Cài đặt, vì trước khi xuất bản tên miền đó chưa trỏ về máy này.
+//    đã cấu hình ở Cài đặt, vì trước khi xuất bản tên miền đó chưa trỏ về máy này. Biến môi trường là IP LAN cũng bị đổi tên máy theo
+//    nơi đang mở CMS: IP do router cấp nên đổi theo ngày/mạng, giữ IP cũ làm khung xem trước báo "took too long to respond".
 //  - CMS mở bằng tên miền thật: ưu tiên "Địa chỉ website" ở CMS → Cài đặt (sửa được ngay, không build lại), rồi tới biến môi trường
 //    NEXT_PUBLIC_PUBLISH_WEB_URL khi nó không phải localhost, cuối cùng là giá trị cấu hình sẵn.
 
@@ -60,8 +61,9 @@ export function resolveWebsiteOrigin({ requestHost, configuredSiteUrl, envOrigin
   const hostname = hostnameOf(requestHost);
 
   if (hostname && isLocalNetworkHostname(hostname)) {
-    // Website được đặt ở địa chỉ thật (không phải localhost) thì tôn trọng; còn lại là website cùng máy với CMS, đổi tên máy theo nơi đang mở CMS.
-    if (!isLoopbackHostname(env.hostname)) return env.origin;
+    // Website được đặt ở địa chỉ thật (tên miền, IP công cộng) thì tôn trọng; còn lại (localhost hoặc IP/tên máy trong LAN, dễ lỗi thời khi router
+    // cấp lại IP) là website cùng máy với CMS, đổi tên máy theo nơi đang mở CMS.
+    if (!isLocalNetworkHostname(env.hostname)) return env.origin;
     const rebased = new URL(env.origin);
     rebased.hostname = hostname;
     return rebased.origin;

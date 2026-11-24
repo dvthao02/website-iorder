@@ -27,6 +27,12 @@ test("Mở CMS bằng IP LAN: website đổi sang cùng IP, giữ cổng website
   assert.equal(resolve("may-cua-toi:3001", null, "http://127.0.0.1:8080"), "http://may-cua-toi:8080");
 });
 
+test("Biến môi trường còn IP LAN cũ (router cấp lại IP): website theo nơi đang mở CMS, không dùng IP cũ", () => {
+  assert.equal(resolve("192.168.100.99:3001", null, "http://192.168.1.82:3000"), "http://192.168.100.99:3000");
+  assert.equal(resolve("localhost:3001", null, "http://192.168.1.82:3000"), "http://localhost:3000");
+  assert.equal(resolve("may-cua-toi:3001", "https://iorder.vn", "http://192.168.1.82:8080"), "http://may-cua-toi:8080");
+});
+
 test("Mở CMS bằng IP LAN nhưng website đã đặt địa chỉ thật bằng biến môi trường: giữ địa chỉ đó", () => {
   assert.equal(resolve("192.168.1.5:3001", null, "https://iorder.vn"), "https://iorder.vn");
 });
