@@ -1,7 +1,8 @@
 import { z } from "zod";
 import { equipmentAvailabilityValues } from "../equipment/equipment-availability";
 import { adminListQuerySchema, listDateSchema } from "../shared/admin-list.contract";
-import { countLinks, isPlausibleName, isPlausiblePhone, leadMaxLinks } from "./leads.guard";
+import { countLinks, isPlausibleName, leadMaxLinks } from "./leads.guard";
+import { isValidPhone, normalizePhone, phoneRule } from "./leads.phone";
 
 // Trường tùy chọn: để trống hoặc vắng hẳn đều thành null. Biểu mẫu website chỉ gửi họ tên, số điện thoại, email, nhu cầu và mô tả,
 // không gửi businessModel/branches; trước đây hai khóa đó bị bắt buộc nên MỌI liên hệ từ website bị từ chối (HTTP 400).
@@ -12,7 +13,8 @@ const equipmentSlugField = z.string().trim().min(1).max(180).regex(/^[a-z0-9]+(?
 
 export const publicLeadInputSchema = z.object({
   name: z.string().trim().min(2).max(180).refine(isPlausibleName, "Họ tên không hợp lệ."),
-  phone: z.string().trim().min(8).max(30).regex(/^[0-9+(). -]+$/).refine(isPlausiblePhone, "Số điện thoại không hợp lệ."),
+  // 10–11 chữ số bắt đầu bằng 0, +84 thay cho số 0 đầu (leads.phone.ts); lưu dạng chữ số đã chuẩn hóa, ví dụ "+84 912 345 678" thành "0912345678".
+  phone: z.string().trim().max(30).refine(isValidPhone, phoneRule).transform(normalizePhone),
   email: z.string().trim().email().max(320).or(z.literal("")).default("").transform((value) => value || null),
   businessModel: optionalText(120),
   branches: optionalText(60),

@@ -140,7 +140,7 @@ export async function auditBuilderHttp(input: { databaseUrl: string; previewSecr
     const formPage = await context.newPage();
     await formPage.goto(`${website}/cms-preview?token=${encodeURIComponent(formToken)}`, { waitUntil: "networkidle" });
     await formPage.locator('input[name="name"]').fill("Không tạo lead thật");
-    await formPage.locator('input[name="phone"]').fill("0900000000");
+    await formPage.locator('input[name="phone"]').fill("0912345678");
     await formPage.getByRole("button", { name: "Gửi kiểm thử", exact: true }).click();
     await formPage.locator("form").evaluate(form => (form as HTMLFormElement).requestSubmit());
     await wait(350);

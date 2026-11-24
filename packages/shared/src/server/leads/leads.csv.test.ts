@@ -22,6 +22,8 @@ test("Ô có dấu phẩy, ngoặc kép, xuống dòng được bọc; ô như c
   const csv = leadsToCsv([{ ...base, name: "=HYPERLINK(\"x\")", phone: "+84901234567", message: "Dòng 1\nDòng 2, \"gấp\"" }]);
   const row = csv.split("\r\n").slice(1).join("\r\n");
   assert.ok(row.includes(`"'=HYPERLINK(""x"")"`));
-  assert.ok(row.includes("'+84901234567"));
+  assert.ok(row.includes(",0901234567,"));
+  // Số cũ sai quy tắc giữ nguyên; bắt đầu bằng + thì vẫn bị vô hiệu như công thức.
+  assert.ok(leadsToCsv([{ ...base, name: "Lê B", phone: "+1 202 555 0143" }]).includes("'+1 202 555 0143"));
   assert.ok(row.includes(`"Dòng 1\nDòng 2, ""gấp"""`));
 });

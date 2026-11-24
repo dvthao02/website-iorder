@@ -5,6 +5,7 @@ import React, { useEffect, useState, type FormEvent, type ReactNode } from "reac
 // Đường dẫn tương đối (không dùng "@/"): bài kiểm thử chạy từ thư mục gốc, nơi bí danh "@/" chưa được khai báo.
 import { addressLines } from "../../lib/address-lines";
 import { submitLead, warmLeadToken } from "../../lib/submit-lead";
+import { PhoneInput } from "./phone-input";
 
 type Contact = { hotline: string | null; email: string | null; workingHours: string | null; address?: string | null };
 type LeadFormProps = { title: string; description: string | null; submitLabel: string; needOptions: string[]; trialTitle?: string | null; trialLabel?: string | null; dark?: boolean; trialUrl?: string | null; contact?: Contact | null };
@@ -65,7 +66,7 @@ export function LeadForm({ title, description, submitLabel, needOptions, trialTi
         <p className="mb-0 text-small text-muted">Chỉ cần họ tên và số điện thoại. Chúng tôi liên hệ trong giờ làm việc.</p>
       </div>
       <Field label="Họ và tên" required><input autoComplete="name" className={inputClassName} name="name" placeholder="Nguyễn Văn A" required /></Field>
-      <Field label="Số điện thoại" required><input autoComplete="tel" className={inputClassName} inputMode="tel" name="phone" placeholder="09xx xxx xxx" required /></Field>
+      <Field label="Số điện thoại" required><PhoneInput className={inputClassName} /></Field>
       <Field label="Nhu cầu chính" optional>{needOptions.length
         ? <div className="relative" data-builder-field="needOptions"><select className={`${inputClassName} appearance-none pr-10`} name="need"><option value="">Chọn nhu cầu</option>{needOptions.map(option => <option key={option}>{option}</option>)}</select><ChevronDown aria-hidden="true" className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-muted" size={18} /></div>
         : <input className={inputClassName} name="need" />}</Field>

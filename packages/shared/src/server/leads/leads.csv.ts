@@ -1,5 +1,6 @@
 import { equipmentAvailabilityLabels } from "../equipment/equipment-availability";
 import type { LeadContext, LeadStatus } from "./leads.contract";
+import { isValidPhone, normalizePhone } from "./leads.phone";
 import { buildXlsx } from "../shared/xlsx";
 
 export type LeadCsvRow = {
@@ -8,6 +9,9 @@ export type LeadCsvRow = {
   /** Thiết bị khách hỏi mua, chụp lúc gửi; null = liên hệ chung. */
   context: LeadContext | null;
 };
+
+// Số hợp lệ xuất về dạng chuẩn (liên hệ cũ lưu +84… cũng thành 0…), số cũ sai quy tắc giữ nguyên để nhân viên tự xem xét.
+const exportPhone = (phone: string) => isValidPhone(phone) ? normalizePhone(phone) : phone;
 
 const statusLabels: Record<LeadStatus, string> = { new: "Mới", contacted: "Đã liên hệ", closed: "Đã xử lý" };
 const columns = ["Thời điểm gửi", "Họ tên", "Điện thoại", "Email", "Mô hình kinh doanh", "Số chi nhánh", "Nhu cầu", "Thiết bị hỏi mua", "Mã / quy cách", "Tình trạng lúc hỏi", "Giá lúc hỏi (đ)", "Lời nhắn", "Trạng thái", "Xử lý lúc"];
@@ -25,7 +29,7 @@ function cell(value: string | null) {
 /** CSV cho Excel: có BOM để mở đúng tiếng Việt, xuống dòng CRLF, giờ theo Việt Nam. */
 export function leadsToCsv(rows: readonly LeadCsvRow[]) {
   const lines = [columns.join(","), ...rows.map((row) => [
-    dateTime.format(row.createdAt), row.name, row.phone, row.email, row.businessModel, row.branches,
+    dateTime.format(row.createdAt), row.name, exportPhone(row.phone), row.email, row.businessModel, row.branches,
     row.need, row.context?.name ?? null, row.context?.modelCode ?? null, row.context ? equipmentAvailabilityLabels[row.context.availability] : null, row.context ? String(row.context.priceVnd) : null,
     row.message, statusLabels[row.status], row.handledAt ? dateTime.format(row.handledAt) : null,
   ].map(cell).join(","))];
@@ -37,7 +41,7 @@ const xlsxWidths = [18, 24, 16, 28, 22, 12, 28, 30, 18, 16, 16, 48, 14, 18];
 /** Excel thật (.xlsx): ngày là kiểu ngày giờ, số điện thoại giữ nguyên dạng chữ (không cần dấu '). */
 export function leadsToXlsx(rows: readonly LeadCsvRow[]) {
   return buildXlsx("Khách hàng tiềm năng", columns.map((header, index) => ({ header, width: xlsxWidths[index] })), rows.map((row) => [
-    row.createdAt, row.name, row.phone, row.email, row.businessModel, row.branches,
+    row.createdAt, row.name, exportPhone(row.phone), row.email, row.businessModel, row.branches,
     row.need, row.context?.name ?? null, row.context?.modelCode ?? null, row.context ? equipmentAvailabilityLabels[row.context.availability] : null, row.context?.priceVnd ?? null,
     row.message, statusLabels[row.status], row.handledAt,
   ]));

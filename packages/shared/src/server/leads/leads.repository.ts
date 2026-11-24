@@ -5,7 +5,8 @@ import { parseLeadContext, type LeadContext, type LeadExportQuery, type LeadList
 import { toAdminListPage, vietnamDayRange } from "../shared/admin-list.contract";
 import { listOrder, vietnameseText } from "../shared/list-order";
 import { liveContentCondition } from "../shared/live-content";
-import { equipmentIdOfContext, evaluateLeadCooldown, evaluatePhoneLimit, hasSameDevice, isDuplicateLead, leadIpDeviceLimit, normalizePhone } from "./leads.guard";
+import { equipmentIdOfContext, evaluateLeadCooldown, evaluatePhoneLimit, hasSameDevice, isDuplicateLead, leadIpDeviceLimit } from "./leads.guard";
+import { normalizePhone } from "./leads.phone";
 import { evaluateLeadRateLimit, leadRateLimitWindowMs } from "./leads.rate-limit";
 
 const leadListFields = { id: contactLeads.id, name: contactLeads.name, phone: contactLeads.phone, email: contactLeads.email, businessModel: contactLeads.businessModel, branches: contactLeads.branches, need: contactLeads.need, message: contactLeads.message, status: contactLeads.status, createdAt: contactLeads.createdAt, handledAt: contactLeads.handledAt, context: contactLeads.context };

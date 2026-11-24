@@ -9,6 +9,7 @@ import { consultPopupPromoLayout, consultPopupPromoPresentation } from "@iorder/
 import { consultPopupImageSizes, consultPopupRemember, consultPopupSubmittedDays, type ConsultPopupKind } from "@/lib/consult-popup-behavior";
 import { submitLead, warmLeadToken } from "@/lib/submit-lead";
 import { Field, inputClassName } from "./lead-form";
+import { PhoneInput } from "./phone-input";
 import { SiteLink } from "./site-link";
 
 const focusable = 'a[href], button:not([disabled]), input:not([disabled]):not([tabindex="-1"]), select:not([disabled]), textarea:not([disabled])';
@@ -161,7 +162,7 @@ function PopupContent({ popup, image, hotline, pathname, close, kind, storageKey
                 </div>
                 : <form aria-label="Đăng ký nhận tư vấn" className="grid gap-4" onSubmit={submit}>
                   <Field label="Họ và tên" required><input autoComplete="name" className={inputClassName} enterKeyHint="next" maxLength={180} minLength={2} name="name" placeholder="Nguyễn Văn A" required /></Field>
-                  <Field label="Số điện thoại" required><input autoComplete="tel" className={inputClassName} enterKeyHint={popup.form.needOptions.length ? "next" : "send"} inputMode="tel" maxLength={30} minLength={8} name="phone" pattern="[0-9+.\-\(\) ]{8,30}" placeholder="09xx xxx xxx" required title="Số điện thoại gồm 8–30 ký tự: chữ số, dấu +, khoảng trắng, dấu chấm hoặc gạch ngang." type="tel" /></Field>
+                  <Field label="Số điện thoại" required><PhoneInput className={inputClassName} enterKeyHint={popup.form.needOptions.length ? "next" : "send"} /></Field>
                   {popup.form.needOptions.length ? <Field label="Nhu cầu chính" optional><div className="relative"><select className={`${inputClassName} appearance-none pr-10`} name="need"><option value="">Chọn nhu cầu</option>{popup.form.needOptions.map(option => <option key={option}>{option}</option>)}</select><ChevronDown aria-hidden="true" className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-muted" size={18} /></div></Field> : null}
                   <label aria-hidden="true" className="hidden">Website<input autoComplete="off" name="website" tabIndex={-1} /></label>
                   <button className="button button--primary w-full disabled:opacity-60" disabled={busy} type="submit">{busy ? "Đang gửi…" : popup.form.submitLabel}</button>

@@ -7,8 +7,8 @@ import { evaluateLeadRateLimit, type LeadRateLimitDecision } from "./leads.rate-
 //
 // 1. Mã phiên gửi (token): website xin mã khi biểu mẫu hiện ra (GET /api/v1/leads), gửi kèm khi bấm Gửi. Mã ký bằng HMAC và ghi giờ cấp,
 //    nên một lần POST thẳng vào API (không qua biểu mẫu) hoặc gửi ngay sau khi mở trang đều bị chặn.
-// 2. Số điện thoại: chuẩn hóa về chữ số để đếm theo từng số (đổi IP không né được) và nhận ra liên hệ trùng.
-// 3. Nội dung: tên không phải đường dẫn/địa chỉ email/chuỗi số, số điện thoại không phải dãy lặp, lời nhắn không quảng cáo nhiều liên kết.
+// 2. Số điện thoại: chuẩn hóa về chữ số (leads.phone.ts) để đếm theo từng số (đổi IP không né được) và nhận ra liên hệ trùng.
+// 3. Nội dung: tên không phải đường dẫn/địa chỉ email/chuỗi số, lời nhắn không quảng cáo nhiều liên kết.
 
 /** Mã phiên chưa đủ tuổi thì coi là gửi quá nhanh (người thật điền ít nhất vài giây; nhập tự động của trình duyệt vẫn qua được). */
 export const leadTokenMinAgeMs = 2_000;
@@ -45,18 +45,6 @@ export function checkLeadToken(token: string | undefined, now: Date = new Date()
   if (age > leadTokenMaxAgeMs) return { ok: false, reason: "expired" };
   if (age < leadTokenMinAgeMs) return { ok: false, reason: "too_fast", retryAfterSeconds: Math.max(1, Math.ceil((leadTokenMinAgeMs - age) / 1000)) };
   return { ok: true };
-}
-
-/** Chỉ giữ chữ số; số bắt đầu bằng 84 (quốc tế, kể cả +84) đổi về 0 đầu để 0912…, +84 912… và 84912… là cùng một số. */
-export function normalizePhone(raw: string) {
-  const digits = raw.replace(/\D/g, "");
-  return /^84\d{9,}$/.test(digits) ? `0${digits.slice(2)}` : digits;
-}
-
-/** Số có 9–12 chữ số và không phải dãy lặp (0000000000, 0909090909): chặn số bịa, không kiểm tra đầu số nhà mạng. */
-export function isPlausiblePhone(raw: string) {
-  const digits = normalizePhone(raw);
-  return digits.length >= 9 && digits.length <= 12 && new Set(digits).size > 2;
 }
 
 /** Họ tên có ít nhất hai chữ cái, không chứa đường dẫn, địa chỉ email hay tên miền, và không chủ yếu là chữ số. */

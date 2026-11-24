@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import {
-  checkLeadToken, countLinks, equipmentIdOfContext, evaluateLeadCooldown, evaluatePhoneLimit, hasSameDevice, isDuplicateLead, isPlausibleName, isPlausiblePhone, issueLeadToken,
-  leadMessageKey, leadTokenMaxAgeMs, leadTokenMinAgeMs, normalizePhone,
+  checkLeadToken, countLinks, equipmentIdOfContext, evaluateLeadCooldown, evaluatePhoneLimit, hasSameDevice, isDuplicateLead, isPlausibleName, issueLeadToken,
+  leadMessageKey, leadTokenMaxAgeMs, leadTokenMinAgeMs,
 } from "./leads.guard";
 
 const key = "khoa-kiem-thu";
@@ -26,18 +26,6 @@ test("Mã phiên: thiếu, sai chữ ký, sai khóa, sửa giờ cấp hay giờ
   assert.deepEqual(checkLeadToken(token, at(10_000), "khoa-khac"), { ok: false, reason: "invalid" });
   // Giờ cấp sau thời điểm kiểm tra (đồng hồ chạy ngược hoặc mã giả): không hợp lệ.
   assert.deepEqual(checkLeadToken(issueLeadToken(at(60_000), key), at(0), key), { ok: false, reason: "invalid" });
-});
-
-test("Số điện thoại chuẩn hóa về chữ số, 84 và +84 thành 0 đầu", () => {
-  for (const raw of ["0912 345 678", "0912.345.678", "(091) 234-5678", "+84 912 345 678", "84912345678", "+84-912-345-678"]) assert.equal(normalizePhone(raw), "0912345678", raw);
-  // Số không phải đầu 84 giữ nguyên; số 84 quá ngắn không đổi.
-  assert.equal(normalizePhone("028 7107 3999"), "02871073999");
-  assert.equal(normalizePhone("84123"), "84123");
-});
-
-test("Số điện thoại hợp lệ có 9–12 chữ số và không phải dãy lặp", () => {
-  for (const ok of ["0912345678", "+84 912 345 678", "028 7107 3999", "0987654321"]) assert.equal(isPlausiblePhone(ok), true, ok);
-  for (const bad of ["12345678", "0000000000", "1111111111", "0909090909", "0900000000", "0123456789012345"]) assert.equal(isPlausiblePhone(bad), false, bad);
 });
 
 test("Họ tên có chữ cái, không phải đường dẫn, email hay chuỗi số", () => {

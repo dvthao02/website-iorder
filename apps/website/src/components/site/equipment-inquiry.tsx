@@ -9,6 +9,7 @@ import type { EquipmentAvailability } from "@iorder/shared/server/equipment/equi
 import { submitLead, warmLeadToken } from "../../lib/submit-lead";
 import { AvailabilityBadge } from "./availability-badge";
 import { Field, controlClassName, inputClassName } from "./lead-form";
+import { PhoneInput } from "./phone-input";
 
 const focusable = 'a[href], button:not([disabled]), input:not([disabled]):not([tabindex="-1"]), select:not([disabled]), textarea:not([disabled])';
 const priceFormatter = new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" });
@@ -104,7 +105,7 @@ export function InquiryDialog({ equipment, hotline, close }: { equipment: Inquir
           </div>
           <form aria-label={`Hỏi mua ${equipment.name}`} className="grid gap-4" onSubmit={submit}>
             <Field label="Họ và tên" required><input autoComplete="name" className={inputClassName} enterKeyHint="next" maxLength={180} minLength={2} name="name" placeholder="Nguyễn Văn A" required /></Field>
-            <Field label="Số điện thoại" required><input autoComplete="tel" className={inputClassName} enterKeyHint="next" inputMode="tel" maxLength={30} minLength={8} name="phone" pattern="[0-9+.\-\(\) ]{8,30}" placeholder="09xx xxx xxx" required title="Số điện thoại gồm 8–30 ký tự: chữ số, dấu +, khoảng trắng, dấu chấm hoặc gạch ngang." /></Field>
+            <Field label="Số điện thoại" required><PhoneInput className={inputClassName} enterKeyHint="next" /></Field>
             <Field label="Email" optional><input autoComplete="email" className={inputClassName} enterKeyHint="next" maxLength={320} name="email" placeholder="ten@congty.vn" type="email" /></Field>
             <Field label="Ghi chú" optional><textarea className={`${controlClassName} min-h-20 py-3`} maxLength={2000} name="message" placeholder="Số lượng, thời gian cần, địa chỉ giao hàng…" rows={3} /></Field>
             <label aria-hidden="true" className="hidden">Website<input autoComplete="off" name="website" tabIndex={-1} /></label>

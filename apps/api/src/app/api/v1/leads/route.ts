@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { phoneRule } from "@iorder/shared/server/leads/leads.phone";
 import { leadRateLimitMessage } from "@iorder/shared/server/leads/leads.rate-limit";
 import { newLeadToken, submitPublicLead } from "@iorder/shared/server/leads/leads.service";
 import { logger } from "@iorder/shared/server/shared/logger";
@@ -42,7 +43,9 @@ export async function POST(request: Request) {
       // Chỉ ghi tên trường và loại lỗi, không ghi nội dung khách nhập (số điện thoại, email là dữ liệu cá nhân). Nhờ log này mà
       // lỗi "biểu mẫu gửi thiếu trường API bắt buộc" lộ ra ngay thay vì chỉ thấy thông báo chung cho khách.
       logger.warn("Liên hệ bị từ chối vì dữ liệu không hợp lệ.", { request, issues: error.issues.map((issue) => `${issue.path.join(".") || "(gốc)"}: ${issue.code}`) });
-      return NextResponse.json({ error: { code: "INVALID_INPUT", message: "Vui lòng nhập họ tên, số điện thoại thật và email hợp lệ (nếu có); lời nhắn không chứa nhiều liên kết." } }, { status: 400 });
+      // Số điện thoại sai là lỗi khách gặp nhiều nhất: nói rõ quy tắc thay vì thông báo chung.
+      const message = error.issues.some((issue) => issue.path[0] === "phone") ? phoneRule : "Vui lòng nhập họ tên, số điện thoại thật và email hợp lệ (nếu có); lời nhắn không chứa nhiều liên kết.";
+      return NextResponse.json({ error: { code: "INVALID_INPUT", message } }, { status: 400 });
     }
     logger.error("Không lưu được liên hệ của khách.", { request, error });
     return NextResponse.json({ error: { code: "INTERNAL_ERROR", message: "Chưa thể gửi liên hệ lúc này. Vui lòng thử lại sau." } }, { status: 500 });

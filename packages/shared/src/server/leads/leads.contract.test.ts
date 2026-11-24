@@ -45,7 +45,7 @@ test("Phản hồi từ chối ID/trạng thái/ngày sai và không mang trư�
 test("Liên hệ công khai: chỉ họ tên và số điện thoại bắt buộc, trường vắng hoặc để trống thành null", () => {
   const empty = { businessModel: null, branches: null, need: null, message: null, email: null };
   // Đúng dữ liệu biểu mẫu website gửi: không có businessModel/branches, ô trống là chuỗi rỗng.
-  assert.deepEqual(publicLeadInputSchema.parse({ name: "Nguyễn Văn A", phone: "0901 234 567", email: "", need: "", website: "", message: "" }), { ...empty, name: "Nguyễn Văn A", phone: "0901 234 567", website: "" });
+  assert.deepEqual(publicLeadInputSchema.parse({ name: "Nguyễn Văn A", phone: "0901 234 567", email: "", need: "", website: "", message: "" }), { ...empty, name: "Nguyễn Văn A", phone: "0901234567", website: "" });
   // Chỉ hai trường bắt buộc.
   assert.deepEqual(publicLeadInputSchema.parse({ name: "Nguyễn Văn A", phone: "0901234567" }), { ...empty, name: "Nguyễn Văn A", phone: "0901234567" });
   const full = publicLeadInputSchema.parse({ name: "A B", phone: "0901234567", email: "a@iorder.vn", businessModel: " Quán cà phê ", branches: "3", need: "Quản lý kho", message: "Cần tư vấn" });
@@ -65,7 +65,7 @@ test("Liên hệ công khai: từ chối thiếu họ tên/số điện thoại,
 
 test("Liên hệ công khai: chặn số điện thoại bịa, họ tên là đường dẫn/chuỗi số và lời nhắn nhiều liên kết", () => {
   const base = { name: "Nguyễn Văn A", phone: "0912345678" };
-  for (const patch of [{ phone: "0000000000" }, { phone: "0909090909" }, { name: "http://spam.example" }, { name: "kiemtien.xyz" }, { name: "12345" }, { message: "http://a.example và https://b.example" }, { message: "www.a.vn www.b.vn" }]) {
+  for (const patch of [{ phone: "0000000000" }, { phone: "0909090909" }, { phone: "091234567" }, { phone: "091234567890" }, { phone: "+1 202 555 0143" }, { name: "http://spam.example" }, { name: "kiemtien.xyz" }, { name: "12345" }, { message: "http://a.example và https://b.example" }, { message: "www.a.vn www.b.vn" }]) {
     assert.equal(publicLeadInputSchema.safeParse({ ...base, ...patch }).success, false, JSON.stringify(patch));
   }
   // Một liên kết (ví dụ trang thiết bị khách đang xem) vẫn được.
@@ -85,4 +85,11 @@ test("Ngữ cảnh thiết bị của liên hệ có schema chặt, ngày giờ 
   const context = { kind: "equipment", equipmentId: id, slug: "may-pos-x1", name: "Máy POS X1", modelCode: null, brand: null, groupName: "Máy POS", priceVnd: 12500000, availability: "limited", capturedAt: time };
   assert.equal(leadContextSchema.safeParse(context).success, true);
   for (const patch of [{ kind: "post" }, { equipmentId: "sai" }, { priceVnd: -1 }, { priceVnd: 1.5 }, { availability: "unknown" }, { capturedAt: "hôm qua" }, { extra: 1 }]) assert.equal(leadContextSchema.safeParse({ ...context, ...patch }).success, false, JSON.stringify(patch));
+});
+
+test("Liên hệ công khai: +84 thay cho số 0 đầu và số điện thoại được lưu dạng chữ số 10–11 số", () => {
+  const phoneOf = (phone: string) => publicLeadInputSchema.parse({ name: "Nguyễn Văn A", phone }).phone;
+  for (const raw of ["0912345678", "0912 345 678", "+84 912 345 678", "+84-912-345-678", "84912345678", "+84 (0) 912 345 678"]) assert.equal(phoneOf(raw), "0912345678", raw);
+  assert.equal(phoneOf("+84 28 7107 3999"), "02871073999");
+  assert.equal(phoneOf("028.7107.3999"), "02871073999");
 });
