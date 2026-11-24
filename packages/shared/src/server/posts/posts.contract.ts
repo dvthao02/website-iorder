@@ -112,6 +112,10 @@ export const adminPostSchema = adminPostInputSchema.safeExtend({
   draftVersion: z.number().int().nonnegative(),
   publishedAt: z.date().nullable(),
   updatedAt: z.date(),
+  // Khóa chỉnh sửa: giờ khóa, mã và tên người khóa (null = không khóa).
+  lockedAt: z.date().nullable(),
+  lockedBy: z.string().uuid().nullable(),
+  lockedByName: z.string().nullable(),
 });
 
 export type PublicPostSummary = z.infer<typeof publicPostSummarySchema>;
@@ -122,6 +126,8 @@ export const adminPostListItemSchema = z.object({
   id: z.string().uuid(), type: publicPostTypeSchema, title: z.string().min(1).max(220), slug: z.string().min(1).max(180),
   status: z.enum(["draft", "review", "scheduled", "published", "archived"]),
   draftVersion: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER), updatedAt: z.date(),
+  // Khóa chỉnh sửa (biểu tượng ổ khóa trong bảng): giờ khóa và tên người khóa, null khi không khóa.
+  lockedAt: z.date().nullable(), lockedByName: z.string().nullable(),
   // Ảnh bìa để hiện ô thu nhỏ trong bảng (như Shopify/Payload); null khi chưa có ảnh.
   coverUrl: z.string().nullable(),
   // Chuyên mục (với hướng dẫn: nhóm trên website), theo thứ tự sắp xếp của chuyên mục.

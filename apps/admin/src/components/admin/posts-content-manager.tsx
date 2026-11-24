@@ -1,5 +1,6 @@
 "use client";
 import { ContentSeoEditor } from "./content-seo-editor";
+import { PostLockBar } from "./post-lock-bar";
 import { useAdminPermissions } from "./ui/admin-permissions";
 import { requestAdminJson } from "@/lib/admin-api";
 import { formatDisplayDateTime, formatLocalDateTime } from "@/lib/local-date-time";
@@ -233,7 +234,10 @@ export function PostEditor({ post, taxonomy, onSaved, onError, contentType, onDi
   }
   const { can } = useAdminPermissions();
   const canPublish = can("posts.publish");
-  const canEdit = can(post ? "posts.update" : "posts.create") && (canPublish || !["published", "scheduled"].includes(post?.status ?? "draft"));
+  const canLock = can("posts.lock");
+  // Bài đã khóa: không ai sửa được (kể cả người có quyền sửa) cho tới khi người có quyền Khóa mở khóa.
+  const locked = Boolean(post?.lockedAt);
+  const canEdit = can(post ? "posts.update" : "posts.create") && !locked && (canPublish || !["published", "scheduled"].includes(post?.status ?? "draft"));
   const { isDirty, markSaved } = useUnsavedChanges(form);
   // Ngày giờ đang gõ dở có thể không hợp lệ: khi đó chưa có tài liệu để xem trước thay vì làm hỏng cả form.
   const previewDocument = useMemo(() => { try { return { kind: "post", values: formToPayload(form) }; } catch { return null; } }, [form]);
@@ -299,7 +303,8 @@ export function PostEditor({ post, taxonomy, onSaved, onError, contentType, onDi
   // Bố cục 2 cột: trái để viết (tiêu đề → nội dung → tóm tắt → SEO), phải là thiết lập luôn nhìn thấy.
   return (
     <form className={livePreview ? "admin-post-editor admin-post-editor--preview" : "admin-post-editor"} onSubmit={submit} ref={formRef}>
-      {!canEdit ? <div className="col-span-full"><AdminNotice tone="info">Bạn chỉ có quyền xem nội dung này. Nội dung đang hiển thị cần thêm quyền xuất bản để sửa.</AdminNotice></div> : null}
+      {post ? <PostLockBar canLock={canLock} dirty={isDirty} lockedAt={post.lockedAt} lockedByName={post.lockedByName} postId={post.id} /> : null}
+      {!canEdit && !locked ? <div className="col-span-full"><AdminNotice tone="info">Bạn chỉ có quyền xem nội dung này. Nội dung đang hiển thị cần thêm quyền xuất bản để sửa.</AdminNotice></div> : null}
       <fieldset disabled={processing || !canEdit} className="contents">
       <div className="admin-post-editor__main">
         <div className="admin-post-editor__toolbar">
@@ -359,7 +364,7 @@ export function PostEditor({ post, taxonomy, onSaved, onError, contentType, onDi
         </details>
         {post ? <details className="admin-post-editor__panel" onToggle={(event) => setHistoryOpen(event.currentTarget.open)}>
           <summary><span><strong>Lịch sử phiên bản</strong><small>Xem lại hoặc khôi phục bản đã lưu</small></span></summary>
-          {historyOpen ? <div className="admin-post-editor__panel-body"><RevisionHistory target="posts" id={post.id} expectedVersion={savedVersion} disabled={isDirty || processing} onRestorePendingChange={restore.onPendingChange} onRestored={restore.onRestored} /></div> : null}
+          {historyOpen ? <div className="admin-post-editor__panel-body"><RevisionHistory target="posts" id={post.id} expectedVersion={savedVersion} disabled={isDirty || processing || locked} onRestorePendingChange={restore.onPendingChange} onRestored={restore.onRestored} /></div> : null}
         </details> : null}
       </div>
 

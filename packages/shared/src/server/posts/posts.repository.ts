@@ -2,8 +2,8 @@ import { and, asc, count, desc, eq, ilike, inArray, isNull, ne, or } from "drizz
 import { alias } from "drizzle-orm/pg-core";
 
 import { getDb } from "@iorder/shared/db/client";
-import { assertContentVersion, contentDeleteRequestSchema } from "../shared/content-version";
-import { auditLogs, categories, mediaAssets, postAuthors, postCategories, postRevisions, postTags, posts, tags } from "@iorder/shared/db/schema";
+import { assertContentVersion, ContentLockedError, contentDeleteRequestSchema } from "../shared/content-version";
+import { auditLogs, categories, mediaAssets, postAuthors, postCategories, postRevisions, postTags, posts, tags, users } from "@iorder/shared/db/schema";
 import { toAdminListPage, type AdminListQuery } from "@iorder/shared/server/shared/admin-list.contract";
 
 import type { AdminPostInput, PublicPostType } from "./posts.contract";
@@ -116,6 +116,10 @@ export async function findPublishedPostBySlug(slug: string, previewId?: string) 
 
 const adminPostSelection = {
   id: posts.id,
+  lockedAt: posts.lockedAt,
+  lockedBy: posts.lockedBy,
+  // Tên người khóa: các truy vấn dùng selection này nối bảng users qua posts.lockedBy.
+  lockedByName: users.fullName,
   authorId: posts.authorId,
   coverMediaId: posts.coverMediaId,
   type: posts.type,
@@ -195,20 +199,20 @@ export async function listPublishedPostDetails(type?: PublicPostType) {
 }
 
 export async function listAdminPosts() {
-  return withTaxonomyBatch(await getDb().select(adminPostSelection).from(posts).where(isNull(posts.deletedAt)).orderBy(desc(posts.updatedAt), desc(posts.createdAt)));
+  return withTaxonomyBatch(await getDb().select(adminPostSelection).from(posts).leftJoin(users, eq(users.id, posts.lockedBy)).where(isNull(posts.deletedAt)).orderBy(desc(posts.updatedAt), desc(posts.createdAt)));
 }
 
 export async function listAdminPostsPage(query: PostListQuery, database = getDb()) {
   const condition = postListCondition(query);
   return database.transaction(async (tx) => {
-    const rows = await tx.select(adminPostSelection).from(posts).where(condition).orderBy(...postListOrder(query)).limit(query.pageSize).offset((query.page - 1) * query.pageSize);
+    const rows = await tx.select(adminPostSelection).from(posts).leftJoin(users, eq(users.id, posts.lockedBy)).where(condition).orderBy(...postListOrder(query)).limit(query.pageSize).offset((query.page - 1) * query.pageSize);
     const [totals] = await tx.select({ total: count() }).from(posts).where(condition);
     return toAdminListPage(await withTaxonomyBatch(rows, tx), query, totals?.total ?? 0);
   }, { isolationLevel: "repeatable read", accessMode: "read only" });
 }
 
 export async function findAdminPostById(id: string) {
-  const [post] = await getDb().select(adminPostSelection).from(posts).where(and(eq(posts.id, id), isNull(posts.deletedAt))).limit(1);
+  const [post] = await getDb().select(adminPostSelection).from(posts).leftJoin(users, eq(users.id, posts.lockedBy)).where(and(eq(posts.id, id), isNull(posts.deletedAt))).limit(1);
   return post ? withTaxonomy(post) : undefined;
 }
 
@@ -216,8 +220,8 @@ export async function listAdminPostSummariesPage(query: PostListQuery, database 
   const condition = postListCondition(query);
   return database.transaction(async tx => {
     // Ảnh bìa cho ô thu nhỏ trong bảng; bỏ qua media đã xóa mềm để không hiện ảnh vỡ.
-    const rows = await tx.select({ id: posts.id, type: posts.type, title: posts.title, slug: posts.slug, status: posts.status, draftVersion: posts.draftVersion, updatedAt: posts.updatedAt, coverKey: mediaAssets.storageKey })
-      .from(posts).leftJoin(mediaAssets, and(eq(mediaAssets.id, posts.coverMediaId), isNull(mediaAssets.deletedAt)))
+    const rows = await tx.select({ id: posts.id, type: posts.type, title: posts.title, slug: posts.slug, status: posts.status, draftVersion: posts.draftVersion, updatedAt: posts.updatedAt, lockedAt: posts.lockedAt, lockedByName: users.fullName, coverKey: mediaAssets.storageKey })
+      .from(posts).leftJoin(mediaAssets, and(eq(mediaAssets.id, posts.coverMediaId), isNull(mediaAssets.deletedAt))).leftJoin(users, eq(users.id, posts.lockedBy))
       .where(condition).orderBy(...postListOrder(query)).limit(query.pageSize).offset((query.page - 1) * query.pageSize);
     const [totals] = await tx.select({ total: count() }).from(posts).where(condition);
     // Chuyên mục của các dòng trong trang (một truy vấn), theo thứ tự sắp xếp của chuyên mục.
@@ -282,7 +286,7 @@ export async function updatePostWithRevision(
     const [updated] = await tx
       .update(posts)
       .set({ ...postValues, draftVersion: revision.versionNumber, updatedAt: new Date() })
-      .where(and(eq(posts.id, id), isNull(posts.deletedAt), eq(posts.draftVersion, revision.versionNumber - 1)))
+      .where(and(eq(posts.id, id), isNull(posts.deletedAt), isNull(posts.lockedAt), eq(posts.draftVersion, revision.versionNumber - 1)))
       .returning({ id: posts.id });
 
     if (!updated) {
@@ -323,6 +327,7 @@ export async function deleteArchivedPost(id: string, editorId: string, expectedV
       .where(and(eq(posts.id, id), eq(posts.status, "archived"), isNull(posts.deletedAt)))
       .for("update");
     if (!existing) return undefined;
+    if (existing.lockedAt) throw new ContentLockedError();
     assertContentVersion(existing.draftVersion, expectedVersion);
 
     const [deleted] = await tx
@@ -340,5 +345,21 @@ export async function deleteArchivedPost(id: string, editorId: string, expectedV
       beforeData: existing,
     });
     return deleted;
+  });
+}
+
+/**
+ * Khóa hoặc mở khóa một bài (không đổi phiên bản nội dung nên người đang soạn vẫn lưu được ngay sau khi mở khóa). Khóa lại bài đã khóa hoặc mở khóa bài
+ * chưa khóa thì không đổi gì và không ghi nhật ký. undefined nếu không có bài (hoặc đã xóa).
+ */
+export async function setPostLock(id: string, locked: boolean, userId: string, database = getDb()) {
+  return database.transaction(async (tx) => {
+    const [before] = await tx.select({ id: posts.id, lockedAt: posts.lockedAt }).from(posts).where(and(eq(posts.id, id), isNull(posts.deletedAt))).for("update");
+    if (!before) return undefined;
+    if (Boolean(before.lockedAt) === locked) return { id: before.id, lockedAt: before.lockedAt };
+    const lockedAt = locked ? new Date() : null;
+    await tx.update(posts).set({ lockedAt, lockedBy: locked ? userId : null }).where(eq(posts.id, id));
+    await tx.insert(auditLogs).values({ userId, action: locked ? "post.lock" : "post.unlock", entityType: "post", entityId: id, beforeData: { locked: !locked }, afterData: { locked } });
+    return { id, lockedAt };
   });
 }

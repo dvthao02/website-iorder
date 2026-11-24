@@ -14,7 +14,7 @@ const actionSubjects: Record<string, string> = {
 const verbs: Record<string, string> = {
   create: "Tạo", update: "Cập nhật", delete: "Xóa", archive: "Lưu trữ", restore: "Khôi phục",
   upload: "Tải lên", delete_queue: "Đưa vào hàng đợi xóa", status_update: "Cập nhật trạng thái", note_update: "Cập nhật ghi chú", assign: "Giao việc", merge: "Gộp", contact_update: "Sửa thông tin", password_change: "Đổi mật khẩu", export: "Xuất dữ liệu",
-  rewrite_links: "Cập nhật liên kết",
+  rewrite_links: "Cập nhật liên kết", lock: "Khóa", unlock: "Mở khóa",
 };
 // Thao tác tự nói đủ nghĩa, không cần ghép "· Tài khoản".
 const actionOverrides: Record<string, string> = {

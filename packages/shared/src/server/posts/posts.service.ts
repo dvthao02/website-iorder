@@ -5,7 +5,7 @@ import { adminPostInputSchema, adminPostListItemSchema, adminPostSchema, publicP
 import type { AdminListPage, AdminListQuery } from "@iorder/shared/server/shared/admin-list.contract";
 import { validateCoverMedia, validateSeoMedia } from "../media/media.service";
 import { publicationDate } from "../shared/publication-date";
-import { assertContentVersion, contentStateAfterAction, contentStateChangeNotes, contentStateRequestSchema, ContentVersionConflictError, type ContentStateAction } from "../shared/content-version";
+import { assertContentVersion, ContentLockedError, contentStateAfterAction, contentStateChangeNotes, contentStateRequestSchema, ContentVersionConflictError, type ContentStateAction } from "../shared/content-version";
 import { mediaPath } from "../media/storage";
 import { contentPathChange, postPublicPath } from "../shared/content-paths";
 import { ensureTaxonomyIds } from "@iorder/shared/server/taxonomy/taxonomy.service";
@@ -21,6 +21,7 @@ import {
   listPublishedPosts,
   listPublishedPostsByAuthor,
   listPublishedPostsByTaxonomy,
+  setPostLock,
   updatePostWithRevision,
 } from "./posts.repository";
 
@@ -132,6 +133,8 @@ export async function updateAdminPost(id: string, input: unknown, editorId: stri
   await ensureTaxonomyIds(values.categoryIds, values.tagIds);
   await ensureAuthorProfile(values.authorProfileId);
   const existing = await findAdminPostById(id);
+  // Bài đã khóa không sửa, đổi trạng thái, khôi phục phiên bản hay đổi chuyên mục được (mọi đường đó đều qua hàm này).
+  if (existing?.lockedAt) throw new ContentLockedError();
 
   if (!existing) {
     return undefined;
@@ -188,4 +191,10 @@ export async function changeAdminPostState(id: string, action: ContentStateActio
   const status = contentStateAfterAction(current, action, expectedVersion);
   const values = Object.fromEntries(Object.keys(adminPostInputSchema.shape).map(key => [key, Reflect.get(current, key)]));
   return updateAdminPost(id, { ...values, status }, editorId, `${contentStateChangeNotes[action]} bài viết`, expectedVersion);
+}
+
+/** Khóa hoặc mở khóa bài viết (quyền posts.lock kiểm ở proxy). undefined nếu không có bài. */
+export async function setAdminPostLock(id: string, locked: boolean, userId: string) {
+  if (!postIdPattern.test(id)) return undefined;
+  return setPostLock(id, locked, userId);
 }

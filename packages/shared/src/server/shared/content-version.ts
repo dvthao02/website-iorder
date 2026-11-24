@@ -9,6 +9,14 @@ export const contentDeleteRequestSchema = contentUpdateRequestSchema.strict();
 // unpublish: gỡ khỏi website, đưa mục đang hiển thị/hẹn giờ/chờ duyệt về bản nháp (giữ nguyên nội dung).
 export const contentStateRequestSchema = z.object({ action: z.enum(["archive", "restore", "publish", "unpublish"]), expectedVersion: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER) }).strict();
 
+/** Nội dung đang bị khóa: không sửa, đổi trạng thái hay xóa được cho tới khi người có quyền Khóa mở khóa (API trả 423). */
+export class ContentLockedError extends Error {
+  constructor() {
+    super("Nội dung đang bị khóa. Hãy nhờ người có quyền Khóa mở khóa trước khi sửa.");
+    this.name = "ContentLockedError";
+  }
+}
+
 export class ContentVersionConflictError extends Error {
   constructor() {
     super("Nội dung đã thay đổi hoặc bị xóa trong phiên khác. Vui lòng tải lại trước khi lưu; bản nhập hiện tại chưa được ghi.");

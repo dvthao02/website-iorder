@@ -85,7 +85,7 @@ export function PostManagerList({ baseHref = "/admin/news", createHref = `${base
   const [query, setQuery] = useState(initialQuery);
   const { selectedIds, setSelectedIds, clear } = useRowSelection(searchParams.toString());
   const columns = useMemo<AdminDataTableColumn<AdminPostListItem>[]>(() => [
-    { id: "title", label: "Tiêu đề", defaultWidth: 300, minWidth: 210, sortKey: "title", cell: (item) => <AdminRowTitle href={`${baseHref}/${item.id}`} imageUrl={item.coverUrl} title={item.title} /> },
+    { id: "title", label: "Tiêu đề", defaultWidth: 300, minWidth: 210, sortKey: "title", cell: (item) => <AdminRowTitle href={`${baseHref}/${item.id}`} imageUrl={item.coverUrl} locked={item.lockedAt ? (item.lockedByName ? `Đã khóa bởi ${item.lockedByName}` : "Đã khóa") : false} title={item.title} /> },
     ...(groupColumn ? [{ id: "group", label: groupColumn.label, defaultWidth: 190, minWidth: 140, cell: (item: AdminPostListItem) => item.categories.length ? <span>{item.categories.map((category) => category.name).join(", ")}</span> : <span className="admin-text-muted">{groupColumn.empty}</span> }] : []),
     ...(typeOptions.length > 1 || !groupColumn ? [{ id: "type", label: "Loại", defaultWidth: 170, minWidth: 130, sortKey: "type", cell: (item: AdminPostListItem) => <span className="admin-text-muted">{postTypeLabels[item.type]}</span> }] : []),
     { id: "status", label: "Trạng thái", defaultWidth: 150, minWidth: 130, sortKey: "status", cell: (item) => <AdminStatusBadge tone={statusTones[item.status]}>{statusLabels[item.status]}</AdminStatusBadge> },

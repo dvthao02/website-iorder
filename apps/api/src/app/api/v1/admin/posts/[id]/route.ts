@@ -5,7 +5,7 @@ import { z } from "zod";
 
 import { getRequestAdministrator } from "@iorder/shared/server/auth/request-administrator";
 import { hasDatabaseErrorCode } from "@iorder/shared/server/shared/database-error";
-import { contentDeleteRequestSchema, contentStateRequestSchema, contentUpdateRequestSchema, ContentVersionConflictError } from "@iorder/shared/server/shared/content-version";
+import { ContentLockedError, contentDeleteRequestSchema, contentStateRequestSchema, contentUpdateRequestSchema, ContentVersionConflictError } from "@iorder/shared/server/shared/content-version";
 import { changeAdminPostCategories, changeAdminPostState, deleteArchivedAdminPost, getAdminPostById, updateAdminPost } from "@iorder/shared/server/posts/posts.service";
 import { postCategoriesRequestSchema } from "@iorder/shared/server/posts/posts.contract";
 import { denyPublishUnless, requestedStatusOf } from "@/lib/admin-access";
@@ -86,6 +86,7 @@ async function handlePATCH(request: Request, { params }: PostRouteProps) {
     lamMoiNoiDungBaiViet(post.slug);
     return NextResponse.json({ post });
   } catch (error: unknown) {
+    if (error instanceof ContentLockedError) return phanHoiLoi("CONTENT_LOCKED", error.message, 423);
     if (error instanceof ContentVersionConflictError) return phanHoiLoi("VERSION_CONFLICT", error.message, 409);
     if (error instanceof z.ZodError) return phanHoiLoi("INVALID_INPUT", "Vui lòng kiểm tra lại nội dung và metadata bài viết.", 400);
     if (hasDatabaseErrorCode(error, "23505")) return phanHoiLoi("DUPLICATE_SLUG", "Slug bài viết đã tồn tại.", 409);
@@ -115,6 +116,7 @@ async function handleDELETE(request: Request, { params }: PostRouteProps) {
     lamMoiNoiDungBaiViet(deleted.slug);
     return NextResponse.json({ deletedId: deleted.id });
   } catch (error: unknown) {
+    if (error instanceof ContentLockedError) return phanHoiLoi("CONTENT_LOCKED", error.message, 423);
     if (error instanceof ContentVersionConflictError) return phanHoiLoi("VERSION_CONFLICT", error.message, 409);
     if (error instanceof z.ZodError) return phanHoiLoi("INVALID_INPUT", "Phiên bản nội dung cần xóa không hợp lệ. Vui lòng tải lại danh sách.", 400);
     return phanHoiLoi("INTERNAL_ERROR", "Không thể xóa bài viết lúc này. Vui lòng thử lại.", 500);

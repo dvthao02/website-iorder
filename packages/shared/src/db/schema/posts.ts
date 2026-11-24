@@ -58,10 +58,14 @@ export const posts = pgTable(
     scheduledAt: timestamp("scheduled_at", { withTimezone: true }),
     publishedAt: timestamp("published_at", { withTimezone: true }),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    // Khóa chỉnh sửa: có giá trị thì bài không sửa, đổi trạng thái hay xóa được (trừ khi người có quyền posts.lock mở khóa); bài vẫn hiển thị trên website.
+    lockedAt: timestamp("locked_at", { withTimezone: true }),
+    lockedBy: uuid("locked_by").references(() => users.id, { onDelete: "set null" }),
     ...timestamps(),
   },
   (table) => [
     index("posts_cover_media_id_index").on(table.coverMediaId),
+    index("posts_locked_by_index").on(table.lockedBy),
     index("posts_author_id_index").on(table.authorId),
     index("posts_author_profile_id_index").on(table.authorProfileId),
     uniqueIndex("posts_active_slug_unique").on(table.slug).where(sql`${table.deletedAt} is null`),

@@ -34,6 +34,10 @@ const routeTable: Array<[string, string, CmsPermissionCode[] | null]> = [
   // Xóa liên hệ rác và gộp liên hệ trùng (thực chất là xóa các liên hệ cũ) cùng quyền leads.delete; không có đường nào khác để gộp.
   ["/api/v1/admin/leads/0b5c", "DELETE", ["leads.delete"]],
   ["/api/v1/admin/leads/merge", "POST", ["leads.delete"]],
+  // Khóa/mở khóa bài viết là quyền riêng posts.lock, không phải posts.update.
+  ["/api/v1/admin/posts/0b5c/lock", "POST", ["posts.lock"]],
+  ["/api/v1/admin/posts/0b5c/lock", "PATCH", []],
+  ["/api/v1/admin/posts/0b5c/lock", "DELETE", []],
   ["/api/v1/admin/leads/merge", "PATCH", []],
   ["/api/v1/admin/leads/merge", "DELETE", []],
   ["/api/v1/admin/media", "GET", ["media.view"]],
@@ -182,6 +186,17 @@ test("Ma trận role mặc định × thao tác tiêu biểu", () => {
     ["marketing", "/api/v1/admin/taxonomy", "GET", true],
     ["support", "/api/v1/admin/taxonomy", "GET", false],
     ["support", "/api/v1/admin/leads/0b5c", "PATCH", true],
+    // Khóa bài viết: chỉ vai trò có posts.lock (Trưởng nhóm nội dung, Quản lý nội dung, Marketing); Biên tập viên và Xuất bản viên sửa được bài nhưng không khóa được.
+    ["content_lead", "/api/v1/admin/posts/0b5c/lock", "POST", true],
+    ["content_lead", "/api/v1/admin/posts/0b5c", "PATCH", true],
+    ["content_lead", "/api/v1/admin/users", "POST", false],
+    ["content_lead", "/api/v1/admin/publishing-config", "PUT", false],
+    ["content_manager", "/api/v1/admin/posts/0b5c/lock", "POST", true],
+    ["editor", "/api/v1/admin/posts/0b5c", "PATCH", true],
+    ["editor", "/api/v1/admin/posts/0b5c/lock", "POST", false],
+    ["publisher", "/api/v1/admin/posts/0b5c/lock", "POST", false],
+    ["support", "/api/v1/admin/posts/0b5c/lock", "POST", false],
+    ["analyst", "/api/v1/admin/posts/0b5c/lock", "POST", false],
     ["support", "/api/v1/admin/leads/0b5c", "DELETE", true],
     ["support", "/api/v1/admin/leads/merge", "POST", true],
     ["editor", "/api/v1/admin/leads/merge", "POST", false],

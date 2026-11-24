@@ -11,6 +11,8 @@ test("Nhãn nhật ký dịch đúng mã thao tác đang được phát sinh", (
   assert.equal(auditActionLabel("lead.assign"), "Giao việc · Liên hệ khách hàng");
   assert.equal(auditActionLabel("lead.merge"), "Gộp · Liên hệ khách hàng");
   assert.equal(auditActionLabel("lead.delete"), "Xóa · Liên hệ khách hàng");
+  assert.equal(auditActionLabel("post.lock"), "Khóa · Bài viết");
+  assert.equal(auditActionLabel("post.unlock"), "Mở khóa · Bài viết");
   assert.equal(auditActionLabel("media.delete_queue"), "Đưa vào hàng đợi xóa · Hình ảnh và tệp");
   assert.equal(auditActionLabel("navigation.update"), "Cập nhật · Menu điều hướng");
   assert.equal(auditActionLabel("support_download.restore"), "Khôi phục · Tệp hỗ trợ");

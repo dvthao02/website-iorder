@@ -6,6 +6,7 @@ export const cmsActionLabels = {
   update: "Sửa",
   delete: "Xóa",
   publish: "Xuất bản",
+  lock: "Khóa",
 } as const;
 
 export type CmsAction = keyof typeof cmsActionLabels;
@@ -13,7 +14,10 @@ export type CmsAction = keyof typeof cmsActionLabels;
 export const cmsModules = [
   { key: "dashboard", name: "Tổng quan & thống kê", actions: ["view"] },
   { key: "pages", name: "Trang website", actions: ["view", "create", "update", "delete", "publish"] },
-  { key: "posts", name: "Bài viết, tin tức & hướng dẫn", actions: ["view", "create", "update", "delete", "publish"] },
+  {
+    key: "posts", name: "Bài viết, tin tức & hướng dẫn", actions: ["view", "create", "update", "delete", "publish", "lock"],
+    hint: "Khóa: khóa một bài để không ai sửa hay xóa được (kể cả người tạo) cho tới khi người có quyền Khóa mở khóa. Bài khóa vẫn hiển thị trên website.",
+  },
   { key: "offerings", name: "Sản phẩm & Giải pháp", actions: ["view", "create", "update", "delete", "publish"] },
   { key: "equipment", name: "Thiết bị", actions: ["view", "create", "update", "delete", "publish"] },
   { key: "support_downloads", name: "Tệp cài đặt (khách tải về)", actions: ["view", "create", "update", "delete", "publish"] },
@@ -65,6 +69,7 @@ const contentModules = ["pages", "posts", "offerings", "equipment", "support_dow
 export const defaultCmsRoles: ReadonlyArray<{ code: string; name: string; description: string; permissions: readonly CmsPermissionCode[] }> = [
   { code: superAdminRoleCode, name: "Super Admin", description: "Toàn quyền hệ thống. Không thể sửa hoặc xóa.", permissions: cmsPermissions.map((permission) => permission.code) },
   { code: "content_manager", name: "Quản lý nội dung", description: "Soạn, xuất bản nội dung và quản lý cấu hình website.", permissions: [...only(["view"], "dashboard"), ...all(...contentModules, "navigation", "settings", "redirects")] },
+  { code: "content_lead", name: "Trưởng nhóm nội dung", description: "Soạn, duyệt, xuất bản và khóa/mở khóa mọi nội dung; không đụng cấu hình hệ thống, người dùng, vai trò.", permissions: [...only(["view"], "dashboard"), ...all(...contentModules), ...only(["view"], "navigation", "redirects")] },
   { code: "editor", name: "Biên tập viên", description: "Soạn và sửa bản nháp, không xuất bản.", permissions: [...only(["view"], "dashboard"), ...only(["view", "create", "update", "delete"], ...contentModules)] },
   { code: "publisher", name: "Xuất bản viên", description: "Duyệt và xuất bản nội dung.", permissions: [...only(["view"], "dashboard", ...contentModules), ...only(["update", "publish"], "pages", "posts", "offerings", "equipment", "support_downloads")] },
   { code: "marketing", name: "Marketing & SEO", description: "Nội dung, menu, cấu hình và chuyển hướng.", permissions: [...only(["view"], "dashboard"), ...all("pages", "posts", "offerings", "media", "navigation", "settings", "redirects")] },
