@@ -20,10 +20,10 @@ test("Khóa kết thúc bằng At/Date thành Date, kể cả lồng nhau; khóa
 test("Danh sách liên hệ có ngữ cảnh thiết bị vẫn qua hợp đồng sau khi CMS đọc JSON", () => {
   const row = {
     id: "12345678-1234-4234-8234-123456789abc", name: "Nguyễn Văn A", phone: "0912345678", email: null, businessModel: null, branches: null,
-    need: "Mua thiết bị: Máy POS X1", message: null, status: "new", createdAt: "2026-11-23T12:21:11.284Z", handledAt: null,
+    need: "Mua thiết bị: Máy POS X1", message: null, status: "new", createdAt: "2026-11-23T12:21:11.284Z", handledAt: null, internalNote: "Đã gọi, hẹn chiều", handledByName: null, sameCustomerCount: 2, assignedToId: "22345678-1234-4234-8234-123456789abc", assignedToName: "Chị Lan", assignedAt: "2026-11-23T13:00:00.000Z",
     context: { kind: "equipment", equipmentId: "e25bfbbb-9961-41e5-886c-74b5ddeb17a2", slug: "may-pos-x1", name: "Máy POS X1", brand: null, modelCode: "X1", groupName: "Máy POS", priceVnd: 5_590_000, availability: "out_of_stock", capturedAt: "2026-11-23T12:21:11.284Z" },
   };
-  const page = { items: [row, { ...row, id: "22345678-1234-4234-8234-123456789abc", context: null }], page: 1, pageSize: 25, total: 2, totalPages: 1, counts: { all: 2, new: 2, contacted: 0, closed: 0 } };
+  const page = { items: [row, { ...row, id: "22345678-1234-4234-8234-123456789abc", context: null }], page: 1, pageSize: 25, total: 2, totalPages: 1, counts: { all: 2, new: 2, contacted: 0, closed: 0 }, assignees: [{ id: "22345678-1234-4234-8234-123456789abc", name: "Chị Lan" }] };
   const parsed = leadListPageSchema.safeParse(reviveDates(JSON.parse(JSON.stringify(page))));
   assert.equal(parsed.success, true, parsed.success ? "" : JSON.stringify(parsed.error.issues));
   if (parsed.success) {

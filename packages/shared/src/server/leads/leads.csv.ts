@@ -8,13 +8,17 @@ export type LeadCsvRow = {
   need: string | null; message: string | null; status: LeadStatus; createdAt: Date; handledAt: Date | null;
   /** Thiết bị khách hỏi mua, chụp lúc gửi; null = liên hệ chung. */
   context: LeadContext | null;
+  /** Người xử lý (khi trạng thái khác "Mới") và ghi chú nội bộ của nhân viên. */
+  handledByName: string | null; internalNote: string | null;
+  /** Người phụ trách (null = chưa giao). */
+  assignedToName: string | null;
 };
 
 // Số hợp lệ xuất về dạng chuẩn (liên hệ cũ lưu +84… cũng thành 0…), số cũ sai quy tắc giữ nguyên để nhân viên tự xem xét.
 const exportPhone = (phone: string) => isValidPhone(phone) ? normalizePhone(phone) : phone;
 
 const statusLabels: Record<LeadStatus, string> = { new: "Mới", contacted: "Đã liên hệ", closed: "Đã xử lý" };
-const columns = ["Thời điểm gửi", "Họ tên", "Điện thoại", "Email", "Mô hình kinh doanh", "Số chi nhánh", "Nhu cầu", "Thiết bị hỏi mua", "Mã / quy cách", "Tình trạng lúc hỏi", "Giá lúc hỏi (đ)", "Lời nhắn", "Trạng thái", "Xử lý lúc"];
+const columns = ["Thời điểm gửi", "Họ tên", "Điện thoại", "Email", "Mô hình kinh doanh", "Số chi nhánh", "Nhu cầu", "Thiết bị hỏi mua", "Mã / quy cách", "Tình trạng lúc hỏi", "Giá lúc hỏi (đ)", "Lời nhắn", "Trạng thái", "Xử lý lúc", "Người xử lý", "Người phụ trách", "Ghi chú nội bộ"];
 // "2026-10-17 10:00" theo giờ Việt Nam: Excel nhận là ngày giờ và sắp xếp đúng.
 const dateParts = new Intl.DateTimeFormat("en-CA", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23", timeZone: "Asia/Ho_Chi_Minh" });
 const dateTime = { format(date: Date) { const part = Object.fromEntries(dateParts.formatToParts(date).map(({ type, value }) => [type, value])); return `${part.year}-${part.month}-${part.day} ${part.hour}:${part.minute}`; } };
@@ -31,18 +35,18 @@ export function leadsToCsv(rows: readonly LeadCsvRow[]) {
   const lines = [columns.join(","), ...rows.map((row) => [
     dateTime.format(row.createdAt), row.name, exportPhone(row.phone), row.email, row.businessModel, row.branches,
     row.need, row.context?.name ?? null, row.context?.modelCode ?? null, row.context ? equipmentAvailabilityLabels[row.context.availability] : null, row.context ? String(row.context.priceVnd) : null,
-    row.message, statusLabels[row.status], row.handledAt ? dateTime.format(row.handledAt) : null,
+    row.message, statusLabels[row.status], row.handledAt ? dateTime.format(row.handledAt) : null, row.handledByName, row.assignedToName, row.internalNote,
   ].map(cell).join(","))];
   return `﻿${lines.join("\r\n")}\r\n`;
 }
 
-const xlsxWidths = [18, 24, 16, 28, 22, 12, 28, 30, 18, 16, 16, 48, 14, 18];
+const xlsxWidths = [18, 24, 16, 28, 22, 12, 28, 30, 18, 16, 16, 48, 14, 18, 22, 22, 48];
 
 /** Excel thật (.xlsx): ngày là kiểu ngày giờ, số điện thoại giữ nguyên dạng chữ (không cần dấu '). */
 export function leadsToXlsx(rows: readonly LeadCsvRow[]) {
   return buildXlsx("Khách hàng tiềm năng", columns.map((header, index) => ({ header, width: xlsxWidths[index] })), rows.map((row) => [
     row.createdAt, row.name, exportPhone(row.phone), row.email, row.businessModel, row.branches,
     row.need, row.context?.name ?? null, row.context?.modelCode ?? null, row.context ? equipmentAvailabilityLabels[row.context.availability] : null, row.context?.priceVnd ?? null,
-    row.message, statusLabels[row.status], row.handledAt,
+    row.message, statusLabels[row.status], row.handledAt, row.handledByName, row.assignedToName, row.internalNote,
   ]));
 }

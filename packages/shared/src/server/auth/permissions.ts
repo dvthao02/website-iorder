@@ -23,12 +23,15 @@ export const cmsModules = [
   { key: "navigation", name: "Menu & Điều hướng", actions: ["view", "update"] },
   { key: "settings", name: "Cài đặt website", actions: ["view", "update"] },
   { key: "redirects", name: "Chuyển hướng URL", actions: ["view", "create", "update", "delete"] },
-  { key: "leads", name: "Khách hàng tiềm năng", actions: ["view", "update"] },
+  {
+    key: "leads", name: "Khách hàng tiềm năng", actions: ["view", "update", "delete"],
+    hint: "Sửa: đổi trạng thái, ghi chú, giao việc, sửa thông tin khách. Xóa: xóa liên hệ rác (xóa cả thông tin khách) và gộp liên hệ trùng. Người được giao liên hệ cần quyền Sửa.",
+  },
   { key: "audit", name: "Nhật ký hoạt động", actions: ["view"] },
   { key: "system", name: "Tình trạng hệ thống", actions: ["view"] },
   { key: "users", name: "Người dùng CMS", actions: ["view", "create", "update", "delete"] },
   { key: "roles", name: "Vai trò & quyền", actions: ["view", "create", "update", "delete"] },
-] as const satisfies ReadonlyArray<{ key: string; name: string; actions: readonly CmsAction[] }>;
+] as const satisfies ReadonlyArray<{ key: string; name: string; actions: readonly CmsAction[]; /** Chú thích ngắn hiện dưới tên mô-đun trong ma trận quyền, cho quyền khó đoán nghĩa. */ hint?: string }>;
 
 export type CmsModule = (typeof cmsModules)[number];
 export type CmsModuleKey = CmsModule["key"];

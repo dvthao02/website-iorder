@@ -17,7 +17,7 @@ async function handleGET(request: Request) {
   const parsed = leadListQuerySchema.safeParse(Object.fromEntries(params));
   if (!parsed.success) return NextResponse.json({ error: { code: "INVALID_INPUT", message: "Bộ lọc liên hệ không hợp lệ." } }, { status: 400 });
   try {
-    return NextResponse.json({ result: await getLeadsPage(parsed.data) });
+    return NextResponse.json({ result: await getLeadsPage(parsed.data, administrator.userId) });
   } catch {
     return NextResponse.json({ error: { code: "INTERNAL_ERROR", message: "Không thể tải danh sách liên hệ. Vui lòng thử lại." } }, { status: 500 });
   }

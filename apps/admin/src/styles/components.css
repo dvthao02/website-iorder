@@ -329,6 +329,17 @@
   .admin-bulk-menu__icon .admin-file-icon { width: 24px; height: 24px; }
   .admin-bulk-menu__item--danger > span:last-child, .admin-bulk-menu__item--danger .admin-bulk-menu__icon { color: var(--cms-status-error-text); }
   .admin-bulk-menu__item--danger .admin-bulk-menu__icon { background: var(--cms-status-error-background); }
+  /* Tiêu đề nhóm trong menu; danh sách dài (nhiều người để giao việc) thì cuộn thay vì tràn khỏi màn hình. */
+  .admin-bulk-menu .admin-bulk-menu__list { max-height: min(70dvh, 460px); overflow-y: auto; }
+  .admin-bulk-menu__group { padding: 8px 10px 2px; color: var(--cms-muted); font-size: 11px; font-weight: 600; }
+  .admin-bulk-menu__group:not(:first-child) { margin-top: 4px; border-top: 1px solid var(--cms-border); padding-top: 10px; }
+  /* Nút nhanh cạnh số điện thoại trong bảng Khách hàng tiềm năng (gọi, Zalo, sao chép): hiện khi rê chuột hoặc bàn phím focus vào dòng, luôn hiện trên màn cảm ứng. */
+  .lead-quick-actions { display: inline-flex; gap: 2px; opacity: 0; transition: opacity 120ms; }
+  :is(tr, [role="row"]):hover .lead-quick-actions, .lead-quick-actions:focus-within { opacity: 1; }
+  @media (hover: none) { .lead-quick-actions { opacity: 1; } }
+  .lead-quick-actions > a, .lead-quick-actions > button { display: inline-grid; place-items: center; width: 28px; height: 28px; border: 1px solid transparent; border-radius: var(--cms-radius-component); background: transparent; color: var(--cms-muted); cursor: pointer; }
+  .lead-quick-actions > a:hover, .lead-quick-actions > button:hover, .lead-quick-actions > a:focus-visible, .lead-quick-actions > button:focus-visible { border-color: var(--cms-border); background: var(--cms-hover); color: var(--cms-primary); }
+  .lead-quick-actions > [data-done] { color: var(--cms-status-success-text, #15803d); }
   /* Chân trang dùng chung (ui/admin-pagination.tsx): Tổng · Mỗi trang · ‹ 1 2 3 … 12 › · Nhảy tới trang. Màn hẹp thì xuống dòng. */
   /* Dính đáy vùng cuộn: danh sách dài (100 dòng/trang) vẫn đổi trang được mà không phải cuộn tới cuối. Danh sách ngắn thì nằm đúng chỗ dưới bảng. */
   .admin-pagination { position: sticky; bottom: 0; z-index: 2; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; border-top: 1px solid var(--cms-border); background: var(--cms-card); padding: 8px var(--cms-card-padding); color: var(--cms-muted); font-size: var(--cms-text-sm); box-shadow: 0 -6px 8px -8px rgb(16 24 40 / 14%); }
@@ -1511,6 +1522,7 @@
   .admin-role-matrix :is(th[scope="row"], thead th:first-child) { position: sticky; left: 0; z-index: 1; background: var(--cms-card); text-align: left; }
   .admin-role-matrix thead th:first-child { background: var(--cms-subtle); }
   .admin-role-matrix__group { display: inline-flex; align-items: center; gap: 8px; font-weight: 500; cursor: pointer; }
+  .admin-role-matrix__hint { display: block; max-width: 34ch; margin: 2px 0 0 26px; color: var(--cms-muted); font-size: var(--cms-text-xs); font-weight: 400; line-height: 1.35; }
   .admin-role-matrix input:disabled { opacity: 0.5; cursor: not-allowed; }
   .admin-role-matrix__na { color: var(--cms-muted); }
 

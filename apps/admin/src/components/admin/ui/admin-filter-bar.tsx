@@ -19,7 +19,12 @@ type AdminFilterBarProps = FormHTMLAttributes<HTMLFormElement> & {
   /** Bộ lọc đang áp dụng, hiện thành nhãn gỡ được ngay dưới thanh. */
   chips?: AdminFilterChip[];
   onClearAll?: () => void;
+  /** Tìm ngay khi gõ: ngừng gõ ~0,45 giây trong ô tìm kiếm thì gửi biểu mẫu như bấm Enter (mặc định bật; Enter vẫn tìm ngay). */
+  liveSearch?: boolean;
 };
+
+const liveSearchDelayMs = 450;
+const isSearchInput = (target: EventTarget | null) => target instanceof HTMLInputElement && target.type === "search";
 
 const compactQuery = "(max-width: 680px)";
 function subscribeCompact(onChange: () => void) {
@@ -50,8 +55,14 @@ function FilterPanel({ children, label, onClose }: { children: ReactNode; label:
   </div>;
 }
 
-export function AdminFilterBar({ actions, bulkActions, search, children, more, moreActiveCount = 0, chips = [], onClearAll, className = "", ...props }: AdminFilterBarProps) {
+export function AdminFilterBar({ actions, bulkActions, search, children, more, moreActiveCount = 0, chips = [], onClearAll, liveSearch = true, className = "", ...props }: AdminFilterBarProps) {
   const compact = useCompactViewport();
+  const timer = useRef<number | undefined>(undefined);
+  useEffect(() => () => window.clearTimeout(timer.current), []);
+  function searchSoon(form: HTMLFormElement) {
+    window.clearTimeout(timer.current);
+    timer.current = window.setTimeout(() => form.requestSubmit(), liveSearchDelayMs);
+  }
   const [open, setOpen] = useState(false);
   const panelId = useId();
   // Màn hẹp: mọi bộ lọc (chính + phụ) vào khung; màn rộng: chỉ bộ lọc phụ.
@@ -60,7 +71,10 @@ export function AdminFilterBar({ actions, bulkActions, search, children, more, m
   const panelCount = compact ? chips.filter((chip) => chip.key !== "query").length : moreActiveCount;
   const buttonLabel = compact ? "Bộ lọc" : "Bộ lọc khác";
 
-  return <form className={`admin-filter-bar ${className}`.trim()} {...props}>
+  // Đang gõ dấu tiếng Việt bằng bộ gõ (composition) thì chờ gõ xong từ rồi mới tìm, tránh tìm theo chữ dở dang.
+  return <form className={`admin-filter-bar ${className}`.trim()} {...props}
+    onCompositionEnd={(event) => { props.onCompositionEnd?.(event); if (liveSearch && isSearchInput(event.target)) searchSoon(event.currentTarget); }}
+    onInput={(event) => { props.onInput?.(event); if (liveSearch && isSearchInput(event.target) && !(event.nativeEvent as InputEvent).isComposing) searchSoon(event.currentTarget); }}>
     <div className="admin-filter-bar__controls">
       {search}
       {compact ? null : children}

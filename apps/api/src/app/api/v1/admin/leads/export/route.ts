@@ -18,7 +18,7 @@ async function handleGET(request: Request) {
   if (!administrator) return fail("UNAUTHORIZED", "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.", 401);
   const params = new URL(request.url).searchParams;
   try {
-    const file = await exportLeads({ format: params.get("format") || undefined, status: params.get("status") ?? "all", query: params.get("query") || undefined, from: params.get("from") || undefined, to: params.get("to") || undefined, sort: params.get("sort") || undefined, dir: params.get("dir") || undefined }, administrator.userId);
+    const file = await exportLeads({ format: params.get("format") || undefined, status: params.get("status") ?? "all", source: params.get("source") ?? "all", assignee: params.get("assignee") ?? "all", focus: params.get("focus") ?? "all", query: params.get("query") || undefined, from: params.get("from") || undefined, to: params.get("to") || undefined, sort: params.get("sort") || undefined, dir: params.get("dir") || undefined }, administrator.userId);
     const day = new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Ho_Chi_Minh" });
     return new NextResponse(typeof file.body === "string" ? file.body : new Uint8Array(file.body), { headers: {
       "content-type": file.contentType,

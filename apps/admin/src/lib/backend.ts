@@ -26,7 +26,7 @@ import { auditActorSchema, auditListPageSchema, auditListQuerySchema, type Audit
 import type { getEquipment as getEquipmentFromCore, getEquipmentGroups as getEquipmentGroupsFromCore } from "@iorder/shared/server/equipment/equipment.service";
 import type { getEquipmentPage as getEquipmentPageFromCore } from "@iorder/shared/server/equipment/equipment.service";
 import type { getLeadsPage as getLeadsPageFromCore } from "@iorder/shared/server/leads/leads.service";
-import { leadListPageSchema, leadListQuerySchema, type LeadListQuery } from "@iorder/shared/server/leads/leads.contract";
+import { leadListItemSchema, leadListPageSchema, leadListQuerySchema, type LeadListQuery } from "@iorder/shared/server/leads/leads.contract";
 import { reviveDates } from "./revive-dates";
 import type { getAdminMedia as getAdminMediaFromCore } from "@iorder/shared/server/media/media.service";
 import type { getAdminNavigation as getAdminNavigationFromCore } from "@iorder/shared/server/navigation/navigation.service";
@@ -231,6 +231,12 @@ export async function getLeadsPage(input: LeadListQuery): Promise<LeadsPage> {
   const parsed = leadListPageSchema.safeParse(data.result);
   if (!parsed.success || parsed.data.total !== parsed.data.counts[query.status] || parsed.data.page !== query.page || parsed.data.pageSize !== query.pageSize || (query.status !== "all" && parsed.data.items.some(row => row.status !== query.status))) throw new Error("Dữ liệu phân trang liên hệ không hợp lệ. Vui lòng thử lại.");
   return parsed.data;
+}
+/** Một liên hệ cho khung chi tiết (mở từ thông báo, kể cả khi không nằm ở trang danh sách đang xem); null nếu không có hoặc đã xóa. */
+export async function getLeadDetail(id: string): Promise<LeadsPage["items"][number] | null> {
+  const data = await getData<{ lead: unknown }>(`/api/v1/admin/leads/${encodeURIComponent(id)}`);
+  const parsed = leadListItemSchema.safeParse(data?.lead);
+  return parsed.success ? parsed.data : null;
 }
 export async function getAdminSupportDownloads(): Promise<SupportDownloads> {
   const parsed = supportDownloadListResponseSchema.safeParse(await getData<unknown>("/api/v1/admin/support-downloads"));

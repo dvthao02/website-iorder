@@ -1,9 +1,9 @@
 import { createHash } from "node:crypto";
 import { getDb } from "@iorder/shared/db/client";
-import { leadExportQuerySchema, leadListQuerySchema, publicLeadInputSchema, type LeadStatus } from "./leads.contract";
+import { leadExportQuerySchema, leadListQuerySchema, leadMergeSchema, publicLeadInputSchema, type LeadUpdate } from "./leads.contract";
 import { leadsToCsv, leadsToXlsx } from "./leads.csv";
 import { checkLeadToken, issueLeadToken } from "./leads.guard";
-import { createRateLimitedLead, findLeadEquipment, listLeadsForExport, listLeadsPage, updateLeadStatus, type LeadValues } from "./leads.repository";
+import { createRateLimitedLead, deleteLead, findLeadEquipment, getLeadDetail, listLeadsForExport, listLeadsPage, mergeLeads, updateLead, type LeadValues } from "./leads.repository";
 
 function ipFingerprint(ipAddress: string | null) {
   if (!ipAddress) return null;
@@ -34,7 +34,11 @@ export async function submitPublicLead(input: unknown, ipAddress: string | null,
   return { accepted: true, duplicate: result.duplicate, discarded: false };
 }
 
-export async function getLeadsPage(input: unknown) { return listLeadsPage(leadListQuerySchema.parse(input)); }
+/** Danh sách liên hệ; `actorId` là tài khoản đang xem (cho bộ lọc "của tôi"). */
+export async function getLeadsPage(input: unknown, actorId: string | null = null) { return listLeadsPage(leadListQuerySchema.parse(input), getDb(), actorId); }
+
+/** Một liên hệ cho khung chi tiết (mở từ thông báo); undefined nếu không có hoặc đã xóa. */
+export async function getLead(id: string) { return getLeadDetail(id); }
 
 export const leadExportRowLimit = 10_000;
 /** Khách hàng tiềm năng theo bộ lọc, dạng CSV hoặc Excel; tối đa 10.000 dòng. */
@@ -45,4 +49,11 @@ export async function exportLeads(input: unknown, actorId: string) {
     ? { body: leadsToXlsx(rows), contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", extension: "xlsx", rows: rows.length }
     : { body: leadsToCsv(rows), contentType: "text/csv; charset=utf-8", extension: "csv", rows: rows.length };
 }
-export async function changeLeadStatus(id: string, status: LeadStatus, userId: string) { return updateLeadStatus(id, status, userId); }
+/** Đổi trạng thái, ghi chú nội bộ và/hoặc người phụ trách của liên hệ; undefined nếu không có liên hệ. Người được giao sai thì ném LeadAssigneeError. */
+export async function changeLead(id: string, patch: LeadUpdate, userId: string) { return updateLead(id, patch, userId); }
+
+/** Xóa liên hệ rác (ẩn khỏi CMS và xóa thông tin cá nhân của khách); undefined nếu không có hoặc đã xóa. */
+export async function removeLead(id: string, userId: string) { return deleteLead(id, userId); }
+
+/** Gộp các liên hệ cùng số điện thoại (ZodError nếu danh sách sai, LeadMergeError nếu không gộp được). */
+export async function mergeLeadGroup(input: unknown, userId: string) { return mergeLeads(leadMergeSchema.parse(input).ids, userId); }

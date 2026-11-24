@@ -1,0 +1,1 @@
+ALTER TABLE "contact_leads" ADD COLUMN "internal_note" text;

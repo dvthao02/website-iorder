@@ -7,6 +7,10 @@ test("Nhãn nhật ký dịch đúng mã thao tác đang được phát sinh", (
   assert.equal(auditEntityLabel("equipment_group"), "Nhóm thiết bị");
   assert.equal(auditActionLabel("equipment.update"), "Cập nhật · Thiết bị");
   assert.equal(auditActionLabel("lead.status_update"), "Cập nhật trạng thái · Liên hệ khách hàng");
+  assert.equal(auditActionLabel("lead.note_update"), "Cập nhật ghi chú · Liên hệ khách hàng");
+  assert.equal(auditActionLabel("lead.assign"), "Giao việc · Liên hệ khách hàng");
+  assert.equal(auditActionLabel("lead.merge"), "Gộp · Liên hệ khách hàng");
+  assert.equal(auditActionLabel("lead.delete"), "Xóa · Liên hệ khách hàng");
   assert.equal(auditActionLabel("media.delete_queue"), "Đưa vào hàng đợi xóa · Hình ảnh và tệp");
   assert.equal(auditActionLabel("navigation.update"), "Cập nhật · Menu điều hướng");
   assert.equal(auditActionLabel("support_download.restore"), "Khôi phục · Tệp hỗ trợ");

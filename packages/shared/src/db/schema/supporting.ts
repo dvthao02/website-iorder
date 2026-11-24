@@ -98,6 +98,14 @@ export const contactLeads = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     handledAt: timestamp("handled_at", { withTimezone: true }),
     handledBy: uuid("handled_by").references(() => users.id, { onDelete: "set null" }),
+    // Ghi chú nội bộ của nhân viên (kết quả cuộc gọi, hẹn lại...). Khách không bao giờ thấy; chỉ CMS đọc và ghi.
+    internalNote: text("internal_note"),
+    // Người phụ trách xử lý liên hệ (nhân viên CMS có quyền sửa khách hàng tiềm năng) và thời điểm giao.
+    assignedTo: uuid("assigned_to").references(() => users.id, { onDelete: "set null" }),
+    assignedAt: timestamp("assigned_at", { withTimezone: true }),
+    // Xóa (liên hệ rác, liên hệ đã gộp vào liên hệ khác): ẩn khỏi CMS và xóa thông tin cá nhân của khách (leads.repository.ts › scrubbedLead), nhưng dòng vẫn còn để giới hạn chống spam theo IP, số điện thoại (dạng chữ số) và thiết bị đếm đủ.
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    deletedBy: uuid("deleted_by").references(() => users.id, { onDelete: "set null" }),
   },
-  (table) => [index("contact_leads_handled_by_index").on(table.handledBy), index("contact_leads_status_created_index").on(table.status, table.createdAt), index("contact_leads_phone_created_index").on(table.phoneDigits, table.createdAt), index("contact_leads_created_index").on(table.createdAt)],
+  (table) => [index("contact_leads_handled_by_index").on(table.handledBy), index("contact_leads_assigned_to_index").on(table.assignedTo), index("contact_leads_deleted_by_index").on(table.deletedBy), index("contact_leads_status_created_index").on(table.status, table.createdAt), index("contact_leads_phone_created_index").on(table.phoneDigits, table.createdAt), index("contact_leads_created_index").on(table.createdAt)],
 );

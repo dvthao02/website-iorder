@@ -196,7 +196,7 @@ function PermissionMatrix({ actionLabels, canGrant, modules, onChange, selected 
       <tbody>{modules.map((module) => {
         const grantable = module.actions.some((action) => canGrant(permissionCode(module, action)));
         return <tr key={module.key}>
-          <th scope="row"><label className="admin-role-matrix__group"><TriStateCheckbox disabled={!grantable} label={`Chọn tất cả quyền của ${module.name}`} onChange={(checked) => onChange(setModules(selected, [module], checked, canGrant))} state={grantable ? moduleState(selected, module, canGrant) : moduleState(selected, module)} />{module.name}</label></th>
+          <th scope="row"><label className="admin-role-matrix__group"><TriStateCheckbox disabled={!grantable} label={`Chọn tất cả quyền của ${module.name}`} onChange={(checked) => onChange(setModules(selected, [module], checked, canGrant))} state={grantable ? moduleState(selected, module, canGrant) : moduleState(selected, module)} />{module.name}</label>{module.hint ? <small className="admin-role-matrix__hint">{module.hint}</small> : null}</th>
           {actions.map((action) => <td key={action}>{module.actions.includes(action)
             ? <input aria-label={`${actionLabels[action]} — ${module.name}`} checked={selected.has(permissionCode(module, action))} disabled={!canGrant(permissionCode(module, action))} onChange={(event) => onChange(setPermission(selected, module, action, event.target.checked, canGrant))} type="checkbox" />
             : <span aria-hidden="true" className="admin-role-matrix__na">—</span>}</td>)}

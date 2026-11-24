@@ -77,6 +77,9 @@ export function requiredAdminPermissions(pathname: string, method: string): CmsP
   const action = methodActions[method.toUpperCase()];
   if (!action) return [];
 
+  // Gộp liên hệ trùng thực chất là xóa các liên hệ cũ (chuyển nội dung sang liên hệ giữ lại): cùng quyền với xóa liên hệ.
+  if (resource === "leads" && segments[1] === "merge") return method.toUpperCase() === "POST" ? permissionsFor("leads", ["delete"]) : [];
+
   if (resource === "revisions") {
     const targetModule = revisionTargetModules[segments[1] as keyof typeof revisionTargetModules];
     const revisionAction = action === "view" ? "view" : "update";

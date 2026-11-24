@@ -19,6 +19,8 @@ export type AdminDataTableColumn<Row> = {
   sortValue?: (row: Row) => string | number | null | undefined;
   /** Chiều khi bấm lần đầu; cột ngày thường muốn mới nhất trước. */
   sortFirst?: SortDirection;
+  /** Ẩn khi người dùng chưa tự chọn cột nào (cột ít dữ liệu); bật lại ở nút cài đặt cột, đặt lại về mặc định thì ẩn tiếp. */
+  defaultHidden?: boolean;
 };
 
 export type SortDirection = "asc" | "desc";
@@ -71,7 +73,7 @@ function SelectAllCheckbox({ checked, indeterminate, onChange }: { checked: bool
 function createDefaultSettings<Row>(columns: AdminDataTableColumn<Row>[]): TableSettings {
   return {
     order: columns.map((column) => column.id),
-    hidden: [],
+    hidden: columns.filter((column) => column.defaultHidden).map((column) => column.id),
     labels: Object.fromEntries(columns.map((column) => [column.id, column.label])),
     pinned: [],
     widths: Object.fromEntries(columns.map((column) => [column.id, column.defaultWidth])),

@@ -1,6 +1,6 @@
 import type { CmsAction } from "@iorder/shared/server/auth/permissions";
 
-export type MatrixModule = { key: string; name: string; actions: readonly CmsAction[] };
+export type MatrixModule = { key: string; name: string; actions: readonly CmsAction[]; hint?: string };
 export type CheckState = "all" | "some" | "none";
 
 export const permissionCode = (module: MatrixModule, action: CmsAction) => `${module.key}.${action}`;

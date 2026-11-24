@@ -49,26 +49,43 @@ export function parseLeadContext(value: unknown): LeadContext | null {
 }
 
 export const leadStatusSchema = z.enum(["new", "contacted", "closed"]);
+// Nguồn liên hệ: hỏi mua một thiết bị cụ thể (có context) hay liên hệ chung từ biểu mẫu.
+export const leadSourceSchema = z.enum(["all", "equipment", "general"]);
+// Chỉ hiện nhóm cần chú ý: liên hệ mới chờ quá hạn (leadOverdueHours), hoặc khách đã gửi nhiều liên hệ cùng một số (để gộp trùng).
+export const leadFocusSchema = z.enum(["all", "overdue", "repeat"]);
+// Người phụ trách: mọi người, của tôi (CMS đổi thành tài khoản đang đăng nhập), chưa giao, hoặc một người cụ thể.
+export const leadAssigneeFilterSchema = z.union([z.enum(["all", "me", "unassigned"]), z.string().uuid()]);
 export const leadListQuerySchema = adminListQuerySchema.extend({
   status: z.enum(["all", "new", "contacted", "closed"]).default("all"),
+  source: leadSourceSchema.default("all"),
+  assignee: leadAssigneeFilterSchema.default("all"),
+  focus: leadFocusSchema.default("all"),
   from: listDateSchema,
   to: listDateSchema,
 });
 export type LeadListQuery = z.infer<typeof leadListQuerySchema>;
-export const leadExportQuerySchema = z.object({ status: leadListQuerySchema.shape.status, query: z.string().trim().max(160).optional(), from: listDateSchema, to: listDateSchema, sort: adminListQuerySchema.shape.sort, dir: adminListQuerySchema.shape.dir, format: z.enum(["csv", "xlsx"]).default("csv") }).strict();
+export const leadExportQuerySchema = z.object({ status: leadListQuerySchema.shape.status, source: leadListQuerySchema.shape.source, assignee: leadListQuerySchema.shape.assignee, focus: leadListQuerySchema.shape.focus, query: z.string().trim().max(160).optional(), from: listDateSchema, to: listDateSchema, sort: adminListQuerySchema.shape.sort, dir: adminListQuerySchema.shape.dir, format: z.enum(["csv", "xlsx"]).default("csv") }).strict();
 export type LeadExportQuery = z.infer<typeof leadExportQuerySchema>;
-const leadListItemSchema = z.object({
+export const leadListItemSchema = z.object({
   id: z.string().uuid(), name: z.string().max(180), phone: z.string().max(30),
   email: z.string().max(320).nullable(), businessModel: z.string().max(120).nullable(),
   branches: z.string().max(60).nullable(), need: z.string().max(200).nullable(), message: z.string().nullable(),
   status: leadStatusSchema, createdAt: z.date(), handledAt: z.date().nullable(),
   context: leadContextSchema.nullable(),
+  // Ghi chú nội bộ của nhân viên, tên người đã xử lý (trạng thái khác "Mới") và số liên hệ cùng số điện thoại (kể cả chính nó) để nhận ra khách gửi lại.
+  internalNote: z.string().nullable(), handledByName: z.string().nullable(), sameCustomerCount: z.number().int().positive(),
+  // Người phụ trách (null = chưa giao) và thời điểm giao.
+  assignedToId: z.string().uuid().nullable(), assignedToName: z.string().nullable(), assignedAt: z.date().nullable(),
 });
+/** Nhân viên có thể được giao liên hệ: tài khoản đang hoạt động có quyền cập nhật khách hàng tiềm năng (hoặc Super Admin). */
+export const leadAssigneeSchema = z.object({ id: z.string().uuid(), name: z.string().max(180) });
+export type LeadAssignee = z.infer<typeof leadAssigneeSchema>;
 const countSchema = z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER);
 export const leadListPageSchema = z.object({
   items: z.array(leadListItemSchema), page: z.number().int().positive(),
   pageSize: z.number().int().min(5).max(100), total: countSchema, totalPages: z.number().int().positive(),
   counts: z.object({ all: countSchema, new: countSchema, contacted: countSchema, closed: countSchema }),
+  assignees: z.array(leadAssigneeSchema),
 }).superRefine((value, ctx) => {
   if (value.counts.all !== value.counts.new + value.counts.contacted + value.counts.closed || value.total > value.counts.all || value.totalPages !== Math.max(1, Math.ceil(value.total / value.pageSize))) {
     ctx.addIssue({ code: "custom", message: "Tổng số liên hệ không nhất quán." });
@@ -76,14 +93,38 @@ export const leadListPageSchema = z.object({
   const expected = Math.max(0, Math.min(value.pageSize, value.total - (value.page - 1) * value.pageSize));
   if (value.items.length !== expected || new Set(value.items.map(row => row.id)).size !== value.items.length) ctx.addIssue({ code: "custom", message: "Danh sách liên hệ không khớp phân trang." });
 });
-export const leadStatusUpdateSchema = z.object({ status: leadStatusSchema }).strict();
-export const leadStatusUpdateResponseSchema = z.object({
+export const leadInternalNoteMaxLength = 2_000;
+// Cập nhật liên hệ: đổi trạng thái, ghi chú nội bộ, người phụ trách, thông tin khách (họ tên, số điện thoại, email) hoặc nhiều thứ cùng lúc
+// (ghi chú rỗng hoặc null là xóa ghi chú; assignedTo null là bỏ giao; email rỗng là xóa email). Nhân viên sửa thông tin cho khách nên họ tên chỉ cần đủ dài,
+// còn số điện thoại vẫn theo quy tắc chung (10–11 chữ số, +84 thay số 0 đầu) và được lưu dạng chữ số đã chuẩn hóa.
+export const leadUpdateSchema = z.object({
+  status: leadStatusSchema.optional(),
+  internalNote: z.string().trim().max(leadInternalNoteMaxLength).transform((value) => value || null).nullable().optional(),
+  assignedTo: z.string().uuid().nullable().optional(),
+  name: z.string().trim().min(2).max(180).optional(),
+  phone: z.string().trim().max(30).refine(isValidPhone, phoneRule).transform(normalizePhone).optional(),
+  email: z.string().trim().email().max(320).or(z.literal("")).transform((value) => value || null).nullable().optional(),
+}).strict().refine((value) => Object.values(value).some((field) => field !== undefined), "Cần ít nhất một thông tin để cập nhật.");
+export type LeadUpdate = z.infer<typeof leadUpdateSchema>;
+export const leadUpdateResponseSchema = z.object({
   id: z.string().uuid(),
   status: leadStatusSchema,
   handledAt: z.iso.datetime().nullable(),
+  internalNote: z.string().nullable(),
+  assignedToId: z.string().uuid().nullable(),
+  name: z.string(),
+  phone: z.string(),
+  email: z.string().nullable(),
 }).refine(lead => lead.status === "new" ? lead.handledAt === null : lead.handledAt !== null, {
   message: "Thời điểm xử lý liên hệ không khớp trạng thái.",
 });
+
+// Gộp các liên hệ cùng số điện thoại (tối đa 20 mỗi lần): giữ liên hệ mới nhất, đưa nội dung các liên hệ cũ vào ghi chú rồi xóa chúng (kể cả thông tin cá nhân).
+export const leadMergeMaxCount = 20;
+export const leadMergeSchema = z.object({
+  ids: z.array(z.string().uuid()).min(2).max(leadMergeMaxCount),
+}).strict().refine((value) => new Set(value.ids).size === value.ids.length, "Danh sách liên hệ gộp có mã trùng nhau.");
+export const leadMergeResponseSchema = z.object({ keptId: z.string().uuid(), mergedCount: z.number().int().min(1).max(leadMergeMaxCount) });
 
 export type PublicLeadInput = z.infer<typeof publicLeadInputSchema>;
 export type LeadStatus = z.infer<typeof leadStatusSchema>;

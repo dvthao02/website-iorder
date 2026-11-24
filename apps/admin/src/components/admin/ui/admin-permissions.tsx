@@ -8,17 +8,19 @@ import { hasAnyCmsPermission, hasCmsPermission, type CmsActor, type CmsPermissio
 import { canOpenAdminPath } from "../admin-navigation";
 
 // `canOpenPath`: mở được trang quản trị đó không (cùng quy tắc với thanh bên, gồm cả mục chỉ Super Admin). Dùng để ẩn lối tắt dẫn tới trang bị chặn.
-type AdminPermissions = { can: (permission: CmsPermissionCode) => boolean; canAny: (permissions: readonly CmsPermissionCode[]) => boolean; canOpenPath: (href: string) => boolean };
+// `userId`: tài khoản đang đăng nhập (null khi không biết, ví dụ ngoài khung CMS).
+type AdminPermissions = { can: (permission: CmsPermissionCode) => boolean; canAny: (permissions: readonly CmsPermissionCode[]) => boolean; canOpenPath: (href: string) => boolean; userId: string | null };
 
 const AdminPermissionsContext = createContext<AdminPermissions | undefined>(undefined);
 
 // UI-only gate for hiding actions. The backend proxy and route handlers stay
 // the authority; never rely on this to protect data.
-export function AdminPermissionsProvider({ actor, children }: { actor: CmsActor; children: ReactNode }) {
+export function AdminPermissionsProvider({ actor, children }: { actor: CmsActor & { userId?: string }; children: ReactNode }) {
   const value = useMemo<AdminPermissions>(() => ({
     can: (permission) => hasCmsPermission(actor, permission),
     canAny: (permissions) => hasAnyCmsPermission(actor, permissions),
     canOpenPath: (href) => canOpenAdminPath(actor, href),
+    userId: actor.userId ?? null,
   }), [actor]);
   return <AdminPermissionsContext.Provider value={value}>{children}</AdminPermissionsContext.Provider>;
 }
@@ -29,7 +31,7 @@ export function useOptionalAdminPermissions(): AdminPermissions {
   return useContext(AdminPermissionsContext) ?? allowAll;
 }
 
-const allowAll: AdminPermissions = { can: () => true, canAny: () => true, canOpenPath: () => true };
+const allowAll: AdminPermissions = { can: () => true, canAny: () => true, canOpenPath: () => true, userId: null };
 
 export function useAdminPermissions() {
   const context = useContext(AdminPermissionsContext);

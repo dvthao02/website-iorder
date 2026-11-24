@@ -1,7 +1,7 @@
 "use client";
 
 import { ChevronDown, ListChecks } from "lucide-react";
-import { useContext, useEffect, useState, type CSSProperties, type MouseEvent, type ReactNode, type SyntheticEvent } from "react";
+import { Fragment, useContext, useEffect, useState, type CSSProperties, type MouseEvent, type ReactNode, type SyntheticEvent } from "react";
 
 import { AdminBulkCountContext } from "./admin-bulk-bar";
 
@@ -9,6 +9,8 @@ export type AdminBulkMenuAction = {
   key: string;
   label: string;
   icon: ReactNode;
+  /** Tên nhóm: các mục liền nhau cùng nhóm nằm dưới một tiêu đề nhỏ (đặt các mục cùng nhóm cạnh nhau). */
+  group?: string;
   /** Số dòng đã chọn áp dụng được thao tác này (hiện trong ngoặc); 0 thì mục mờ đi. */
   count: number;
   /** Lý do không dùng được (thiếu quyền, chỉ áp dụng cho mục đã lưu trữ…): mục mờ, lý do hiện khi rê chuột. */
@@ -45,7 +47,7 @@ export function AdminBulkMenu({ actions, busy }: { actions: AdminBulkMenuAction[
   return <details className="admin-popover admin-bulk-menu" onToggle={place}>
     <summary aria-label="Chọn thao tác cho các dòng đã chọn"><span className={nothingSelected ? "admin-button admin-button--secondary" : "admin-button admin-button--primary"}><ListChecks aria-hidden="true" size={15} />{busy ? "Đang xử lý…" : "Thao tác"}<ChevronDown aria-hidden="true" size={14} /></span></summary>
     <div className="admin-header-popover admin-bulk-menu__list" role="menu" style={position ?? undefined}>
-      {actions.map((action) => {
+      {actions.map((action, index) => {
         const reason = nothingSelected ? "Chọn dòng trong bảng trước" : action.disabledReason ?? (action.count === 0 ? "Không có dòng phù hợp" : undefined);
         const disabled = busy || Boolean(reason);
         const className = `admin-bulk-menu__item${action.tone === "danger" ? " admin-bulk-menu__item--danger" : ""}`;
@@ -53,9 +55,13 @@ export function AdminBulkMenu({ actions, busy }: { actions: AdminBulkMenuAction[
           <span className="admin-bulk-menu__icon">{action.icon}</span>
           <span>{action.label}{action.count ? ` (${action.count})` : ""}</span>
         </>;
-        return action.href && !disabled
-          ? <a className={className} download href={action.href} key={action.key} onClick={close} role="menuitem">{content}</a>
-          : <button aria-disabled={disabled || undefined} className={className} disabled={disabled} key={action.key} title={reason} onClick={(event) => { close(event); action.onSelect?.(); }} role="menuitem" type="button">{content}</button>;
+        const item = action.href && !disabled
+          ? <a className={className} download href={action.href} onClick={close} role="menuitem">{content}</a>
+          : <button aria-disabled={disabled || undefined} className={className} disabled={disabled} title={reason} onClick={(event) => { close(event); action.onSelect?.(); }} role="menuitem" type="button">{content}</button>;
+        return <Fragment key={action.key}>
+          {action.group && action.group !== actions[index - 1]?.group ? <div className="admin-bulk-menu__group" role="presentation">{action.group}</div> : null}
+          {item}
+        </Fragment>;
       })}
     </div>
   </details>;
