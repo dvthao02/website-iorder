@@ -10,6 +10,7 @@ Chọn tài liệu theo công việc:
 | Khởi động, sao lưu, phục hồi và triển khai | [Hướng dẫn vận hành hệ thống](DEPLOYMENT.md) |
 | Làm theo từng bước khi lên VPS lần đầu | [Checklist triển khai](DEPLOY_CHECKLIST.md) |
 | Cấu hình thống kê, tìm kiếm và khóa kết nối | [Kết nối và tìm kiếm](INTEGRATIONS.md) |
+| Tìm đúng file khi sửa code, thêm tính năng cần cập nhật những đâu | [Bản đồ mã nguồn](CODEMAP.md) |
 | Hiểu dữ liệu, quan hệ và migration | [Cơ sở dữ liệu](DATABASE.md) |
 | Xem việc còn mở và giới hạn kiểm chứng | [Hiện trạng và lộ trình](ROADMAP.md) |
 

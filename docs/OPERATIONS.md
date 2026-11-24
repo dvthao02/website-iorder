@@ -24,6 +24,14 @@ Những trang danh sách như Tin tức, Thiết bị và Phần mềm có phầ
 3. Người có quyền xuất bản chọn đăng ngay hoặc hẹn giờ và lưu. Mở website để kiểm tra nội dung, đường dẫn, ảnh và liên kết sau khi đăng.
 4. Muốn gỡ nội dung khỏi website, chuyển về bản nháp hoặc lưu trữ theo thao tác được cung cấp. Khi đổi đường dẫn, kiểm tra các liên kết liên quan và chuyển hướng.
 
+**Khóa bài viết, tin tức và hướng dẫn.** Bài đã chốt (ví dụ nội dung pháp lý hay bài cần giữ nguyên) có thể khóa để không ai sửa được nữa:
+- Người có quyền **Khóa** (mô-đun Bài viết) thấy nút **Khóa bài viết** ở đầu trình soạn; khóa xong, bài hiện ổ khóa cạnh tiêu đề trong danh sách và trình soạn chuyển sang chỉ đọc, kèm dòng "Bài viết đã khóa bởi … lúc …".
+- Bài khóa không ai sửa, đổi trạng thái (đăng/gỡ/lưu trữ), đổi chuyên mục, khôi phục phiên bản hay xóa được, kể cả người tạo bài và người có quyền Sửa hay Xuất bản; thao tác hàng loạt cũng bị chặn và báo "Nội dung đang bị khóa". Bài vẫn hiển thị trên website như cũ.
+- Chỉ người có quyền **Khóa** mới **Mở khóa** được (Super Admin có sẵn). Khóa và mở khóa không đổi nội dung nên không làm mới trang website, và đều ghi vào nhật ký hoạt động. Lưu thay đổi dở dang trước khi khóa.
+- Việc hệ thống tự cập nhật liên kết khi đổi chuyển hướng vẫn chạy trên bài khóa để liên kết không hỏng.
+- Quyền Khóa mặc định có ở **Super Admin**, **Trưởng nhóm nội dung**, **Quản lý nội dung** và **Marketing & SEO**; **Biên tập viên** và **Xuất bản viên** sửa/đăng được bài nhưng không khóa được. Vai trò đã tạo trước đó không tự có quyền mới: bật ở Vai trò & quyền (ô Khóa ở dòng Bài viết).
+- **Trưởng nhóm nội dung** (vai trò mẫu mới) soạn, duyệt, xuất bản và khóa/mở khóa mọi nội dung, xem menu và chuyển hướng, nhưng không đụng cấu hình hệ thống, người dùng, vai trò.
+
 Khi hệ thống báo nội dung đã thay đổi ở phiên khác, bản nhập hiện tại chưa được ghi. Sao chép phần đang sửa nếu cần, tải bản mới và đối chiếu trước khi lưu lại. Lịch sử phiên bản hỗ trợ xem và khôi phục nội dung khi màn hình có chức năng này.
 
 ## Trang và hình ảnh
@@ -44,7 +52,43 @@ Cấu trúc website có hai mục độc lập, mỗi mục có công tắc bậ
 
 ## Liên hệ, tài khoản và hệ thống
 
-Tại Khách hàng tiềm năng, mở liên hệ để theo dõi và cập nhật trạng thái. Khách bấm **Liên hệ mua hàng** ở một thiết bị (trang chi tiết hoặc bảng chi tiết trong danh sách thiết bị) sẽ điền ngay biểu mẫu hỏi mua tại trang đó, không sang trang Liên hệ chung: liên hệ có cột **Thiết bị hỏi mua** với tên, giá và tình trạng hàng **tại lúc khách gửi** (không đổi khi thiết bị sửa sau này; bấm tên để mở thiết bị), tìm được theo tên hoặc mã thiết bị và có trong tệp xuất. Website tự chặn liên hệ rác: gửi không qua biểu mẫu hoặc quá nhanh, ô bẫy bot, quá 5 liên hệ/10 phút từ một IP, quá 5 liên hệ/30 phút hoặc 10 liên hệ/ngày từ một số điện thoại, hai liên hệ liên tiếp của cùng một số cách nhau dưới 30 giây, số điện thoại/họ tên bịa, lời nhắn nhiều hơn một liên kết. Mỗi số điện thoại chỉ hỏi mua **một thiết bị một lần** trong 24 giờ (so theo mã thiết bị nên đổi tên hay slug thiết bị không né được); hỏi lại thì khách nhận thông báo "đã gửi yêu cầu cho thiết bị này" và cần bổ sung thì gọi hotline. Cùng một IP hỏi cùng một thiết bị tối đa 2 lần/giờ (đủ cho vài người cùng văn phòng). Liên hệ chung gửi trùng (cùng số và lời nhắn trong 24 giờ) chỉ lưu một dòng. Khách bị chặn nhận thông báo "thử lại sau ít phút" (không nêu số phút; chờ lâu hơn do giới hạn theo ngày thì mời gọi hotline). Chỉ xuất dữ liệu cho người có nhu cầu công việc và giữ tệp xuất an toàn. Vai trò và quyền do quản trị viên cấu hình; quyền truy cập trên máy chủ vẫn được kiểm tra kể cả khi giao diện có hiển thị nút.
+Tại **Khách hàng tiềm năng**, mở liên hệ để theo dõi, ghi chú, giao việc và cập nhật trạng thái. Chỉ xuất dữ liệu cho người có nhu cầu công việc và giữ tệp xuất an toàn. Vai trò và quyền do quản trị viên cấu hình; quyền truy cập trên máy chủ vẫn được kiểm tra kể cả khi giao diện có hiển thị nút.
+
+**Liên hệ mua thiết bị**
+- Khách bấm **Liên hệ mua hàng** ở một thiết bị (trang chi tiết hoặc bảng chi tiết trong danh sách thiết bị) sẽ điền ngay biểu mẫu hỏi mua tại trang đó, không sang trang Liên hệ chung.
+- Liên hệ có cột **Thiết bị hỏi mua** với tên, giá và tình trạng hàng **tại lúc khách gửi** (không đổi khi thiết bị sửa sau này; bấm tên để mở thiết bị). Tìm được theo tên hoặc mã thiết bị và có trong tệp xuất.
+
+**Website tự chặn liên hệ rác**
+- Gửi không qua biểu mẫu hoặc quá nhanh; ô bẫy bot.
+- Quá 5 liên hệ/10 phút từ một IP; quá 5 liên hệ/30 phút hoặc 10 liên hệ/ngày từ một số điện thoại; hai liên hệ liên tiếp của cùng một số cách nhau dưới 30 giây.
+- Số điện thoại sai quy tắc: đúng 10–11 chữ số bắt đầu bằng 0, `+84` thay cho số 0 đầu (nên +84 912 345 678 và 0912 345 678 là một số và được lưu dạng 0912345678). Họ tên bịa. Lời nhắn nhiều hơn một liên kết.
+- Mỗi số điện thoại chỉ hỏi mua **một thiết bị một lần** trong 24 giờ (so theo mã thiết bị nên đổi tên hay slug thiết bị không né được); hỏi lại thì khách nhận thông báo "đã gửi yêu cầu cho thiết bị này" và cần bổ sung thì gọi hotline. Cùng một IP hỏi cùng một thiết bị tối đa 2 lần/giờ (đủ cho vài người cùng văn phòng).
+- Liên hệ chung gửi trùng (cùng số và lời nhắn trong 24 giờ) chỉ lưu một dòng.
+- Khách bị chặn nhận thông báo "thử lại sau ít phút" (không nêu số phút; chờ lâu hơn do giới hạn theo ngày thì mời gọi hotline).
+
+**Danh sách và khung chi tiết**
+- Số điện thoại hiển thị chuẩn hóa (0964 350 515); liên hệ cũ thiếu số 0 hoặc sai quy tắc giữ nguyên và có nhãn "Số chưa chuẩn". Giờ gửi kèm "5 phút trước"; liên hệ **Mới** chờ quá 24 giờ có nhãn đỏ "Chờ 2 ngày".
+- Nhãn "Gửi N lần" khi cùng một số gửi nhiều liên hệ (mở liên hệ › Xem tất cả) và nhãn "Có ghi chú".
+- Bộ lọc trên thanh: **Người phụ trách** (Của tôi, Chưa giao, từng người) và **Chỉ hiện** (**Chờ quá 24 giờ**: liên hệ Mới bị bỏ quên; **Khách gửi nhiều lần**: để tìm và gộp liên hệ trùng). **Bộ lọc khác** chứa Nguồn (Hỏi mua thiết bị / Liên hệ chung) và Khoảng thời gian; số trên nút là số bộ lọc đang bật, và mọi bộ lọc đang áp dụng hiện thành nhãn bỏ được từng cái. Các tab trạng thái đếm trong nhóm đang xem. Ô tìm kiếm khớp số điện thoại bất kể cách viết (0964…, +84 964…).
+- **Ô tìm kiếm ở mọi màn danh sách tìm ngay khi gõ**: ngừng gõ khoảng nửa giây là lọc, không cần bấm Enter (Enter vẫn lọc ngay).
+- Bảng gọn hơn: cột **Nhu cầu / thiết bị** gộp nhu cầu khách chọn với thiết bị hỏi mua; cột Email ẩn mặc định (bật lại ở nút cài đặt cột góc phải bảng; liên hệ nào có email thì email hiện trong khung chi tiết).
+- Rê chuột vào một dòng (luôn hiện trên màn cảm ứng) thì cạnh số điện thoại hiện ba nút nhỏ **Gọi**, **Zalo** (chỉ với số hợp lệ) và **Sao chép** (đổi thành dấu tick khi đã chép); bấm các nút này không mở khung chi tiết. Chọn nhiều dòng thì menu **Thao tác** chia nhóm Trạng thái, Giao việc và Dọn dẹp.
+- Chân khung chi tiết luôn có thanh nút: **Trước / Sau** (xem vị trí `n/N` trong danh sách; phím ↑ ↓ hoặc K J, không áp dụng khi đang gõ vào ô nhập), **Xóa**, và một nút đổi trạng thái một chạm (Mới → **Đã liên hệ**, Đã liên hệ → **Đã xử lý**, Đã xử lý → **Mở lại**). Đổi trạng thái ở một tab lọc làm liên hệ rời khỏi tab thì khung tự chuyển sang liên hệ kế tiếp, nên xử lý liên tiếp không phải mở lại từng liên hệ.
+- Khung chi tiết có nút Gọi, Zalo, Sao chép số và **Sửa thông tin** (họ tên, số điện thoại, email; số điện thoại theo quy tắc chung và được lưu dạng chuẩn, nên đây cũng là cách sửa các số cũ có nhãn "Số chưa chuẩn"; nhật ký chỉ ghi tên trường đã sửa, không ghi giá trị); mục Xử lý lúc kèm tên người xử lý; ô **Ghi chú nội bộ** để ghi kết quả cuộc gọi, hẹn gọi lại (khách không thấy; nhật ký hoạt động chỉ ghi độ dài ghi chú, không ghi nội dung).
+- Tệp xuất có thêm cột Người xử lý, Người phụ trách và Ghi chú nội bộ.
+
+**Giao việc, xóa và gộp**
+- **Giao việc:** mỗi liên hệ có thể giao cho một người phụ trách (cột **Phụ trách** trong bảng, hoặc mục Người phụ trách trong khung chi tiết; **Nhận xử lý** là giao cho chính mình; chọn nhiều dòng rồi Thao tác › Giao cho… để giao hàng loạt). Chỉ nhân viên đang hoạt động có quyền **Sửa** Khách hàng tiềm năng (hoặc Super Admin) được giao, vì người chỉ xem không đổi được trạng thái hay ghi chú của liên hệ đã giao cho mình.
+- **Xóa liên hệ rác** (khung chi tiết, hoặc Thao tác › Xóa liên hệ rác cho nhiều dòng) và **Gộp các liên hệ cùng số** (chọn từ 2 liên hệ cùng một số điện thoại, Thao tác › Gộp) cần quyền *Xóa* của mô-đun Khách hàng tiềm năng. Super Admin có sẵn; vai trò khác do quản trị viên bật ở Vai trò & quyền.
+- Gộp giữ liên hệ mới nhất, ghi thiết bị, lời nhắn và trạng thái của các liên hệ cũ vào Ghi chú nội bộ của nó rồi xóa các liên hệ cũ. Liên hệ giữ lại lấy mức xử lý thấp nhất của cả nhóm (một liên hệ cũ chưa ai xử lý không biến mất) và thừa hưởng người phụ trách nếu chưa có.
+- **Xóa liên hệ xóa luôn thông tin cá nhân của khách** (tên, số điện thoại, email, lời nhắn, ghi chú) và không hoàn tác được. Liên hệ biến khỏi danh sách, thông báo, thống kê và tệp xuất; hệ thống chỉ giữ số điện thoại dạng chữ số, IP đã băm và thiết bị đó để chặn gửi rác lặp lại. Gộp cũng xóa như vậy các liên hệ cũ, vì nội dung đã nằm trong ghi chú của liên hệ giữ lại. Nếu chưa chắc là rác, chỉ cần chuyển trạng thái chứ đừng xóa. Liên hệ đã xóa từ phiên bản cũ (chỉ bị ẩn, còn giữ thông tin) được dọn nốt bằng `pnpm db:cleanup-leads` (chạy một lần, chạy lại không sao).
+
+**Chuông thông báo**
+- Nêu **từng việc một**: mỗi liên hệ chưa xử lý là một dòng "Gọi lại <tên> — hỏi mua <thiết bị>" kèm số điện thoại và thời gian chờ (quá 24 giờ có chấm đỏ, xếp trước), bấm vào mở thẳng liên hệ đó. Chỉ nêu liên hệ do bạn phụ trách hoặc chưa giao cho ai; người có quyền xóa liên hệ (quản lý) còn thấy liên hệ đã giao cho người khác nhưng quá 24 giờ chưa xử lý, dạng "Chị Lan chưa gọi lại …", để nhắc việc. Tối đa 5 dòng rồi gộp "Còn N liên hệ khác". Mỗi nội dung chờ duyệt cũng một dòng "Duyệt bài viết: <tiêu đề>" mở thẳng trang sửa.
+- Mỗi dòng có nút ✓ **đánh dấu đã đọc / chưa đọc** và nút × **xóa thông báo**; bấm vào dòng để mở việc đó cũng tự đánh dấu đã đọc; thanh phía trên có **Đọc tất cả** và **Xóa tất cả**. Chưa đọc có vạch xanh và chữ đậm, đã đọc mờ đi; số đỏ trên chuông là số việc **chưa đọc**.
+- Đã đọc hay đã xóa chỉ là của riêng từng tài khoản (người khác vẫn thấy thông báo đó) và dùng được trên mọi máy. "Xóa" chỉ ẩn thông báo, không xóa liên hệ hay bài viết: khi thông báo đó có diễn biến mới (liên hệ vừa quá hạn hoặc vừa được giao cho bạn, bài vừa được sửa lại, số việc còn lại tăng) nó hiện lại như thông báo mới; việc đã xử lý xong thì thông báo tự mất.
+- Chuông tự cập nhật mỗi phút; việc mới tới trong lúc bạn đang mở CMS có thông báo nổi ở góc màn hình.
+
 
 Nhật ký hoạt động chỉ đọc đối với mọi vai trò; nội dung từng dòng không sửa được. Super Admin có nút **Xóa nhật ký** (xóa các dòng cũ hơn 30 ngày, 90 ngày, 6 tháng hoặc 1 năm, mọi dòng đang khớp bộ lọc, hoặc toàn bộ) và chọn từng dòng để xóa; hộp xác nhận cho biết trước số dòng sẽ bị xóa và phải gõ chữ xác nhận ("xóa hết" khi xóa toàn bộ). Mỗi lần xóa để lại một dòng "Xóa nhật ký hoạt động" ghi ai xóa, lúc nào, phạm vi và số dòng; các dòng này không bao giờ bị xóa. Bản sao lưu database tạo trước đó vẫn chứa các dòng đã xóa.
 
