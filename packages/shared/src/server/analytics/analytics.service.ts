@@ -50,6 +50,12 @@ function vietnamDate(instant: number) {
   return new Date(instant + vietnamOffsetMilliseconds).toISOString().slice(0, 10);
 }
 
+const topPagesLimit = 8;
+// Đường dẫn nội bộ không phải trang khách xem (khung xem trước CMS, API, thống kê): không đưa vào "Trang xem nhiều nhất",
+// kể cả lượt đã ghi từ trước khi website thôi nạp Umami ở bản xem trước.
+const internalPathPrefixes = ["/cms-preview", "/api", "/admin", "/stats"];
+export const isInternalPath = (path: string) => internalPathPrefixes.some((prefix) => path === prefix || path.startsWith(`${prefix}/`) || path.startsWith(`${prefix}?`));
+
 export function createAnalyticsService({ fetch: fetcher, env, now, cmsSecret }: AnalyticsDependencies) {
   const envNames: Record<UmamiSecretKey, string> = { umami_api_url: "UMAMI_API_URL", umami_api_key: "UMAMI_API_KEY", umami_website_id: "UMAMI_WEBSITE_ID" };
   // Chỉ hỏi CMS những biến mà môi trường chưa đặt; CMS lỗi hoặc chưa giải mã được thì coi như chưa có.
@@ -88,7 +94,7 @@ export function createAnalyticsService({ fetch: fetcher, env, now, cmsSecret }: 
       const [stats, series, pages] = await Promise.all([
         request(config, "stats", range, umamiStatsSchema),
         request(config, "pageviews", { ...range, unit: "day", timezone }, umamiPageviewsSchema),
-        request(config, "metrics", { ...range, type: "path", limit: 8 }, umamiMetricsSchema),
+        request(config, "metrics", { ...range, type: "path", limit: topPagesLimit * 2 }, umamiMetricsSchema),
       ]);
 
       // Umami bỏ qua ngày không có dữ liệu: điền đủ số ngày để biểu đồ không bị thiếu cột.
@@ -106,7 +112,7 @@ export function createAnalyticsService({ fetch: fetcher, env, now, cmsSecret }: 
         totals: totalsFrom(stats),
         previous: totalsFrom(stats.comparison ?? {}),
         daily,
-        topPages: pages.filter((page) => page.x).map((page) => ({ path: page.x, visitors: page.y })),
+        topPages: pages.filter((page) => page.x && !isInternalPath(page.x)).slice(0, topPagesLimit).map((page) => ({ path: page.x, visitors: page.y })),
       };
     } catch (error) {
       logger.error("Không lấy được số liệu truy cập từ Umami.", { periodDays, error });

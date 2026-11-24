@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { createAnalyticsService } from "./analytics.service";
+import { createAnalyticsService, isInternalPath } from "./analytics.service";
 
 const websiteId = "12345678-1234-4123-8123-123456789012";
 const env = { UMAMI_API_URL: "http://umami:3000/", UMAMI_API_KEY: "umami_khoa_thu", UMAMI_WEBSITE_ID: websiteId };
@@ -77,6 +77,22 @@ test("Gọi Umami bằng API key, 7 ngày giờ Việt Nam, điền đủ ngày 
     assert.equal(call.url.searchParams.get("startAt"), String(Date.parse("2026-10-09T17:00:00Z")));
     assert.equal(call.url.searchParams.get("endAt"), String(now().getTime()));
   }
+});
+
+test("Trang xem nhiều nhất bỏ đường dẫn nội bộ (khung xem trước CMS, API, thống kê), vẫn đủ 8 trang thật", async () => {
+  const real = Array.from({ length: 9 }, (_, index) => ({ x: `/news/bai-${index}`, y: 20 - index }));
+  const fetcher = async (input: RequestInfo | URL) => {
+    const url = new URL(String(input));
+    if (url.pathname.endsWith("/stats")) return json({ pageviews: 1, visitors: 1, visits: 1, bounces: 0, totaltime: 10, comparison: { pageviews: 0, visitors: 0, visits: 0, bounces: 0, totaltime: 0 } });
+    if (url.pathname.endsWith("/pageviews")) return json({ pageviews: [], sessions: [] });
+    return json([{ x: "/cms-preview", y: 99 }, { x: "/api/preview", y: 50 }, { x: "/admin/login", y: 40 }, { x: "/stats/script.js", y: 30 }, ...real]);
+  };
+  const overview = await createAnalyticsService({ fetch: fetcher as typeof fetch, env, now }).getAnalyticsOverview();
+  assert.ok(overview.connection === "connected");
+  assert.deepEqual(overview.topPages.map((page) => page.path), real.slice(0, 8).map((page) => page.x));
+  for (const path of ["/cms-preview", "/cms-preview?token=x", "/api", "/api/preview", "/admin/login", "/stats/script.js"]) assert.equal(isInternalPath(path), true, path);
+  // Tên chỉ bắt đầu giống (không phải thư mục con) vẫn là trang thật.
+  for (const path of ["/", "/news", "/cms-previews", "/api-docs", "/administration", "/support/guides"]) assert.equal(isInternalPath(path), false, path);
 });
 
 test("Umami lỗi hoặc trả dữ liệu lạ: trạng thái lỗi rõ ràng, không ném ra ngoài", async (context) => {

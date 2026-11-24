@@ -22,12 +22,17 @@ const sans = Google_Sans_Flex({ subsets: ["latin", "vietnamese"], variable: "--f
 // without rebuilding the image.
 export const revalidate = 0;
 
+/** Bản xem trước (khung xem trước của trình dựng trong CMS, bản nháp): không cho công cụ tìm kiếm lập chỉ mục và không tính vào thống kê truy cập. */
+async function isPreviewRequest() {
+  return (await draftMode()).isEnabled || Boolean((await headers()).get("x-iorder-builder-preview"));
+}
+
 export async function generateMetadata(): Promise<Metadata> {
   const [config, profile] = await Promise.all([getPublishingConfig(), getSiteProfile()]);
   const image = config.defaultOgMediaId && config.siteUrl ? await getMediaById(config.defaultOgMediaId) : null;
   const title = config.defaultTitle ?? profile?.companyName ?? "iOrder";
   const description = config.defaultDescription ?? "Nền tảng vận hành và giải pháp công nghệ cho doanh nghiệp.";
-  const preview = (await draftMode()).isEnabled || Boolean((await headers()).get("x-iorder-builder-preview"));
+  const preview = await isPreviewRequest();
   return { metadataBase: config.siteUrl ? new URL(config.siteUrl) : undefined, title, description, robots: robotsDirectives(!preview && config.allowSearchIndexing, !preview && config.allowSearchIndexing), alternates: config.siteUrl && config.allowSearchIndexing ? { types: { "application/rss+xml": [{ url: "/feed.xml", title: `${title} – Tin tức` }] } } : undefined, openGraph: { type: "website", locale: "vi_VN", title, description, siteName: title, images: image ? [{ url: image.url, alt: image.altText ?? title }] : undefined } };
 }
 
@@ -35,12 +40,13 @@ export async function generateMetadata(): Promise<Metadata> {
 // (Caddy ở production, rewrite của Next ở local), nên không cần domain riêng hay cấu hình CORS.
 // Mã website lấy từ Backend (biến môi trường UMAMI_WEBSITE_ID thắng, không có thì mã nhập ở CMS → Kết nối & khóa API).
 
+// Không nạp Umami ở bản xem trước: mỗi lần người vận hành mở khung xem trước trong CMS sẽ không bị tính là một lượt xem trang /cms-preview.
 export default async function RootLayout({ children }: { children: ReactNode }) {
-  const [config, profile, externalLinks, umamiWebsiteId] = await Promise.all([getPublishingConfig(), getSiteProfile(), getExternalLinks(), getUmamiWebsiteId()]);
+  const [config, profile, externalLinks, umamiWebsiteId, preview] = await Promise.all([getPublishingConfig(), getSiteProfile(), getExternalLinks(), getUmamiWebsiteId(), isPreviewRequest()]);
   const logo = profile?.logoMediaId ? await getMediaById(profile.logoMediaId) : null;
   return (
     <html className={sans.variable} data-scroll-behavior="smooth" lang="vi">
-      <body suppressHydrationWarning><StructuredData config={config} externalLinks={externalLinks} logoUrl={logo?.url ?? null} profile={profile} />{children}{umamiWebsiteId ? <Script data-website-id={umamiWebsiteId} src="/stats/script.js" strategy="afterInteractive" /> : null}</body>
+      <body suppressHydrationWarning><StructuredData config={config} externalLinks={externalLinks} logoUrl={logo?.url ?? null} profile={profile} />{children}{umamiWebsiteId && !preview ? <Script data-website-id={umamiWebsiteId} src="/stats/script.js" strategy="afterInteractive" /> : null}</body>
     </html>
   );
 }
