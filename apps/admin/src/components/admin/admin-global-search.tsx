@@ -3,7 +3,7 @@ import { readAdminJson } from "@/lib/admin-api";
 
 import Link from "next/link";
 import { FileSearch, LoaderCircle, Search, X } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { z } from "zod";
 
 import { AdminButton } from "./ui/admin-button";
@@ -15,7 +15,19 @@ const searchResponseSchema = z.object({ items: z.array(z.object({
 type SearchResult = z.infer<typeof searchResponseSchema>["items"][number];
 type SearchState = { query: string; items: SearchResult[]; status: "ready" | "error" };
 
+// Cùng ngưỡng với CSS thu hẹp ô tìm kiếm ở shell.css (max-width: 680px): ô chỉ rộng chừng 110px nên gợi ý dài bị cắt giữa chữ.
+const compactQuery = "(max-width: 680px)";
+
+function useCompactViewport() {
+  return useSyncExternalStore(
+    (notify) => { const media = window.matchMedia(compactQuery); media.addEventListener("change", notify); return () => media.removeEventListener("change", notify); },
+    () => window.matchMedia(compactQuery).matches,
+    () => false,
+  );
+}
+
 export function AdminGlobalSearch() {
+  const compact = useCompactViewport();
   const [query, setQuery] = useState("");
   const [result, setResult] = useState<SearchState | null>(null);
   const [isOpen, setIsOpen] = useState(false);
@@ -68,7 +80,7 @@ export function AdminGlobalSearch() {
       } else if (event.key === "Enter" && showResults && items[activeIndex]) {
         event.preventDefault(); optionRefs.current[activeIndex]?.click();
       }
-    }} placeholder="Tìm toàn CMS: tiêu đề, slug, URL, tệp…" ref={inputRef} role="combobox" value={query} />
+    }} placeholder={compact ? "Tìm trong CMS…" : "Tìm toàn CMS: tiêu đề, slug, URL, tệp…"} ref={inputRef} role="combobox" value={query} />
     {isLoading ? <LoaderCircle aria-hidden="true" className="admin-global-search__loading" size={16} /> : null}
     {query ? <button aria-label="Xóa tìm kiếm" onClick={() => { setQuery(""); setResult(null); setActiveIndex(-1); inputRef.current?.focus(); }} type="button"><X aria-hidden="true" size={15} /></button> : null}
     {showResults ? <div className="admin-global-search__results">
