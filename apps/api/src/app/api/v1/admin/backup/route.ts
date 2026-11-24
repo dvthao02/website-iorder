@@ -4,7 +4,7 @@ import { z } from "zod";
 import { getRequestAdministrator } from "@iorder/shared/server/auth/request-administrator";
 import { backupKeepSchema, updateBackupKeep } from "@iorder/shared/server/backup/backup-retention";
 import { backupStampSchema, clearBackupHistory, getBackupOverview } from "@iorder/shared/server/backup/backup-status";
-import { deleteLocalBackup, isNightlyBackupScheduled, listLocalBackups, runLocalBackup, restoreLocalBackup, scheduleNightlyBackup, unscheduleNightlyBackup } from "@iorder/shared/server/backup/local-ops";
+import { deleteLocalBackup, isNightlyBackupScheduled, isOneClickBackupSupported, listLocalBackups, runLocalBackup, restoreLocalBackup, scheduleNightlyBackup, unscheduleNightlyBackup } from "@iorder/shared/server/backup/local-ops";
 import { ContentVersionConflictError, expectedVersionSchema } from "@iorder/shared/server/shared/content-version";
 import { logger } from "@iorder/shared/server/shared/logger";
 import { withRequestContext } from "@/lib/request-context";
@@ -19,7 +19,8 @@ async function handleGET(request: Request) {
   try {
     // local: các bản sao lưu đang nằm trên đĩa máy này (null khi database không chạy cục bộ, CMS ẩn mục tương ứng).
     const [backup, scheduled, local] = await Promise.all([getBackupOverview(), isNightlyBackupScheduled().catch(() => false), listLocalBackups()]);
-    return NextResponse.json({ backup, scheduled, local });
+    // oneClick: nút Sao lưu ngay, lịch tự động và phục hồi chỉ dùng được khi CMS chạy cùng máy với database (không phải trong Docker).
+    return NextResponse.json({ backup, scheduled, local, oneClick: isOneClickBackupSupported() });
   } catch (error) {
     logger.error("Không đọc được trạng thái sao lưu.", { request, error });
     return fail("INTERNAL_ERROR", "Không đọc được trạng thái sao lưu. Vui lòng thử lại.", 500);

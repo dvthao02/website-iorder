@@ -139,9 +139,10 @@ export async function getAdminNotifications(): Promise<AdminNotifications> {
 export async function getBackupStatus(days?: number): Promise<BackupStatus | null> { return (await getDashboard(days))?.backup ?? null; }
 type BackupOverview = Awaited<ReturnType<typeof getBackupOverviewFromCore>>;
 // local: bản sao lưu đang nằm trên đĩa máy này; null khi database không chạy cục bộ (CMS ẩn các mục tương ứng).
-export async function getBackupOverview(): Promise<(BackupOverview & { scheduled: boolean; local: LocalBackupLibrary | null }) | null> {
-  const payload = await getData<{ backup: BackupOverview; scheduled: boolean; local: LocalBackupLibrary | null }>("/api/v1/admin/backup");
-  return payload ? { ...payload.backup, scheduled: payload.scheduled, local: payload.local ?? null } : null;
+export async function getBackupOverview(): Promise<(BackupOverview & { scheduled: boolean; local: LocalBackupLibrary | null; oneClick: boolean }) | null> {
+  const payload = await getData<{ backup: BackupOverview; scheduled: boolean; local: LocalBackupLibrary | null; oneClick?: boolean }>("/api/v1/admin/backup");
+  // oneClick: sao lưu một cú bấm chạy được (CMS cùng máy với database); API cũ chưa trả trường này thì coi như có, như trước.
+  return payload ? { ...payload.backup, scheduled: payload.scheduled, local: payload.local ?? null, oneClick: payload.oneClick ?? true } : null;
 }
 export async function getPublishingReadiness(days?: number): Promise<PublishingReadiness> { return (await getDashboard(days))?.readiness ?? []; }
 // null: người xem không có quyền (403) — màn chỉ ẩn phần kiểm tra SEO.

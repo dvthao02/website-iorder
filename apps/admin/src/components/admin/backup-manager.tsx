@@ -14,7 +14,7 @@ import { AdminButton } from "./ui/admin-button";
 import { AdminCard } from "./ui/admin-card";
 import { useAdminConfirm } from "./ui/admin-confirm-dialog";
 import { AdminDataTable, type AdminDataTableColumn } from "./ui/admin-data-table";
-import { AdminStatusBadge, useAdminToast } from "./ui/admin-feedback";
+import { AdminNotice, AdminStatusBadge, useAdminToast } from "./ui/admin-feedback";
 import { AdminInput } from "./ui/admin-input";
 
 const kindLabel = { success: "Thành công", failure: "Lỗi", restore: "Đã phục hồi" } as const;
@@ -44,7 +44,7 @@ function Steps({ steps }: { steps: BackupStep[] }) {
  * Sao lưu ngay, lịch tự động mỗi đêm, số bản giữ lại, danh sách bản trên máy (phục hồi, tải về, xóa, nhập) và
  * lịch sử 30 lần gần nhất (xóa được). Mọi thao tác chỉ Super Admin làm được; người chỉ có quyền xem thấy lịch sử.
  */
-export function BackupManager({ canOperate, history, keep, local, scheduled: initialScheduled }: { canOperate: boolean; history: BackupHistoryEntry[]; keep: BackupKeepSetting; local: LocalBackupLibrary | null; scheduled: boolean }) {
+export function BackupManager({ canOperate, history, keep, local, oneClick, scheduled: initialScheduled }: { canOperate: boolean; history: BackupHistoryEntry[]; keep: BackupKeepSetting; local: LocalBackupLibrary | null; oneClick: boolean; scheduled: boolean }) {
   const router = useRouter();
   const { show } = useAdminToast();
   const { confirm } = useAdminConfirm();
@@ -154,13 +154,13 @@ export function BackupManager({ canOperate, history, keep, local, scheduled: ini
     <AdminCard>
       <header><div><h2>Sao lưu</h2><p>Dump database (kèm khôi phục thử) và toàn bộ ảnh, tệp media vào máy này; giữ {keep.value} bản database gần nhất.</p></div></header>
       {canOperate ? <>
-        <div className="admin-backup__actions">
+        {oneClick ? <div className="admin-backup__actions">
           <AdminButton leadingIcon={running ? <LoaderCircle aria-hidden="true" className="admin-content-actions__spinner" size={16} /> : <Save aria-hidden="true" size={16} />} disabled={running} onClick={() => void runNow()}>{running ? "Đang sao lưu…" : "Sao lưu ngay"}</AdminButton>
           <AdminButton leadingIcon={scheduling ? <LoaderCircle aria-hidden="true" className="admin-content-actions__spinner" size={16} /> : <History aria-hidden="true" size={16} />} disabled={scheduling} onClick={() => void toggleSchedule()} variant="secondary">
             {scheduled ? "Tắt tự động sao lưu mỗi đêm" : "Bật tự động sao lưu mỗi đêm 21:00"}
           </AdminButton>
           {scheduled ? <AdminStatusBadge tone="success">Đang tự động chạy mỗi đêm</AdminStatusBadge> : null}
-        </div>
+        </div> : <AdminNotice tone="info"><strong>Sao lưu một cú bấm không dùng được ở đây.</strong> CMS đang chạy trong Docker (hoặc ở máy khác với database) nên không điều khiển được sao lưu, phục hồi và lịch tự động. Hãy sao lưu bằng lệnh trên máy: <code>pnpm backup:local</code> (Windows) hoặc <code>scripts/backup.sh</code> (VPS). Muốn tự động mỗi đêm: chạy <code>pnpm backup:schedule</code> một lần trên máy Windows (gỡ bằng <code>pnpm backup:unschedule</code>), hoặc lên lịch cron trên VPS theo hướng dẫn bên dưới. Kết quả mỗi lần chạy hiện ở Lịch sử và Tình trạng. Số bản giữ lại bên dưới vẫn áp dụng cho các lệnh này.</AdminNotice>}
         <form className="admin-backup__keep" onSubmit={(event) => void saveKeep(event)}>
           <label htmlFor="backup-keep">Số bản database giữ lại</label>
           <AdminInput aria-describedby="backup-keep-help" id="backup-keep" inputMode="numeric" max={keep.max} min={keep.min} onChange={(event) => setKeepInput(event.target.value)} step={1} type="number" value={keepInput} />

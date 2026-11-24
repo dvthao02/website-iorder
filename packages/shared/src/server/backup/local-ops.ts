@@ -47,17 +47,33 @@ function requiredEnv(name: string) {
   return value;
 }
 
+/**
+ * Lý do "Sao lưu ngay", phục hồi một cú bấm và lịch tự động không chạy được: CMS không ở cùng máy với database
+ * (thường là CMS chạy trong Docker, database là container `db`). Đây không phải sao lưu lỗi nên không ghi vào lịch sử hay thông báo.
+ */
+export const unsupportedBackupMessage = "CMS đang chạy trong Docker (hoặc ở máy khác với database) nên không điều khiển được sao lưu một cú bấm. Hãy sao lưu bằng lệnh trên máy: pnpm backup:local (Windows) hoặc scripts/backup.sh (VPS), và đặt lịch tự động mỗi đêm bằng pnpm backup:schedule (Windows) hoặc cron (VPS); kết quả hiện ở Lịch sử và Tình trạng.";
+
 /** Sao lưu/phục hồi một cú bấm chỉ hỗ trợ cơ sở dữ liệu đang chạy ngay trên máy này. */
 export function assertLocalDatabaseUrl() {
   const hostname = new URL(requiredEnv("DATABASE_URL")).hostname;
   if (!["localhost", "127.0.0.1", "[::1]"].includes(hostname)) {
-    throw new Error("Sao lưu/phục hồi một cú bấm chỉ hỗ trợ cơ sở dữ liệu chạy trên máy này (localhost). Trên máy chủ thật, hãy làm theo các bước thủ công.");
+    throw new Error(unsupportedBackupMessage);
   }
 }
 
 function databaseCredentials() {
   const url = new URL(requiredEnv("DATABASE_URL"));
   return { database: assertDatabaseName(url.pathname.replace(/^\//, "")), user: decodeURIComponent(url.username) };
+}
+
+/** Sao lưu một cú bấm chạy được khi database ở ngay máy này (localhost); trong Docker (host `db`) hoặc database ở máy khác thì không. */
+export function isOneClickBackupSupported() {
+  try {
+    assertLocalDatabaseUrl();
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /** apps/api chạy với thư mục làm việc là apps/api (pnpm --filter chạy script tại đó). */
@@ -212,6 +228,8 @@ async function performBackup({ prune = true }: { prune?: boolean } = {}): Promis
 /** "Sao lưu ngay": dump + khôi phục thử + sao lưu media + dọn bản cũ + ghi trạng thái. Không đụng dữ liệu đang chạy. */
 export async function runLocalBackup(actorId?: string): Promise<LocalBackupOutcome> {
   if (operationInProgress) return { ok: false, message: busyMessage };
+  // Chưa chạm vào đĩa và không ghi "lỗi": môi trường không hỗ trợ không phải một lần sao lưu thất bại.
+  if (!isOneClickBackupSupported()) return { ok: false, message: unsupportedBackupMessage };
   operationInProgress = true;
   let releaseFileLock: (() => Promise<void>) | null = null;
   try {
@@ -247,6 +265,7 @@ export type LocalRestoreOutcome = { ok: true; preBackup: LocalBackupSuccess; med
 export async function restoreLocalBackup(stamp: string, actorId?: string): Promise<LocalRestoreOutcome> {
   if (!backupStampSchema.safeParse(stamp).success) return { ok: false, message: "Tên bản sao lưu không hợp lệ." };
   if (operationInProgress) return { ok: false, message: busyMessage };
+  if (!isOneClickBackupSupported()) return { ok: false, message: unsupportedBackupMessage };
   operationInProgress = true;
   let releaseFileLock: (() => Promise<void>) | null = null;
   let swapped = false; // từ lúc true, database thật đã là bản phục hồi: lỗi sau đó không còn "không mất gì"
@@ -395,6 +414,7 @@ export async function isNightlyBackupScheduled(): Promise<boolean> {
 }
 
 export async function scheduleNightlyBackup(): Promise<{ ok: true } | { ok: false; message: string }> {
+  if (!isOneClickBackupSupported()) return { ok: false, message: unsupportedBackupMessage };
   try {
     const { repoRoot } = localBackupConfig();
     await assertRepoRoot(repoRoot);
@@ -408,6 +428,7 @@ export async function scheduleNightlyBackup(): Promise<{ ok: true } | { ok: fals
 }
 
 export async function unscheduleNightlyBackup(): Promise<{ ok: true } | { ok: false; message: string }> {
+  if (!isOneClickBackupSupported()) return { ok: false, message: unsupportedBackupMessage };
   try {
     await execFileAsync("schtasks", ["/Delete", "/TN", scheduledTaskName, "/F"]);
     return { ok: true };
