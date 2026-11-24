@@ -1,5 +1,6 @@
 import { cleanupExpiredLoginThrottles } from "@iorder/shared/server/auth/login-throttle.repository";
 import { recordJobRun } from "@iorder/shared/server/system/job-runs";
+import { describeScriptError } from "./lib/script-error";
 
 const rawLimit = process.env.AUTH_THROTTLE_CLEANUP_LIMIT;
 const limit = rawLimit === undefined ? 500 : Number(rawLimit);
@@ -12,8 +13,8 @@ async function main() {
   await recordJobRun("login-throttles", { ok: true, summary });
 }
 
-void main().catch(async () => {
-  console.error("Không thể dọn bucket quota đăng nhập.");
+void main().catch(async (error: unknown) => {
+  console.error(`Không thể dọn bucket quota đăng nhập: ${describeScriptError(error, "cleanup-login-throttles")}`);
   await recordJobRun("login-throttles", { ok: false, summary: "Không thể dọn bucket quota đăng nhập." });
   process.exitCode = 1;
 });

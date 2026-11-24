@@ -1,5 +1,6 @@
 import { cleanupExpiredSessions } from "@iorder/shared/server/auth/session-cleanup.repository";
 import { recordJobRun } from "@iorder/shared/server/system/job-runs";
+import { describeScriptError } from "./lib/script-error";
 
 const rawLimit = process.env.SESSION_CLEANUP_LIMIT;
 const limit = rawLimit === undefined ? 1_000 : Number(rawLimit);
@@ -12,8 +13,8 @@ async function main() {
   await recordJobRun("session-cleanup", { ok: true, summary });
 }
 
-void main().catch(async () => {
-  console.error("Không thể dọn phiên đăng nhập.");
+void main().catch(async (error: unknown) => {
+  console.error(`Không thể dọn phiên đăng nhập: ${describeScriptError(error, "cleanup-expired-sessions")}`);
   await recordJobRun("session-cleanup", { ok: false, summary: "Không thể dọn phiên đăng nhập." });
   process.exitCode = 1;
 });

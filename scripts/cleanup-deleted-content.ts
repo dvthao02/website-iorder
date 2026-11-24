@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import { getDb } from "@iorder/shared/db/client";
 import { recordJobRun } from "@iorder/shared/server/system/job-runs";
+import { describeScriptError } from "./lib/script-error";
 
 // Dọn "thùng rác" của CMS: nội dung đã xóa mềm (deleted_at) quá hạn và các dòng tạm đã hết hạn.
 // Mặc định chỉ ĐẾM (dry-run); thêm --apply mới xóa thật. --days N đổi số ngày giữ lại (mặc định 30).
@@ -54,8 +55,8 @@ async function main() {
   if (apply) await recordJobRun("content-cleanup", { ok: true, summary: `Đã dọn (xóa mềm quá ${days} ngày) — ${lines.join("; ")}` });
 }
 
-void main().then(() => process.exit(0)).catch(async () => {
-  console.error("Không thể dọn nội dung đã xóa.");
+void main().then(() => process.exit(0)).catch(async (error: unknown) => {
+  console.error(`Không thể dọn nội dung đã xóa: ${describeScriptError(error, "cleanup-deleted-content")}`);
   if (apply) await recordJobRun("content-cleanup", { ok: false, summary: "Không thể dọn nội dung đã xóa." });
   process.exit(1);
 });

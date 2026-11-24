@@ -5,6 +5,7 @@ import {
 } from "@iorder/shared/server/media/media.repository";
 import { removeStoredObject } from "@iorder/shared/server/media/storage";
 import { recordJobRun } from "@iorder/shared/server/system/job-runs";
+import { describeScriptError } from "./lib/script-error";
 
 const retentionDays = 7;
 async function main() {
@@ -24,8 +25,8 @@ async function main() {
     try {
       await removeStoredObject(asset.storageKey);
       if (await permanentlyDeleteQueuedMediaAsset(asset.id)) removed += 1;
-    } catch {
-      console.error(`Chưa thể dọn media ${asset.id}; sẽ thử lại ở lần sau.`);
+    } catch (error) {
+      console.error(`Chưa thể dọn media ${asset.id} (${describeScriptError(error)}); sẽ thử lại ở lần sau.`);
     }
   }
 
@@ -34,8 +35,8 @@ async function main() {
   await recordJobRun("media-cleanup", { ok: true, summary });
 }
 
-void main().catch(async () => {
-  console.error("Không thể hoàn tất dọn media đã xóa.");
+void main().catch(async (error: unknown) => {
+  console.error(`Không thể hoàn tất dọn media đã xóa: ${describeScriptError(error, "cleanup-deleted-media")}`);
   await recordJobRun("media-cleanup", { ok: false, summary: "Không thể hoàn tất dọn media đã xóa." });
   process.exitCode = 1;
 });
