@@ -127,13 +127,14 @@ export const heroLayoutSchema = z.enum(["split", "split_reverse", "background", 
 export type HeroLayout = z.infer<typeof heroLayoutSchema>;
 // Nền của một phần trang: sáng (trắng) hoặc nhạt (màu nền thương hiệu rất nhạt) để xen kẽ các phần liền nhau.
 export const sectionToneSchema = z.enum(["light", "tinted"]);
-// Nền phần đầu trang: trắng, xanh biển nhạt hoặc tối (chữ trắng, chỉ dùng cho kiểu ảnh nền).
+// Nền phần đầu trang: trắng, xanh biển nhạt hoặc tối (chữ trắng, dùng cho kiểu ảnh nền và trượt nhiều ảnh).
 export const heroToneSchema = z.enum(["light", "tinted", "dark"]);
 export type HeroTone = z.infer<typeof heroToneSchema>;
 // Mặc định xanh biển nhạt cho mọi kiểu (kể cả ảnh nền: lớp phủ sáng, chữ đậm); nền tối phải chọn rõ.
+// Riêng kiểu trượt nhiều ảnh mặc định tối (menu trong suốt chữ trắng phía trên ảnh, như trước khi chọn được nền) và cũng cho chọn tối.
 export function heroToneOf(data: { layout: HeroLayout; tone?: HeroTone | null }): HeroTone {
-  const tone = data.tone ?? "tinted";
-  return tone === "dark" && data.layout !== "background" ? "tinted" : tone;
+  const tone = data.tone ?? (data.layout === "slider" ? "dark" : "tinted");
+  return tone === "dark" && data.layout !== "background" && data.layout !== "slider" ? "tinted" : tone;
 }
 // Một slide của kiểu "Trượt nhiều ảnh": ảnh bắt buộc; chữ và nút tùy chọn (ảnh đã có chữ thì để trống).
 // Khối nội dung trượt của các kiểu chữ – ảnh, ảnh nền, chữ ở giữa: mỗi khối có chữ, nút và ảnh riêng;

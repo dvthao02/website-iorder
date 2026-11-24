@@ -237,7 +237,7 @@ export function BlockAppearanceFields({ block, onChange, disabled, onUploadingCh
   const hero = block.type === "hero" ? block : null;
   if (hero?.data.layout === "slider") return <fieldset className="admin-block-group">
     <legend>Giao diện phần đầu trang</legend>
-    <AdminHelpTip className="admin-help-tip--corner" label="Giải thích giao diện phần đầu trang">Kiểu trượt nhiều ảnh luôn hiển thị ảnh toàn chiều ngang với lớp phủ tối. Màu nền và độ rộng riêng không áp dụng cho kiểu này. Sửa chữ, ảnh và nút của từng mục ở tab Nội dung.</AdminHelpTip>
+    <AdminHelpTip className="admin-help-tip--corner" label="Giải thích giao diện phần đầu trang">Kiểu trượt nhiều ảnh hiển thị ảnh toàn chiều ngang với lớp phủ tối, nằm ngay dưới menu và cao vừa phần màn hình còn lại sau menu. Màu nền chọn ở ô Màu nền cùng tab Bố cục khối: hiện ở dải phía sau menu và khi chưa có ảnh. Độ rộng riêng không áp dụng cho kiểu này. Sửa chữ, ảnh và nút của từng mục ở tab Nội dung.</AdminHelpTip>
     {anchorField}
   </fieldset>;
   const options: AppearanceEditorOptions = hero ? {

@@ -682,7 +682,6 @@ a.site-footer__heading:hover { color: var(--color-brand-700); }
   }
   /* `section` để thắng chiều cao mặc định của .hero-slider khai báo phía dưới. */
   section .hero-slider { height: max(100svh - var(--header-height), 520px); }
-  [data-hero-flush] .hero-slider { height: max(100svh, 560px); }
 }
 
 /* Phần đầu trang kiểu "Trượt nhiều ảnh". */
@@ -700,7 +699,6 @@ a.site-footer__heading:hover { color: var(--color-brand-700); }
 @media (max-width: 640px) {
   .hero-slider { height: 580px; }
   .hero-slider__overlay { align-items: flex-end; padding-bottom: 72px; background: rgb(2 6 23 / .62); }
-  [data-hero-flush] .hero-slider__overlay { padding-top: var(--header-height); }
   .hero-slider__arrow { top: auto; bottom: 8px; width: 38px; height: 38px; transform: none; }
   .hero-slider__arrow--prev { left: 16px; }
   .hero-slider__arrow--next { right: 16px; }

@@ -415,6 +415,7 @@ const heroImageHints: Record<Exclude<HeroLayout, "slider">, { label: string; hin
 function HeroToneField({ block, onChange, disabled }: { block: HeroBlock; onChange: (block: PageBlock) => void; disabled?: boolean }) {
   const data = block.data;
   const background = data.layout === "background";
+  const slider = data.layout === "slider";
   const appearance = { ...defaultAppearance, ...block.appearance };
   const custom = appearance.tone === "custom";
   const color = appearance.backgroundColor ?? colorSwatches[1].value;
@@ -426,7 +427,7 @@ function HeroToneField({ block, onChange, disabled }: { block: HeroBlock; onChan
     <label className="admin-field">{background ? "Lớp phủ lên ảnh" : "Màu nền"}<AdminSelect disabled={disabled} onChange={event => choose(event.target.value)} value={custom ? "custom" : heroToneOf(data)}>
       <option value="light">{background ? "Trắng (chữ đậm)" : "Trắng"}</option>
       <option value="tinted">{background ? "Xanh biển nhạt (chữ đậm)" : "Xanh biển nhạt"}</option>
-      {background ? <option value="dark">Tối (chữ trắng)</option> : null}
+      {background || slider ? <option value="dark">Tối (chữ trắng)</option> : null}
       <option value="custom">Màu tự chọn…</option>
     </AdminSelect></label>
     {custom ? <>
@@ -813,7 +814,7 @@ type BlockTab = "content" | "media" | "appearance" | "itemLayout";
  */
 function BlockLayoutFields({ block, disabled, onChange, onUploadingChange }: { block: PageBlock; disabled?: boolean; onChange: (block: PageBlock) => void; onUploadingChange: (pending: boolean) => void }) {
   const id = useId();
-  if (block.type === "hero") return <><HeroFields block={block} disabled={disabled} onChange={onChange} onUploadingChange={onUploadingChange} part="media" />{block.data.layout !== "slider" ? <HeroToneField block={block} disabled={disabled} onChange={onChange} /> : null}</>;
+  if (block.type === "hero") return <><HeroFields block={block} disabled={disabled} onChange={onChange} onUploadingChange={onUploadingChange} part="media" /><HeroToneField block={block} disabled={disabled} onChange={onChange} /></>;
   if (block.type === "media_text") return <LayoutPicker label="Kiểu bố cục" name={id} options={mediaTextLayoutOptions} value={block.data.layout} onChange={layout => onChange({ ...block, data: { ...block.data, layout } })} />;
   // Chỉ danh sách bài viết có nhiều kiểu hiển thị; các nguồn khác (thiết bị, phần mềm…) có bố cục riêng cố định.
   if (block.type === "collection_list" && block.data.source === "posts") return <LayoutPicker label="Kiểu hiển thị bài viết" name={id} options={collectionLayoutOptions} value={block.data.layout ?? "grid"} onChange={layout => onChange({ ...block, data: { ...block.data, layout } })} />;

@@ -58,6 +58,17 @@ test("Phần đầu trang: nền theo ô Nền của nó, chỉ màu tự chọn
   assert.equal(next.tone, "white", "khối sau phần đầu trang màu tối vẫn tự xen kẽ");
 });
 
+test("Phần đầu trang trượt nhiều ảnh: mặc định nền tối như bản cũ, chọn được trắng, xanh nhạt hoặc tối, màu tự chọn ghi đè", () => {
+  const slider = (data: Record<string, unknown>, appearance?: unknown) => block({ type: "hero", isEnabled: true, data: { eyebrow: null, title: "Trượt", description: null, primaryAction: null, secondaryAction: null, layout: "slider", ...data }, ...(appearance ? { appearance } : {}) });
+  const tones = (data: Record<string, unknown>) => resolveBlockFrames([slider(data)])[0].tone;
+  assert.equal(tones({}), "dark", "chưa chọn nền: giữ nền tối cũ");
+  assert.equal(tones({ tone: "dark" }), "dark");
+  assert.equal(tones({ tone: "light" }), "white");
+  assert.equal(tones({ tone: "tinted" }), "tinted");
+  const [custom] = resolveBlockFrames([slider({}, { tone: "custom", backgroundColor: "#fef3c7" })]);
+  assert.deepEqual([custom.tone, custom.background?.color], ["white", "#fef3c7"], "màu sáng tự chọn: chữ menu đậm");
+});
+
 test("Khung một phần trang riêng lẻ (trang sản phẩm): tự động theo nền gợi ý, màu tối về xanh nhạt khi phần không hợp nền tối", () => {
   assert.deepEqual(sectionFrame(undefined, { fallback: "white", darkAllowed: true, spacing: "md", anchor: "bang-gia" }), { tone: "white", spacing: "md", anchor: "bang-gia", width: null, background: null });
   assert.equal(sectionFrame({ tone: "custom", backgroundColor: "#0d1b33" }, { fallback: "white", darkAllowed: false, spacing: "md" }).tone, "tinted");

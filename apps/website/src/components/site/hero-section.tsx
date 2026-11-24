@@ -70,10 +70,10 @@ function HeroText({ data, first, dark = false, center = false, headingAs, itemId
 
 // Phần đầu trang theo kiểu bố cục người vận hành chọn trong CMS.
 // Phần đầu trang đứng đầu trang nằm dưới header trong suốt (như iorder.com.vn); báo nền sáng/tối để header đổi màu chữ.
-// CSS: `[data-hero-top]` trong globals.css. `flush`: ảnh trượt chiếm trọn chiều cao, không đệm phía trên
-// (đệm sẽ lộ một dải trống dưới header trong suốt); các kiểu khác đệm bằng chiều cao header để chữ không nằm dưới menu.
-function heroTop(first: boolean, tone: "light" | "dark", flush = false) {
-  return first ? { "data-hero-top": tone, ...(flush ? { "data-hero-flush": "" } : {}) } : {};
+// CSS: `[data-hero-top]` trong globals.css: phần đầu trang đệm phía trên bằng chiều cao header để chữ và ảnh không nằm dưới menu;
+// dải đệm đó mang màu nền của phần đầu trang nên menu trong suốt đọc được theo `tone`.
+function heroTop(first: boolean, tone: "light" | "dark") {
+  return first ? { "data-hero-top": tone } : {};
 }
 
 // Kiểu ảnh nền: nền khi chưa có ảnh và lớp phủ lên ảnh theo màu đã chọn. Nền sáng thì chữ đậm; trên điện thoại
@@ -102,12 +102,15 @@ async function HeroSectionContent({ data, first, frame }: { data: HeroData; firs
     const slides = (await Promise.all(data.slides.map(async (slide) => ({ slide, image: await imageOf(slide.mediaId) }))))
       .filter((entry) => entry.image)
       .map(({ slide, image }): HeroSlide => ({ url: image!.url, alt: image!.altText ?? slide.title ?? "", title: slide.title, description: slide.description, action: slide.action }));
-    if (slides.length) return <section id={skin.anchor ?? undefined} className="relative border-b border-line" {...heroTop(first, "dark", true)}>
+    // Nền chọn ở ô "Màu nền" của phần đầu trang (mặc định tối); ảnh trượt nằm ngay dưới menu, cao đúng phần màn hình còn lại sau menu
+    // (CSS `section .hero-slider`), nên dải sau menu trong suốt mang màu nền đã chọn và menu không che ảnh.
+    const surface = { className: skin.color ? "" : backgroundTones[heroToneOf(data)].section, style: skin.color ? { backgroundColor: skin.color } : undefined };
+    if (slides.length) return <section id={skin.anchor ?? undefined} className={`relative border-b border-line ${surface.className}`} style={surface.style} {...heroTop(first, skin.dark ? "dark" : "light")}>
       {first ? <h1 className="sr-only">{data.title}</h1> : <h2 className="sr-only">{data.title}</h2>}
       <HeroSlider preload={first} slides={slides} />
     </section>;
     // Chưa có ảnh: vẫn hiện tiêu đề trên nền màu thay vì khoảng trống.
-    return <section id={skin.anchor ?? undefined} className="screen-hero border-b border-line bg-navy" {...heroTop(first, "dark")}><div className={`${container} py-20 sm:py-28 lg:pt-10 lg:pb-24`}><HeroText center dark data={data} first={first} /></div></section>;
+    return <section id={skin.anchor ?? undefined} className={`screen-hero border-b border-line ${surface.className}`} style={surface.style} {...heroTop(first, skin.dark ? "dark" : "light")}><div className={`${container} py-20 sm:py-28 lg:pt-10 lg:pb-24`}><HeroText center dark={skin.dark} data={data} first={first} /></div></section>;
   }
 
   if (data.panels?.length) return <PanelHero data={data} first={first} skin={skin} />;

@@ -112,6 +112,11 @@ test("Phần đầu trang cũ nhận nhiều ảnh và màu nền mặc định 
   assert.equal(heroToneOf({ layout: "split", tone: null }), "tinted");
   assert.equal(heroToneOf({ layout: "split", tone: "dark" }), "tinted");
   assert.equal(heroToneOf({ layout: "background", tone: "light" }), "light");
+  // Trượt nhiều ảnh: mặc định tối như bản cũ, nhưng chọn được trắng, xanh nhạt hoặc tối.
+  assert.equal(heroToneOf({ layout: "slider", tone: null }), "dark");
+  assert.equal(heroToneOf({ layout: "slider", tone: "dark" }), "dark");
+  assert.equal(heroToneOf({ layout: "slider", tone: "light" }), "light");
+  assert.equal(heroToneOf({ layout: "slider", tone: "tinted" }), "tinted");
   const tooMany = Array.from({ length: 8 }, (_, index) => `00000000-0000-4000-8000-00000000000${index}`);
   assert.equal(pageBlockInputSchema.safeParse({ type: "hero", isEnabled: true, data: { ...parsed.data, extraMediaIds: tooMany } }).success, false);
 });
