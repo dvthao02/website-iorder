@@ -337,16 +337,32 @@
   .admin-header-popover--notifications > header { display: flex; align-items: center; justify-content: space-between; gap: 8px; border-bottom: 1px solid var(--cms-border); padding: 10px 12px; }
   .admin-header-popover--notifications > header strong { font-size: var(--cms-text-sm); font-weight: 600; }
   .admin-header-popover--notifications > header a { color: var(--cms-primary); font-size: var(--cms-text-xs); }
-  .admin-header-popover--notifications > div { display: grid; max-height: 360px; overflow-y: auto; }
-  .admin-header-popover--notifications > div > a { display: grid; gap: 1px; border-bottom: 1px solid var(--cms-border); padding: 9px 12px; }
-  .admin-header-popover--notifications > div > a:last-child { border-bottom: 0; }
-  .admin-header-popover--notifications > div > a:hover { background: var(--cms-hover); }
-  .admin-header-popover--notifications strong,
-  .admin-header-popover--notifications small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .admin-header-popover--notifications div strong { font-size: var(--cms-text-sm); font-weight: 500; }
-  .admin-header-popover--notifications small { color: var(--cms-muted); }
+  /* Thanh công cụ: số chưa đọc, đọc hết và xóa hết. */
+  .admin-notifications__toolbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; border-bottom: 1px solid var(--cms-border); padding: 5px 8px 5px 12px; color: var(--cms-muted); font-size: var(--cms-text-xs); }
+  .admin-notifications__toolbar > span:last-child { display: inline-flex; gap: 2px; }
+  .admin-notifications__toolbar button { display: inline-flex; align-items: center; gap: 4px; border: 0; border-radius: var(--cms-radius-component); background: transparent; padding: 3px 6px; color: var(--cms-primary); font: inherit; cursor: pointer; }
+  .admin-notifications__toolbar button:hover:not(:disabled) { background: var(--cms-hover); }
+  .admin-notifications__toolbar button:disabled { color: var(--cms-muted); cursor: default; opacity: .6; }
+  /* Mỗi thông báo một dòng: liên kết (tiêu đề + mô tả) và hai nút đọc / xóa. Chưa đọc có vạch xanh bên trái và tiêu đề đậm; đã đọc mờ đi. */
+  .admin-notifications__list { display: grid; max-height: 360px; overflow-y: auto; }
+  .admin-notifications__item { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; border-bottom: 1px solid var(--cms-border); border-left: 3px solid var(--cms-primary); }
+  .admin-notifications__item[data-read] { border-left-color: transparent; }
+  .admin-notifications__item:last-child { border-bottom: 0; }
+  .admin-notifications__item:hover, .admin-notifications__item:focus-within { background: var(--cms-hover); }
+  .admin-notifications__item > a { display: grid; gap: 1px; min-width: 0; padding: 9px 4px 9px 10px; }
+  .admin-notifications__item[data-read] > a { opacity: .62; }
+  /* Tiêu đề có tên khách và thiết bị khá dài ("Gọi lại … — hỏi mua …") và mô tả có số lượng, mức chờ, mốc thời gian: cho xuống dòng thay vì cắt. */
+  .admin-notifications__item > a strong { font-size: var(--cms-text-sm); font-weight: 600; line-height: 1.35; }
+  .admin-notifications__item[data-read] > a strong { font-weight: 500; }
+  .admin-notifications__item > a small { color: var(--cms-muted); line-height: 1.4; }
+  /* Việc khẩn (liên hệ chờ quá hạn, sao lưu lỗi, đăng nhập sai nhiều lần): chấm đỏ đầu dòng. */
+  .admin-notifications__item[data-tone="urgent"] > a strong::before { content: ""; display: inline-block; width: 7px; height: 7px; margin-right: 6px; border-radius: 50%; background: var(--cms-danger, #dc2626); vertical-align: 1px; }
+  .admin-notifications__actions { display: flex; gap: 2px; padding: 6px 6px 0 0; opacity: .55; }
+  .admin-notifications__item:hover .admin-notifications__actions, .admin-notifications__item:focus-within .admin-notifications__actions { opacity: 1; }
+  .admin-notifications__actions button { display: grid; place-items: center; width: 26px; height: 26px; border: 0; border-radius: var(--cms-radius-component); background: transparent; color: var(--cms-muted); cursor: pointer; }
+  .admin-notifications__actions button:hover { background: var(--cms-primary-soft); color: var(--cms-text); }
   /* Trạng thái rỗng: biểu tượng + tiêu đề + một dòng giải thích, căn giữa, không để một chữ lẻ xuống dòng. */
-  .admin-header-popover--notifications > .admin-notifications__empty { justify-items: center; gap: 4px; max-height: none; overflow: visible; padding: 18px 16px 20px; text-align: center; }
+  .admin-header-popover--notifications > .admin-notifications__empty { display: grid; justify-items: center; gap: 4px; max-height: none; overflow: visible; padding: 18px 16px 20px; text-align: center; }
   .admin-notifications__empty > svg { color: var(--cms-status-success-text, var(--cms-muted)); }
   .admin-header-popover--notifications > .admin-notifications__empty strong { margin-top: 2px; font-size: var(--cms-text-sm); font-weight: 500; }
   .admin-header-popover--notifications > .admin-notifications__empty small { overflow: visible; white-space: normal; text-wrap: balance; font-size: var(--cms-text-xs); line-height: 1.45; }

@@ -8,11 +8,9 @@ import { AdminToastProvider } from "@/components/admin/ui/admin-feedback";
 import { AdminConfirmProvider } from "@/components/admin/ui/admin-confirm-dialog";
 import { AdminPermissionsProvider } from "@/components/admin/ui/admin-permissions";
 import {
-  Bell,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
-  CircleCheck,
   ExternalLink,
   Menu,
   X,
@@ -31,11 +29,12 @@ import { adminPageBarActionsId, adminPageBarMetaId } from "@/components/admin/ui
 import { AdminVersionConflictBanner } from "@/components/admin/ui/admin-version-conflict";
 import { CmsThemeProvider } from "@/components/admin/admin-theme-settings";
 import { AdminGlobalSearch } from "@/components/admin/admin-global-search";
+import type { AdminNotification } from "@iorder/shared/server/dashboard/notifications.contract";
+import { AdminNotificationBell } from "@/components/admin/admin-notification-bell";
 import { useWebsiteUrl } from "./website-origin-context";
 import { hasCmsPermission } from "@iorder/shared/server/auth/permissions";
 
 type Administrator = { fullName: string; username: string; email?: string | null; phone?: string | null; avatarUrl?: string | null; role: string; roleName?: string | null; permissions: string[] };
-type HeaderNotification = { id: string; label: string; detail: string; href: string };
 
 // Màn chỉnh sửa (tạo mới hoặc theo id) có header riêng kèm nút lưu/đóng nên không dùng thanh vị trí chung.
 function isEditorRoute(pathname: string) {
@@ -72,7 +71,7 @@ function legacyAccountTab(pathname: string): AccountTab | null {
   return null;
 }
 
-export function AdminShell({ administrator, children, notifications }: { administrator: Administrator; children: ReactNode; notifications: HeaderNotification[] }) {
+export function AdminShell({ administrator, children, notifications }: { administrator: Administrator; children: ReactNode; notifications: AdminNotification[] }) {
   const pathname = usePathname();
   const websiteUrl = useWebsiteUrl();
   const router = useRouter();
@@ -157,7 +156,6 @@ export function AdminShell({ administrator, children, notifications }: { adminis
     setSidebarTooltip({ label, top: rect.top + rect.height / 2 });
   }
 
-  const notificationCount = notifications.length;
   // Lối tắt "Kiểm tra xuất bản" cùng quyền với mục trên thanh bên (settings.view), không dẫn người khác tới trang cấm.
   const canCheckPublishing = hasCmsPermission(administrator, "settings.view");
 
@@ -171,21 +169,7 @@ export function AdminShell({ administrator, children, notifications }: { adminis
         <LazyChristmasTopbarDecor />
         <a aria-label="Xem website (mở trong tab mới)" className="admin-topbar__view-site" href={websiteUrl("/")} rel="noreferrer" target="_blank"><span>Xem website</span><ExternalLink aria-hidden="true" size={14} /></a>
         <div className="admin-topbar__account">
-          <AdminPopover
-            className="admin-notifications"
-            label={notificationCount > 0 ? `Xem thông báo, ${notificationCount} việc cần xử lý` : "Xem thông báo"}
-            trigger={<>
-              <Bell aria-hidden="true" className="admin-notifications__icon" size={18} />
-              {notificationCount > 0 ? <b aria-hidden="true">{notificationCount > 9 ? "9+" : notificationCount}</b> : null}
-            </>}
-          >
-            <div className="admin-header-popover admin-header-popover--notifications">
-              <header><strong>Việc cần xử lý</strong>{canCheckPublishing ? <Link href="/admin/seo/publish-check">Kiểm tra xuất bản</Link> : null}</header>
-              {notificationCount > 0
-                ? <div>{notifications.map(item => <Link href={item.href} key={item.id}><strong>{item.label}</strong><small>{item.detail}</small></Link>)}</div>
-                : <div className="admin-notifications__empty"><CircleCheck aria-hidden="true" size={22} /><strong>Không có việc cần xử lý</strong><small>Không có liên hệ mới, nội dung chờ duyệt hay cảnh báo hệ thống.</small></div>}
-            </div>
-          </AdminPopover>
+          <AdminNotificationBell canCheckPublishing={canCheckPublishing} initial={notifications} />
           <AdminPopover
             className="admin-account-menu"
             label="Mở menu tài khoản"

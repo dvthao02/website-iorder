@@ -91,6 +91,8 @@ export function requiredAdminPermissions(pathname: string, method: string): CmsP
 
   // Dashboard, global search and notifications filter every section by permission themselves; any view right opens them.
   if ((resource === "dashboard" || resource === "tim-kiem" || resource === "notifications") && action === "view") return cmsPermissions.filter((permission) => permission.code.endsWith(".view")).map((permission) => permission.code);
+  // Đọc/xóa thông báo chỉ đổi trạng thái riêng của người đang xem (không đổi nội dung nào): ai mở được chuông thì thao tác được.
+  if (resource === "notifications" && action === "create") return cmsPermissions.filter((permission) => permission.code.endsWith(".view")).map((permission) => permission.code);
 
   // Xuất/nhập file theo bảng: quyền của module sở hữu bảng (xuất = view; nhập = create hoặc update, route kiểm từng dòng).
   if (resource === "data-transfer") {

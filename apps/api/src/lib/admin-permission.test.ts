@@ -17,7 +17,10 @@ const routeTable: Array<[string, string, CmsPermissionCode[] | null]> = [
   ["/api/v1/admin/dashboard", "GET", cmsPermissions.map((permission) => permission.code).filter((code) => code.endsWith(".view"))],
   ["/api/v1/admin/tim-kiem", "GET", cmsPermissions.map((permission) => permission.code).filter((code) => code.endsWith(".view"))],
   ["/api/v1/admin/notifications", "GET", cmsPermissions.map((permission) => permission.code).filter((code) => code.endsWith(".view"))],
-  ["/api/v1/admin/notifications", "POST", []],
+  // Đọc/xóa thông báo là trạng thái riêng của từng người: cùng điều kiện với xem thông báo. Các phương thức khác chỉ Super Admin.
+  ["/api/v1/admin/notifications", "POST", cmsPermissions.map((permission) => permission.code).filter((code) => code.endsWith(".view"))],
+  ["/api/v1/admin/notifications", "PATCH", []],
+  ["/api/v1/admin/notifications", "DELETE", []],
   ["/api/v1/admin/audit", "GET", ["audit.view"]],
   ["/api/v1/admin/users", "GET", ["users.view"]],
   ["/api/v1/admin/users", "POST", ["users.create", "users.update"]],
@@ -250,16 +253,19 @@ test("Vai trò Vận hành hệ thống: chỉ quyền xem (không có create/up
   // Chỉ Super Admin và sysops có system.view mặc định; không vai trò nội dung nào vô tình thấy thông tin hạ tầng.
   assert.deepEqual(defaultCmsRoles.filter((role) => role.permissions.includes("system.view")).map((role) => role.code).sort(), ["admin", "sysops"]);
   for (const [pathname, method] of routeTable) {
-    if (method === "GET" || pathname.endsWith("/session")) continue;
+    // Đọc/xóa thông báo của chính mình không phải thao tác sửa nội dung: vai trò chỉ xem vẫn dùng được.
+    if (method === "GET" || pathname.endsWith("/session") || (pathname.endsWith("/notifications") && method === "POST")) continue;
     assert.equal(roleCan("sysops", pathname, method), false, `${method} ${pathname}`);
   }
+  assert.equal(roleCan("sysops", "/api/v1/admin/notifications", "POST"), true);
 });
 
 test("Role phân tích chỉ đọc: không qua được mutation nào", () => {
   for (const [pathname, method] of routeTable) {
-    if (method === "GET" || pathname.endsWith("/session")) continue;
+    if (method === "GET" || pathname.endsWith("/session") || (pathname.endsWith("/notifications") && method === "POST")) continue;
     assert.equal(roleCan("analyst", pathname, method), false, `${method} ${pathname}`);
   }
+  assert.equal(roleCan("analyst", "/api/v1/admin/notifications", "POST"), true);
 });
 
 test("Editor không có publish; nội dung đang công khai cần publish", () => {
