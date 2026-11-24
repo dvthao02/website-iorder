@@ -380,7 +380,7 @@ export function PostEditor({ post, taxonomy, onSaved, onError, contentType, onDi
           {goingLive ? <PrepublishHints missing={missing} /> : null}
         </section>
         <section className="admin-content-section" id="post-cover">
-          <MediaPicker preview hint="Hiện ở đầu bài, thẻ tin và khi chia sẻ Facebook/Zalo. Nên dùng ảnh ngang 1200×630." label="Ảnh bìa" onChange={value => update("coverMediaId", value)} onUploadingChange={handleUploadingChange} value={form.coverMediaId} />
+          <MediaPicker preview social hint="Hiện ở đầu bài, thẻ tin và khi chia sẻ Facebook/Zalo. Nên dùng ảnh ngang 1200×630." label="Ảnh bìa" onChange={value => update("coverMediaId", value)} onUploadingChange={handleUploadingChange} value={form.coverMediaId} />
         </section>
         <section className="admin-content-section">
           <header><h3>Phân loại</h3></header>

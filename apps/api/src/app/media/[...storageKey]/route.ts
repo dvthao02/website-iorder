@@ -50,6 +50,10 @@ export async function GET(_: Request, { params }: MediaRouteProps) {
         "cache-control": "public, max-age=31536000, immutable",
         "content-disposition": contentDisposition(asset.mimeType, asset.originalName),
         "content-type": asset.mimeType,
+        // Không cho trình duyệt đoán lại loại tệp. SVG là XML: thêm sandbox để script (nếu lọt qua bước kiểm tra lúc tải lên) không chạy khi
+        // mở thẳng đường dẫn; nhúng bằng thẻ img (cách website dùng) không bị ảnh hưởng.
+        "x-content-type-options": "nosniff",
+        ...(asset.mimeType === "image/svg+xml" ? { "content-security-policy": "default-src 'none'; style-src 'unsafe-inline'; sandbox" } : {}),
       },
     });
   } catch (error: unknown) {

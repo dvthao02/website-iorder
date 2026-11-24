@@ -1,5 +1,6 @@
 import { and, asc, count, desc, eq, ilike, inArray, isNotNull, isNull, lte, or, sql } from "drizzle-orm";
 import { getDb } from "@iorder/shared/db/client";
+import { documentMediaTypes, imageMediaTypes } from "./media-types";
 import {
   auditLogs,
   equipmentGroups,
@@ -29,9 +30,9 @@ export async function listMediaAssetsPage(query: MediaListQuery, database = getD
   const keyword = query.query ? `%${query.query.replace(/[\\%_]/g, "\\$&")}%` : undefined;
   const condition = and(
     isNull(mediaAssets.deletedAt),
-    query.type === "images" ? inArray(mediaAssets.mimeType, ["image/png", "image/jpeg", "image/webp"])
-      : query.type === "missing_alt" ? and(inArray(mediaAssets.mimeType, ["image/png", "image/jpeg", "image/webp"]), or(isNull(mediaAssets.altText), eq(mediaAssets.altText, "")))
-      : query.type === "documents" ? inArray(mediaAssets.mimeType, ["application/pdf", "application/zip"]) : undefined,
+    query.type === "images" ? inArray(mediaAssets.mimeType, [...imageMediaTypes])
+      : query.type === "missing_alt" ? and(inArray(mediaAssets.mimeType, [...imageMediaTypes]), or(isNull(mediaAssets.altText), eq(mediaAssets.altText, "")))
+      : query.type === "documents" ? inArray(mediaAssets.mimeType, [...documentMediaTypes]) : undefined,
     keyword ? or(ilike(mediaAssets.originalName, keyword), ilike(mediaAssets.altText, keyword), ilike(mediaAssets.caption, keyword)) : undefined,
   );
   return database.transaction(async (tx) => {

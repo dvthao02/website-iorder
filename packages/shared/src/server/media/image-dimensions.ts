@@ -50,12 +50,45 @@ function readWebp(body: Buffer): ImageDimensions | null {
   return null;
 }
 
-/** Đọc rộng × cao từ phần đầu tệp ảnh (PNG, JPEG, WebP) mà không cần thư viện xử lý ảnh; không đọc được thì trả null. */
+function readGif(body: Buffer): ImageDimensions | null {
+  // "GIF89a" (6) rồi rộng và cao 16 bit little-endian.
+  if (body.length < 10) return null;
+  return valid(body.readUInt16LE(6), body.readUInt16LE(8));
+}
+
+function readAvif(body: Buffer): ImageDimensions | null {
+  // Hộp "ispe" (kích thước ảnh gốc): loại (4) + phiên bản/cờ (4) + rộng (4) + cao (4); nằm trong phần đầu tệp.
+  const at = body.subarray(0, 65_536).indexOf("ispe");
+  if (at < 0 || at + 16 > body.length) return null;
+  return valid(body.readUInt32BE(at + 8), body.readUInt32BE(at + 12));
+}
+
+function readSvg(body: Buffer): ImageDimensions | null {
+  // Thuộc tính width/height thuần số (px); thiếu thì lấy từ viewBox. Đơn vị phần trăm, em... không biết kích thước thật nên bỏ qua.
+  const tag = body.toString("utf8", 0, Math.min(body.length, 4096)).match(/<svg\b[^>]*>/i)?.[0];
+  if (!tag) return null;
+  const attribute = (name: string) => {
+    const match = tag.match(new RegExp(`\\s${name}\\s*=\\s*["']\\s*([0-9.]+)\\s*(?:px)?\\s*["']`, "i"));
+    return match ? Number(match[1]) : null;
+  };
+  let width = attribute("width");
+  let height = attribute("height");
+  if (!width || !height) {
+    const box = tag.match(/viewBox\s*=\s*["']\s*[-0-9.]+[\s,]+[-0-9.]+[\s,]+([0-9.]+)[\s,]+([0-9.]+)\s*["']/i);
+    if (box) { width = Number(box[1]); height = Number(box[2]); }
+  }
+  return width && height ? valid(Math.round(width), Math.round(height)) : null;
+}
+
+/** Đọc rộng × cao từ phần đầu tệp ảnh (PNG, JPEG, WebP, GIF, AVIF, SVG) mà không cần thư viện xử lý ảnh; không đọc được thì trả null. */
 export function readImageDimensions(body: Buffer, mimeType: string): ImageDimensions | null {
   try {
     if (mimeType === "image/png") return readPng(body);
     if (mimeType === "image/jpeg") return readJpeg(body);
     if (mimeType === "image/webp") return readWebp(body);
+    if (mimeType === "image/gif") return readGif(body);
+    if (mimeType === "image/avif") return readAvif(body);
+    if (mimeType === "image/svg+xml") return readSvg(body);
   } catch {
     return null;
   }

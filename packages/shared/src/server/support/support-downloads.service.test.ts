@@ -113,6 +113,15 @@ test("bắt buộc phải có tệp khi hiển thị công khai", async () => {
   await assert.rejects(service.createAdminSupportDownload({ ...draftValues, isEnabled: true }, editorId));
 });
 
+test("nhận tệp nén và tài liệu Office làm tệp tải xuống, không nhận tệp chạy được", async () => {
+  for (const mimeType of ["application/vnd.rar", "application/x-7z-compressed", "application/gzip", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/vnd.openxmlformats-officedocument.presentationml.presentation"]) {
+    await createSupportDownloadsService(createRepository({ mimeType }).repository).createAdminSupportDownload({ ...draftValues, fileMediaId: fileId }, editorId);
+  }
+  for (const mimeType of ["application/x-msdownload", "application/x-msi", "image/svg+xml"]) {
+    await assert.rejects(createSupportDownloadsService(createRepository({ mimeType }).repository).createAdminSupportDownload({ ...draftValues, fileMediaId: fileId }, editorId), mimeType);
+  }
+});
+
 test("chỉ chấp nhận PDF hoặc ZIP làm tệp tải xuống", async () => {
   const pdf = createSupportDownloadsService(createRepository({ mimeType: "application/pdf" }).repository);
   const zip = createSupportDownloadsService(createRepository({ mimeType: "application/zip" }).repository);

@@ -38,7 +38,7 @@ Khi hệ thống báo nội dung đã thay đổi ở phiên khác, bản nhập
 
 Trong trình dựng trang, chọn một thành phần để sửa nội dung và bố cục, kéo tay nắm để đổi thứ tự khi được phép, rồi lưu trang. Có thể đặt tên thành phần để dễ nhận diện trong CMS; tên này không thay tiêu đề hiển thị trên website. Các mục con được sửa trong thành phần cha tương ứng. Thành phần bị ẩn không xuất hiện trên website.
 
-Chọn ảnh từ thư viện hoặc tải tệp lên, sau đó lưu nội dung để gắn ảnh vào trang. Kiểm tra mô tả ảnh, ảnh xem trước và quyền sử dụng trước khi đăng. Không xóa tệp đang được nội dung khác sử dụng; xem thông báo tại thư viện để xử lý nơi dùng trước.
+Chọn ảnh từ thư viện hoặc tải tệp lên, sau đó lưu nội dung để gắn ảnh vào trang. Thư viện nhận (nhận dạng theo nội dung tệp, không theo đuôi tên) ảnh PNG, JPEG, WebP, GIF, AVIF, SVG và tệp PDF, ZIP, RAR, 7Z, GZ, Word (.docx), Excel (.xlsx), PowerPoint (.pptx), tối đa 20 MB mỗi tệp. Ảnh bìa, ảnh chia sẻ Facebook/Zalo/Twitter và ảnh đại diện chỉ nhận PNG, JPEG, WebP vì mạng xã hội không hiện SVG hay AVIF. SVG có script, thuộc tính sự kiện hoặc liên kết ngoài bị từ chối; hãy xuất lại SVG sạch. Tệp chạy được (.exe, .msi, .apk, .dmg) không lưu vào thư viện: ở mục Tệp cài đặt chúng giữ dạng link ngoài. Kiểm tra mô tả ảnh, ảnh xem trước và quyền sử dụng trước khi đăng. Không xóa tệp đang được nội dung khác sử dụng; xem thông báo tại thư viện để xử lý nơi dùng trước.
 
 ## Biểu mẫu tư vấn và quảng cáo tự hiện
 

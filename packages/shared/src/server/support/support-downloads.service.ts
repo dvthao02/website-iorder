@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { findMediaAsset } from "@iorder/shared/server/media/media.repository";
+import { documentMediaFormats, documentMediaTypes } from "@iorder/shared/server/media/media-types";
 import { mediaPath } from "@iorder/shared/server/media/storage";
 
 import {
@@ -18,7 +19,7 @@ import {
   updateSupportDownloadWithRevision,
 } from "./support-downloads.repository";
 
-const allowedDocumentTypes = new Set(["application/pdf", "application/zip"]);
+const allowedDocumentTypes = new Set<string>(documentMediaTypes);
 
 export class SupportDownloadVersionConflictError extends Error {
   constructor() {
@@ -70,7 +71,7 @@ export function createSupportDownloadsService(repository: SupportDownloadsReposi
     }
     const asset = await repository.findMediaAsset(fileMediaId);
     if (!asset) throw fileValidationError("Tệp đã chọn không còn tồn tại trong thư viện.");
-    if (!allowedDocumentTypes.has(asset.mimeType)) throw fileValidationError("Tài nguyên tải xuống chỉ nhận tệp PDF hoặc ZIP.");
+    if (!allowedDocumentTypes.has(asset.mimeType)) throw fileValidationError(`Tài nguyên tải xuống chỉ nhận tệp ${documentMediaFormats}.`);
   }
 
   async function getEnabledSupportDownloads() {

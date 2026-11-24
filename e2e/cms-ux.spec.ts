@@ -143,7 +143,7 @@ test.describe("UX CMS với Backend mô phỏng", () => {
     await panel.getByRole("checkbox", { name: "Hiển thị công khai trên website" }).check();
     await panel.getByRole("button", { name: "Lưu", exact: true }).click();
     // Câu giải thích hiện cạnh ô nhập; khung tóm tắt chỉ nêu tên mục, không nhắc lại câu đó.
-    await expect(panel.locator(".admin-form-error")).toContainText("Chọn tệp PDF/ZIP hoặc nhập link tải về");
+    await expect(panel.locator(".admin-form-error")).toContainText("Chọn tệp tải xuống hoặc nhập link tải về");
     await expect(panel.locator(".admin-form-errors")).toContainText("Tệp tải xuống");
     await expect(panel.locator(".admin-form-errors")).not.toContainText("nhập link tải về");
     expect(attempts).toBe(0);

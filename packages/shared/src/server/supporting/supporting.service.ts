@@ -1,4 +1,4 @@
-import { validateCoverMedia } from "@iorder/shared/server/media/media.service";
+import { validateCoverMedia, validateImageMedia } from "@iorder/shared/server/media/media.service";
 import { mediaPath } from "@iorder/shared/server/media/storage";
 import { partnerInputSchema, partnerListPageSchema, partnerListQuerySchema, testimonialInputSchema, testimonialListPageSchema, testimonialListQuerySchema } from "./supporting.contract";
 import { deleteDisabledPartner, deleteDisabledTestimonial, findSupportingVisibility, listPartners, listPartnersPage, listTestimonials, listTestimonialsPage, savePartner, saveTestimonial } from "./supporting.repository";
@@ -27,7 +27,7 @@ export async function getTestimonialsPage(input: unknown) {
 }
 // onlyIfHidden: the update applies only while the item is hidden (atomic guard for actors without supporting.publish).
 export async function writeSupporting(kind: "partners" | "testimonials", id: string | null, input: unknown, userId: string, options: { onlyIfHidden?: boolean; expectedVersion?: number } = {}) {
-  if (kind === "partners") { const values = partnerInputSchema.parse(input); await validateCoverMedia(values.logoMediaId); return savePartner(id, values, userId, undefined, options); }
+  if (kind === "partners") { const values = partnerInputSchema.parse(input); await validateImageMedia(values.logoMediaId, ["logoMediaId"]); return savePartner(id, values, userId, undefined, options); }
   const values = testimonialInputSchema.parse(input); await validateCoverMedia(values.avatarMediaId); return saveTestimonial(id, values, userId, undefined, options);
 }
 export async function deleteDisabledSupporting(kind: "partners" | "testimonials", id: string, userId: string) {

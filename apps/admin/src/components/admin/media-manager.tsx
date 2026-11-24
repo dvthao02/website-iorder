@@ -1,6 +1,7 @@
 "use client";
 
 import { adminApiError, readAdminJson } from "@/lib/admin-api";
+import { anyMediaAccept } from "@iorder/shared/server/media/media-types";
 import { useWebsiteUrl } from "./website-origin-context";
 import { ChevronLeft, ChevronRight, Copy, ExternalLink, ImageIcon, LayoutGrid, List, Paperclip, Trash2, UploadCloud } from "lucide-react";
 import Image from "next/image";
@@ -269,9 +270,9 @@ export function MediaManager({ initialPage, initialQuery }: { initialPage: { ass
       <AdminListHeader description={`${total} tệp`} title="Thư viện hình ảnh & tệp" />
       <form className={dragging ? "admin-list-toolbar admin-media-upload admin-media-upload--drop" : "admin-list-toolbar admin-media-upload"} onDragLeave={() => setDragging(false)} onDragOver={(event) => { if (event.dataTransfer.types.includes("Files")) { event.preventDefault(); setDragging(true); } }} onDrop={drop} onSubmit={upload}>
         {/* Ô chọn tệp gốc của trình duyệt hiện chữ tiếng Anh; dùng nút riêng và hiện tên tệp đã chọn. */}
-        <input accept="image/png,image/jpeg,image/webp,application/pdf,application/zip" aria-label="Chọn ảnh hoặc tài liệu" className="sr-only" id="media-upload-file" multiple name="file" onChange={(event) => { const picked = Array.from(event.target.files ?? []); setPickedName(picked.length > 1 ? `Đã chọn ${picked.length} tệp` : picked[0]?.name ?? ""); }} required type="file" />
+        <input accept={anyMediaAccept} aria-label="Chọn ảnh hoặc tài liệu" className="sr-only" id="media-upload-file" multiple name="file" onChange={(event) => { const picked = Array.from(event.target.files ?? []); setPickedName(picked.length > 1 ? `Đã chọn ${picked.length} tệp` : picked[0]?.name ?? ""); }} required type="file" />
         <label className="admin-button admin-button--secondary admin-button--sm" htmlFor="media-upload-file"><Paperclip aria-hidden="true" size={14} />Chọn tệp</label>
-        <span className={pickedName ? "min-w-0 truncate text-[var(--cms-text-sm)]" : "admin-field__hint"} title={pickedName || undefined}>{progress ? `Đang tải lên ${progress.done + 1}/${progress.total}…` : dragging ? "Thả tệp để tải lên" : pickedName || "hoặc kéo thả một hay nhiều tệp vào đây · PNG, JPEG, WebP, PDF, ZIP; tối đa 20 MB mỗi tệp"}</span>
+        <span className={pickedName ? "min-w-0 truncate text-[var(--cms-text-sm)]" : "admin-field__hint"} title={pickedName || undefined}>{progress ? `Đang tải lên ${progress.done + 1}/${progress.total}…` : dragging ? "Thả tệp để tải lên" : pickedName || "hoặc kéo thả một hay nhiều tệp vào đây · ảnh PNG, JPEG, WebP, GIF, AVIF, SVG; tệp PDF, ZIP, RAR, 7Z, GZ, Word, Excel, PowerPoint; tối đa 20 MB mỗi tệp"}</span>
         <AdminButton className="ml-auto" disabled={busy || loading} permission="media.create" type="submit"><UploadCloud aria-hidden="true" />{busy ? "Đang tải…" : "Tải lên"}</AdminButton>
       </form>
       <AdminFilterBar onSubmit={(event) => { event.preventDefault(); void loadPage(1, filter, searchDraft); }} chips={chips} onClearAll={() => { setSearchDraft(""); void loadPage(1, "all", ""); }} search={<AdminSearchField disabled={loading || busy} label="Tìm tệp" maxLength={160} onChange={event => setSearchDraft(event.target.value)} placeholder="Tên tệp, mô tả hoặc chú thích" value={searchDraft} />}>

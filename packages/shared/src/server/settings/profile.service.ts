@@ -1,6 +1,6 @@
 import { profileInputSchema } from "./profile.contract";
 import { findSiteProfile, saveSiteProfile } from "./profile.repository";
-import { validateCoverMedia } from "@iorder/shared/server/media/media.service";
+import { validateImageMedia } from "@iorder/shared/server/media/media.service";
 
 function serialize(row: NonNullable<Awaited<ReturnType<typeof findSiteProfile>>>) {
   const { companyName, legalName, hotline, supportEmail, salesEmail, address, workingHours, logoMediaId } = row;
@@ -20,7 +20,7 @@ export async function getSiteProfileWithVersion() {
 
 export async function updateSiteProfile(input: unknown, userId: string, expectedVersion?: number) {
   const values = profileInputSchema.parse(input);
-  await validateCoverMedia(values.logoMediaId);
+  await validateImageMedia(values.logoMediaId, ["logoMediaId"]);
   const saved = await saveSiteProfile(values, userId, expectedVersion);
   return { profile: serialize(saved), version: saved.version };
 }

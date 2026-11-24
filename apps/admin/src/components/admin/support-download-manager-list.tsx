@@ -53,7 +53,7 @@ const blank: AdminSupportDownloadInput = {
 };
 
 const downloadFormSchema = adminSupportDownloadInputSchema.superRefine((values, context) => {
-  if (values.isEnabled && !values.fileMediaId && !values.externalUrl) context.addIssue({ code: "custom", path: ["fileMediaId"], message: "Chọn tệp PDF/ZIP hoặc nhập link tải về trước khi hiển thị trên website." });
+  if (values.isEnabled && !values.fileMediaId && !values.externalUrl) context.addIssue({ code: "custom", path: ["fileMediaId"], message: "Chọn tệp tải xuống hoặc nhập link tải về trước khi hiển thị trên website." });
 });
 
 const statusLabel: Record<AdminSupportDownload["status"], string> = {
@@ -150,7 +150,7 @@ export function SupportDownloadManagerList({
     description: { label: "Mô tả", message: "Nhập mô tả từ 1 đến 10.000 ký tự hoặc để trống." },
     meta: { label: "Thông tin phụ", message: "Nhập thông tin phụ tối đa 160 ký tự hoặc để trống." },
     sortOrder: { label: "Thứ tự", message: "Nhập số nguyên từ 0 đến 10.000." },
-    fileMediaId: { label: "Tệp tải xuống", message: "Chọn lại tệp PDF hoặc ZIP từ thư viện." },
+    fileMediaId: { label: "Tệp tải xuống", message: "Chọn lại tệp tải xuống từ thư viện." },
     externalUrl: { label: "Link tải về", message: "Nhập link bắt đầu bằng https:// (không kèm tài khoản, mật khẩu)." },
     groupName: { label: "Nhóm hiển thị", message: "Nhập tên nhóm từ 1 đến 120 ký tự hoặc để trống." },
     icon: { label: "Biểu tượng", message: "Biểu tượng không hợp lệ. Vui lòng tải lại để kiểm tra." },
@@ -168,7 +168,7 @@ export function SupportDownloadManagerList({
   const titleInput = useRef<HTMLInputElement>(null);
   const uploading = useRef(false);
   const [isUploading, setUploading] = useState(false);
-  // Tự tải tệp về thư viện khi nhập link (chỉ PDF/ZIP ≤ 20 MB lưu được; loại khác giữ nguyên dạng link).
+  // Tự tải tệp về thư viện khi nhập link (chỉ PDF, tệp nén, tài liệu Office ≤ 20 MB lưu được; loại khác giữ nguyên dạng link).
   const [autoImport, setAutoImport] = useState(true);
   const [importNote, setImportNote] = useState<{ tone: "error" | "success" | "info" | "warning"; text: string } | null>(null);
   const importedUrl = useRef("");
@@ -478,7 +478,7 @@ export function SupportDownloadManagerList({
               </div>
             </AdminFormField>
             <AdminCheckbox checked={autoImport} onChange={(event) => setAutoImport(event.target.checked)}>Tự tải tệp về thư viện khi dán hoặc nhập link</AdminCheckbox>
-            <p className="admin-help">Dán link tải trực tiếp. Tệp PDF hoặc ZIP (tối đa 20 MB) được tải về thư viện của iOrder; tệp khác như .exe, .msi, .dmg hoặc tệp lớn hơn giữ nguyên dạng link, website mở link ở tab mới. Mỗi mục dùng một nguồn: chọn tệp thì bỏ link và ngược lại.</p>
+            <p className="admin-help">Dán link tải trực tiếp. Tệp PDF, tệp nén (ZIP, RAR, 7Z, GZ) hoặc tài liệu Word/Excel/PowerPoint (tối đa 20 MB) được tải về thư viện của iOrder; tệp khác như .exe, .msi, .dmg hoặc tệp lớn hơn giữ nguyên dạng link, website mở link ở tab mới. Mỗi mục dùng một nguồn: chọn tệp thì bỏ link và ngược lại.</p>
             {importNote ? <AdminNotice tone={importNote.tone}>{importNote.text}</AdminNotice> : null}
           </div>
           <AdminFormField id={validation.props("title").id} label="Tên hiển thị" error={validation.message("title")}><input {...validation.props("title")} className="admin-input" ref={titleInput} maxLength={220} onChange={(event) => update("title", event.target.value)} required value={form.title} /></AdminFormField>

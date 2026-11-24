@@ -13,11 +13,14 @@ import { AdminHelpTip } from "./ui/admin-help-tip";
 import { AdminImageLightbox } from "./ui/admin-image-lightbox";
 import { mergeMediaAssets } from "./ui/merge-media-assets";
 import { isSelectableMediaType } from "./ui/media-selection-policy";
+import { documentMediaAccept, documentMediaFormats, imageMediaAccept, imageMediaFormats, socialImageMediaAccept, socialImageMediaFormats } from "@iorder/shared/server/media/media-types";
 import { AdminSelect } from "./ui/admin-select";
 
 type MediaPickerProps = {
   disabled?: boolean;
   files?: boolean;
+  /** Ảnh bìa, ảnh chia sẻ, ảnh đại diện: chỉ PNG/JPEG/WebP (mạng xã hội và Google không hiện SVG/AVIF). Mặc định nhận mọi định dạng ảnh web. */
+  social?: boolean;
   /** Tiêu đề và gợi ý riêng cho từng chỗ dùng (mặc định: "Ảnh bìa"/"Tệp tải xuống"). */
   label?: string;
   hint?: string;
@@ -65,7 +68,7 @@ function MediaAltPrompt({ asset, disabled, onSaved }: { asset: MediaAsset; disab
   </div>;
 }
 
-export function MediaPicker({ disabled = false, value, onChange, files = false, onUploaded, onUploadingChange, label: customLabel, hint, preview = false, compact = false }: MediaPickerProps) {
+export function MediaPicker({ disabled = false, value, onChange, files = false, social = false, onUploaded, onUploadingChange, label: customLabel, hint, preview = false, compact = false }: MediaPickerProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const uploading = useRef(false);
   const uploadController = useRef<AbortController | null>(null);
@@ -112,7 +115,7 @@ export function MediaPicker({ disabled = false, value, onChange, files = false, 
       if (!response.ok) throw adminApiError(payload, "Không tải được thông tin tệp đang chọn.");
       const parsed = mediaAssetSchema.safeParse(payload.asset);
       if (!parsed.success || parsed.data.id !== value) throw new Error("Thông tin tệp đang chọn không hợp lệ.");
-      if (!isSelectableMediaType(parsed.data.mimeType, files)) throw new Error("Tệp đang chọn không đúng định dạng cho trường này. Vui lòng chọn lại tệp phù hợp.");
+      if (!isSelectableMediaType(parsed.data.mimeType, files, social)) throw new Error("Tệp đang chọn không đúng định dạng cho trường này. Vui lòng chọn lại tệp phù hợp.");
       if (controller.signal.aborted) return;
       setAssets(current => mergeMediaAssets(current, [parsed.data]).slice(-26));
       setMetadataResult({ id: value });
@@ -120,7 +123,7 @@ export function MediaPicker({ disabled = false, value, onChange, files = false, 
       if (!controller.signal.aborted) setMetadataResult({ id: value, error: error instanceof Error ? error.message : "Không tải được thông tin tệp đang chọn." });
     });
     return () => controller.abort();
-  }, [value, files, libraryAttempt]);
+  }, [value, files, social, libraryAttempt]);
 
   useEffect(() => {
     if (!shouldLoadLibrary) return;
@@ -133,7 +136,7 @@ export function MediaPicker({ disabled = false, value, onChange, files = false, 
       if (!parsed.success || parsed.data.page !== libraryPage || parsed.data.pageSize !== 25) throw new Error("Dữ liệu thư viện tệp không hợp lệ. Vui lòng thử tải lại.");
       if (controller.signal.aborted) return;
       setAssets(current => mergeMediaAssets(current.filter(asset => asset.id === attachment.current.value), parsed.data.assets));
-      setLibraryAssets(parsed.data.assets.filter(asset => isSelectableMediaType(asset.mimeType, files)));
+      setLibraryAssets(parsed.data.assets.filter(asset => isSelectableMediaType(asset.mimeType, files, social)));
       setLibraryTotal(parsed.data.total);
       setLibraryPages(parsed.data.totalPages);
       setLoaded(true);
@@ -142,7 +145,7 @@ export function MediaPicker({ disabled = false, value, onChange, files = false, 
       if (!controller.signal.aborted) setLibraryError(loadError instanceof Error ? loadError.message : "Không tải được thư viện tệp.");
     });
     return () => controller.abort();
-  }, [files, libraryAttempt, shouldLoadLibrary, libraryPage, libraryQuery]);
+  }, [files, social, libraryAttempt, shouldLoadLibrary, libraryPage, libraryQuery]);
 
   useEffect(() => {
     if (!value) return;
@@ -178,7 +181,7 @@ export function MediaPicker({ disabled = false, value, onChange, files = false, 
       const parsed = mediaAssetSchema.safeParse(payload.asset);
       if (!parsed.success) throw new Error("Máy chủ đã nhận tệp nhưng phản hồi không hợp lệ. Hãy kiểm tra thư viện trước khi tải lại để tránh trùng tệp.");
       const asset = parsed.data;
-      if (!isSelectableMediaType(asset.mimeType, initialFiles)) throw new Error("Tệp đã tải lên thư viện nhưng không đúng định dạng cho trường này. Hãy kiểm tra thư viện và chọn tệp phù hợp.");
+      if (!isSelectableMediaType(asset.mimeType, initialFiles, social)) throw new Error("Tệp đã tải lên thư viện nhưng không đúng định dạng cho trường này. Hãy kiểm tra thư viện và chọn tệp phù hợp.");
       setAssets((current) => mergeMediaAssets(current, [asset]).slice(-26));
       if (attachment.current.value !== initialSelection || attachment.current.files !== initialFiles) {
         setError("Tệp đã được tải lên thư viện nhưng lựa chọn đã thay đổi. Hãy chọn lại tệp từ thư viện nếu cần gắn vào nội dung.");
@@ -214,7 +217,7 @@ export function MediaPicker({ disabled = false, value, onChange, files = false, 
     onDragLeave: () => setDragging(false),
     onDrop: dropFile,
   };
-  const formats = files ? "PDF hoặc ZIP, tối đa 20 MB" : "PNG, JPEG hoặc WebP · tối đa 20 MB";
+  const formats = files ? `${documentMediaFormats}, tối đa 20 MB` : `${social ? socialImageMediaFormats : imageMediaFormats} · tối đa 20 MB`;
   const selected = assets.find((asset) => asset.id === value);
   // Ảnh đã chọn hiện bản xem trước nhỏ thay cho biểu tượng tệp; qua bộ thu nhỏ của Next để không tải ảnh gốc vài MB.
   const thumbnail = selected?.mimeType.startsWith("image/") ? <Image alt="" height={55} src={selected.url} width={104} /> : null;
@@ -237,7 +240,7 @@ export function MediaPicker({ disabled = false, value, onChange, files = false, 
 
   return <section className="media-picker">
     {compact ? <><h3 className="sr-only">{label}</h3>{hint ? <AdminHelpTip className="admin-help-tip--corner" label={`Giải thích: ${label}`}>{hint}</AdminHelpTip> : null}</> : <div className="media-picker__heading"><div className="admin-label-row"><h3>{label}</h3><AdminHelpTip label={`Giải thích: ${label}`}>{hint ?? formats}</AdminHelpTip></div></div>}
-    <input accept={files ? ".pdf,.zip,application/pdf,application/zip" : "image/png,image/jpeg,image/webp"} aria-label={`Chọn tệp cho ${label}`} className="sr-only" tabIndex={-1} disabled={disabled || isUploading} onChange={(event) => void upload(event.target.files?.[0])} ref={inputRef} type="file" />
+    <input accept={files ? documentMediaAccept : social ? socialImageMediaAccept : imageMediaAccept} aria-label={`Chọn tệp cho ${label}`} className="sr-only" tabIndex={-1} disabled={disabled || isUploading} onChange={(event) => void upload(event.target.files?.[0])} ref={inputRef} type="file" />
     {showPreview && selected ? <div className={dragging ? "media-picker__file media-picker__file--drop" : "media-picker__file"} {...dropTarget}>
       <button aria-label={`Xem lớn ảnh ${selected.originalName}`} className="media-picker__peek" onClick={openViewer} onPointerEnter={startPeek} onPointerLeave={stopPeek} title="Rê chuột hoặc bấm để xem lớn" type="button">{thumbnail}<ZoomIn aria-hidden="true" size={14} /></button>
       <span><strong>{selected.originalName}</strong></span>

@@ -10,15 +10,15 @@ const icons: Record<AdminFileKind, LucideIcon> = {
 };
 
 export const fileKindLabels: Record<AdminFileKind, string> = {
-  excel: "Excel", csv: "CSV", word: "Word", pdf: "PDF", zip: "ZIP", image: "Ảnh", text: "Tệp văn bản",
+  excel: "Excel", csv: "CSV", word: "Word", pdf: "PDF", zip: "Tệp nén", image: "Ảnh", text: "Tệp văn bản",
 };
 
 /** Loại tệp từ MIME type hoặc tên tệp (đuôi). Không nhận ra thì là "text". */
 export function fileKindOf(value: string | null | undefined): AdminFileKind {
   const source = (value ?? "").toLowerCase();
-  if (source.startsWith("image/") || /\.(png|jpe?g|webp|gif|svg)$/.test(source)) return "image";
+  if (source.startsWith("image/") || /\.(png|jpe?g|webp|gif|avif|svg)$/.test(source)) return "image";
   if (source === "application/pdf" || source.endsWith(".pdf")) return "pdf";
-  if (source.includes("zip") || source.endsWith(".zip")) return "zip";
+  if (source.includes("zip") || source === "application/vnd.rar" || source === "application/x-7z-compressed" || /\.(zip|rar|7z|gz)$/.test(source)) return "zip";
   if (source.includes("spreadsheetml") || /\.xlsx?$/.test(source)) return "excel";
   if (source === "text/csv" || source.endsWith(".csv")) return "csv";
   if (source.includes("wordprocessingml") || /\.docx?$/.test(source)) return "word";

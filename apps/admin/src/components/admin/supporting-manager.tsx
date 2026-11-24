@@ -520,7 +520,7 @@ function TestimonialForm({ form, onChange, onUploadingChange, validation }: { fo
         <AdminFormField id="supporting-sortOrder" label="Thứ tự hiển thị" error={validation.message("sortOrder")}><input {...validation.props("sortOrder")} min={0} onChange={(event) => onChange({ ...form, sortOrder: Math.max(0, Number(event.target.value) || 0) })} type="number" value={form.sortOrder} /></AdminFormField>
       </div>
       <Toggle checked={form.isEnabled} label="Hiển thị trên website" onChange={(isEnabled) => onChange({ ...form, isEnabled })} />
-      <div {...validation.props("avatarMediaId")} tabIndex={-1}><MediaPicker label="Ảnh đại diện" onChange={(avatarMediaId) => onChange((current) => current ? { ...current, avatarMediaId } : current)} onUploadingChange={onUploadingChange} value={form.avatarMediaId} />{validation.message("avatarMediaId")}</div>
+      <div {...validation.props("avatarMediaId")} tabIndex={-1}><MediaPicker social label="Ảnh đại diện" onChange={(avatarMediaId) => onChange((current) => current ? { ...current, avatarMediaId } : current)} onUploadingChange={onUploadingChange} value={form.avatarMediaId} />{validation.message("avatarMediaId")}</div>
     </div>
   );
 }

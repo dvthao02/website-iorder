@@ -21,6 +21,18 @@ test("đọc kích thước PNG, JPEG và các biến thể WebP", () => {
   assert.deepEqual(readImageDimensions(sample("webpAlpha"), "image/webp"), { width: 37, height: 21 });
 });
 
+test("đọc kích thước GIF, AVIF và SVG (width/height hoặc viewBox)", () => {
+  const gif = Buffer.concat([Buffer.from("GIF89a", "ascii"), Buffer.from([37, 0, 21, 0]), Buffer.alloc(8)]);
+  assert.deepEqual(readImageDimensions(gif, "image/gif"), { width: 37, height: 21 });
+  const avif = Buffer.concat([Buffer.from([0, 0, 0, 28]), Buffer.from("ftypavif", "ascii"), Buffer.alloc(8), Buffer.from("ispe", "ascii"), Buffer.from([0, 0, 0, 0]), Buffer.from([0, 0, 0, 37]), Buffer.from([0, 0, 0, 21])]);
+  assert.deepEqual(readImageDimensions(avif, "image/avif"), { width: 37, height: 21 });
+  assert.deepEqual(readImageDimensions(Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="120px" height="40">'), "image/svg+xml"), { width: 120, height: 40 });
+  assert.deepEqual(readImageDimensions(Buffer.from('<?xml version="1.0"?><svg viewBox="0 0 300 100" xmlns="http://www.w3.org/2000/svg"></svg>'), "image/svg+xml"), { width: 300, height: 100 });
+  assert.equal(readImageDimensions(Buffer.from('<svg width="100%" height="50%"></svg>'), "image/svg+xml"), null, "đơn vị phần trăm không cho biết kích thước thật");
+  assert.equal(readImageDimensions(Buffer.from("GIF89a"), "image/gif"), null);
+  assert.equal(readImageDimensions(Buffer.from("ftypavif"), "image/avif"), null);
+});
+
 test("JPEG có khối thông tin chèn trước khung hình vẫn đọc đúng", () => {
   const jpeg = sample("jpeg");
   const app1 = Buffer.concat([Buffer.from([0xff, 0xe1, 0x00, 0x0a]), Buffer.alloc(8, 0x41)]);

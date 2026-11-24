@@ -8,6 +8,7 @@ import {
   Trash2, Underline, Undo2, Unlink, Wallpaper,
 } from "lucide-react";
 import { useRef, useState, type ReactNode } from "react";
+import { imageMediaAccept } from "@iorder/shared/server/media/media-types";
 
 import type { BannerHeight, BannerOverlay, ImageAlign, RichDocument } from "@iorder/shared/server/shared/rich-text";
 import { youtubeVideoId, youtubeWatchUrl } from "@iorder/shared/server/shared/youtube";
@@ -248,8 +249,8 @@ export function RichTextEditor({ value, onChange, onImportTitle, placeholder = "
     </div> : null}
     <EditorContent className="admin-rte__content" editor={editor} />
     <div className="admin-rte__status">{busy ?? `Khoảng ${state.words} từ`} · Dán từ Word/Google Docs giữ được tiêu đề, đậm/nghiêng, danh sách, bảng.</div>
-    <input accept="image/png,image/jpeg,image/webp" hidden onChange={(event) => void insertImage(event.target.files?.[0])} ref={imageInput} type="file" />
-    <input accept="image/png,image/jpeg,image/webp" hidden onChange={(event) => void insertBanner(event.target.files?.[0])} ref={bannerInput} type="file" />
+    <input accept={imageMediaAccept} hidden onChange={(event) => void insertImage(event.target.files?.[0])} ref={imageInput} type="file" />
+    <input accept={imageMediaAccept} hidden onChange={(event) => void insertBanner(event.target.files?.[0])} ref={bannerInput} type="file" />
     <input accept={importAccept} hidden onChange={(event) => void importFromFile(event.target.files?.[0])} ref={fileInput} type="file" />
   </div>;
 }

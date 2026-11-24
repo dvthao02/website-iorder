@@ -1,6 +1,7 @@
 import { and, count, eq, inArray, isNull, or } from "drizzle-orm";
 
 import { getDb } from "@iorder/shared/db/client";
+import { imageMediaTypes } from "@iorder/shared/server/media/media-types";
 import { equipmentGroups, mediaAssets, offerings, pages, partners, posts, salesEquipment, supportDownloads, testimonials } from "@iorder/shared/db/schema";
 import { getNavigation } from "@iorder/shared/server/navigation/navigation.service";
 import { getSiteProfile } from "@iorder/shared/server/settings/profile.service";
@@ -40,7 +41,7 @@ async function enabledCount(table: typeof equipmentGroups | typeof partners | ty
 async function imagesMissingAltCount() {
   const [result] = await getDb().select({ total: count() }).from(mediaAssets).where(and(
     isNull(mediaAssets.deletedAt),
-    inArray(mediaAssets.mimeType, ["image/png", "image/jpeg", "image/webp"]),
+    inArray(mediaAssets.mimeType, [...imageMediaTypes]),
     or(isNull(mediaAssets.altText), eq(mediaAssets.altText, "")),
   ));
   return result?.total ?? 0;
