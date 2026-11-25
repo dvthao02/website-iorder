@@ -9,6 +9,7 @@ import { accessErrors } from "../roles/roles.errors";
 import type { CmsUserListQuery } from "./users.contract";
 import { toAdminListPage } from "../shared/admin-list.contract";
 import { listOrder, vietnameseText } from "../shared/list-order";
+import { visibleUser } from "./hidden-users";
 
 export async function listCmsUsersPage(query: CmsUserListQuery, database = getDb()) {
   return database.transaction(async tx => {
@@ -17,7 +18,7 @@ export async function listCmsUsersPage(query: CmsUserListQuery, database = getDb
       status: users.status, lastLoginAt: users.lastLoginAt,
       role: sql<string>`case when bool_or(${roles.code} = ${superAdminRoleCode}) then ${superAdminRoleCode} else min(${roles.code}) end`.as("cms_role"),
     }).from(users).innerJoin(userRoles, eq(userRoles.userId, users.id)).innerJoin(roles, eq(roles.id, userRoles.roleId))
-      .where(isNull(users.deletedAt)).groupBy(users.id).as("cms_members");
+      .where(and(isNull(users.deletedAt), visibleUser())).groupBy(users.id).as("cms_members");
     const keyword = query.query ? `%${query.query.replace(/[\\%_]/g, "\\$&")}%` : undefined;
     const condition = and(
       query.status === "all" ? undefined : eq(members.status, query.status),
@@ -73,7 +74,7 @@ export function listCmsUsers(database = getDb()) {
   }).from(users)
     .innerJoin(userRoles, eq(userRoles.userId, users.id))
     .innerJoin(roles, eq(roles.id, userRoles.roleId))
-    .where(isNull(users.deletedAt))
+    .where(and(isNull(users.deletedAt), visibleUser()))
     .groupBy(users.id)
     .orderBy(asc(users.username), asc(users.id));
 }
@@ -85,7 +86,8 @@ export async function writeCmsUser(id: string | null, values: { username: string
     const [targetRole] = await tx.select({ id: roles.id }).from(roles).where(eq(roles.code, values.role)).limit(1);
     if (!targetRole) throw accessErrors.roleNotFound();
     const [before] = id ? await tx.select().from(users).where(and(eq(users.id, id), isNull(users.deletedAt))).for("update") : [];
-    if (id && !before) return undefined;
+    // Tài khoản ẩn chỉ chính nó sửa được; người khác coi như không có tài khoản đó.
+    if (id && (!before || (before.isHidden && before.id !== actorId))) return undefined;
     const beforeRoleIds = before ? (await tx.select({ roleId: userRoles.roleId }).from(userRoles).where(eq(userRoles.userId, before.id))).map(row => row.roleId) : [];
     const wasSuperAdmin = beforeRoleIds.includes(access.superRoleId);
     const roleChanged = !beforeRoleIds.includes(targetRole.id) || beforeRoleIds.length !== 1;
@@ -126,7 +128,7 @@ export async function deleteCmsUser(id: string, actorId: string, database = getD
     requireActorPermission(access, "users.delete");
     if (id === actorId) throw accessErrors.selfDelete();
     const [before] = await tx.select().from(users).where(and(eq(users.id, id), isNull(users.deletedAt))).for("update");
-    if (!before) return undefined;
+    if (!before || (before.isHidden && before.id !== actorId)) return undefined;
     if (before.status !== "disabled") throw accessErrors.activeUserDelete();
     const roleRows = await tx.select({ roleId: userRoles.roleId, code: roles.code }).from(userRoles).innerJoin(roles, eq(roles.id, userRoles.roleId)).where(eq(userRoles.userId, id));
     if (!access.isSuperAdmin) {

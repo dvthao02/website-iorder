@@ -2,6 +2,7 @@ import { and, asc, count, desc, eq, gte, isNotNull, isNull, lt, ne, or, sql, typ
 import type { AnyPgColumn, PgTable } from "drizzle-orm/pg-core";
 
 import { getDb } from "@iorder/shared/db/client";
+import { shownFullName, visibleActor } from "../users/hidden-users";
 import { auditLogs, contactLeads, offerings, pages, posts, salesEquipment, users } from "@iorder/shared/db/schema";
 import { hasCmsPermission, type CmsActor, type CmsPermissionCode } from "@iorder/shared/server/auth/permissions";
 import { getBackupStatus } from "@iorder/shared/server/backup/backup-status";
@@ -192,7 +193,7 @@ export async function collectAdminNotifications(actor: NotificationActor): Promi
     ? or(isNull(contactLeads.assignedTo), eq(contactLeads.assignedTo, actor.userId), manager ? and(isNotNull(contactLeads.assignedTo), lt(contactLeads.createdAt, overdueBefore)) : undefined)
     : isNull(contactLeads.assignedTo);
   const pendingLeads: SQL | undefined = and(eq(contactLeads.status, "new"), isNull(contactLeads.deletedAt), visibleToActor);
-  const leadRows = (condition: SQL | undefined, order: SQL) => getDb().select({ id: contactLeads.id, name: contactLeads.name, phone: contactLeads.phone, need: contactLeads.need, context: contactLeads.context, createdAt: contactLeads.createdAt, assignedTo: contactLeads.assignedTo, assigneeName: users.fullName })
+  const leadRows = (condition: SQL | undefined, order: SQL) => getDb().select({ id: contactLeads.id, name: contactLeads.name, phone: contactLeads.phone, need: contactLeads.need, context: contactLeads.context, createdAt: contactLeads.createdAt, assignedTo: contactLeads.assignedTo, assigneeName: shownFullName<string | null>() })
     .from(contactLeads).leftJoin(users, eq(users.id, contactLeads.assignedTo)).where(and(pendingLeads, condition)).orderBy(order).limit(leadNotificationLimit);
 
   const [leadBacklog, pageReviews, postReviews, guideReviews, softwareReviews, solutionReviews, equipmentReviews, backup, siteConfig, loginFailureAccounts] = await Promise.all([
@@ -219,7 +220,7 @@ export async function collectAdminNotifications(actor: NotificationActor): Promi
     when("system.view", () => getBackupStatus().then((status) => status.state), "ok" as const),
     when("settings.view", () => getPublishingConfig(), null),
     when("audit.view", () => getDb().select({ userId: auditLogs.userId }).from(auditLogs)
-      .where(and(eq(auditLogs.action, "user.login_failed"), gte(auditLogs.createdAt, failuresSince), isNotNull(auditLogs.userId)))
+      .where(and(eq(auditLogs.action, "user.login_failed"), gte(auditLogs.createdAt, failuresSince), isNotNull(auditLogs.userId), visibleActor(auditLogs.userId)))
       .groupBy(auditLogs.userId)
       .having(sql`count(*) >= ${loginFailureThreshold}`)
       .then((rows) => rows.length), 0),

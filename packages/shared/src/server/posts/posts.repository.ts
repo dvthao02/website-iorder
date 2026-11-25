@@ -3,6 +3,7 @@ import { alias } from "drizzle-orm/pg-core";
 
 import { getDb } from "@iorder/shared/db/client";
 import { assertContentVersion, ContentLockedError, contentDeleteRequestSchema } from "../shared/content-version";
+import { shownFullName } from "../users/hidden-users";
 import { auditLogs, categories, mediaAssets, postAuthors, postCategories, postRevisions, postTags, posts, tags, users } from "@iorder/shared/db/schema";
 import { toAdminListPage, type AdminListQuery } from "@iorder/shared/server/shared/admin-list.contract";
 
@@ -114,12 +115,12 @@ export async function findPublishedPostBySlug(slug: string, previewId?: string) 
   return post ? withTaxonomy(post) : undefined;
 }
 
-const adminPostSelection = {
+const adminPostSelection = () => ({
   id: posts.id,
   lockedAt: posts.lockedAt,
   lockedBy: posts.lockedBy,
   // Tên người khóa: các truy vấn dùng selection này nối bảng users qua posts.lockedBy.
-  lockedByName: users.fullName,
+  lockedByName: shownFullName<string | null>(),
   authorId: posts.authorId,
   coverMediaId: posts.coverMediaId,
   type: posts.type,
@@ -144,7 +145,7 @@ const adminPostSelection = {
   scheduledAt: posts.scheduledAt,
   publishedAt: posts.publishedAt,
   updatedAt: posts.updatedAt,
-};
+});
 
 type PostListQuery = AdminListQuery & {
   categoryId?: string;
@@ -199,20 +200,20 @@ export async function listPublishedPostDetails(type?: PublicPostType) {
 }
 
 export async function listAdminPosts() {
-  return withTaxonomyBatch(await getDb().select(adminPostSelection).from(posts).leftJoin(users, eq(users.id, posts.lockedBy)).where(isNull(posts.deletedAt)).orderBy(desc(posts.updatedAt), desc(posts.createdAt)));
+  return withTaxonomyBatch(await getDb().select(adminPostSelection()).from(posts).leftJoin(users, eq(users.id, posts.lockedBy)).where(isNull(posts.deletedAt)).orderBy(desc(posts.updatedAt), desc(posts.createdAt)));
 }
 
 export async function listAdminPostsPage(query: PostListQuery, database = getDb()) {
   const condition = postListCondition(query);
   return database.transaction(async (tx) => {
-    const rows = await tx.select(adminPostSelection).from(posts).leftJoin(users, eq(users.id, posts.lockedBy)).where(condition).orderBy(...postListOrder(query)).limit(query.pageSize).offset((query.page - 1) * query.pageSize);
+    const rows = await tx.select(adminPostSelection()).from(posts).leftJoin(users, eq(users.id, posts.lockedBy)).where(condition).orderBy(...postListOrder(query)).limit(query.pageSize).offset((query.page - 1) * query.pageSize);
     const [totals] = await tx.select({ total: count() }).from(posts).where(condition);
     return toAdminListPage(await withTaxonomyBatch(rows, tx), query, totals?.total ?? 0);
   }, { isolationLevel: "repeatable read", accessMode: "read only" });
 }
 
 export async function findAdminPostById(id: string) {
-  const [post] = await getDb().select(adminPostSelection).from(posts).leftJoin(users, eq(users.id, posts.lockedBy)).where(and(eq(posts.id, id), isNull(posts.deletedAt))).limit(1);
+  const [post] = await getDb().select(adminPostSelection()).from(posts).leftJoin(users, eq(users.id, posts.lockedBy)).where(and(eq(posts.id, id), isNull(posts.deletedAt))).limit(1);
   return post ? withTaxonomy(post) : undefined;
 }
 
@@ -220,7 +221,7 @@ export async function listAdminPostSummariesPage(query: PostListQuery, database 
   const condition = postListCondition(query);
   return database.transaction(async tx => {
     // Ảnh bìa cho ô thu nhỏ trong bảng; bỏ qua media đã xóa mềm để không hiện ảnh vỡ.
-    const rows = await tx.select({ id: posts.id, type: posts.type, title: posts.title, slug: posts.slug, status: posts.status, draftVersion: posts.draftVersion, updatedAt: posts.updatedAt, lockedAt: posts.lockedAt, lockedByName: users.fullName, coverKey: mediaAssets.storageKey })
+    const rows = await tx.select({ id: posts.id, type: posts.type, title: posts.title, slug: posts.slug, status: posts.status, draftVersion: posts.draftVersion, updatedAt: posts.updatedAt, lockedAt: posts.lockedAt, lockedByName: shownFullName<string | null>(), coverKey: mediaAssets.storageKey })
       .from(posts).leftJoin(mediaAssets, and(eq(mediaAssets.id, posts.coverMediaId), isNull(mediaAssets.deletedAt))).leftJoin(users, eq(users.id, posts.lockedBy))
       .where(condition).orderBy(...postListOrder(query)).limit(query.pageSize).offset((query.page - 1) * query.pageSize);
     const [totals] = await tx.select({ total: count() }).from(posts).where(condition);

@@ -6,11 +6,12 @@ import { auditLogs, secureSettings, users } from "@iorder/shared/db/schema";
 import { findActivePasswordHash } from "../auth/auth.repository";
 import { assertContentVersion, ContentVersionConflictError } from "../shared/content-version";
 import type { SecretsRepository } from "./secrets.service";
+import { shownFullName } from "../users/hidden-users";
 
 // Nhật ký hoạt động chỉ ghi tên khóa và đã đặt/chưa đặt, không bao giờ ghi giá trị hay gợi ý.
 export const secretsRepository: SecretsRepository = {
   async list() {
-    const rows = await getDb().select({ key: secureSettings.key, hint: secureSettings.hint, version: secureSettings.version, updatedAt: secureSettings.updatedAt, updatedByName: users.fullName })
+    const rows = await getDb().select({ key: secureSettings.key, hint: secureSettings.hint, version: secureSettings.version, updatedAt: secureSettings.updatedAt, updatedByName: shownFullName<string | null>() })
       .from(secureSettings).leftJoin(users, eq(users.id, secureSettings.updatedBy));
     return rows;
   },

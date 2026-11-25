@@ -1,6 +1,7 @@
 import { and, asc, count, desc, eq, ilike, inArray, isNotNull, isNull, lte, or, sql } from "drizzle-orm";
 import { getDb } from "@iorder/shared/db/client";
 import { documentMediaTypes, imageMediaTypes } from "./media-types";
+import { visibleUser } from "../users/hidden-users";
 import {
   auditLogs,
   equipmentGroups,
@@ -138,7 +139,7 @@ export async function collectMediaUsage(mediaId: string): Promise<MediaUsage[]> 
     getDb().select({ id: siteProfile.id, label: siteProfile.companyName }).from(siteProfile).where(eq(siteProfile.logoMediaId, mediaId)),
     getDb().select({ id: supportDownloads.id, label: supportDownloads.title }).from(supportDownloads).where(and(eq(supportDownloads.fileMediaId, mediaId), isNull(supportDownloads.deletedAt))),
     listPublishingMediaUsage(mediaId),
-    getDb().select({ id: users.id, label: users.fullName }).from(users).where(and(eq(users.avatarMediaId, mediaId), isNull(users.deletedAt))),
+    getDb().select({ id: users.id, label: users.fullName }).from(users).where(and(eq(users.avatarMediaId, mediaId), isNull(users.deletedAt), visibleUser())),
     // Ảnh đại diện của tác giả bài viết (dòng "Tác giả" trên bài và trang /author).
     getDb().select({ id: postAuthors.id, label: postAuthors.name }).from(postAuthors).where(eq(postAuthors.avatarMediaId, mediaId)),
   ]);

@@ -4,6 +4,7 @@ import { and, asc, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 
 import { getDb } from "@iorder/shared/db/client";
 import { auditLogs, permissions, rolePermissions, roles, userRoles, users } from "@iorder/shared/db/schema";
+import { visibleUser } from "../users/hidden-users";
 
 import { superAdminRoleCode, type CmsPermissionCode } from "../auth/permissions";
 import type { CmsRoleInput } from "./roles.contract";
@@ -50,8 +51,9 @@ export async function rolePermissionCodes(tx: CmsTransaction, roleId: string) {
 }
 
 export function listCmsRoles(database = getDb()) {
+  // Số tài khoản mỗi vai trò không tính tài khoản ẩn (người xem không biết nó tồn tại).
   const userCounts = database.select({ roleId: userRoles.roleId, total: sql<number>`count(*)::int`.as("total") })
-    .from(userRoles).groupBy(userRoles.roleId).as("role_user_counts");
+    .from(userRoles).innerJoin(users, eq(users.id, userRoles.userId)).where(visibleUser()).groupBy(userRoles.roleId).as("role_user_counts");
   return database.select({
     id: roles.id, code: roles.code, name: roles.name, description: roles.description, isSystem: roles.isSystem,
     permissions: sql<string[]>`coalesce(array_agg(distinct ${permissions.code}) filter (where ${permissions.code} is not null), '{}')`,

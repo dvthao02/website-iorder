@@ -56,6 +56,10 @@ async function seedInitialAdministrator() {
       throw new Error("Không thể tạo tài khoản quản trị ban đầu.");
     }
 
+    // Tài khoản khởi tạo là tài khoản quản trị gốc: ẩn khỏi mọi tài khoản khác (danh sách, nhật ký, ô chọn người phụ trách…).
+    // Đặt INITIAL_ADMIN_HIDDEN=false rồi chạy lại lệnh này nếu muốn hiện nó như tài khoản thường.
+    await tx.update(users).set({ isHidden: process.env.INITIAL_ADMIN_HIDDEN?.trim().toLowerCase() !== "false" }).where(eq(users.id, user.id));
+
     await tx
       .insert(userRoles)
       .values({ userId: user.id, roleId: adminRole.id })

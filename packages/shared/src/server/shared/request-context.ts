@@ -4,7 +4,9 @@ import { AsyncLocalStorage } from "node:async_hooks";
 // Bảng audit_logs đọc giá trị này làm mặc định khi insert, nên mọi chỗ ghi nhật ký tự có IP,
 // thiết bị và mã request mà không phải truyền tham số qua từng service/repository.
 // Chỉ dùng run(): enterWith() hoạt động khác nhau giữa Node 22 và 24 và có thể rò sang request khác.
-export type RequestContext = { ipAddress: string | null; userAgent: string | null; requestId: string | null };
+// viewerId: tài khoản CMS đang gọi (getCurrentAdministrator điền khi xác thực xong; đối tượng ngữ cảnh dùng chung trong cả request, nên gán được sau khi chạy).
+// Truy vấn dùng nó để che tài khoản ẩn khỏi mọi người trừ chính tài khoản đó (xem users/hidden-users.ts); không có thì coi như không phải chủ tài khoản ẩn nào.
+export type RequestContext = { ipAddress: string | null; userAgent: string | null; requestId: string | null; viewerId?: string | null };
 
 const storage = new AsyncLocalStorage<RequestContext>();
 

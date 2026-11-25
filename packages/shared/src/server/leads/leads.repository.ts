@@ -10,6 +10,7 @@ import { listOrder, vietnameseText } from "../shared/list-order";
 import { liveContentCondition } from "../shared/live-content";
 import { equipmentIdOfContext, evaluateLeadCooldown, evaluatePhoneLimit, hasSameDevice, isDuplicateLead, leadIpDeviceLimit } from "./leads.guard";
 import { mergeLeadNote, mergedLeadStatus } from "./leads.merge";
+import { shownFullName, visibleUser } from "../users/hidden-users";
 import { normalizePhone } from "./leads.phone";
 import { evaluateLeadRateLimit, leadRateLimitWindowMs } from "./leads.rate-limit";
 
@@ -18,12 +19,12 @@ const handlers = alias(users, "lead_handlers");
 const assignees = alias(users, "lead_assignees");
 
 // Cột đọc cho danh sách và tệp xuất; nơi dùng phải left join `handlers` và `assignees`.
-const leadRowFields = {
+const leadRowFields = () => ({
   id: contactLeads.id, name: contactLeads.name, phone: contactLeads.phone, email: contactLeads.email, businessModel: contactLeads.businessModel, branches: contactLeads.branches,
   need: contactLeads.need, message: contactLeads.message, status: contactLeads.status, createdAt: contactLeads.createdAt, handledAt: contactLeads.handledAt, context: contactLeads.context,
-  internalNote: contactLeads.internalNote, handledByName: handlers.fullName,
-  assignedToId: contactLeads.assignedTo, assignedToName: assignees.fullName, assignedAt: contactLeads.assignedAt,
-};
+  internalNote: contactLeads.internalNote, handledByName: shownFullName<string | null>(handlers),
+  assignedToId: contactLeads.assignedTo, assignedToName: shownFullName<string | null>(assignees), assignedAt: contactLeads.assignedAt,
+});
 // Số liên hệ cùng số điện thoại (kể cả chính nó, không tính liên hệ đã xóa) để nhận ra khách gửi lại; liên hệ cũ chưa có phone_digits tính là 1.
 // Bảng ngoài viết rõ tên vì bảng trong đặt bí danh.
 const sameCustomerCount = sql<number>`greatest(1, (select count(*)::int from contact_leads as same_phone where same_phone.phone_digits = "contact_leads"."phone_digits" and same_phone.deleted_at is null))`;
@@ -88,7 +89,7 @@ export async function listLeadAssignees(database = getDb(), onlyUserId?: string)
     .innerJoin(roles, eq(roles.id, userRoles.roleId))
     .leftJoin(rolePermissions, eq(rolePermissions.roleId, roles.id))
     .leftJoin(permissions, eq(permissions.id, rolePermissions.permissionId))
-    .where(and(isNull(users.deletedAt), eq(users.status, "active"), onlyUserId ? eq(users.id, onlyUserId) : undefined, or(eq(roles.code, superAdminRoleCode), eq(permissions.code, "leads.update"))));
+    .where(and(isNull(users.deletedAt), visibleUser(), eq(users.status, "active"), onlyUserId ? eq(users.id, onlyUserId) : undefined, or(eq(roles.code, superAdminRoleCode), eq(permissions.code, "leads.update"))));
   return rows.sort((a, b) => a.name.localeCompare(b.name, "vi"));
 }
 
@@ -102,7 +103,7 @@ export async function listLeadsPage(query: LeadListQuery, database = getDb(), ac
   // Một snapshot cho hàng, tổng và bộ đếm; không để chúng lệch khi có mutation đồng thời.
   return database.transaction(async tx => {
     const condition = and(search, query.status === "all" ? undefined : eq(contactLeads.status, query.status));
-    const rows = await tx.select({ ...leadRowFields, sameCustomerCount }).from(contactLeads)
+    const rows = await tx.select({ ...leadRowFields(), sameCustomerCount }).from(contactLeads)
       .leftJoin(handlers, eq(contactLeads.handledBy, handlers.id)).leftJoin(assignees, eq(contactLeads.assignedTo, assignees.id)).where(condition)
       .orderBy(...leadOrder(query)).limit(query.pageSize).offset((query.page - 1) * query.pageSize);
     const items = rows.map(withLeadContext);
@@ -115,7 +116,7 @@ export async function listLeadsPage(query: LeadListQuery, database = getDb(), ac
 
 /** Một liên hệ cho khung chi tiết (mở từ thông báo, kể cả khi nó không nằm ở trang đang xem); undefined nếu không có hoặc đã xóa. */
 export async function getLeadDetail(id: string, database = getDb()) {
-  const [row] = await database.select({ ...leadRowFields, sameCustomerCount }).from(contactLeads)
+  const [row] = await database.select({ ...leadRowFields(), sameCustomerCount }).from(contactLeads)
     .leftJoin(handlers, eq(contactLeads.handledBy, handlers.id)).leftJoin(assignees, eq(contactLeads.assignedTo, assignees.id))
     .where(and(eq(contactLeads.id, id), leadVisible)).limit(1);
   return row ? withLeadContext(row) : undefined;
@@ -301,7 +302,7 @@ export function mergeLeads(ids: readonly string[], userId: string, database = ge
 // Xuất theo đúng bộ lọc đang xem; ghi nhật ký vì đây là dữ liệu cá nhân của khách hàng.
 export async function listLeadsForExport(query: LeadExportQuery, actorId: string, limit: number, database = getDb()) {
   return database.transaction(async tx => {
-    const rows = await tx.select(leadRowFields).from(contactLeads)
+    const rows = await tx.select(leadRowFields()).from(contactLeads)
       .leftJoin(handlers, eq(contactLeads.handledBy, handlers.id)).leftJoin(assignees, eq(contactLeads.assignedTo, assignees.id))
       .where(and(leadVisible, leadSearch(query.query), leadDateRange(query), leadSource(query.source), leadAssignee(query.assignee, actorId), leadFocus(query.focus), query.status === "all" ? undefined : eq(contactLeads.status, query.status)))
       .orderBy(...leadOrder(query)).limit(limit);

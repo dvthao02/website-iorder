@@ -1,5 +1,7 @@
 import { createHash, randomBytes } from "node:crypto";
 
+import { currentRequestContext } from "../shared/request-context";
+
 import type { AdministratorLoginInput } from "./auth.schema";
 import { InvalidAdministratorCredentialsError } from "./auth.errors";
 import { clearAdministratorLoginAttempt, consumeAdministratorLoginAttempt } from "./login-throttle";
@@ -54,6 +56,9 @@ export async function getCurrentAdministrator(token: string | undefined) {
 
   const session = await findActiveAdministratorSession(hashSessionToken(token), new Date());
   if (!session) return undefined;
+  // Từ đây các truy vấn trong request biết ai đang xem, để che tài khoản ẩn khỏi người khác (users/hidden-users.ts).
+  const context = currentRequestContext();
+  if (context) context.viewerId = session.userId;
   const { avatarStorageKey, ...administrator } = session;
   return { ...administrator, avatarUrl: avatarStorageKey ? mediaPath(avatarStorageKey) : null };
 }

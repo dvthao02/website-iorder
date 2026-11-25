@@ -33,6 +33,7 @@ services:
       INITIAL_ADMIN_USERNAME: ${INITIAL_ADMIN_USERNAME}
       INITIAL_ADMIN_PASSWORD: ${INITIAL_ADMIN_PASSWORD}
       INITIAL_ADMIN_NAME: ${INITIAL_ADMIN_NAME:-Administrator}
+      INITIAL_ADMIN_HIDDEN: ${INITIAL_ADMIN_HIDDEN:-true}
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -207,6 +208,8 @@ services:
   umami:
     image: ghcr.io/umami-software/umami:3.4.0@sha256:85909afc45bdcda1917394594a087421fdbb05610fded0fa9f6fb861abb2f367
     profiles: ["analytics"]
+    # Tự bật lại sau khi Docker/máy khởi động lại (trước đây Umami tắt hẳn và CMS báo lỗi thống kê). Dừng chủ ý bằng `docker stop` thì không tự chạy lại.
+    restart: unless-stopped
     mem_limit: 512m
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/umami

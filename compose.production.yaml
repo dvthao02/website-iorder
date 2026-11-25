@@ -185,6 +185,7 @@ services:
       INITIAL_ADMIN_USERNAME: ${INITIAL_ADMIN_USERNAME}
       INITIAL_ADMIN_PASSWORD: ${INITIAL_ADMIN_PASSWORD}
       INITIAL_ADMIN_NAME: ${INITIAL_ADMIN_NAME:-Administrator}
+      INITIAL_ADMIN_HIDDEN: ${INITIAL_ADMIN_HIDDEN:-true}
     depends_on:
       migrate:
         condition: service_completed_successfully
