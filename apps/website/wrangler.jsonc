@@ -1,6 +1,6 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
-  "name": "website-iorder",
+  "name": "website-iorder-v2",
   "main": ".open-next/worker.js",
   "upload_source_maps": true,
   "compatibility_date": "2026-11-25",
