@@ -24,6 +24,12 @@
 **/.next-*/
 /out/
 
+# Cloudflare Workers / OpenNext
+**/.open-next/
+**/.wrangler/
+**/.dev.vars*
+!**/.dev.vars.example
+
 # production
 /build
 
