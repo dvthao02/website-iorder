@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { administratorSessionCookieName, getCurrentAdministrator } from "@iorder/shared/server/auth/auth.service";
 import { getOriginalRequestHost, isMediaUploadOriginAllowed } from "@iorder/shared/server/media/media-origin";
+import { serverOriginSecretHeader, verifyServerOriginSecret } from "@iorder/shared/server/publishing/cache-invalidation";
 import { logger, requestIdHeader, resolveRequestId } from "@iorder/shared/server/shared/logger";
 import { rateLimitMessage } from "@iorder/shared/server/shared/rate-limit";
 
@@ -18,6 +19,8 @@ export async function proxy(request: NextRequest) {
   // Mọi request mang một mã định danh (nhận từ Caddy/CMS hoặc tạo mới) để nối log giữa các app.
   const requestId = resolveRequestId(request.headers);
   const forwarded = new Headers(request.headers);
+  const receivedOriginSecret = forwarded.get(serverOriginSecretHeader);
+  forwarded.delete(serverOriginSecretHeader);
   forwarded.set(requestIdHeader, requestId);
   const tagged = (response: NextResponse) => { response.headers.set(requestIdHeader, requestId); return response; };
   const pass = () => tagged(NextResponse.next({ request: { headers: forwarded } }));
@@ -27,7 +30,12 @@ export async function proxy(request: NextRequest) {
   // Lời gọi nội bộ (website và CMS gọi Backend từ phía server) không bị giới hạn: Next tự gán X-Forwarded-For bằng địa chỉ socket (IP container)
   // nên chúng không "thiếu IP" mà trông như một khách duy nhất; chỉ đếm IP công cộng do Caddy ghi.
   const clientIp = getClientAddress(request.headers.get("x-forwarded-for"), request.headers.get("x-real-ip"));
-  const limit = clientIp && !isInternalAddress(clientIp) && !isRateLimitDisabled() ? rateLimitFor(request.nextUrl.pathname, request.method) : null;
+  const trustedPublicRead = (request.method === "GET" || request.method === "HEAD")
+    && request.nextUrl.pathname.startsWith("/api/v1/public/")
+    && verifyServerOriginSecret(process.env.PUBLISH_WEB_REVALIDATE_SECRET, receivedOriginSecret);
+  const limit = clientIp && !isInternalAddress(clientIp) && !trustedPublicRead && !isRateLimitDisabled()
+    ? rateLimitFor(request.nextUrl.pathname, request.method)
+    : null;
   if (clientIp && limit) {
     const decision = apiRateLimiter.consume(`${limit.group}:${clientIp}`, limit);
     if (!decision.allowed) {

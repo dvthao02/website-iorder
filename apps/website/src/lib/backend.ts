@@ -14,7 +14,7 @@ import type { getSiteProfile as getSiteProfileFromService } from "@iorder/shared
 import type { getEnabledSupportDownloads as getEnabledSupportDownloadsFromService } from "@iorder/shared/server/support/support-downloads.service";
 import type { getPartners as getPartnersFromService, getTestimonials as getTestimonialsFromService } from "@iorder/shared/server/supporting/supporting.service";
 import type { getTaxonomy as getTaxonomyFromService } from "@iorder/shared/server/taxonomy/taxonomy.service";
-import { publicContentCacheTag } from "@iorder/shared/server/publishing/cache-invalidation";
+import { publicContentCacheTag, serverOriginHeaders } from "@iorder/shared/server/publishing/cache-invalidation";
 import { cache } from "react";
 import { cookies, draftMode, headers } from "next/headers";
 
@@ -53,6 +53,7 @@ type PublicMedia = Awaited<ReturnType<typeof getMediaByIdFromService>>;
 
 const backendUrl = (process.env.BACKEND_URL ?? "http://localhost:3002").replace(/\/$/, "");
 const publicCacheOptions = { cache: "force-cache" as const, next: { revalidate: 60, tags: [publicContentCacheTag] } };
+const backendOriginHeaders = () => serverOriginHeaders(process.env.PUBLISH_WEB_REVALIDATE_SECRET);
 // Backend treo (DB mất kết nối…) không được giữ trang website tới hết timeout mặc định 5 phút của Node:
 // nội dung chờ tối đa 10 giây rồi hiện trang lỗi; tra chuyển hướng (chạy ở mọi request) chỉ chờ 2 giây rồi bỏ qua.
 const contentTimeoutMs = 10_000;
@@ -70,7 +71,9 @@ const fetchPublicResource = cache(async (resource: string, encodedParams = "") =
   query.set("resource", resource);
   // Bản nháp đang xem trước không bao giờ đi qua cache.
   const signal = AbortSignal.timeout(contentTimeoutMs);
-  const response = await fetch(`${backendUrl}/api/v1/public/content?${query.toString()}`, query.has("preview") ? { cache: "no-store", signal } : { ...publicCacheOptions, signal });
+  const response = await fetch(`${backendUrl}/api/v1/public/content?${query.toString()}`, query.has("preview")
+    ? { cache: "no-store", headers: backendOriginHeaders(), signal }
+    : { ...publicCacheOptions, headers: backendOriginHeaders(), signal });
   if (!response.ok) throw new Error("Không thể tải dữ liệu website từ Backend.");
   return reviveDates(await response.json() as unknown);
 });
@@ -145,7 +148,7 @@ export async function getTestimonials(_enabledOnly = false): Promise<PublicTesti
 // Logo/OG image are decorative: a failed lookup renders the page without them.
 export async function getMediaById(id: string) {
   try {
-    const response = await fetch(`${backendUrl}/api/v1/public/media/${encodeURIComponent(id)}`, { ...publicCacheOptions, signal: AbortSignal.timeout(contentTimeoutMs) });
+    const response = await fetch(`${backendUrl}/api/v1/public/media/${encodeURIComponent(id)}`, { ...publicCacheOptions, headers: backendOriginHeaders(), signal: AbortSignal.timeout(contentTimeoutMs) });
     if (!response.ok) return null;
     return (await response.json() as { asset: PublicMedia }).asset;
   } catch {
@@ -154,7 +157,7 @@ export async function getMediaById(id: string) {
 }
 type EnabledRedirect = { destinationPath: string; statusCode: 301 | 308 } | null;
 async function fetchEnabledRedirect(path: string): Promise<EnabledRedirect> {
-  const response = await fetch(`${backendUrl}/api/v1/public/redirect?path=${encodeURIComponent(path)}`, { ...publicCacheOptions, signal: AbortSignal.timeout(redirectTimeoutMs) });
+  const response = await fetch(`${backendUrl}/api/v1/public/redirect?path=${encodeURIComponent(path)}`, { ...publicCacheOptions, headers: backendOriginHeaders(), signal: AbortSignal.timeout(redirectTimeoutMs) });
   if (!response.ok) return null;
   return (await response.json()).redirect;
 }

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test, { afterEach, beforeEach } from "node:test";
 
 import { NextRequest } from "next/server";
+import { serverOriginSecretHeader } from "@iorder/shared/server/publishing/cache-invalidation";
 
 import { proxy } from "./proxy";
 import { apiRateLimiter } from "./lib/rate-limit-policy";
@@ -12,7 +13,11 @@ const request = (path: string, init: { method?: string; ip?: string; headers?: R
 });
 
 beforeEach(() => apiRateLimiter.clear());
-afterEach(() => { delete process.env.RATE_LIMIT_DISABLED; apiRateLimiter.clear(); });
+afterEach(() => {
+  delete process.env.PUBLISH_WEB_REVALIDATE_SECRET;
+  delete process.env.RATE_LIMIT_DISABLED;
+  apiRateLimiter.clear();
+});
 
 test("Gửi liên hệ dồn dập từ một IP bị chặn 429 kèm Retry-After, IP khác vẫn qua", async () => {
   for (let i = 0; i < 20; i += 1) assert.equal((await proxy(request("/api/v1/leads", { method: "POST", ip: "203.0.113.10" }))).status, 200);
@@ -43,6 +48,29 @@ test("Lời gọi nội bộ (IP loopback/mạng riêng/Docker do Next gán) kh�
 test("IP công cộng giống hệt kịch bản trên vẫn bị giới hạn", async () => {
   for (let i = 0; i < 120; i += 1) assert.equal((await proxy(request("/api/v1/public/content", { ip: "203.0.113.80" }))).status, 200);
   assert.equal((await proxy(request("/api/v1/public/content", { ip: "203.0.113.80" }))).status, 429);
+});
+
+test("Worker có secret hợp lệ đọc public API không bị gom chung hạn mức theo IP Cloudflare", async () => {
+  const secret = "secret-noi-bo-giua-worker-va-backend";
+  process.env.PUBLISH_WEB_REVALIDATE_SECRET = secret;
+  const init = { ip: "2a06:98c0:3600::103", headers: { [serverOriginSecretHeader]: secret } };
+
+  for (let i = 0; i < 130; i += 1) {
+    assert.equal((await proxy(request("/api/v1/public/content", init))).status, 200, `lần ${i + 1}`);
+  }
+});
+
+test("Secret sai không bỏ qua hạn mức và secret đúng không bỏ qua API ghi", async () => {
+  const secret = "secret-noi-bo-giua-worker-va-backend";
+  process.env.PUBLISH_WEB_REVALIDATE_SECRET = secret;
+
+  const wrong = { ip: "203.0.113.81", headers: { [serverOriginSecretHeader]: "secret-sai" } };
+  for (let i = 0; i < 120; i += 1) assert.equal((await proxy(request("/api/v1/public/content", wrong))).status, 200);
+  assert.equal((await proxy(request("/api/v1/public/content", wrong))).status, 429);
+
+  const write = { method: "POST", ip: "203.0.113.82", headers: { [serverOriginSecretHeader]: secret } };
+  for (let i = 0; i < 20; i += 1) assert.equal((await proxy(request("/api/v1/leads", write))).status, 200);
+  assert.equal((await proxy(request("/api/v1/leads", write))).status, 429);
 });
 
 test("Chặn trước khi kiểm phiên: API admin bị dồn dập trả 429 thay vì truy vấn DB", async () => {

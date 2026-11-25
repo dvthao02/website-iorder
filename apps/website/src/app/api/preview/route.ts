@@ -1,5 +1,6 @@
 import { cookies, draftMode } from "next/headers";
 import { NextResponse } from "next/server";
+import { serverOriginHeaders } from "@iorder/shared/server/publishing/cache-invalidation";
 
 import { previewCookieName } from "@/lib/backend";
 
@@ -16,7 +17,10 @@ export async function GET(request: Request) {
   if (!token) return invalid("Thiếu mã xem trước. Hãy bấm lại nút “Xem trước” trong CMS.", 400);
   let preview: { path: string; exp: number } | undefined;
   try {
-    const response = await fetch(`${backendUrl}/api/v1/public/preview?token=${encodeURIComponent(token)}`, { cache: "no-store" });
+    const response = await fetch(`${backendUrl}/api/v1/public/preview?token=${encodeURIComponent(token)}`, {
+      cache: "no-store",
+      headers: serverOriginHeaders(process.env.PUBLISH_WEB_REVALIDATE_SECRET),
+    });
     if (response.ok) preview = (await response.json() as { preview: { path: string; exp: number } }).preview;
   } catch {
     return invalid("Không kết nối được máy chủ nội dung. Vui lòng thử lại.", 502);

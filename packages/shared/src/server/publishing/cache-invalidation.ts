@@ -1,6 +1,22 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 
 export const publicContentCacheTag = "public-content";
+export const serverOriginSecretHeader = "x-iorder-origin-secret";
+
+export function serverOriginHeaders(secret: string | undefined) {
+  const value = secret?.trim();
+  return value ? { [serverOriginSecretHeader]: value } : undefined;
+}
+
+export function verifyServerOriginSecret(secret: string | undefined, received: string | null) {
+  const expected = secret?.trim();
+  const actual = received?.trim();
+  if (!expected || !actual) return false;
+
+  const expectedBytes = Buffer.from(expected);
+  const actualBytes = Buffer.from(actual);
+  return expectedBytes.length === actualBytes.length && timingSafeEqual(expectedBytes, actualBytes);
+}
 
 export function signPublicCacheInvalidation(secret: string, timestamp: string, body: string) {
   return createHmac("sha256", secret).update(`${timestamp}.${body}`).digest("hex");
