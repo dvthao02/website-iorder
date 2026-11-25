@@ -15,8 +15,11 @@ function createDatabase() {
   // Production chỉ có một tiến trình Backend: pool 1 kết nối bắt mọi request (kể cả các truy vấn Promise.all
   // trong cùng request) xếp hàng sau nhau, một truy vấn chậm chặn cả CMS lẫn website.
   // connect_timeout: database không kết nối được thì báo lỗi sau 10 giây (health trả 503) thay vì treo request.
-  const max = Number(process.env.DATABASE_POOL_MAX) || (process.env.NODE_ENV === "production" ? 10 : 2);
-  const client = postgres(connectionString, { prepare: false, max, idle_timeout: 5, max_lifetime: 60, connect_timeout: 10 });
+  const production = process.env.NODE_ENV === "production";
+  const max = Number(process.env.DATABASE_POOL_MAX) || (production ? 10 : 2);
+  // Production giữ kết nối rảnh 60 giây và đổi mới sau 30 phút: đóng sau 5 giây rảnh thì lượt truy cập đầu tiên sau mỗi quãng vắng phải mở kết nối mới
+  // (bắt tay + xác thực SCRAM) trong lúc người dùng chờ. Dev vẫn đóng nhanh để HMR/build không làm cạn kết nối.
+  const client = postgres(connectionString, { prepare: false, max, idle_timeout: production ? 60 : 5, max_lifetime: production ? 1_800 : 60, connect_timeout: 10 });
   return drizzle({ client, schema });
 }
 

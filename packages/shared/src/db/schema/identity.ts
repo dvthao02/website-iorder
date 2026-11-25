@@ -21,6 +21,9 @@ export const users = pgTable(
     lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
     // Xóa mềm: tài khoản ẩn khỏi CMS, không đăng nhập được, nhưng nhật ký vẫn giữ tên người thực hiện.
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    // Tài khoản ẩn (tài khoản quản trị gốc): chỉ chính nó thấy mình; người khác không thấy trong danh sách tài khoản, ô chọn người phụ trách,
+    // nhật ký (hiện là "Quản trị hệ thống") và không sửa, khóa, xóa được (xem server/users/hidden-users.ts). Đặt bằng scripts/seed-admin.ts.
+    isHidden: boolean("is_hidden").default(false).notNull(),
     ...timestamps(),
   },
   (table) => [

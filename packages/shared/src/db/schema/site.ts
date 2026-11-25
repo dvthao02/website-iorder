@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { AnyPgColumn, boolean, index, integer, jsonb, pgTable, text, timestamp, uniqueIndex, uuid, varchar } from "drizzle-orm/pg-core";
+import { AnyPgColumn, boolean, index, integer, jsonb, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid, varchar } from "drizzle-orm/pg-core";
 
 import { currentRequestContext } from "../../server/shared/request-context";
 import { mediaAssets } from "./media";
@@ -128,5 +128,22 @@ export const auditLogs = pgTable(
     requestId: varchar("request_id", { length: 128 }).$defaultFn(() => currentRequestContext()?.requestId ?? sql`null`),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
-  (table) => [index("audit_logs_entity_index").on(table.entityType, table.entityId), index("audit_logs_user_created_at_index").on(table.userId, table.createdAt), index("audit_logs_ip_address_index").on(table.ipAddress)],
+  (table) => [index("audit_logs_entity_index").on(table.entityType, table.entityId), index("audit_logs_user_created_at_index").on(table.userId, table.createdAt), index("audit_logs_ip_address_index").on(table.ipAddress),
+    // Danh sách và tìm kiếm Nhật ký hoạt động sắp theo thời gian mới nhất (createdAt, id giảm dần; phải là DESC NULLS FIRST, đúng thứ tự mặc định của ORDER BY ... DESC, thì PostgreSQL mới dùng — bản DESC NULLS LAST bị bỏ qua) và lọc theo khoảng ngày; không có chỉ mục này thì mỗi lần mở trang phải sắp xếp cả bảng (bảng này lớn dần theo từng thao tác quản trị).
+    index("audit_logs_created_at_index").on(table.createdAt.desc().nullsFirst(), table.id.desc().nullsFirst())],
+);
+
+// Bản dịch nội dung công khai theo từng câu tiếng Việt (khóa = mã băm của câu gốc, xem server/translations/translatable.ts), không theo vị trí:
+// đổi thứ tự khối hay một câu xuất hiện ở nhiều trang vẫn dùng đúng một bản dịch. Chữ cố định của giao diện website dùng khóa là tên ("ui.header.openMenu"). source_text giữ câu gốc lúc dịch để đối chiếu và để biết bản dịch nào
+// không còn câu gốc tương ứng trong nội dung.
+export const contentTranslations = pgTable(
+  "content_translations",
+  {
+    locale: varchar("locale", { length: 12 }).notNull(),
+    sourceKey: varchar("source_key", { length: 128 }).notNull(),
+    sourceText: text("source_text").notNull(),
+    value: text("value").notNull(),
+    ...timestamps(),
+  },
+  (table) => [primaryKey({ columns: [table.locale, table.sourceKey] })],
 );

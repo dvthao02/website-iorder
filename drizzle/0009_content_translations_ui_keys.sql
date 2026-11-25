@@ -1,0 +1,1 @@
+ALTER TABLE "content_translations" ALTER COLUMN "source_key" SET DATA TYPE varchar(128);
