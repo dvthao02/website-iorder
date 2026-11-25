@@ -7,12 +7,12 @@ import { postContentDocumentSchema } from "../posts/posts.contract";
 import { getFixedWebsitePage } from "../pages/pages.contract";
 import { equipmentPublicPath, offeringPublicPath, pagePublicPath, postPublicPath } from "../shared/content-paths";
 import { contentSeoAuditSchema } from "../shared/content-seo";
-import { suggestPageSeoDescription, suggestSeoDescription, type DescribableBlock } from "../shared/seo";
+import { suggestPageSeoDescription, suggestSeoDescription, withBrand, type DescribableBlock } from "../shared/seo";
 import { liveContentCondition } from "../shared/live-content";
 import type { SeoAuditEntry } from "./seo-audit";
 
-// publish-web gắn hậu tố này vào tiêu đề trang chi tiết (bài viết, sản phẩm, thiết bị); trang thì không.
-const detailTitleSuffix = " | iOrder";
+// Tiêu đề Google nhận được là tiêu đề CMS đã qua withBrand (cùng quy tắc với contentMetadata của website): thêm " | iOrder" khi chưa có
+// chữ iOrder và còn vừa 60 ký tự, ngược lại giữ nguyên. Thiết bị chưa đặt tiêu đề SEO thì website dùng "Tên | Thiết bị bán hàng iOrder".
 
 // Cờ noindex và từ khóa chính đọc từ JSONB seo; dữ liệu hỏng thì coi như không đặt (website cũng làm vậy).
 function seoSignals(seo: unknown) { const parsed = contentSeoAuditSchema.safeParse(seo); return { noindex: parsed.success && parsed.data.index === false, focusKeyword: (parsed.success && parsed.data.focusKeyword) || null }; }
@@ -46,7 +46,7 @@ async function pageEntries(now: Date): Promise<SeoAuditEntry[]> {
     const hero = listing ? firstHero.get(row.id) : undefined;
     return {
       kind: "page", id: row.id, type: null, label: row.title, path: pagePublicPath(row.slug),
-      title: row.seoTitle || hero?.title || row.title,
+      title: withBrand(row.seoTitle || hero?.title || row.title),
       description: row.seoDescription || hero?.description || suggestPageSeoDescription(textBlocks.get(row.id)),
       hasImage: null, imageHasAlt: null, ...seoSignals(row.seo), canonicalUrl: row.canonicalUrl,
     };
@@ -60,7 +60,7 @@ async function postEntries(now: Date): Promise<SeoAuditEntry[]> {
     const content = postContentDocumentSchema.safeParse(row.content);
     return {
       kind: "post", id: row.id, type: row.type, label: row.title, path: postPublicPath(row.slug, row.type),
-      title: `${row.seoTitle ?? row.title}${detailTitleSuffix}`,
+      title: withBrand(row.seoTitle ?? row.title),
       description: row.seoDescription ?? suggestSeoDescription(row.excerpt, content.success ? content.data : null),
       hasImage: Boolean(row.coverMediaId), imageHasAlt: imageAlt(row.coverMediaId, row.coverAlt), ...seoSignals(row.seo), canonicalUrl: row.canonicalUrl,
       body: { content: content.success ? content.data : null },
@@ -75,7 +75,7 @@ async function offeringEntries(now: Date): Promise<SeoAuditEntry[]> {
     const path = offeringPublicPath(row.slug, row.type);
     return path ? [{
       kind: "offering" as const, id: row.id, type: row.type, label: row.title, path,
-      title: `${row.seoTitle ?? row.title}${detailTitleSuffix}`,
+      title: withBrand(row.seoTitle ?? row.title),
       description: row.seoDescription ?? row.summary ?? null,
       hasImage: Boolean(row.coverMediaId), imageHasAlt: imageAlt(row.coverMediaId, row.coverAlt), ...seoSignals(row.seo), canonicalUrl: row.canonicalUrl,
     }] : [];
@@ -88,7 +88,7 @@ async function equipmentEntries(now: Date): Promise<SeoAuditEntry[]> {
     .where(and(liveCondition(salesEquipment, now), eq(equipmentGroups.isEnabled, true), isNull(equipmentGroups.deletedAt)));
   return rows.map((row) => ({
     kind: "equipment", id: row.id, type: null, label: row.name, path: equipmentPublicPath(row.slug),
-    title: `${row.seoTitle || row.name}${detailTitleSuffix}`,
+    title: withBrand(row.seoTitle || `${row.name} | Thiết bị bán hàng iOrder`),
     description: row.seoDescription || row.summary || null,
     hasImage: Boolean(row.coverMediaId), imageHasAlt: imageAlt(row.coverMediaId, row.coverAlt), ...seoSignals(row.seo), canonicalUrl: row.canonicalUrl,
   }));

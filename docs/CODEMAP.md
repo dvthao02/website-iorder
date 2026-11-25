@@ -18,7 +18,7 @@ Tìm nhanh nơi chứa logic của một tính năng, để sửa đúng file m�
 | Website | `apps/website/src/app/(web)/…`, `components/site/`, `lib/` | Trang công khai; gọi Backend qua `lib/backend.ts`. |
 | E2E | `e2e/*.spec.ts`, `e2e/helpers.ts` | Chạy trên stack đang chạy; đăng nhập bằng `INITIAL_ADMIN_*` trong `.env`. |
 
-Mô-đun server hiện có: `admin analytics audit auth authors backup dashboard data-transfer equipment leads media navigation offerings pages posts publishing publishing-readiness redirects revisions roles search-console secrets seo-audit settings shared support supporting system taxonomy users`. `shared/` giữ tiện ích chung (danh sách phân trang `admin-list.contract.ts`, sắp xếp `list-order.ts`, thời gian `relative-time.ts`, đường dẫn cũ `legacy-paths.ts`…).
+Mô-đun server hiện có: `admin analytics audit auth authors backup dashboard data-transfer equipment leads media navigation offerings pages posts publishing publishing-readiness redirects revisions roles search-console secrets seo-audit settings shared support supporting system taxonomy translations users`. `shared/` giữ tiện ích chung (danh sách phân trang `admin-list.contract.ts`, sắp xếp `list-order.ts`, thời gian `relative-time.ts`, đường dẫn cũ `legacy-paths.ts`…).
 
 ## 2. Theo tính năng
 
@@ -36,13 +36,13 @@ Mô-đun server hiện có: `admin analytics audit auth authors backup dashboard
 
 **Khóa bài viết** (`posts.locked_at`): quyền `posts.lock`; `posts.repository.ts` (`setPostLock`; bài khóa bị chặn ở `updatePostWithRevision`/`deleteArchivedPost`), `posts.service.ts` (`updateAdminPost` ném `ContentLockedError` → API trả 423), route `api/v1/admin/posts/[id]/lock`; CMS `components/admin/post-lock-bar.tsx` + `posts-content-manager.tsx` (chỉ đọc khi khóa).
 
-**Đăng nhập, người dùng, vai trò**: `server/auth/` (phiên, mật khẩu, giới hạn đăng nhập, `permissions.ts`), `server/users/`, `server/roles/`. Trang CMS `users/`, `roles/`, `my-account/`.
+**Đăng nhập, người dùng, vai trò**: `server/auth/` (phiên, mật khẩu, giới hạn đăng nhập, `permissions.ts`), `server/users/`, `server/roles/`. Trang CMS `users/`, `roles/`, `my-account/`. Tài khoản ẩn (`users.is_hidden`, đặt bởi `scripts/seed-admin.ts`): `server/users/hidden-users.ts` che nó khỏi mọi người trừ chính nó theo `viewerId` trong `request-context.ts` (điền ở `getCurrentAdministrator`); truy vấn mới có đọc bảng `users` phải dùng `visibleUser()`, `shownFullName()`.
 
-**Nội dung**: `server/pages` (trang và khối), `server/posts` (bài viết, hướng dẫn), `server/offerings` (sản phẩm, giải pháp), `server/equipment` (thiết bị), `server/taxonomy`, `server/authors`, `server/navigation` (menu), `server/redirects`, `server/revisions` (phiên bản). Mỗi mô-đun theo bộ ba contract/repository/service; trang CMS cùng tên.
+**Nội dung**: `server/pages` (trang và khối), `server/posts` (bài viết, hướng dẫn), `server/offerings` (sản phẩm, giải pháp), `server/equipment` (thiết bị), `server/taxonomy`, `server/authors`, `server/navigation` (menu), `server/redirects`, `server/revisions` (phiên bản; dọn lịch sử cũ: `scripts/cleanup-old-revisions.ts`, `pnpm db:cleanup-revisions`). Mỗi mô-đun theo bộ ba contract/repository/service; trang CMS cùng tên.
 
 **Xuất bản và xem trước**: `server/publishing` (xem trước, làm mới cache website, IndexNow), `server/publishing-readiness`, `server/seo-audit`, `server/search-console`.
 
-**Media**: `server/media` (tải lên, S3/SeaweedFS ở `storage.ts`, xóa hàng đợi). **Cài đặt website**: `server/settings` (cửa sổ tư vấn, liên kết ngoài, hồ sơ doanh nghiệp, cấu hình xuất bản). **Sao lưu/phục hồi**: `server/backup`, `scripts/backup.*`. **Nhập/xuất dữ liệu**: `server/data-transfer`. **Nhật ký**: `server/audit` (nhãn thao tác ở `audit-labels.ts`).
+**Media**: `server/media` (tải lên, S3/SeaweedFS ở `storage.ts`, xóa hàng đợi). **Cài đặt website**: `server/settings` (cửa sổ tư vấn, liên kết ngoài, hồ sơ doanh nghiệp, cấu hình xuất bản). **Sao lưu/phục hồi**: `server/backup`, `scripts/backup.*`. **Nhập/xuất dữ liệu**: `server/data-transfer`. **Đa ngôn ngữ**: `server/translations` (`locales.ts` ngôn ngữ; `translatable.ts` trường cần dịch và duyệt nội dung; `translations.source.ts` gom câu gốc; `translations.service.ts` thay bản dịch, xuất/nhập file), route công khai `apps/api/.../public/content` nhận `?lang=` và gọi `localizeContent`, route CMS `admin/translations`, màn `admin/(protected)/translations` (`translations-manager.tsx`); website: `lib/locale.ts` (cookie `iorder_lang`), `proxy.ts` (xử lý `?lang=`), `lib/backend.ts` (`publicResource` truyền `lang`), nút `components/site/language-switcher.tsx`. Thêm trường chữ mới cần dịch: thêm tên trường vào `translatableKeys`. Chữ cố định của giao diện website: danh mục `ui-messages.ts` (khóa `nhóm.tên`, biến `{ten}`), website dùng `lib/messages.ts` (`getT()` máy chủ), `components/site/messages-provider.tsx` (`useT()` trình duyệt), `lib/translate.ts` (hàm thuần, truyền `t` qua props cho thành phần có test); route công khai `resource=messages`. Thành phần chạy trên trình duyệt không được import module dùng `getT` (kéo `next/headers` vào gói trình duyệt). **Nhật ký**: `server/audit` (nhãn thao tác ở `audit-labels.ts`).
 
 ## 3. Thêm hoặc đổi thì cập nhật những đâu
 
@@ -51,6 +51,13 @@ Mô-đun server hiện có: `admin analytics audit auth authors backup dashboard
 - **Endpoint admin mới**: tên đoạn đầu trong `resourceModules` (`admin-permission.ts`); POST/PUT/PATCH/DELETE ánh xạ sang create/update/update/delete.
 - **Nhãn nhật ký**: `action` dạng `<chủ thể>.<động từ>` thêm vào `server/audit/audit-labels.ts`.
 - **File test mới**: thêm vào đúng nhóm `test:<nhóm>` trong `package.json` (tên file được liệt kê tường minh, không tự quét); nếu không, `pnpm test` không chạy nó.
+
+**Hiệu năng** (đã đo, xem `docs/ROADMAP.md` mục Hiệu năng):
+- Proxy website chạy ở mọi lượt xem trang nhưng không dùng được bộ đệm dữ liệu của Next: tra chuyển hướng URL đi qua `apps/website/src/lib/redirect-cache.ts` (giữ 30 giây trong bộ nhớ, tối đa 500 đường dẫn, lỗi không được nhớ; `clearRedirectCache()` gọi ở `app/api/internal/revalidate/route.ts` nên lưu chuyển hướng ở CMS có hiệu lực ngay). Dùng `globalThis` vì proxy và route được đóng gói riêng.
+- Số liệu Umami (`server/analytics/analytics.service.ts`): giữ 60 giây (lỗi 30 giây), hết hạn thì trả bản cũ và làm mới ở nền; không có thì Tổng quan và Thống kê truy cập đứng 4 giây mỗi lần khi Umami chậm hoặc ngừng.
+- JavaScript của khách: component `"use client"` của website không được kéo zod (~30 KB gz) vào trình duyệt, test `apps/website/src/lib/client-bundle.test.ts` giữ điều này. Cần hàm thuần từ contract thì tách ra module không import zod (mẫu: `server/shared/appearance-height.ts`, `server/settings/popup-link.ts`, `apps/website/src/lib/builder-preview-message.ts`) rồi để contract nhập lại và xuất lại.
+- Chỉ mục PostgreSQL phải đúng thứ tự mà truy vấn dùng: `audit_logs_created_at_index` là `DESC NULLS FIRST` (thứ tự mặc định của `ORDER BY … DESC`); bản `DESC NULLS LAST` (mặc định của `.desc()` trong Drizzle) bị PostgreSQL bỏ qua, dùng `.desc().nullsFirst()`.
+- Hoạt ảnh lặp trên trang đăng nhập Giáng sinh chỉ đổi `transform`/`opacity` (test `apps/admin/src/lib/login-smoothness.test.ts`); không ghi biến CSS kế thừa (`--px`, `--xmas-twinkle`) lên thẻ gốc của cảnh trên cảm ứng.
 
 ## 4. Lệnh hay dùng
 

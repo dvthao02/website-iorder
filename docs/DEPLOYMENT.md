@@ -46,6 +46,6 @@ Nếu cần phục hồi media, chạy service `backup-media` với thư mục m
 ## Vận hành thường xuyên
 
 - Lên lịch sao lưu, kiểm tra bản sao ngoài máy và diễn tập phục hồi. Kiểm tra trạng thái sao lưu trong CMS; trạng thái lưu trong chính database không thay thế bản sao ngoài máy.
-- `pnpm db:cleanup-login-throttles` và `pnpm db:cleanup-sessions` có thể lên lịch sau khi xác định môi trường. `pnpm db:cleanup-media` là thao tác dọn dữ liệu, chỉ chạy khi đã chốt chính sách và kiểm tra tham chiếu.
+- `pnpm db:cleanup-login-throttles` và `pnpm db:cleanup-sessions` có thể lên lịch sau khi xác định môi trường. `pnpm db:cleanup-media` là thao tác dọn dữ liệu, chỉ chạy khi đã chốt chính sách và kiểm tra tham chiếu. `pnpm db:cleanup-revisions` (mặc định chỉ đếm, `--apply` mới xóa) rút lịch sử phiên bản về N bản mới nhất mỗi nội dung.
 - Khi báo lỗi, lấy mã request từ phản hồi và đối chiếu log theo mã. Không đưa mật khẩu, token, khóa API hay dữ liệu liên hệ vào log, issue hoặc tài liệu.
 - Trước khi đặt CDN/proxy ngoài Caddy, cấu hình nguồn proxy tin cậy và kiểm tra IP client, rate limit và TLS theo topology thực tế.

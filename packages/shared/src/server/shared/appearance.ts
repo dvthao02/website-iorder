@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { blockMinHeightLimits } from "./appearance-height";
+
 // Giao diện dùng chung cho mọi phần trang (khối trang, phần đầu trang, các phần của trang sản phẩm) và thẻ con:
 // nền (tự động / trắng / xanh nhạt / tối / màu tự chọn), ảnh nền phủ lớp màu, độ rộng nội dung, khoảng cách, mã neo.
 // Website tự chọn chữ trắng hay chữ đậm theo độ sáng của màu (isDarkColor), người vận hành không phải chọn màu chữ.
@@ -21,19 +23,8 @@ export const blockOverlayLimits = { min: 0, max: 95 } as const;
 // hoặc tỉ lệ khung (chiều cao = % bề ngang: 56 ≈ 16:9, 100 = vuông).
 export const blockHeightSchema = z.enum(["default", "auto", "screen", "three_quarter", "half", "custom"]);
 export const blockMinHeightUnitSchema = z.enum(["px", "vh", "ratio"]);
-export const blockMinHeightLimits = {
-  px: { min: 120, max: 1600, step: 20, fallback: 480 },
-  vh: { min: 20, max: 100, step: 5, fallback: 60 },
-  ratio: { min: 25, max: 100, step: 1, fallback: 56 },
-} as const;
-export type BlockMinHeightUnit = z.infer<typeof blockMinHeightUnitSchema>;
-/** Chiều cao tùy chỉnh đã kẹp vào khoảng cho phép của đơn vị; thiếu thì dùng mặc định (480px). */
-export function resolveCustomHeight(appearance: { minHeight?: number; minHeightUnit?: BlockMinHeightUnit } | null | undefined): { value: number; unit: BlockMinHeightUnit } {
-  const unit = appearance?.minHeightUnit ?? "px";
-  const limits = blockMinHeightLimits[unit];
-  const raw = appearance?.minHeight ?? limits.fallback;
-  return { value: Math.min(limits.max, Math.max(limits.min, Math.round(raw))), unit };
-}
+// Phần thuần (không cần zod) nằm ở appearance-height.ts để mã chạy trong trình duyệt của website import được mà không kéo zod (~30 KB gz) theo; ở đây chỉ nhập lại và xuất lại.
+export { blockMinHeightLimits, resolveCustomHeight, type BlockMinHeightUnit } from "./appearance-height";
 // Nội dung nằm ở đâu khi phần cao hơn nội dung.
 export const blockVerticalAlignSchema = z.enum(["top", "center", "bottom"]);
 // Bố cục phần đầu trang chi tiết (sản phẩm, dịch vụ, thiết bị): vị trí ảnh, chiều cao, nền. Phần đầu trang không phải khối nên không dùng

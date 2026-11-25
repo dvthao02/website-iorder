@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import { resolveCustomHeight, type BlockMinHeightUnit } from "@iorder/shared/server/shared/appearance";
+import { resolveCustomHeight, type BlockMinHeightUnit } from "@iorder/shared/server/shared/appearance-height";
 
 /**
  * Chiều cao tùy chỉnh (CMS: Chiều cao phần › Tùy chỉnh) thành biến CSS cho globals.css.

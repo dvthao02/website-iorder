@@ -42,6 +42,9 @@ const nextConfig: NextConfig = {
     formats: ["image/avif", "image/webp"],
     minimumCacheTTL: 60 * 60 * 24 * 31,
     qualities: [75],
+    // Mặc định Next còn có mốc 3840 px (màn 4K): mã hóa AVIF 3840 px tốn CPU và bộ nhớ (container website giới hạn 768 MB) mà khách hiếm khi cần,
+    // và mỗi mốc là một mục trong srcset của từng ảnh. Bỏ mốc 3840; 2048 vẫn đủ nét cho màn retina của laptop.
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048],
   },
   // Only proxy what the public site uses from the browser. Admin APIs stay
   // reachable through the CMS host alone; server-side reads call BACKEND_URL.

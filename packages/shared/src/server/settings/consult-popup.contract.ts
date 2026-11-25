@@ -1,9 +1,11 @@
 import { z } from "zod";
 
+import { isPopupExternalLink } from "./popup-link";
+
 // Đường dẫn nội bộ ("/contact"), liên kết ngoài http(s), số điện thoại "tel:" hoặc email "mailto:".
 // Chặn "javascript:", "data:" và "//host".
 const internalPath = (value: string) => value.startsWith("/") && !value.startsWith("//") && !/\s/.test(value);
-export const isPopupExternalLink = (value: string) => /^https?:\/\/[^\s]+$/i.test(value);
+export { isPopupExternalLink };
 const contactLink = (value: string) => /^tel:[+\d().-]{3,30}$/i.test(value) || /^mailto:[^\s@]+@[^\s@]+$/i.test(value);
 export const popupLinkSchema = z.string().trim().max(1_000).refine(
   (value) => internalPath(value) || isPopupExternalLink(value) || contactLink(value),

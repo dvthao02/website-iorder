@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect } from "react";
-import { z } from "zod";
 
-const highlightSchema = z.object({ type: z.literal("iorder:highlight-block"), index: z.number().int().min(-19).max(99) }).strict();
+import { parseHighlightMessage } from "@/lib/builder-preview-message";
 
 /** Chỉ được gắn trong iframe có token preview hợp lệ; tương tác không được gửi form hay mở liên kết thật. */
 export function BuilderPreviewBridge({ parentOrigin }: { parentOrigin: string }) {
@@ -45,8 +44,8 @@ export function BuilderPreviewBridge({ parentOrigin }: { parentOrigin: string })
     }
     function receive(event: MessageEvent) {
       if (event.source !== editor || event.origin !== parentOrigin) return;
-      const parsed = highlightSchema.safeParse(event.data);
-      if (parsed.success) highlight(parsed.data.index, true);
+      const index = parseHighlightMessage(event.data);
+      if (index !== null) highlight(index, true);
     }
     const preventSubmit = (event: Event) => { event.preventDefault(); event.stopImmediatePropagation(); };
     // Mỗi lần CMS cập nhật bản xem trước, khung tải lại từ đầu trang. Lưu vị trí cuộn và khôi phục sau khi tải lại
