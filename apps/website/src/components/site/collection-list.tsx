@@ -97,7 +97,7 @@ export async function EquipmentCard({ item, Heading = "h3" }: { item: EquipmentI
       {item.summary ? <p className="equipment-tile__meta m-0 line-clamp-2">{item.summary}</p> : null}
       <div className="mt-auto flex flex-col items-center gap-1 pt-3">
         <p className="equipment-tile__price mb-0">{priceFormatter.format(item.priceVnd)}</p>
-        <AvailabilityBadge availability={item.availability} />
+        <AvailabilityBadge availability={item.availability} t={t} />
         <span className="equipment-tile__meta">{t("common.warranty", { months: item.warrantyMonths })}</span>
         <span className="text-small font-semibold text-brand-700 group-hover:underline">{t("common.viewDetail")}</span>
       </div>
@@ -134,7 +134,7 @@ async function renderItems(data: CollectionListData, Card: "h2" | "h3", dark: bo
     case "downloads": {
       const downloads = take(await getEnabledSupportDownloads(), data.limit);
       // Danh sách gọn mỗi tệp một dòng; tự gom nhóm khi "Thông tin phụ" (ví dụ "Máy in hóa đơn") lặp lại.
-      return downloads.length ? <DownloadList Heading={Card} items={downloads} /> : null;
+      return downloads.length ? <DownloadList Heading={Card} items={downloads} t={t} /> : null;
     }
     case "equipment": {
       const equipment = take(await getEquipment(true), data.limit);

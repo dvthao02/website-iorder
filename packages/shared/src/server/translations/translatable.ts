@@ -26,7 +26,8 @@ export const translatableKeys: ReadonlySet<string> = new Set([
 ]);
 
 const maxUnitLength = 8000;
-const nonTextPattern = /^(https?:|mailto:|tel:|\/|#)/i;
+// Đường dẫn/neo ("/support/guides", "#tu-van") chỉ gồm ký tự an toàn của URL, không khoảng trắng và không chữ có dấu; "/Năm", "/3 Năm" (đơn vị giá) vẫn là chữ cần dịch.
+const nonTextPattern = /^(?:https?:|mailto:|tel:)|^[/#][\w\-.~:/?#[\]@!$&'()*+,;=%]*$/i;
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const filePattern = /^[\w.-]+\.(png|jpe?g|webp|gif|svg|pdf|zip|docx?|xlsx?)$/i;

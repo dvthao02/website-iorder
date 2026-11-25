@@ -85,7 +85,7 @@ export function EquipmentExplorer({ items, grouped, dark = false, Heading = "h3"
               <span className="equipment-tile__body">
                 <span className="equipment-tile__name">{item.name}</span>
                 <span className="equipment-tile__price">{priceFormatter.format(item.priceVnd)}</span>
-                <AvailabilityBadge availability={item.availability} className="mt-1" />
+                <AvailabilityBadge availability={item.availability} className="mt-1" t={t} />
                 <span className="equipment-tile__meta">{t("common.warranty", { months: item.warrantyMonths })}</span>
               </span>
             </Link>
@@ -97,7 +97,7 @@ export function EquipmentExplorer({ items, grouped, dark = false, Heading = "h3"
               <div className="equipment-panel__body">
                 <p className="mb-1 text-small font-semibold text-brand-700">{active.groupName}</p>
                 <PanelHeading className="mb-0 text-[1.375rem] leading-tight font-bold tracking-tight text-ink sm:text-[1.625rem]">{active.name}</PanelHeading>
-                <p className="mt-1.5 mb-0 flex flex-wrap items-center gap-x-3 gap-y-1 text-[1.25rem] font-bold text-brand-600 sm:text-[1.375rem]">{priceFormatter.format(active.priceVnd)}<AvailabilityBadge always availability={active.availability} /></p>
+                <p className="mt-1.5 mb-0 flex flex-wrap items-center gap-x-3 gap-y-1 text-[1.25rem] font-bold text-brand-600 sm:text-[1.375rem]">{priceFormatter.format(active.priceVnd)}<AvailabilityBadge always availability={active.availability} t={t} /></p>
                 <ul className="mt-3 mb-0 flex list-none flex-wrap gap-x-6 gap-y-2 p-0 text-small text-muted">
                   {active.modelCode ? <li className="flex items-center gap-2"><BadgeCheck aria-hidden="true" className="text-brand-600" size={18} />{t("equipment.modelCode")} <strong className="font-semibold text-ink">{active.modelCode}</strong></li> : null}
                   <li className="flex items-center gap-2"><ShieldCheck aria-hidden="true" className="text-accent-green" size={18} />{t("common.warrantyLabel")} <strong className="font-semibold text-ink">{t("common.months", { months: active.warrantyMonths })}</strong></li>

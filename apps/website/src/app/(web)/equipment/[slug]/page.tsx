@@ -25,7 +25,7 @@ const priceFormatter = new Intl.NumberFormat("vi-VN", { style: "currency", curre
 export async function generateMetadata({ params }: Props, parent: ResolvingMetadata) {
   const { slug } = await params;
   const item = (await getEquipment(true)).find(row => row.slug === slug);
-  return item ? contentMetadata({ title: item.seoTitle || `${item.name} | Thiết bị bán hàng iOrder`, description: item.seoDescription || item.summary, path: `/equipment/${item.slug}`, canonicalUrl: item.canonicalUrl, seo: item.seo, image: item.coverUrl ? { url: item.coverUrl, alt: item.coverAlt } : null }, parent) : { title: (await getT())("equipment.notFoundTitle") };
+  return item ? contentMetadata({ title: item.seoTitle || (await getT())("equipment.metaTitle", { name: item.name }), description: item.seoDescription || item.summary, path: `/equipment/${item.slug}`, canonicalUrl: item.canonicalUrl, seo: item.seo, image: item.coverUrl ? { url: item.coverUrl, alt: item.coverAlt } : null }, parent) : { title: (await getT())("equipment.notFoundTitle") };
 }
 // Trang chi tiết thiết bị: phần đầu một màn hình (ảnh trong khung, giá, bảo hành, nút liên hệ) → thông số kỹ thuật theo nhóm
 // → thiết bị khác (ưu tiên cùng nhóm, tối đa 4) → dải tư vấn chọn thiết bị (hotline từ Cài đặt).
@@ -57,7 +57,7 @@ export default async function EquipmentDetail({ params }: Props) {
       <DetailHero extraImages={heroExtraImages} background={item.pageLayout?.hero?.background} height={item.pageLayout?.hero?.height} layout={item.pageLayout?.hero?.layout} appearance={item.pageLayout?.hero?.appearance} back={{ href: "/equipment", label: t("equipment.all") }} image={item.coverUrl ? { url: item.coverUrl, alt: item.coverAlt ?? item.name } : null} imageStyle="product" label={item.groupName} primaryNode={<EquipmentInquiry equipment={inquiry} field="primaryAction" hotline={profile?.hotline ?? null} />} secondary={{ label: t("equipment.viewOthers"), href: "/equipment" }} summary={item.summary} title={item.name}>
         <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2">
           <p className="m-0 text-3xl font-bold tracking-tight text-brand-700" data-builder-field="priceVnd">{priceFormatter.format(item.priceVnd)}</p>
-          <span data-builder-field="availability"><AvailabilityBadge always availability={item.availability} /></span>
+          <span data-builder-field="availability"><AvailabilityBadge always availability={item.availability} t={t} /></span>
         </div>
         <ul className="mt-5 flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted">
           {item.modelCode ? <li className="flex items-center gap-2" data-builder-field="modelCode"><BadgeCheck aria-hidden="true" className="text-brand-600" size={18} />{t("equipment.modelCode")} <strong className="font-semibold text-ink">{item.modelCode}</strong></li> : null}

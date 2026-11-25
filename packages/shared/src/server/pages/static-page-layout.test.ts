@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { pageBlockInputSchema, type PageBlock } from "./pages.contract";
-import { staticPageProfile, staticPageSections } from "./static-page-layout";
+import { staticPageProfile, staticPageSectionLabels, staticPageSections } from "./static-page-layout";
 
 const block = (input: unknown) => pageBlockInputSchema.parse(input) as PageBlock;
 
@@ -37,4 +37,18 @@ test("Mã neo tự tạo không va chạm và không thay đổi JSONB của kh�
   const result = staticPageSections(blocks);
   assert.deepEqual(result.sections.map(section => section.id), ["phan-noi-dung-1", "phan-noi-dung-2"]);
   assert.deepEqual(blocks, before);
+});
+
+test("Tên mục dự phòng đổi được theo ngôn ngữ (website truyền fallbackLabel); có tiêu đề thì dùng tiêu đề, không truyền thì chữ tiếng Việt của CMS", () => {
+  const blocks = [
+    block({ type: "rich_text", isEnabled: true, data: { heading: null, body: "Nội dung" } }),
+    block({ type: "faq", isEnabled: true, data: { eyebrow: null, title: "Hỏi đáp riêng", items: [{ question: "Q", answer: "A" }] } }),
+    block({ type: "stats", isEnabled: true, data: { eyebrow: null, title: null, items: [{ value: "1", label: "Nhãn", note: null }] } }),
+  ];
+  const seen: Array<[string, string]> = [];
+  const result = staticPageSections(blocks, (type, vietnamese) => { seen.push([type, vietnamese]); return `[${type}]`; });
+  assert.deepEqual(result.sections.map(section => section.label), ["[rich_text]", "Hỏi đáp riêng", "[stats]"]);
+  assert.deepEqual(seen, [["rich_text", "Nội dung chính"], ["stats", "Số liệu nổi bật"]], "chỉ hỏi tên dự phòng cho khối không có tiêu đề, kèm chữ gốc tiếng Việt");
+  assert.deepEqual(staticPageSections(blocks).sections.map(section => section.label), ["Nội dung chính", "Hỏi đáp riêng", "Số liệu nổi bật"]);
+  assert.ok(Object.keys(staticPageSectionLabels).includes("rich_text"));
 });

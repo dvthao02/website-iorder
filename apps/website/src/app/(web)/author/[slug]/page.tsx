@@ -8,6 +8,7 @@ import { JsonLd } from "@/components/site/json-ld";
 import { PageHero } from "@/components/site/page-hero";
 import { SiteHeader } from "@/components/site/site-header";
 import { getT } from "@/lib/messages";
+import type { Translate } from "@/lib/translate";
 import { TaxonomyPostList } from "@/components/site/taxonomy-post-list";
 import { getPublishedAuthorPage, getPublishingConfig } from "@/lib/backend";
 import { contentMetadata } from "@/lib/page-metadata";
@@ -17,15 +18,16 @@ type Props = { params: Promise<{ slug: string }> };
 export const revalidate = 0;
 
 // Không có tiểu sử thì dùng câu mô tả theo tên (Google và phần đầu trang dùng chung).
-const describe = (name: string, bio: string | null) => (bio ? suggestSeoDescription(bio, null) : null) ?? `Các bài viết và hướng dẫn của ${name} trên iOrder.`;
+const describe = (name: string, bio: string | null, t: Translate) => (bio ? suggestSeoDescription(bio, null) : null) ?? t("author.description", { name });
 
 export async function generateMetadata({ params }: Props, parent: ResolvingMetadata): Promise<Metadata> {
   const result = await getPublishedAuthorPage((await params).slug);
-  if (!result) return { title: (await getT())("author.notFound") };
+  const t = await getT();
+  if (!result) return { title: t("author.notFound") };
   const { author } = result;
   return contentMetadata({
-    title: `${author.name}${author.jobTitle ? ` – ${author.jobTitle}` : ""} – Tác giả`,
-    description: describe(author.name, author.bio),
+    title: t("author.metaTitle", { name: `${author.name}${author.jobTitle ? ` – ${author.jobTitle}` : ""}` }),
+    description: describe(author.name, author.bio, t),
     path: authorPublicPath(author.slug),
     image: author.avatar ? { url: author.avatar.url, alt: author.avatar.altText ?? author.name } : null,
   }, parent);

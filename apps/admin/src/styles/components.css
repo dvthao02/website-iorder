@@ -1343,6 +1343,43 @@
   .admin-import__changes del { color: var(--cms-muted); }
   .admin-import__changes ins { text-decoration: none; font-weight: 500; }
   .admin-import__errors { color: var(--cms-status-error-text); }
+  /* Màn Đa ngôn ngữ: mỗi ngôn ngữ một bảng gập (dòng tóm tắt có tên, tiến độ, số câu còn thiếu), mở ra có hai cột: bước 1 xuất file (phạm vi dòng, vùng, gợi ý) và bước 2 nhập lại file đã dịch. */
+  .admin-translation-top { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+  .admin-translation-top > .admin-notice { flex: 1 1 420px; }
+  .admin-translation-add { display: flex; flex: 0 1 auto; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .admin-translation-add > select { width: 280px; max-width: 100%; }
+  .admin-translation > summary { flex-wrap: wrap; }
+  .admin-translation__bar { flex: 0 0 140px; height: 8px; overflow: hidden; border-radius: 999px; background: var(--cms-subtle); }
+  .admin-translation__bar > span { display: block; height: 100%; min-width: 2px; border-radius: inherit; background: var(--cms-primary); transition: width 0.3s ease; }
+  .admin-translation__facts { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; font-size: var(--cms-text-sm); }
+  .admin-translation__facts > .admin-button { margin-left: auto; }
+  .admin-translation__stats { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 0; }
+  .admin-translation__stats > div { display: flex; align-items: baseline; gap: 6px; }
+  .admin-translation__stats dt { color: var(--cms-muted); }
+  .admin-translation__stats dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .admin-translation__columns { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); align-items: start; gap: 12px; }
+  .admin-translation__section { display: grid; min-width: 0; gap: 10px; border: 1px solid var(--cms-border); border-radius: var(--cms-radius-component); padding: 12px; }
+  .admin-translation__section h3 { margin: 0; font-size: var(--cms-text-sm); font-weight: 600; }
+  .admin-translation__section fieldset:disabled { opacity: .7; }
+  .admin-translation__scopes { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px; min-width: 0; margin: 0; border: 0; padding: 0; }
+  .admin-translation__scope { display: flex; align-items: center; gap: 8px; border: 1px solid var(--cms-border); border-radius: var(--cms-radius-component); padding: 8px 10px; cursor: pointer; }
+  .admin-translation__scope:hover { background: var(--cms-subtle); }
+  .admin-translation__scope--active { border-color: var(--cms-primary); background: var(--cms-primary-soft); }
+  .admin-translation__scope:has(input:disabled) { cursor: not-allowed; opacity: .55; }
+  .admin-translation__scope > input { margin: 0; accent-color: var(--cms-primary); }
+  .admin-translation__scope > span { font-size: var(--cms-text-sm); }
+  .admin-translation__scope em { color: var(--cms-muted); font-style: normal; font-variant-numeric: tabular-nums; }
+  .admin-translation__groups > summary { cursor: pointer; font-size: var(--cms-text-sm); font-weight: 500; }
+  .admin-translation__groups > summary small { color: var(--cms-muted); font-weight: 400; }
+  .admin-translation__group-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 6px 10px; min-width: 0; margin: 8px 0 0; border: 0; padding: 0; }
+  .admin-translation__group-list > :is(.admin-translation__group-actions, small) { grid-column: 1 / -1; }
+  .admin-translation__group-actions { display: flex; flex-wrap: wrap; gap: 4px; margin: -4px 0 0 -8px; }
+  .admin-translation__group { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 8px; border: 1px solid var(--cms-border); border-radius: var(--cms-radius-component); padding: 6px 10px; font-size: var(--cms-text-sm); cursor: pointer; }
+  .admin-translation__group:hover { background: var(--cms-subtle); }
+  .admin-translation__group:has(input:checked) { border-color: var(--cms-primary); background: var(--cms-primary-soft); }
+  .admin-translation__group:has(input:disabled) { cursor: not-allowed; opacity: .55; background: transparent; border-color: var(--cms-border); }
+  .admin-translation__group > input { margin: 0; accent-color: var(--cms-primary); }
+  .admin-translation__group em { color: var(--cms-muted); font-size: var(--cms-text-xs); font-style: normal; font-variant-numeric: tabular-nums; white-space: nowrap; }
 
   /* Ô tiêu đề có ảnh thu nhỏ trong bảng nội dung. */
   .admin-row-title { display: flex; min-width: 0; align-items: center; gap: 10px; }

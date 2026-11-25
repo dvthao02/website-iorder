@@ -1,6 +1,6 @@
 import { getMediaById, getNavigation, getSiteLocales, getSiteProfile } from "@/lib/backend";
 import { getLocale } from "@/lib/locale";
-import { isSiteLocale, translationLocales, type SiteLocale } from "@iorder/shared/server/translations/locales";
+import { isSiteLocale, siteLocaleName, type SiteLocale } from "@iorder/shared/server/translations/locales";
 import { descendantsOf } from "@/lib/navigation-tree";
 import { SiteHeaderBar, type HeaderLink } from "./site-header-bar";
 
@@ -8,7 +8,7 @@ import { SiteHeaderBar, type HeaderLink } from "./site-header-bar";
 export async function SiteHeader() {
   const [items, ctas, profile, siteLocales, locale] = await Promise.all([getNavigation("header"), getNavigation("header_cta"), getSiteProfile(), getSiteLocales(), getLocale()]);
   // Nút đổi ngôn ngữ chỉ có khi website đã có bản dịch (Backend báo các ngôn ngữ đang có); tiếng Việt luôn đứng đầu.
-  const languages = siteLocales.filter(isSiteLocale).map((code: SiteLocale) => ({ code, short: code.toUpperCase(), name: code === "vi" ? "Tiếng Việt" : translationLocales.find((item) => item.code === code)?.name ?? code }));
+  const languages = siteLocales.filter(isSiteLocale).map((code: SiteLocale) => ({ code, short: code.toUpperCase(), name: siteLocaleName(code) }));
   const logo = profile?.logoMediaId ? await getMediaById(profile.logoMediaId) : null;
   const enabled = (items ?? []).filter((item) => item.isEnabled);
   // Cây menu 2 cấp (website hiển thị tốt nhất với 2 cấp; cấp sâu hơn gộp vào cấp 2).

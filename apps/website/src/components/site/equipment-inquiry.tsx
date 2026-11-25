@@ -83,7 +83,7 @@ export function InquiryDialog({ equipment, hotline, close }: { equipment: Inquir
       // "Nhu cầu" hiện ở danh sách CMS; tình trạng và giá đầy đủ nằm ở phần thiết bị mà Backend tự chụp theo equipmentSlug.
       need: `Mua thiết bị: ${equipment.name}`.slice(0, 200), message: String(data.message ?? ""),
       website: String(data.website ?? ""), equipmentSlug: equipment.slug,
-    });
+    }, t);
     setBusy(false);
     if (result.ok) { setSuccess(true); form.reset(); } else setMessage(result.message);
   }
@@ -104,7 +104,7 @@ export function InquiryDialog({ equipment, hotline, close }: { equipment: Inquir
             <p className="mb-0 flex flex-wrap items-center gap-x-3 gap-y-1 text-small text-muted" data-testid="equipment-inquiry-summary">
               {equipment.modelCode ? <span>{t("inquiry.modelCode")} <strong className="font-semibold text-ink">{equipment.modelCode}</strong></span> : null}
               <strong className="font-bold text-brand-700">{priceFormatter.format(equipment.priceVnd)}</strong>
-              <AvailabilityBadge always availability={availability} />
+              <AvailabilityBadge always availability={availability} t={t} />
             </p>
             {note ? <p className="mb-0 text-small text-muted" data-testid="equipment-inquiry-note">{note}</p> : null}
           </div>

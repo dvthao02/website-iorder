@@ -16,15 +16,19 @@ export const staticPageHints: Record<StaticPageProfile, string> = {
   support: "Hỗ trợ: phần đầu rõ mục đích, nội dung theo nhóm/câu hỏi hoặc các bước. Giữ liên kết và thứ tự của từng mục.",
   general: "Chọn từng phần để sửa. “Bố cục khối” chỉnh nền, độ rộng, khoảng cách của cả khối; từng mục con có “Bố cục mục” để căn chữ.",
 };
-const labels: Record<string, string> = {
+/** Tên mục dự phòng bằng tiếng Việt (CMS); website đổi sang ngôn ngữ khách chọn qua khóa section.* (lib/static-section-labels.ts, có test giữ khớp). */
+export const staticPageSectionLabels: Record<string, string> = {
   stats: "Số liệu nổi bật", media_text: "Giới thiệu", features: "Nội dung nổi bật", industries: "Lĩnh vực",
   ecosystem: "Hệ sinh thái", process: "Các bước thực hiện", partners: "Đối tác và khách hàng",
   testimonials: "Đánh giá", faq: "Câu hỏi thường gặp", lead_form: "Liên hệ tư vấn", cta: "Liên hệ",
   rich_text: "Nội dung chính", image: "Hình ảnh", video: "Video", collection_list: "Danh sách nội dung", download_list: "Tài liệu tải về", featured_posts: "Bài viết",
 };
 
-/** Chỉ tạo neo hiển thị; không thay JSONB hay ghi đè mã neo do người dùng đã chọn. */
-export function staticPageSections(blocks: readonly PageBlock[]) {
+/**
+ * Chỉ tạo neo hiển thị; không thay JSONB hay ghi đè mã neo do người dùng đã chọn. Khối không có tiêu đề lấy tên dự phòng tiếng Việt;
+ * `fallbackLabel(loại khối)` cho website đổi tên đó sang ngôn ngữ khách chọn.
+ */
+export function staticPageSections(blocks: readonly PageBlock[], fallbackLabel: (type: string, vietnamese: string) => string = (_type, vietnamese) => vietnamese) {
   const enabled = blocks.filter(block => block.isEnabled);
   const used = new Set(["noi-dung", ...enabled.map(blockAnchor).filter((id): id is string => Boolean(id))]);
   const sectionIds: Array<string | undefined> = enabled.map(() => undefined);
@@ -41,7 +45,7 @@ export function staticPageSections(blocks: readonly PageBlock[]) {
     }
     const data = block.data as Record<string, unknown>;
     const heading = [data.title, data.heading].find(value => typeof value === "string" && value.trim());
-    return [{ id, label: typeof heading === "string" ? heading.trim() : labels[block.type] ?? "Nội dung", index }];
+    return [{ id, label: typeof heading === "string" ? heading.trim() : fallbackLabel(block.type, staticPageSectionLabels[block.type] ?? "Nội dung"), index }];
   });
   return { sections, sectionIds };
 }

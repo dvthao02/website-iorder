@@ -1,18 +1,27 @@
 import { z } from "zod";
 
-import { translationLocaleCodes } from "./locales";
+import { translationLocaleCodes, type TranslationLocale } from "./locales";
+import { translationGroupIds } from "./translations.groups";
 
 const count = z.number().int().nonnegative();
-const localeSchema = z.enum(translationLocaleCodes as [string, ...string[]]);
+const localeSchema = z.enum(translationLocaleCodes as [TranslationLocale, ...TranslationLocale[]]);
+const groupIdSchema = z.enum(translationGroupIds);
+const localeInfo = { code: localeSchema, name: z.string(), label: z.string() };
 
 /** Tổng quan bản dịch: số câu tiếng Việt cần dịch và mỗi ngôn ngữ đã dịch được bao nhiêu. */
 export const translationOverviewSchema = z.object({
+  /** Phiên bản danh sách ngôn ngữ đã thêm; gửi lại khi thêm hoặc gỡ ngôn ngữ để phát hiện người khác vừa đổi. */
+  version: z.number().int().nonnegative(),
+  /** Ngôn ngữ trong danh mục mà website chưa thêm (để người vận hành chọn thêm). */
+  available: z.array(z.object(localeInfo)),
   /** Số câu tiếng Việt cần dịch trong nội dung đang công khai. */
   total: count,
   /** Trong đó số chữ cố định của giao diện website (phần còn lại là nội dung CMS). */
   uiTotal: count,
+  /** Các vùng của website có chữ cần dịch (chỉ vùng có ít nhất một câu), kèm số câu. Một câu dùng ở nhiều vùng được tính ở mỗi vùng. */
+  groups: z.array(z.object({ id: groupIdSchema, label: z.string(), total: count })),
   locales: z.array(z.object({
-    code: localeSchema, name: z.string(), label: z.string(),
+    ...localeInfo,
     translated: count,
     /** Trong số đã dịch, số chữ cố định của giao diện. */
     uiTranslated: count,
@@ -20,9 +29,20 @@ export const translationOverviewSchema = z.object({
     missing: count,
     /** Bản dịch đã lưu nhưng câu gốc không còn trên website (câu gốc đã sửa hoặc xóa). */
     unused: count,
+    /** Số câu chưa dịch theo từng vùng (khóa là mã vùng). */
+    missingByGroup: z.record(z.string(), count),
+    /** Trong số câu chưa dịch, số câu có gợi ý sẵn từ câu giống đã dịch (chỉ khác hoa/thường hoặc dấu câu cuối, hoặc trùng chữ giao diện). */
+    suggestible: count,
   })),
 });
 export type TranslationOverview = z.infer<typeof translationOverviewSchema>;
+
+/** Thêm hoặc gỡ ngôn ngữ: toàn bộ danh sách ngôn ngữ mong muốn (theo mã) và version đã đọc. */
+export const translationLocalesUpdateSchema = z.object({ locales: z.array(localeSchema).max(translationLocaleCodes.length), expectedVersion: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER) }).strict();
+
+/** Các dòng cần xuất: `all` mọi câu đang dùng trên website (kèm bản dịch đã có); `missing` chỉ các câu chưa có bản dịch. */
+export const translationExportScopeSchema = z.enum(["all", "missing"]);
+export type TranslationExportScope = z.infer<typeof translationExportScopeSchema>;
 
 export const translationImportCountsSchema = z.object({
   /** Câu chưa có bản dịch: sẽ thêm. */

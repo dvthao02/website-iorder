@@ -1,12 +1,13 @@
 import type { PostContentDocument } from "@iorder/shared/server/posts/posts.contract";
 import { withImageAlts } from "@/lib/image-alt";
+import { createTranslate, type Translate } from "@/lib/translate";
 import { RichContent, RichTableOfContents } from "./rich-content";
 
 // `tocClassName`: trang có mục lục cột phải thì ẩn mục lục đầu bài ở màn rộng (ví dụ "xl:hidden").
 // `altSubject`: tên bài, dùng làm mô tả dự phòng cho ảnh chưa có alt đứng trước đề mục đầu tiên.
-export function PostContent({ document, tocClassName = "", altSubject = "" }: { document: PostContentDocument; tocClassName?: string; altSubject?: string }) {
+export function PostContent({ document, tocClassName = "", altSubject = "", t = createTranslate() }: { document: PostContentDocument; tocClassName?: string; altSubject?: string; t?: Translate }) {
   // Bài soạn bằng trình soạn mới: mục lục tự động + nội dung định dạng.
-  if (document.version === 2) return <><RichTableOfContents className={tocClassName} doc={document.doc} /><RichContent doc={withImageAlts(document.doc, altSubject)} /></>;
+  if (document.version === 2) return <><RichTableOfContents className={tocClassName} doc={document.doc} /><RichContent doc={withImageAlts(document.doc, altSubject, t)} /></>;
   return (
     <div className="grid gap-7 text-lg leading-8 text-slate-700">
       {document.blocks.map((block, index) => {

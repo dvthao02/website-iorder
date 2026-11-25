@@ -3,6 +3,7 @@ import test from "node:test";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
+import { createTranslate } from "../../lib/translate";
 import { DownloadList, type DownloadListItem } from "./download-list";
 
 const item = (id: string, title: string, groupName: string | null, downloadUrl: string, extra: Partial<DownloadListItem> = {}): DownloadListItem => ({ id, title, groupName, meta: null, description: null, downloadUrl, external: downloadUrl.startsWith("https://"), ...extra });
@@ -58,4 +59,14 @@ test("nhãn loại tệp bỏ đi khi thông tin phụ đã nêu loại tệp", 
   const html = renderToStaticMarkup(<DownloadList items={[item("1", "Bộ cài", null, "https://example.com/setup.exe", { meta: "EXE · 80 MB" })]} />);
   assert.match(html, />EXE · 80 MB</);
   assert.equal(html.match(/>EXE</g)?.length ?? 0, 0);
+});
+
+test("chữ cố định theo ngôn ngữ khách chọn: nhãn nút, nguồn tải, nhóm Khác và nhãn danh sách đều đi qua t (không còn chữ tiếng Việt viết cứng)", () => {
+  const t = createTranslate({ "download.button": "Download", "download.from": "From {host}", "download.other": "Other", "download.listLabel": "Support files" });
+  const html = renderToStaticMarkup(<DownloadList items={[item("1", "A", "Driver", "https://drive.google.com/uc?id=1"), item("2", "B", null, "/media/b.zip")]} t={t} />);
+  assert.match(html, />Download</);
+  assert.match(html, /From drive\.google\.com/);
+  assert.match(html, /Other \(1\)|Other\s*<span[^>]*>\(1\)/);
+  assert.match(html, /aria-label="Support files"/);
+  assert.doesNotMatch(html, /Tải xuống|Tải từ|Khác|Tệp hỗ trợ/);
 });

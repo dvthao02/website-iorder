@@ -97,7 +97,7 @@ export default async function NewsDetailPage({ params }: NewsDetailPageProps) {
           {post.cover ? <Image alt={post.cover.altText ?? post.title} className="article-cover" data-builder-field="cover" height={630} preload sizes="(min-width: 1024px) 760px, 100vw" src={post.cover.url} width={1200} /> : null}
           <ArticleSummary points={summary} t={t} />
           {/* Mục lục: máy tính nằm ở cột bên và bám theo khi cuộn; điện thoại là hộp đầu bài. */}
-          <div className="article-body" data-builder-field="content"><PostContent altSubject={post.title} document={document} tocClassName="lg:hidden" /></div>
+          <div className="article-body" data-builder-field="content"><PostContent altSubject={post.title} document={document} t={t} tocClassName="lg:hidden" /></div>
           <ArticleAuthorBox author={author} t={t} />
           {/* Lời mời tư vấn ngay cuối nội dung, trước phần chủ đề & chia sẻ. */}
           <aside aria-label={t("article.ctaLabel")} className="article-cta">

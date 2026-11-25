@@ -5,6 +5,7 @@ import { NewsGrid, NewsPagination, NewsTopics } from "@/components/site/news";
 import { PageHero } from "@/components/site/page-hero";
 import { SiteHeader } from "@/components/site/site-header";
 import { getT } from "@/lib/messages";
+import type { Translate } from "@/lib/translate";
 import { Container } from "@/components/ui";
 import { findCategoryBySlug, getPublishedPostsByTaxonomy } from "@/lib/backend";
 import { getNewsIndex, newsTopicPath, paginateNews, parseNewsPage } from "@/lib/news";
@@ -15,12 +16,12 @@ type Props = { params: Promise<{ slug: string }>; searchParams: Promise<{ trang?
 export const revalidate = 0;
 
 // Mô tả chuyên mục nhập trong CMS; chưa có thì dùng câu mặc định để Google luôn có mô tả.
-const describe = (name: string, description: string | null | undefined) => description?.trim() || `Tổng hợp bài viết thuộc chuyên mục “${name}” của iOrder: tin tức, kinh nghiệm kinh doanh và hướng dẫn mới nhất.`;
+const describe = (name: string, description: string | null | undefined, t: Translate) => description?.trim() || t("news.categoryDescription", { name });
 
 // Mô tả cho Google tối thiểu 70 ký tự: mô tả ngắn trong CMS được nối thêm câu giới thiệu chuyên mục (phần đầu trang vẫn dùng mô tả gốc).
-const metaDescription = (name: string, description: string | null | undefined) => {
-  const text = describe(name, description);
-  return text.length >= seoDescriptionMin ? text : `${text} Tổng hợp bài viết thuộc chuyên mục “${name}” của iOrder.`;
+const metaDescription = (name: string, description: string | null | undefined, t: Translate) => {
+  const text = describe(name, description, t);
+  return text.length >= seoDescriptionMin ? text : `${text} ${t("news.categoryDescriptionShort", { name })}`;
 };
 
 export async function generateMetadata({ params, searchParams }: Props, parent: ResolvingMetadata): Promise<Metadata> {
@@ -28,10 +29,11 @@ export async function generateMetadata({ params, searchParams }: Props, parent: 
   const category = await findCategoryBySlug(slug);
   const page = parseNewsPage((await searchParams).trang);
   const path = newsTopicPath(category?.slug ?? "");
-  if (!category) return { title: (await getT())("news.categoryNotFound") };
+  const t = await getT();
+  if (!category) return { title: t("news.categoryNotFound") };
   // Chuyên mục chưa có bài là trang mỏng: vẫn mở được nhưng không để Google lập chỉ mục.
   const empty = (await getPublishedPostsByTaxonomy("category", slug)).length === 0;
-  return contentMetadata({ title: page > 1 ? `${category.name} – Trang ${page} | Tin tức iOrder` : `${category.name} – Tin tức và bài viết mới nhất`, description: metaDescription(category.name, category.description), path: page > 1 ? `${path}?trang=${page}` : path, seo: empty ? { index: false } : undefined }, parent);
+  return contentMetadata({ title: page > 1 ? t("news.categoryTitlePaged", { name: category.name, page }) : t("news.categoryTitle", { name: category.name }), description: metaDescription(category.name, category.description, t), path: page > 1 ? `${path}?trang=${page}` : path, seo: empty ? { index: false } : undefined }, parent);
 }
 
 // Trang chuyên mục: cùng khung trang Tin tức (thanh chủ đề tô mục đang xem), lưới bài + phân trang 12 bài/trang.
@@ -45,7 +47,7 @@ export default async function CategoryPage({ params, searchParams }: Props) {
   const { grid, totalPages } = paginateNews(posts, page, false);
   if (page > totalPages) notFound();
   return <><SiteHeader /><main id="noi-dung">
-    <PageHero crumbs={[{ name: t("crumb.news"), path: "/news" }, { name: category.name, path: newsTopicPath(category.slug) }]} description={describe(category.name, category.description)} eyebrow={t("news.topicEyebrow")} title={category.name} />
+    <PageHero crumbs={[{ name: t("crumb.news"), path: "/news" }, { name: category.name, path: newsTopicPath(category.slug) }]} description={describe(category.name, category.description, t)} eyebrow={t("news.topicEyebrow")} title={category.name} />
     <NewsTopics active={category.slug} topics={index.topics} />
     <section aria-labelledby="bai-viet-chu-de" className="news-section"><Container>
       {/* Tiêu đề ẩn để thứ tự đề mục liền mạch: H1 tên chuyên mục → H2 → tiêu đề từng bài (H3). */}

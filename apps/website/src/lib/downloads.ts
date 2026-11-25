@@ -29,10 +29,10 @@ export type DownloadGroup<T> = { label: string | null; items: T[] };
 
 /**
  * Chia tệp theo "Nhóm" người vận hành đặt trong CMS (ví dụ "Driver trên Windows", "Driver trên macOS"). Nhóm xếp theo thứ tự xuất hiện đầu tiên
- * (tức theo thứ tự tệp trong danh sách), tên nhóm chỉ khác hoa/thường hoặc khoảng trắng được coi là một nhóm. Tệp chưa đặt nhóm vào nhóm "Khác" ở cuối.
+ * (tức theo thứ tự tệp trong danh sách), tên nhóm chỉ khác hoa/thường hoặc khoảng trắng được coi là một nhóm. Tệp chưa đặt nhóm vào nhóm "Khác" ở cuối (tên nhóm này truyền qua `otherLabel` để theo ngôn ngữ khách chọn).
  * Không tệp nào có nhóm thì không chia: một danh sách duy nhất, không tiêu đề.
  */
-export function groupDownloads<T extends { groupName: string | null }>(items: readonly T[]): DownloadGroup<T>[] {
+export function groupDownloads<T extends { groupName: string | null }>(items: readonly T[], otherLabel = "Khác"): DownloadGroup<T>[] {
   const keyOf = (name: string) => name.toLocaleLowerCase("vi");
   const nameOf = (item: T) => item.groupName?.trim() || null;
   const order: string[] = [];
@@ -44,7 +44,7 @@ export function groupDownloads<T extends { groupName: string | null }>(items: re
   if (!order.length) return [{ label: null, items: [...items] }];
   const groups: DownloadGroup<T>[] = order.map(key => ({ label: labels.get(key) ?? key, items: items.filter(item => { const name = nameOf(item); return name !== null && keyOf(name) === key; }) }));
   const rest = items.filter(item => !nameOf(item));
-  return rest.length ? [...groups, { label: "Khác", items: rest }] : groups;
+  return rest.length ? [...groups, { label: otherLabel, items: rest }] : groups;
 }
 
 export type GroupIcon = "windows" | "apple" | "android" | "linux" | "folder";

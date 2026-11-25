@@ -58,3 +58,8 @@ test("biểu tượng nhóm đoán từ tên: Windows, macOS/iOS, Android, Linux
   assert.equal(groupIcon("Máy in hóa đơn"), "folder");
   assert.equal(groupIcon("Macro"), "folder");
 });
+
+test("tên nhóm cho tệp chưa đặt nhóm đổi được theo ngôn ngữ khách chọn (mặc định vẫn là Khác)", () => {
+  assert.deepEqual(summary(groupDownloads([item("1", "A"), item("2", null)], "Other")), [["A", ["1"]], ["Other", ["2"]]]);
+  assert.deepEqual(summary(groupDownloads([item("1", "A"), item("2", null)])), [["A", ["1"]], ["Khác", ["2"]]]);
+});

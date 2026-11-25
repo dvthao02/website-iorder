@@ -9,7 +9,7 @@ export default async function TranslationsPage() {
   await requireAdminPermission("settings.view");
   return <SettingsDetailPage
     bare
-    description="Dịch nội dung website sang ngôn ngữ khác mà không đổi đường dẫn: xuất file mẫu, điền bản dịch, nhập lại. Câu nào chưa dịch vẫn hiện tiếng Việt."
+    description="Dịch nội dung website sang ngôn ngữ khác mà không đổi đường dẫn: xuất file (tất cả hoặc chỉ câu chưa dịch), điền bản dịch, nhập lại. Câu nào chưa dịch vẫn hiện tiếng Việt."
     eyebrow="Cài đặt"
     title="Đa ngôn ngữ"
   ><TranslationsManager overview={await getTranslationOverview()} /></SettingsDetailPage>;

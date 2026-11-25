@@ -1,7 +1,11 @@
 import { buildXlsx } from "../shared/xlsx";
 import { buildCsv, readTable, TabularFileError } from "../data-transfer/tabular";
-import { defaultLocale, isTranslationLocale, translationLocales, type SiteLocale, type TranslationLocale } from "./locales";
+import { defaultLocale, findTranslationLocale, isTranslationLocale, sortLocaleCodes, translationLocales, type SiteLocale, type TranslationLocale } from "./locales";
 import type { TranslationImportPlan, TranslationOverview } from "./translations.contract";
+import { exportFileName, exportRows, translatedSources, type ExportOptions } from "./translations.export";
+import { translationGroups } from "./translations.groups";
+import { createSuggester } from "./translations.suggest";
+import { getTranslationLocaleSetting, saveTranslationLocaleSetting } from "./translations.locale-setting";
 import { listLocalesWithTranslations, listTranslations, saveTranslations, type StoredTranslation } from "./translations.repository";
 import { collectSourceUnits, type SourceUnit } from "./translations.source";
 import { mapTranslatable, sourceKey } from "./translatable";
@@ -68,16 +72,58 @@ const isUiKey = (key: string) => key.startsWith(uiKeyPrefix);
 
 // ---------- Tổng quan ----------
 
+/**
+ * Ngôn ngữ đang dùng: các ngôn ngữ người vận hành đã thêm cùng mọi ngôn ngữ đã có bản dịch (dù bản dịch nhập bằng cách nào, ngôn ngữ đó
+ * không bao giờ biến mất khỏi CMS và vẫn hiện cho khách). Theo thứ tự danh mục.
+ */
+async function getEnabledLocales() {
+  const [setting, withTranslations] = await Promise.all([getTranslationLocaleSetting(), listLocalesWithTranslations()]);
+  return { locales: translationLocales.filter((locale) => setting.codes.includes(locale.code) || withTranslations.includes(locale.code)), version: setting.version };
+}
+
 export async function getTranslationOverview(): Promise<TranslationOverview> {
-  const units = await collectSourceUnits();
+  const [units, enabled] = await Promise.all([collectSourceUnits(), getEnabledLocales()]);
   const uiTotal = [...units.keys()].filter(isUiKey).length;
-  const locales = await Promise.all(translationLocales.map(async (locale) => {
+  const groups = translationGroups
+    .map((group) => ({ id: group.id, label: group.label, total: [...units.values()].filter((unit) => unit.groups.includes(group.id)).length }))
+    .filter((group) => group.total > 0);
+  const locales = await Promise.all(enabled.locales.map(async (locale) => {
     const stored = await listTranslations(locale.code);
+    const byKey = new Map(stored.map((row) => [row.sourceKey, row]));
     const current = stored.filter((row) => { const unit = units.get(row.sourceKey); return unit && unit.text === row.sourceText; });
     const translated = current.length;
-    return { code: locale.code, name: locale.name, label: locale.label, translated, uiTranslated: current.filter((row) => isUiKey(row.sourceKey)).length, missing: units.size - translated, unused: stored.length - translated };
+    const missingUnits = [...units.values()].filter((unit) => currentValue(byKey.get(unit.key), unit) === undefined);
+    const missingByGroup = Object.fromEntries(groups.map((group) => [group.id, missingUnits.filter((unit) => unit.groups.includes(group.id)).length]));
+    const suggest = createSuggester(translatedSources(units.values(), byKey));
+    return {
+      code: locale.code, name: locale.name, label: locale.label, translated, uiTranslated: current.filter((row) => isUiKey(row.sourceKey)).length,
+      missing: units.size - translated, unused: stored.length - translated, missingByGroup, suggestible: missingUnits.filter((unit) => suggest(unit.text)).length,
+    };
   }));
-  return { total: units.size, uiTotal, locales };
+  const available = translationLocales.filter((locale) => !enabled.locales.some((item) => item.code === locale.code)).map(({ code, name, label }) => ({ code, name, label }));
+  return { version: enabled.version, available, total: units.size, uiTotal, groups, locales };
+}
+
+/** Thêm hoặc gỡ ngôn ngữ thất bại vì ngôn ngữ muốn gỡ đã có bản dịch (gỡ sẽ làm khách mất bản dịch đã nhập). */
+export class TranslationLocaleInUseError extends Error {
+  constructor(public readonly labels: string[]) {
+    super(`Không gỡ được ${labels.join(", ")} vì đã có bản dịch. Chỉ gỡ được ngôn ngữ chưa có bản dịch nào.`);
+    this.name = "TranslationLocaleInUseError";
+  }
+}
+
+/**
+ * Đặt danh sách ngôn ngữ đã thêm (CMS gửi lại cả danh sách và version đã đọc; sai version thì 409). Ngôn ngữ đã có bản dịch không gỡ được.
+ * Thêm ngôn ngữ chưa làm website đổi gì: nút chọn ngôn ngữ chỉ hiện khi ngôn ngữ đó có ít nhất một bản dịch.
+ */
+export async function updateTranslationLocales(codes: readonly TranslationLocale[], userId: string, expectedVersion: number) {
+  const next = sortLocaleCodes(codes);
+  const [current, withTranslations] = await Promise.all([getTranslationLocaleSetting(), listLocalesWithTranslations()]);
+  const inUse = current.codes.filter((code) => !next.includes(code) && withTranslations.includes(code));
+  if (inUse.length) throw new TranslationLocaleInUseError(inUse.map((code) => findTranslationLocale(code)?.label ?? code));
+  const saved = await saveTranslationLocaleSetting(next, userId, expectedVersion);
+  invalidateTranslationCache();
+  return saved;
 }
 
 // ---------- Xuất file ----------
@@ -88,25 +134,32 @@ const exportColumns = (locale: { code: string; name: string }) => [
   { header: "Tiếng Việt (gốc)", width: 60 },
   { header: `${locale.code} · ${locale.name} (điền bản dịch)`, width: 60 },
   { header: "Dùng ở", width: 50 },
+  { header: "Số nơi dùng", width: 12 },
+  { header: "Vùng", width: 34 },
+  { header: "Ghi chú (không nhập)", width: 44 },
 ];
 
 /**
  * File mẫu để dịch: mỗi dòng là một câu tiếng Việt đang dùng trên website (khóa, câu gốc, ô điền bản dịch, nơi dùng); chữ cố định của giao diện
  * đứng đầu với khóa là tên (ui.header.openMenu), rồi tới nội dung CMS với khóa là mã băm. Bản dịch đã có được điền sẵn.
  * Xuất lại sau khi nội dung đổi thì câu mới hoặc câu vừa sửa hiện với ô dịch trống.
+ * `options.scope`: "all" xuất mọi câu; "missing" chỉ các câu chưa có bản dịch (file nhẹ, đủ để dịch tiếp phần còn thiếu). `options.groups`: chỉ xuất các vùng đã chọn
+ * (mặc định mọi vùng). `options.suggest`: điền sẵn gợi ý cho câu chưa dịch. Không có dòng nào khớp thì báo lỗi thay vì trả file rỗng.
+ * Kết quả có thêm `suggested`: số ô dịch được điền sẵn bằng gợi ý.
  */
-export async function exportTranslationFile(localeCode: TranslationLocale, format: "xlsx" | "csv") {
-  const locale = translationLocales.find((item) => item.code === localeCode);
+export async function exportTranslationFile(localeCode: TranslationLocale, format: "xlsx" | "csv", options: Partial<ExportOptions> = {}) {
+  const resolved: ExportOptions = { scope: options.scope ?? "all", groups: options.groups, suggest: options.suggest ?? false };
+  const locale = findTranslationLocale(localeCode);
   if (!locale) throw new TabularFileError("Ngôn ngữ không hợp lệ.");
   const [units, stored] = await Promise.all([collectSourceUnits(), listTranslations(localeCode)]);
-  const byKey = new Map(stored.map((row) => [row.sourceKey, row]));
-  const rows = [...units.values()].map((unit) => [unit.key, unit.text, currentValue(byKey.get(unit.key), unit) ?? "", unit.places.join("  |  ")]);
+  const { rows, suggested } = exportRows(units.values(), new Map(stored.map((row) => [row.sourceKey, row])), resolved);
+  if (rows.length === 0) throw new TabularFileError(resolved.scope === "missing" ? "Không còn câu nào chưa dịch ở các vùng đã chọn. Hãy xuất tất cả nếu muốn rà soát bản dịch đã có." : "Các vùng đã chọn chưa có câu nào cần dịch.");
   const columns = exportColumns(locale);
   const day = new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Ho_Chi_Minh" });
-  const fileName = `ban-dich-${localeCode}-${day}.${format}`;
+  const fileName = exportFileName(localeCode, resolved, day, format);
   return format === "xlsx"
-    ? { body: buildXlsx(exportSheetName, columns, rows), contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName, rows: rows.length }
-    : { body: buildCsv(columns.map((column) => column.header), rows), contentType: "text/csv; charset=utf-8", fileName, rows: rows.length };
+    ? { body: buildXlsx(exportSheetName, columns, rows), contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName, rows: rows.length, suggested }
+    : { body: buildCsv(columns.map((column) => column.header), rows), contentType: "text/csv; charset=utf-8", fileName, rows: rows.length, suggested };
 }
 
 // ---------- Nhập file ----------
@@ -153,12 +206,12 @@ function placeholderProblem(source: string, value: string) {
 }
 
 async function planImport(localeCode: TranslationLocale, file: { name: string; bytes: Buffer; sheetName?: string }, overwrite: boolean) {
-  const locale = translationLocales.find((item) => item.code === localeCode);
+  const locale = findTranslationLocale(localeCode);
   if (!locale) throw new TabularFileError("Ngôn ngữ không hợp lệ.");
   const table = readTable(file, translationImportLimits);
   if (table.length < 2) throw new TabularFileError("File chưa có dòng dữ liệu nào. Hãy xuất file mẫu rồi điền bản dịch vào cột ngôn ngữ.");
   const { keyColumn, valueColumn } = findColumns(table[0], locale);
-  if (table[0].length <= Math.max(keyColumn, valueColumn)) throw new TabularFileError("File thiếu cột bản dịch. Hãy dùng đúng file mẫu đã xuất (4 cột: Khóa, Tiếng Việt, bản dịch, Dùng ở).");
+  if (table[0].length <= Math.max(keyColumn, valueColumn)) throw new TabularFileError("File thiếu cột bản dịch. Hãy dùng đúng file mẫu đã xuất (có các cột Khóa, Tiếng Việt và cột bản dịch của ngôn ngữ này).");
 
   const [units, stored] = await Promise.all([collectSourceUnits(), listTranslations(localeCode)]);
   const existing = new Map(stored.map((row) => [row.sourceKey, row]));

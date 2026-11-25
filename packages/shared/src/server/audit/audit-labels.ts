@@ -20,7 +20,7 @@ const verbs: Record<string, string> = {
 const actionOverrides: Record<string, string> = {
   "user.login": "Đăng nhập", "user.login_failed": "Đăng nhập thất bại (sai mật khẩu)", "user.logout": "Đăng xuất",
   "backup.run": "Chạy sao lưu", "backup.restore": "Phục hồi dữ liệu", "backup.delete": "Xóa bản sao lưu", "backup.export": "Tải bản sao lưu về",
-  "backup.history_clear": "Xóa lịch sử sao lưu", "audit.purge": "Xóa nhật ký hoạt động", "backup.keep_update": "Đổi số bản sao lưu giữ lại", "translations.import": "Nhập bản dịch",
+  "backup.history_clear": "Xóa lịch sử sao lưu", "audit.purge": "Xóa nhật ký hoạt động", "backup.keep_update": "Đổi số bản sao lưu giữ lại", "translations.import": "Nhập bản dịch", "translations.locales": "Đổi danh sách ngôn ngữ",
 };
 export function auditEntityLabel(code: string) {
   return Object.hasOwn(auditEntityLabels, code) ? auditEntityLabels[code] : code;

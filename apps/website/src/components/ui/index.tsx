@@ -87,8 +87,8 @@ export function Eyebrow({ children, dark = false }: { children: ReactNode; dark?
   return <EyebrowPill dark={dark}>{children}</EyebrowPill>;
 }
 
-// Phần đầu của mỗi khối: dòng giới thiệu, tiêu đề, mô tả. Mặc định căn giữa như các website phần mềm
-// bán hàng (KiotViet, Sapo) và cách nội dung bên dưới một khoảng chuẩn; khối hai cột truyền align="left", className="".
+// Phần đầu của mỗi khối: dòng giới thiệu, tiêu đề, mô tả. Mặc định căn giữa và cách nội dung bên dưới
+// một khoảng chuẩn; khối hai cột truyền align="left", className="".
 export function SectionHeading({ eyebrow, title, description, align = "center", level = "h2", size = "md", dark = false, className = "mb-10 sm:mb-12" }: { eyebrow?: string | null; title?: string | null; description?: string | null; align?: "left" | "center"; level?: "h1" | "h2"; size?: "sm" | "md" | "lg"; dark?: boolean; className?: string }) {
   if (!eyebrow && !title && !description) return null;
   const Heading = level;
@@ -206,7 +206,7 @@ export function Badge({ children, className = "", field }: { children: ReactNode
   return <span data-builder-field={field} className={`inline-flex items-center rounded-full bg-brand-600 px-3 py-1 text-caption font-bold text-white ${className}`.trim()}>{children}</span>;
 }
 
-// Dòng "Xem thêm →" ở cuối thẻ có liên kết.
-export function MoreLink({ children = "Xem thêm" }: { children?: ReactNode }) {
+// Dòng "Xem thêm →" ở cuối thẻ có liên kết. Chữ truyền qua children (t("common.more")) để theo ngôn ngữ khách chọn; cố ý không có mặc định tiếng Việt.
+export function MoreLink({ children }: { children: ReactNode }) {
   return <span className="mt-auto pt-5 text-small font-semibold text-brand-700 group-hover:underline" data-builder-field="href">{children} →</span>;
 }

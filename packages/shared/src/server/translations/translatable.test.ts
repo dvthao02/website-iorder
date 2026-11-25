@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { defaultLocale, isSiteLocale, isTranslationLocale } from "./locales";
+import { defaultEnabledLocales, defaultLocale, findTranslationLocale, isSiteLocale, isTranslationLocale, localeTags, siteLocaleName, sortLocaleCodes, translationLocales } from "./locales";
 import { isTranslatableText, mapTranslatable, sourceKey, splitUnit } from "./translatable";
 
 const dictionary = (entries: Record<string, string>) => (core: string) => entries[core];
@@ -21,6 +21,9 @@ test("Mảng kế thừa tên trường của cha: danh sách chữ và hỏi đ
 test("Chuỗi không phải chữ người đọc không bao giờ vào danh sách dịch (đường dẫn, email, mã, tên tệp, số điện thoại)", () => {
   for (const text of ["/support/guides", "https://iorder.vn", "mailto:a@b.vn", "#tu-van", "support@iorder.vn", "028 710 73 999", "913d4a21-3cd9-4d3f-b26c-ad76fa11a540", "logo.png", "x", "", "   "]) assert.equal(isTranslatableText(text), false, JSON.stringify(text));
   for (const text of ["Có", "Xem thêm", "iOrder.vn", "Đà Nẵng: 21 Phạm Nhữ Tăng"]) assert.equal(isTranslatableText(text), true, text);
+  // Đơn vị giá bắt đầu bằng "/" ("/Năm", "/3 Năm") là chữ người đọc thấy, không phải đường dẫn: có chữ có dấu hoặc khoảng trắng.
+  for (const text of ["/Năm", "/3 Năm", "/tháng cho mỗi cửa hàng", "#Phổ biến"]) assert.equal(isTranslatableText(text), true, text);
+  for (const text of ["/support/guides/ban-hang", "/media/uploads/a-b_c.png?x=1&y=2", "#phan-noi-dung-2", "/en/news#top"]) assert.equal(isTranslatableText(text), false, text);
   const seen: string[] = [];
   mapTranslatable({ title: "https://iorder.vn", label: "028 710 73 999", name: "Hóa đơn" }, (core) => { seen.push(core); return undefined; });
   assert.deepEqual(seen, ["Hóa đơn"]);
@@ -78,5 +81,33 @@ test("Ngôn ngữ: tiếng Việt là gốc, tiếng Anh là bản dịch, mã l
   assert.equal(isSiteLocale("en"), true);
   assert.equal(isTranslationLocale("vi"), false, "tiếng Việt không phải bản dịch");
   assert.equal(isTranslationLocale("en"), true);
-  for (const value of ["fr", "EN", "", null, undefined, 1]) assert.equal(isSiteLocale(value), false, String(value));
+  for (const value of ["xx", "EN", "", null, undefined, 1, "ar"]) assert.equal(isSiteLocale(value), false, String(value));
+});
+
+test("Danh mục ngôn ngữ: nhiều ngôn ngữ để người vận hành chọn thêm, mã không trùng, mỗi ngôn ngữ đủ tên, thẻ html và og:locale", () => {
+  assert.ok(translationLocales.length > 10, "có nhiều ngôn ngữ để chọn");
+  assert.equal(new Set(translationLocales.map((locale) => locale.code)).size, translationLocales.length, "mã không trùng");
+  for (const locale of translationLocales) {
+    assert.match(locale.code, /^[a-z]{2,3}$/, locale.code);
+    assert.ok(locale.name && locale.label, locale.code);
+    assert.match(locale.openGraph, /^[a-z]{2,3}_[A-Z]{2}$/, locale.code);
+    assert.equal(isTranslationLocale(locale.code), true);
+    assert.deepEqual(localeTags[locale.code], { html: locale.html, openGraph: locale.openGraph });
+    assert.ok(locale.code.length <= 12, "vừa cột locale varchar(12) của bảng bản dịch");
+  }
+  assert.deepEqual(localeTags.vi, { html: "vi", openGraph: "vi_VN" });
+  assert.deepEqual(localeTags.en, { html: "en", openGraph: "en_US" });
+  assert.equal(localeTags.zh.html, "zh-Hans");
+  assert.deepEqual(defaultEnabledLocales, ["en"], "website đang chạy tiếng Anh nên giữ làm mặc định khi chưa chọn gì");
+});
+
+test("Danh mục ngôn ngữ: tên hiện cho khách và thứ tự danh sách đã chọn", () => {
+  assert.equal(siteLocaleName("vi"), "Tiếng Việt");
+  assert.equal(siteLocaleName("ja"), "日本語");
+  assert.equal(siteLocaleName("xx"), "xx", "mã lạ trả lại chính mã");
+  assert.equal(findTranslationLocale("fr")?.label, "Tiếng Pháp");
+  assert.equal(findTranslationLocale("vi"), undefined, "tiếng Việt là bản gốc, không nằm trong danh mục bản dịch");
+  // Theo thứ tự danh mục, bỏ trùng và bỏ mã không có trong danh mục.
+  assert.deepEqual(sortLocaleCodes(["ja", "en", "ja", "xx", "fr"]), ["en", "ja", "fr"]);
+  assert.deepEqual(sortLocaleCodes([]), []);
 });

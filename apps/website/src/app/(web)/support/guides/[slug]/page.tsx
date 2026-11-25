@@ -12,6 +12,7 @@ import { PostContent } from "@/components/site/post-content";
 import { ReadingProgress } from "@/components/site/reading-progress";
 import { SiteHeader } from "@/components/site/site-header";
 import { getT } from "@/lib/messages";
+import type { Translate } from "@/lib/translate";
 import { SiteLink as Link } from "@/components/site/site-link";
 import { visibleUpdatedAt } from "@/lib/article-dates";
 import { articleImagePath } from "@/lib/article-image";
@@ -30,19 +31,20 @@ const dateFormatter = new Intl.DateTimeFormat("vi-VN", { day: "2-digit", month: 
 
 // Bài nhập từ Word đặt tên theo tính năng ("Bán hàng", "Kết ca") nên tiêu đề Google quá ngắn và không nói đây là hướng dẫn.
 // Khi người vận hành chưa đặt tiêu đề SEO: "Hướng dẫn Bán hàng trên phần mềm iOrder"; quá 60 ký tự thì dùng dạng ngắn "… | Hướng dẫn iOrder".
-function guideTitle(title: string) {
+function guideTitle(title: string, t: Translate) {
   if (/hướng dẫn/i.test(title)) return title;
-  const full = `Hướng dẫn ${title} trên phần mềm iOrder`;
-  return full.length <= seoTitleLimit ? full : `${title} | Hướng dẫn iOrder`;
+  const full = t("guide.metaTitleFull", { title });
+  return full.length <= seoTitleLimit ? full : t("guide.metaTitleShort", { title });
 }
 
 export async function generateMetadata({ params }: SupportGuideDetailPageProps, parent: ResolvingMetadata): Promise<Metadata> {
+  const t = await getT();
   const post = await getPublishedPostBySlug((await params).slug);
   const author = post?.type === "guide" ? resolvePostAuthor(post) : null;
   const siteUrl = author ? (await getPublishingConfig()).siteUrl ?? undefined : undefined;
   return post?.type === "guide"
-    ? contentMetadata({ title: post.seoTitle ?? guideTitle(post.title), description: post.seoDescription ?? suggestSeoDescription(post.excerpt, post.content), path: `/support/guides/${post.slug}`, canonicalUrl: post.canonicalUrl, seo: post.seo, image: post.cover ? { url: post.cover.url, alt: post.cover.altText } : null, authors: author ? [{ name: author.name, url: authorMetaUrl(author, siteUrl) }] : undefined, type: "article", article: { publishedTime: post.publishedAt, modifiedTime: post.updatedAt, section: post.categories[0]?.name, tags: post.tags.map((tag) => tag.name) } }, parent)
-    : { title: (await getT())("guide.notFoundTitle") };
+    ? contentMetadata({ title: post.seoTitle ?? guideTitle(post.title, t), description: post.seoDescription ?? suggestSeoDescription(post.excerpt, post.content), path: `/support/guides/${post.slug}`, canonicalUrl: post.canonicalUrl, seo: post.seo, image: post.cover ? { url: post.cover.url, alt: post.cover.altText } : null, authors: author ? [{ name: author.name, url: authorMetaUrl(author, siteUrl) }] : undefined, type: "article", article: { publishedTime: post.publishedAt, modifiedTime: post.updatedAt, section: post.categories[0]?.name, tags: post.tags.map((tag) => tag.name) } }, parent)
+    : { title: t("guide.notFoundTitle") };
 }
 
 // Bài hướng dẫn trong khung tài liệu: danh mục hướng dẫn bên trái (bài đang xem được tô), bài ở giữa trên nền thẻ trắng
@@ -80,10 +82,10 @@ export default async function SupportGuideDetailPage({ params }: SupportGuideDet
               <li className="flex min-w-0 items-center gap-1.5"><ChevronRight aria-hidden="true" size={14} /><span aria-current="page" className="truncate font-semibold text-ink">{post.title}</span></li>
             </ol></nav>
             <h1 className="mt-5 mb-0 text-[1.85rem] leading-[1.2] font-bold tracking-tight text-balance text-ink sm:text-[2.25rem]" data-builder-field="title">{post.title}</h1>
-            {post.publishedAt || author ? <p className="mt-3 mb-0 flex flex-wrap items-center gap-x-3 gap-y-1 text-small text-muted">{post.publishedAt ? <span>{t("guide.publishedOn")} <time dateTime={post.publishedAt.toISOString()}>{dateFormatter.format(post.publishedAt)}</time></span> : null}{updatedAt ? <span>{t("article.updated")} <time dateTime={updatedAt.toISOString()}>{dateFormatter.format(updatedAt)}</time></span> : null}<AuthorByline author={author} /></p> : null}
+            {post.publishedAt || author ? <p className="mt-3 mb-0 flex flex-wrap items-center gap-x-3 gap-y-1 text-small text-muted">{post.publishedAt ? <span>{t("guide.publishedOn")} <time dateTime={post.publishedAt.toISOString()}>{dateFormatter.format(post.publishedAt)}</time></span> : null}{updatedAt ? <span>{t("article.updated")} <time dateTime={updatedAt.toISOString()}>{dateFormatter.format(updatedAt)}</time></span> : null}<AuthorByline author={author} t={t} /></p> : null}
             {post.excerpt ? <p className="mt-4 mb-0 text-lead text-muted" data-builder-field="excerpt">{post.excerpt}</p> : null}
             {post.cover ? <Image alt={post.cover.altText ?? post.title} className="mt-7 h-auto w-full rounded-xl border border-line" data-builder-field="cover" height={630} preload sizes="(min-width: 1280px) 48rem, (min-width: 1024px) 60vw, 100vw" src={post.cover.url} width={1200} /> : null}
-            <div className="mt-8" data-builder-field="content"><PostContent altSubject={post.title} document={document} tocClassName="xl:hidden" /></div>
+            <div className="mt-8" data-builder-field="content"><PostContent altSubject={post.title} document={document} t={t} tocClassName="xl:hidden" /></div>
             {previous || next ? <nav aria-label={t("guide.otherLabel")} className="mt-12 grid gap-3 border-t border-line pt-8 sm:grid-cols-2">
               {previous ? <Link className="guide-pager group" href={previous.href}><span className="guide-pager__label"><ArrowLeft aria-hidden="true" size={16} />{t("guide.previous")}</span><span className="guide-pager__title">{previous.title}</span></Link> : <span aria-hidden="true" className="hidden sm:block" />}
               {next ? <Link className="guide-pager guide-pager--next group" href={next.href}><span className="guide-pager__label">{t("guide.next")}<ArrowRight aria-hidden="true" size={16} /></span><span className="guide-pager__title">{next.title}</span></Link> : null}

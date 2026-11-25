@@ -4,6 +4,7 @@ import React, { type MouseEvent } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import { localeCookie, localeCookieString } from "../../lib/locale-cookie";
+import { LanguageFlag } from "./language-flag";
 import { chooseLanguage, LanguageSwitcher } from "./language-switcher";
 
 // Thành phần dùng JSX kiểu cũ (không tự import React) nên test cần React toàn cục.
@@ -11,18 +12,53 @@ import { chooseLanguage, LanguageSwitcher } from "./language-switcher";
 
 const options = [{ code: "vi", short: "VI", name: "Tiếng Việt" }, { code: "en", short: "EN", name: "English" }] as const;
 
-test("Nút đổi ngôn ngữ: ngôn ngữ đang xem là chữ đánh dấu, ngôn ngữ khác là liên kết ?lang= giữ nguyên đường dẫn hiện tại", () => {
+test("Chọn ngôn ngữ: nút hiện cờ và mã ngôn ngữ đang xem; danh sách thả xuống có cờ và tên từng ngôn ngữ, ngôn ngữ khác là liên kết ?lang= giữ nguyên đường dẫn", () => {
   const html = renderToStaticMarkup(<LanguageSwitcher current="vi" options={[...options]} pathname="/support/guides" />);
-  assert.match(html, /<span aria-current="true"[^>]*>VI<\/span>/);
-  assert.match(html, /<a [^>]*href="\/support\/guides\?lang=en"[^>]*>EN<\/a>/);
-  assert.doesNotMatch(html, /href="\/support\/guides\?lang=vi"/, "không có liên kết sang chính ngôn ngữ đang xem");
+  // Nút: cờ + mã ngôn ngữ đang xem, có tên đầy đủ cho trình đọc màn hình.
+  assert.match(html, /<details class="language-menu">/);
+  assert.match(html, /<summary aria-label="Ngôn ngữ: Tiếng Việt" class="language-menu__button"><svg[^>]*class="language-flag"[\s\S]*?<span class="language-menu__code" lang="vi">VI<\/span>/);
+  // Danh sách: mỗi ngôn ngữ một dòng có cờ và tên; đang xem thì đánh dấu, ngôn ngữ khác là liên kết thường.
+  assert.match(html, /<ul aria-label="Ngôn ngữ" class="language-menu__list">/);
+  assert.match(html, /<a aria-current="true" class="language-menu__item language-menu__item--active" href="\/support\/guides\?lang=vi"[^>]*>[\s\S]*?Tiếng Việt<\/span>/);
+  assert.match(html, /<a class="language-menu__item" href="\/support\/guides\?lang=en"[^>]*>[\s\S]*?<svg[^>]*class="language-flag"[\s\S]*?English<\/span>/);
+  assert.equal((html.match(/class="language-flag"/g) ?? []).length, 3, "một cờ ở nút và một cờ ở mỗi dòng của danh sách");
   // Liên kết thường, không để công cụ tìm kiếm đi theo (chúng luôn thấy tiếng Việt) và có mã ngôn ngữ cho trình đọc màn hình.
   assert.match(html, /rel="nofollow"/);
   assert.match(html, /hrefLang="en"/);
+  // Cờ chỉ để trang trí: mọi cờ đều ẩn với trình đọc màn hình.
+  assert.doesNotMatch(html, /<svg(?![^>]*aria-hidden)[^>]*class="language-flag"/);
 });
 
-test("Nút đổi ngôn ngữ: đang xem tiếng Anh thì liên kết quay về tiếng Việt; chỉ có một ngôn ngữ thì không vẽ gì", () => {
-  assert.match(renderToStaticMarkup(<LanguageSwitcher current="en" options={[...options]} pathname="/" />), /href="\/\?lang=vi"/);
+test("Chọn ngôn ngữ: ngôn ngữ thêm sau (Nhật, Pháp, Trung, Hàn…) có cờ riêng, ngôn ngữ chưa có cờ (Hindi) hiện quả địa cầu", () => {
+  const many = [options[0], { code: "ja", short: "JA", name: "日本語" }, { code: "fr", short: "FR", name: "Français" }, { code: "zh", short: "ZH", name: "中文" }, { code: "ko", short: "KO", name: "한국어" }, { code: "hi", short: "HI", name: "हिन्दी" }] as unknown as Parameters<typeof LanguageSwitcher>[0]["options"];
+  const html = renderToStaticMarkup(<LanguageSwitcher current="ja" options={many} pathname="/" />);
+  assert.equal((html.match(/class="language-flag"/g) ?? []).length, 1 + 5, "năm dòng có cờ riêng (Việt, Nhật, Pháp, Trung, Hàn) cộng cờ ở nút");
+  assert.equal((html.match(/language-flag language-flag--globe/g) ?? []).length, 1, "chỉ Hindi hiện quả địa cầu");
+  assert.match(html, /hrefLang="ja"/);
+  assert.ok(html.includes('<span class="language-menu__name">日本語</span>'));
+});
+
+test("Cờ: cờ Trung Quốc có đủ năm sao (một lớn, bốn nhỏ) nên không bị nhầm với cờ Việt Nam chỉ có một sao ở giữa", () => {
+  const stars = (code: string) => (renderToStaticMarkup(<LanguageFlag code={code} />).match(/<polygon/g) ?? []).length;
+  assert.equal(stars("zh"), 5);
+  assert.equal(stars("vi"), 1);
+  assert.notEqual(renderToStaticMarkup(<LanguageFlag code="zh" />), renderToStaticMarkup(<LanguageFlag code="vi" />));
+  // Sao lớn nằm góc trên bên trái (x nhỏ hơn nửa chiều rộng, y nhỏ hơn nửa chiều cao); sao Việt Nam nằm giữa lá cờ.
+  const first = (code: string) => (renderToStaticMarkup(<LanguageFlag code={code} />).match(/<polygon[^>]*points="([^"]+)"/)?.[1] ?? "").split(" ").map((point) => point.split(",").map(Number));
+  const center = (points: number[][]) => [points.reduce((sum, point) => sum + point[0], 0) / points.length, points.reduce((sum, point) => sum + point[1], 0) / points.length];
+  const [zhX, zhY] = center(first("zh"));
+  assert.ok(zhX < 10 && zhY < 10, `sao lớn cờ Trung Quốc ở góc trên trái (${zhX}, ${zhY})`);
+  const [viX] = center(first("vi"));
+  assert.ok(Math.abs(viX - 15) < 1, "sao cờ Việt Nam ở giữa");
+});
+
+test("Chọn ngôn ngữ: đang xem tiếng Anh thì nút hiện EN và danh sách có liên kết về tiếng Việt; ngôn ngữ chưa có cờ hiện quả địa cầu; chỉ có một ngôn ngữ thì không vẽ gì", () => {
+  const html = renderToStaticMarkup(<LanguageSwitcher current="en" options={[...options]} pathname="/" />);
+  assert.match(html, /<span class="language-menu__code" lang="en">EN<\/span>/);
+  assert.match(html, /href="\/\?lang=vi"/);
+  assert.match(html, /aria-label="Ngôn ngữ: English"/);
+  const unknown = [options[0], { code: "xx", short: "XX", name: "Lạ" }] as unknown as Parameters<typeof LanguageSwitcher>[0]["options"];
+  assert.match(renderToStaticMarkup(<LanguageSwitcher current="vi" options={unknown} pathname="/" />), /language-flag language-flag--globe/);
   assert.equal(renderToStaticMarkup(<LanguageSwitcher current="vi" options={[options[0]]} pathname="/" />), "");
 });
 

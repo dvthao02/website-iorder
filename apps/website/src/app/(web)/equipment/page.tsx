@@ -12,6 +12,6 @@ export async function generateMetadata(_: unknown, parent: ResolvingMetadata): P
 export default async function EquipmentPage() {
   const t = await getT();
   const content = await getListingPageContent("listing-equipment");
-  if (!content) return <><SiteHeader /><main id="noi-dung" className="site-container py-6">Nội dung trang thiết bị đang chờ được cấu hình trong CMS.</main></>;
+  if (!content) return <><SiteHeader /><main id="noi-dung" className="site-container py-6">{t("empty.equipmentPage")}</main></>;
   return <ListingPageView content={content} crumb={{ name: t("equipment.title"), path: "/equipment" }} />;
 }

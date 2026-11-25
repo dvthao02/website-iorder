@@ -450,7 +450,7 @@ body { margin: 0; background: var(--color-canvas); color: var(--color-ink); font
 }
 
 /*
- * Nút kiểu KiotViet: bo góc vừa (không phải viên thuốc), cao 48px, chữ semibold, nền màu đặc.
+ * Nút: bo góc vừa (không phải viên thuốc), cao 48px, chữ semibold, nền màu đặc.
  * Chính = nền thương hiệu; phụ = nền trắng chữ xanh; sáng/viền sáng dùng trên nền tối hoặc ảnh.
  */
 .header-cta, .button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border-radius: var(--radius-control); font-size: 1rem; font-weight: 600; transition: background 160ms ease, border-color 160ms ease, box-shadow 160ms ease, color 160ms ease; }
@@ -495,6 +495,10 @@ body:has([data-hero-top="dark"]) .site-header:not(.site-header--scrolled) .brand
 @media (prefers-reduced-motion: reduce) { .site-header { transition: none; } }
 .site-header__actions { display: flex; flex-shrink: 0; align-items: center; gap: .625rem; margin-left: auto; }
 .brand { display: inline-flex; flex-shrink: 0; align-items: center; gap: 8px; font-size: 1.25rem; font-weight: 800; letter-spacing: -.04em; }
+/* Logo và chữ menu thẳng hàng: chữ "rder" của logo nằm thấp hơn tâm ảnh (dấu chấm chữ i và giỏ hàng trong chữ O vươn lên trên), nên khi chỉ căn giữa hộp ảnh
+ * thì chữ logo trông thấp hơn chữ menu khoảng 17% chiều cao logo. Nâng logo lên 14% chiều cao của chính nó (tự co theo cỡ logo: khoảng 6px ở 44px) để hai hàng chữ cân nhau.
+ * Chỉ khi menu ngang đang hiện (từ 1300px); ở điện thoại logo chỉ đứng cạnh các nút nên giữ căn giữa. Đổi logo khác hình dạng thì chỉnh lại số này. */
+@media (min-width: 1300px) { .site-header .brand img { transform: translateY(-14%); } }
 .brand__mark { display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 9px; background: var(--color-brand-600); color: white; font: italic 1.5rem Georgia, serif; }
 /* Tỉ lệ header theo iorder.com.vn: logo 38px, chữ menu 16,5px, nút cao 42px chữ 15,5px — logo, chữ và nút cùng tâm dọc. */
 .header-cta { min-height: 2.875rem; padding: 0 1.4rem; font-size: 1.03rem; font-weight: 600; white-space: nowrap; }
@@ -502,11 +506,21 @@ body:has([data-hero-top="dark"]) .site-header:not(.site-header--scrolled) .brand
 .header-cta--primary:hover { background: var(--color-brand-700); }
 .header-cta--secondary { border: 1px solid var(--color-line); background: white; color: var(--color-ink); }
 .header-cta--secondary:hover { border-color: var(--color-brand-300); }
-/* Nút đổi ngôn ngữ (chỉ hiện khi website có bản dịch): chữ viết tắt, ngôn ngữ đang xem có nền xanh, ngôn ngữ khác là liên kết. */
-.language-switcher { display: inline-flex; align-items: center; gap: 2px; padding: 2px; border: 1px solid var(--color-line); border-radius: 999px; background: white; }
-.language-switcher__item { display: inline-grid; place-items: center; min-width: 2.25rem; min-height: 2rem; padding: 0 .6rem; border-radius: 999px; color: var(--color-muted); font-size: .85rem; font-weight: 700; letter-spacing: .02em; }
-a.language-switcher__item:hover { background: var(--color-brand-50); color: var(--color-brand-700); }
-.language-switcher__item--active { background: var(--color-brand-600); color: white; }
+/* Chọn ngôn ngữ (chỉ hiện khi website có bản dịch): nút hiện cờ và mã ngôn ngữ đang xem, bấm mở danh sách thả xuống có cờ và tên từng ngôn ngữ. */
+.language-menu { position: relative; }
+.language-menu__button { display: inline-flex; align-items: center; gap: .45rem; min-height: 2.875rem; padding: 0 .7rem 0 .65rem; border: 1px solid var(--color-line); border-radius: var(--radius-control); background: white; color: var(--color-ink); font-size: .85rem; font-weight: 700; letter-spacing: .02em; list-style: none; cursor: pointer; user-select: none; transition: border-color .2s ease, background-color .2s ease; }
+.language-menu__button::-webkit-details-marker { display: none; }
+.language-menu__button:hover { border-color: var(--color-brand-300); background: var(--color-brand-50); }
+.language-menu[open] > .language-menu__button { border-color: var(--color-brand-400); }
+.language-menu__chevron { color: var(--color-muted); transition: transform .2s ease; }
+.language-menu[open] .language-menu__chevron { transform: rotate(180deg); }
+.language-flag { width: 1.375rem; height: 1rem; flex: none; border-radius: 3px; box-shadow: 0 0 0 1px rgb(15 23 42 / .16); }
+.language-flag--globe { box-shadow: none; color: var(--color-muted); }
+.language-menu__list { position: absolute; top: calc(100% + .4rem); right: 0; z-index: 60; display: grid; gap: 2px; min-width: 11.5rem; margin: 0; padding: .3rem; list-style: none; border: 1px solid var(--color-line); border-radius: calc(var(--radius-control) + .125rem); background: white; box-shadow: 0 18px 40px -18px rgb(15 40 80 / .35); }
+.language-menu__item { display: flex; align-items: center; gap: .65rem; min-height: 2.5rem; padding: 0 .7rem; border-radius: calc(var(--radius-control) - .125rem); color: var(--color-ink); font-size: .95rem; font-weight: 600; }
+.language-menu__item:hover, .language-menu__item:focus-visible, .language-menu__item--active { background: var(--color-brand-50); color: var(--color-brand-700); }
+.language-menu__name { flex: 1 1 auto; }
+.language-menu__check { flex: none; color: var(--color-brand-600); }
 
 /* Menu ngang: mục đang xem có nền viên thuốc xanh nhạt; mục có con mở bảng thả xuống khi rê chuột hoặc focus. */
 .site-nav { position: relative; display: flex; flex: 1 1 auto; justify-content: center; min-width: 0; }
@@ -536,21 +550,37 @@ a.language-switcher__item:hover { background: var(--color-brand-50); color: var(
 .site-nav__dropdown-link:hover { background: var(--color-subtle); }
 .site-nav__dropdown-link[aria-current="page"] { color: var(--color-brand-700); font-weight: 600; }
 
-/* Máy tính màn hẹp: menu và nút gọn lại để logo – menu – nút luôn cách nhau, không chữ nào đè lên nhau.
- * Hẹp hơn nữa (xem breakpoint menu điện thoại bên dưới) thì chuyển sang nút ☰. Đổi nhãn menu dài hơn trong CMS thì đo lại. */
-@media (max-width: 1439px) {
+/* Máy tính màn hẹp (dưới 1600px): menu và nút gọn lại để logo – menu – nút luôn cách nhau, không chữ nào đè lên nhau; ô ngôn ngữ chỉ hiện cờ và mũi tên
+ * (mã EN vẫn nằm trong tên đọc của nút), logo nhỏ hơn một chút. Hẹp hơn nữa (xem breakpoint menu điện thoại bên dưới) thì chuyển sang nút ☰.
+ * Đổi nhãn menu dài hơn trong CMS hoặc thêm ngôn ngữ thì đo lại. */
+@media (max-width: 1599px) {
+  .language-menu__code { display: none; }
+  .language-menu__button { gap: .35rem; padding: 0 .55rem 0 .6rem; }
+  .site-header .brand img { height: 2.375rem; }
   .site-header__inner { gap: 1rem; }
   .site-nav__list { gap: 0; }
   .site-nav__link { padding: 0 .625rem; font-size: .97rem; }
-  .header-cta { min-height: 2.75rem; padding: 0 1rem; font-size: .95rem; }
+  .header-cta, .language-menu__button { min-height: 2.75rem; }
+  .header-cta { padding: 0 1rem; font-size: .95rem; }
+}
+
+/* Màn rộng (từ 1760px, gồm màn Full HD 1920px): đầu trang to hơn một nấc cho cân với bề ngang màn hình (cỡ chữ gốc của html đã tăng dần theo màn, nhưng menu 1.1rem vẫn nhỏ so với tiêu đề trang):
+ * cao hơn ~14%, logo, chữ menu và các nút lớn hơn ~10–18%. Dưới 1760px giữ cỡ gọn ở trên vì không còn chỗ (menu tiếng Anh ở 1760px còn cách logo và nút 30px). Chỉnh cỡ ở đây thì đo lại khoảng cách logo – menu – nút. */
+@media (min-width: 1760px) {
+  :root { --header-height: 6rem; }
+  .site-header .brand img { height: 3.25rem; }
+  .site-nav__link { min-height: 3.25rem; padding: 0 1.15rem; font-size: 1.2rem; }
+  .header-cta { min-height: 3.25rem; padding: 0 1.6rem; font-size: 1.12rem; }
+  .language-menu__button { min-height: 3.25rem; padding: 0 .85rem 0 .8rem; font-size: .95rem; }
+  .language-flag { width: 1.5rem; height: 1.1rem; }
 }
 
 /* Menu điện thoại: nút ☰ và bảng toàn chiều ngang dưới đầu trang. */
 .site-menu-toggle { display: none; width: 44px; height: 44px; place-items: center; border: 1px solid var(--color-line); border-radius: 12px; background: white; color: var(--color-ink); }
 .site-mobile-menu { display: none; }
-/* Ngưỡng 1199px: đo với menu hiện tại (6 mục: Sản phẩm, Giải pháp, Thiết bị, Tin tức, Hỗ trợ, Công ty + 2 nút),
- * từ 1200px logo – menu – nút cách nhau ≥ 30px. Thêm mục menu trong CMS thì đo lại. */
-@media (max-width: 1199px) {
+/* Ngưỡng 1299px: đo với menu hiện tại (6 mục: Sản phẩm, Giải pháp, Thiết bị, Tin tức, Hỗ trợ, Công ty + ô ngôn ngữ + 2 nút), cả bản tiếng Việt lẫn tiếng Anh
+ * (nhãn tiếng Anh dài hơn): từ 1300px logo – menu – nút cách nhau ≥ 24px. Thêm mục menu hoặc ngôn ngữ trong CMS thì đo lại. */
+@media (max-width: 1299px) {
   .site-nav { display: none; }
   .site-menu-toggle { display: grid; }
   .site-mobile-menu--open { position: fixed; inset: var(--header-height) 0 0; z-index: 39; display: block; overflow-y: auto; border-top: 1px solid var(--color-line); background: white; padding: 12px 20px 32px; }
@@ -1047,7 +1077,8 @@ section[data-section-align="bottom"] { justify-content: flex-end; }
 /* Điện thoại và máy tính bảng: ô ảnh sản phẩm xếp dọc (ảnh trên, chữ dưới) để chữ không đè lên ảnh; từ 640px lưới hai cột. */
 @media (max-width: 1023px) {
   .mosaic__tile[data-kind="cutout"] { flex-direction: column; align-items: stretch; }
-  .mosaic__media--cutout { position: relative; inset: auto; width: auto; height: clamp(10rem, 34vw, 14rem); margin: 18px 12px 0; }
+  /* Chừa chỗ phía trên cho số thứ tự và mũi tên (nằm ở mép trên ô: cách mép 20px, cao khoảng 20px) để ảnh không đè lên chúng. */
+  .mosaic__media--cutout { position: relative; inset: auto; width: auto; height: clamp(10rem, 34vw, 14rem); margin: 56px 12px 0; }
   .mosaic__tile[data-kind="cutout"] .mosaic__body { padding-top: 10px; }
   .mosaic__tile[data-kind="photo"] { min-height: 15rem; }
 }
@@ -1056,7 +1087,7 @@ section[data-section-align="bottom"] { justify-content: flex-end; }
   .mosaic__tile[data-wide] { grid-column: 1 / -1; }
   /* Ô cuối của số thẻ lẻ trải hết hai cột: ảnh bên phải, chữ bên trái. */
   .mosaic__tile[data-wide][data-kind="cutout"] { flex-direction: row; align-items: flex-end; min-height: 17rem; }
-  .mosaic__tile[data-wide] .mosaic__media--cutout { position: absolute; inset: 14% 3% 6% auto; width: 52%; height: auto; margin: 0; }
+  .mosaic__tile[data-wide] .mosaic__media--cutout { position: absolute; inset: 20% 3% 6% auto; width: 52%; height: auto; margin: 0; }
   .mosaic__tile[data-wide][data-kind="cutout"] .mosaic__body { max-width: 44%; padding-top: 22px; }
 }
 @media (min-width: 1024px) {

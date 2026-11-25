@@ -45,7 +45,7 @@ function DownloadRow({ item, t }: { item: DownloadListItem; t: Translate }) {
  * `Heading`: cấp tiêu đề của nhóm, theo cấp của khối chứa danh sách.
  */
 export function DownloadList({ items, Heading = "h3", grouped = true, columns = 2, t = createTranslate() }: { items: readonly DownloadListItem[]; Heading?: "h2" | "h3"; grouped?: boolean; columns?: 1 | 2; t?: Translate }) {
-  const groups = grouped ? groupDownloads(items) : [{ label: null, items: [...items] }];
+  const groups = grouped ? groupDownloads(items, t("download.other")) : [{ label: null, items: [...items] }];
   // Đường kẻ mảnh giữa các ô bằng gap-px trên nền màu đường kẻ; ô lẻ cuối cùng trải hết hàng để không để lại ô trống tối màu.
   const grid = columns === 2 ? "lg:grid-cols-2 lg:[&>li:last-child:nth-child(odd)]:col-span-2" : "";
   return <div aria-label={t("download.listLabel")} className="grid gap-6">

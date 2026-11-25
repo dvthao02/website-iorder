@@ -13,6 +13,7 @@ import { getPublishedPage } from "@/lib/backend";
 import { suggestPageSeoDescription } from "@iorder/shared/server/shared/seo";
 import { faqItemsOfBlocks, webPageKindOf } from "@/lib/structured-data";
 import { getT } from "@/lib/messages";
+import { sectionLabelKey } from "@/lib/static-section-labels";
 
 // Metadata cho trang quản lý trong CMS (trang hệ thống hoặc /pages/{slug}).
 export async function cmsStaticMetadata(slug: string, parent: ResolvingMetadata): Promise<Metadata> {
@@ -30,7 +31,8 @@ export async function CmsStaticPage({ slug }: { slug: string }) {
   const enabled = page.blocks.filter(block => block.isEnabled);
   const intro = enabled[0]?.type === "hero" ? enabled[0] : undefined;
   const body = intro ? enabled.slice(1) : enabled;
-  const navigation = staticPageSections(body);
+  const t = await getT();
+  const navigation = staticPageSections(body, type => t(sectionLabelKey(type)));
   const previous = intro ? resolveBlockFrames([intro])[0].tone : "white";
   const crumbs = [{ name: page.title, path }];
   return <><SiteHeader /><ContentJsonLd seo={page.seo} title={page.title} description={page.seoDescription || suggestPageSeoDescription(page.blocks)} path={path} kind={webPageKindOf(slug, getFixedWebsitePage(slug)?.kind)} modifiedAt={page.updatedAt} faq={faqItemsOfBlocks(page.blocks)} crumbs={[{ name: "Trang chủ", path: "/" }, { name: page.title, path }]} /><main className="static-page" data-static-profile={profile} data-testid="static-page" id="noi-dung">{intro ? <PageBlockRenderer blocks={[intro]} /> : <header className="static-page-title" data-testid="static-page-title"><Container><SectionHeading align="left" level="h1" title={page.title} /></Container></header>}<StaticPageNavigation crumbs={crumbs} sections={navigation.sections} /><PageBlockRenderer blocks={body} previous={previous} sectionIds={navigation.sectionIds} staticPage={profile} /></main></>;

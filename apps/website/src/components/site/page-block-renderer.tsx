@@ -75,7 +75,7 @@ const photoFallback = "bg-gradient-to-br from-brand-50 to-brand-100 text-brand-6
 type CardItem = Extract<PageBlock, { type: "features" | "industries" | "ecosystem" | "process" }>["data"]["items"][number];
 
 // Lưới thẻ: ô biểu tượng (hoặc số thứ tự khi thẻ chưa chọn biểu tượng), tiêu đề, mô tả, liên kết.
-// Chỉ cần một thẻ có ảnh (mediaId) là cả lưới chuyển sang thẻ ảnh kiểu KiotViet/iPOS: ảnh ngang bo góc ở đầu thẻ;
+// Chỉ cần một thẻ có ảnh (mediaId) là cả lưới chuyển sang thẻ ảnh: ảnh ngang bo góc ở đầu thẻ;
 // thẻ chưa có ảnh dùng mảng màu nhấn với biểu tượng lớn để lưới vẫn đều nhau trong lúc chờ ảnh.
 async function CardGrid({ items, visual = false, bento = false, network = false }: { items: CardItem[]; visual?: boolean; bento?: boolean; network?: boolean }) {
   const t = await getT();
@@ -133,7 +133,7 @@ async function CardGrid({ items, visual = false, bento = false, network = false 
         const text = <>
           <CardTitle>{item.title}</CardTitle>
           {item.description ? <CardText>{item.description}</CardText> : null}
-          {item.href ? <MoreLink /> : null}
+          {item.href ? <MoreLink>{t("common.more")}</MoreLink> : null}
         </>;
         const inline = titlesOnly && !item.iconPosition && (item.align ?? "left") === "left";
         // "Biểu tượng bên trái": ô biểu tượng đứng cạnh khối chữ thay vì nằm phía trên.
@@ -157,7 +157,7 @@ async function CardGrid({ items, visual = false, bento = false, network = false 
         <div className="flex flex-1 flex-col p-5 sm:p-6">
           <CardTitle>{item.title}</CardTitle>
           {item.description ? <CardText>{item.description}</CardText> : null}
-          {item.href ? <MoreLink /> : null}
+          {item.href ? <MoreLink>{t("common.more")}</MoreLink> : null}
         </div>
       </Card>;
     })}

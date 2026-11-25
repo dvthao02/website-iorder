@@ -14,10 +14,11 @@ import { getEnabledSupportDownloads } from "../support/support-downloads.service
 import { getPartners, getTestimonials } from "../supporting/supporting.service";
 import { getTaxonomy } from "../taxonomy/taxonomy.service";
 import { mapTranslatable, sourceKey } from "./translatable";
+import { postGroupId, type TranslationGroupId } from "./translations.groups";
 import { storedUiKey, uiMessageKeys, uiMessages } from "./ui-messages";
 
-/** Một câu tiếng Việt cần dịch: khóa, nội dung và vài nơi dùng nó (để người dịch biết ngữ cảnh). */
-export type SourceUnit = { key: string; text: string; places: string[] };
+/** Một câu tiếng Việt cần dịch: khóa, nội dung, vài nơi dùng nó (để người dịch biết ngữ cảnh), tổng số nơi dùng và các vùng của website có dùng nó. */
+export type SourceUnit = { key: string; text: string; places: string[]; uses: number; groups: TranslationGroupId[] };
 
 const maxPlaces = 3;
 
@@ -28,13 +29,15 @@ const maxPlaces = 3;
  */
 export async function collectSourceUnits(): Promise<Map<string, SourceUnit>> {
   const units = new Map<string, SourceUnit>();
-  for (const key of uiMessageKeys) units.set(storedUiKey(key), { key: storedUiKey(key), text: uiMessages[key], places: ["Giao diện website"] });
-  const add = (scope: string, body: unknown) => {
+  for (const key of uiMessageKeys) units.set(storedUiKey(key), { key: storedUiKey(key), text: uiMessages[key], places: ["Giao diện website"], uses: 1, groups: ["ui"] });
+  const add = (scope: string, body: unknown, group: TranslationGroupId) => {
     mapTranslatable(body, (core, place) => {
       const key = sourceKey(core);
       const unit = units.get(key);
-      if (!unit) units.set(key, { key, text: core, places: [place] });
-      else if (unit.places.length < maxPlaces && !unit.places.includes(place)) unit.places.push(place);
+      if (!unit) { units.set(key, { key, text: core, places: [place], uses: 1, groups: [group] }); return undefined; }
+      unit.uses += 1;
+      if (unit.places.length < maxPlaces && !unit.places.includes(place)) unit.places.push(place);
+      if (!unit.groups.includes(group)) unit.groups.push(group);
       return undefined;
     }, scope);
   };
@@ -43,35 +46,38 @@ export async function collectSourceUnits(): Promise<Map<string, SourceUnit>> {
     getPublishingConfig(), getSiteProfile(), getExternalLinks(), getConsultPopup(), getCatalogContent(), getListingContent(),
     getNavigation("header"), getNavigation("header_cta"), getNavigation("footer"),
   ]);
-  add("shared.config", config);
-  add("shared.profile", profile);
-  add("shared.externalLinks", externalLinks);
-  add("shared.consultPopup", consultPopup);
-  add("shared.catalogContent", catalogContent);
-  add("shared.listingContent", listingContent);
-  add("navigation.header", header);
-  add("navigation.headerCta", headerCta);
-  add("navigation.footer", footer);
+  add("shared.config", config, "site");
+  add("shared.profile", profile, "site");
+  add("shared.externalLinks", externalLinks, "site");
+  add("shared.consultPopup", consultPopup, "site");
+  add("shared.catalogContent", catalogContent, "site");
+  add("shared.listingContent", listingContent, "site");
+  add("navigation.header", header, "navigation");
+  add("navigation.headerCta", headerCta, "navigation");
+  add("navigation.footer", footer, "navigation");
 
-  for (const summary of await getPublishedPageSummaries()) add(`page:${summary.slug}`, await getPublishedPage(summary.slug));
+  for (const summary of await getPublishedPageSummaries()) add(`page:${summary.slug}`, await getPublishedPage(summary.slug), "pages");
 
   for (const type of ["software", "solution"] as const) {
-    for (const summary of await getPublishedOfferingSummaries(type)) add(`offering:${summary.slug}`, await getPublishedOfferingBySlug(type, summary.slug));
+    for (const summary of await getPublishedOfferingSummaries(type)) add(`offering:${summary.slug}`, await getPublishedOfferingBySlug(type, summary.slug), type === "software" ? "software" : "solutions");
   }
 
-  add("equipment", await getEquipment(true));
+  add("equipment", await getEquipment(true), "equipment");
 
   const posts = await getPublishedPostSummaries();
-  add("post-summaries", posts);
-  for (const post of posts) add(`post:${post.slug}`, await getPublishedPostBySlug(post.slug));
+  for (const post of posts) {
+    // Thẻ bài viết ở trang danh sách và nội dung bài cùng thuộc vùng của loại bài.
+    add(`post-summary:${post.slug}`, post, postGroupId(post.type));
+    add(`post:${post.slug}`, await getPublishedPostBySlug(post.slug), postGroupId(post.type));
+  }
 
-  add("taxonomy", await getTaxonomy());
-  add("downloads", await getEnabledSupportDownloads());
-  add("partners", await getPartners(true));
-  add("testimonials", await getTestimonials(true));
+  add("taxonomy", await getTaxonomy(), "taxonomy");
+  add("downloads", await getEnabledSupportDownloads(), "other");
+  add("partners", await getPartners(true), "other");
+  add("testimonials", await getTestimonials(true), "other");
   const authors = await getPublishedAuthorSummaries();
-  add("author-summaries", authors);
-  for (const author of authors) add(`author:${author.slug}`, await getPublishedAuthorPage(author.slug));
+  add("author-summaries", authors, "other");
+  for (const author of authors) add(`author:${author.slug}`, await getPublishedAuthorPage(author.slug), "other");
 
   return units;
 }
