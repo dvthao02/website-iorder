@@ -24,6 +24,25 @@ const allowedDevOrigins = process.env.NODE_ENV === "development"
     .map((address) => address.address), ...extraDevOrigins]
   : undefined;
 
+// Tiêu đề bảo mật của website. Khi chạy sau Caddy, các tiêu đề này do Caddyfile gửi; khi website được publish qua Cloudflare Tunnel (không có Caddy)
+// thì chính ứng dụng phải gửi. Giá trị giữ y hệt Caddyfile để hai cách publish cho cùng kết quả.
+// - HSTS 1 năm, cố ý không có includeSubDomains/preload: tên miền con khác của công ty có thể chưa chạy HTTPS và preload không thu hồi được.
+// - Permissions-Policy tắt các API thiết bị mà website không dùng.
+const securityHeaders = [
+  { key: "Strict-Transport-Security", value: "max-age=31536000" },
+  { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=(), usb=()" },
+  { key: "X-Content-Type-Options", value: "nosniff" },
+];
+
+// Trang thường không được nhúng vào khung; referrer chỉ lộ origin khi sang tên miền khác. CSP nền chặn <object>/<embed> và đổi <base>; chưa có script-src
+// vì CSP theo nonce buộc mọi trang render động (mất cache). Khung xem trước của CMS (/cms-preview) bị loại khỏi nhóm này: nó phải nhúng được vào CMS,
+// còn frame-ancestors và Referrer-Policy của nó do src/proxy.ts đặt riêng.
+const pageHeaders = [
+  { key: "X-Frame-Options", value: "DENY" },
+  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+  { key: "Content-Security-Policy", value: "base-uri 'self'; object-src 'none'" },
+];
+
 const nextConfig: NextConfig = {
   ...(allowedDevOrigins ? { allowedDevOrigins } : {}),
   output: "standalone",
@@ -45,6 +64,13 @@ const nextConfig: NextConfig = {
     // Mặc định Next còn có mốc 3840 px (màn 4K): mã hóa AVIF 3840 px tốn CPU và bộ nhớ (container website giới hạn 768 MB) mà khách hiếm khi cần,
     // và mỗi mốc là một mục trong srcset của từng ảnh. Bỏ mốc 3840; 2048 vẫn đủ nét cho màn retina của laptop.
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048],
+  },
+  // Nhóm `pageHeaders` loại /cms-preview bằng regex phủ định; Next so khớp theo đường dẫn khách gọi, trước khi proxy.ts rewrite.
+  async headers() {
+    return [
+      { source: "/:path*", headers: securityHeaders },
+      { source: "/:path((?!cms-preview$).*)", headers: pageHeaders },
+    ];
   },
   // Only proxy what the public site uses from the browser. Admin APIs stay
   // reachable through the CMS host alone; server-side reads call BACKEND_URL.

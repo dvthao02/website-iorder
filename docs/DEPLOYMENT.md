@@ -20,6 +20,31 @@ Trước khi chạy migration trên database có dữ liệu, xem SQL, chuẩn b
 
 Trước mỗi cập nhật, xem migration và khả năng quay lui, tạo bản sao đã kiểm tra và lưu ngoài máy. Sau cập nhật kiểm tra health, log và nghiệp vụ quan trọng. Trên môi trường thật cần tự xác minh quy trình và thông số RAM; kết quả local không thay thế nghiệm thu VPS.
 
+## Website trên Cloudflare Workers (đã thử, không dùng)
+
+Ngày 25/11/2026 website được đưa lên Cloudflare Workers qua OpenNext (`apps/website/wrangler.jsonc`, Worker `website-iorder-v2`); `BACKEND_URL` trỏ `api.iorder.com.vn`, tức Backend trên máy chạy Docker, qua Cloudflare Tunnel. Đo trên Worker thật bằng `wrangler tail website-iorder-v2 --format json`, các lý do không dùng:
+
+- **Gói Free không đủ CPU.** Giới hạn 10 ms mỗi request, trong khi trang chủ cần khoảng 60–140 ms (khởi động nguội ~470 ms). Khoảng 20% request trả 503 (lỗi 1102, `exceededCpu` ở đúng mốc 10 ms). Request bị cắt giữa chừng còn để isolate nạp dở module nên các request sau trả 500 (`ComponentMod.handler is not a function`, `AppRouteRouteModule is not a constructor`). Cần gói Workers Paid (5 USD/tháng, 30 giây CPU mỗi request); không sửa được bằng mã. Gói Free còn giới hạn 100.000 request/ngày và 50 subrequest mỗi request.
+- **Ảnh trả 404.** OpenNext chỉ đọc URL tương đối của `/_next/image` từ binding ASSETS, còn `/media` là rewrite sang Backend, nên mọi ảnh qua `/_next/image` đều 404. Cách đã thử là `images.unoptimized: true` (ảnh phục vụ nguyên bản, mất AVIF/WebP), không giữ lại trong mã. Cách còn lại là Cloudflare Images (Transformations chưa bật: `/cdn-cgi/image/...` trả 404).
+- **Không có Caddy.** `/stats/*` (Umami) chỉ được rewrite khi lúc build có `UMAMI_URL` truy cập được từ Internet; thiếu thì `/stats/script.js` trả 404 và không có thống kê.
+- **Không có cache dữ liệu.** OpenNext chạy không cấu hình incremental cache nên `revalidate` và `revalidateTag` vô hiệu, mỗi lượt xem trang gọi Backend khoảng 10 lần qua Tunnel (~450 ms mỗi trang, so với ~120 ms ở container Docker).
+- **Xem trước trong CMS** hiện trang 404 trong khung xem trước khi website là Worker (`/cms-preview` vẫn nhận token; lỗi nằm ở bước sau, chưa tìm nguyên nhân).
+
+Mã cho Worker vẫn còn trong repo: `wrangler.jsonc`, `open-next.config.ts`, các script `*:cloudflare` và tiêu đề `x-iorder-origin-secret` (Worker gửi cho Backend để lượt đọc công khai không bị gom vào một hạn mức theo IP Cloudflare). Nếu không dùng Worker nữa, ngắt kết nối Git của Worker để mỗi lần đẩy lên `main` không build vô ích. Website cần chạy cùng nơi luôn bật với Backend, database và ảnh: xem [DEPLOY_CHECKLIST.md](DEPLOY_CHECKLIST.md).
+
+## Cách tạm: Cloudflare Tunnel về Docker máy phát triển
+
+Từ 25/11/2026 `iorder.com.vn` được publish bằng container `website` trên máy chạy Docker, qua tunnel `iorder-desktop` (container `iorder-cloudflared` cùng mạng `iorder_default`). Route trong Tunnel: `iorder.com.vn` → `http://website:3000`, `cms.iorder.com.vn` → `http://admin:3000`. Route `api.iorder.com.vn` → `http://api:3000` chỉ phục vụ bản Worker cũ; không có mã nào khác dùng nó (CMS và website gọi Backend nội bộ qua `BACKEND_URL=http://api:3000`), nên nên xóa để không mở API ra Internet.
+
+Kiểm sau khi đổi route: 30 lượt tải trang chủ không lỗi (trung bình 0,32 giây đo từ máy phát triển), `/_next/image` trả AVIF, `/stats/script.js`, `/media/...`, sitemap, feed, `llms.txt`, manifest đều 200, `?lang=en` ghi cookie `iorder_lang`, biểu mẫu liên hệ bị giới hạn theo IP khách thật (lượt thứ 20 trong một phút trả 429).
+
+Hạn chế:
+
+- **Chỉ chạy khi máy mở và Docker đang chạy.** Máy tắt thì khách thấy lỗi 1033 của Cloudflare. Đây là cách tạm; publish thật cần VPS ([DEPLOY_CHECKLIST.md](DEPLOY_CHECKLIST.md)).
+- **Tiêu đề bảo mật do ứng dụng gửi, không phải Caddy.** `next.config.ts` (`securityHeaders`, `pageHeaders`) đặt `Strict-Transport-Security`, `Permissions-Policy`, `X-Content-Type-Options`, và với mọi trang trừ `/cms-preview` thêm `X-Frame-Options: DENY`, `Referrer-Policy`, CSP nền; giá trị giống `Caddyfile`. `/cms-preview` không bị chặn khung vì phải nhúng được vào CMS (`src/proxy.ts` tự đặt `frame-ancestors`). Đã kiểm trên bản build riêng; chỉ có hiệu lực trên site thật sau khi build lại container `website`. Phản hồi rewrite sang Backend/Umami (`/media/*`, `/stats/*`) mang tiêu đề của nguồn, không có nhóm này.
+- `/api/internal/*` trả 401 (có chữ ký HMAC bảo vệ) thay vì 404 như Caddy.
+- Xem trước trong CMS: khi website là Worker khung xem trước hiện 404; chưa thử lại sau khi chuyển sang Docker.
+
 ## Sao lưu và phục hồi
 
 Windows: `pnpm backup:local`; VPS: `scripts/backup.sh`. Mặc định sao lưu database, thử phục hồi vào database tạm có tên riêng, sao lưu media và giữ các bản gần nhất. Không tắt bước thử phục hồi trừ khi hiểu rõ giới hạn của bản sao. Lưu thêm bản sao ngoài máy chủ và kiểm tra checksum định kỳ. Khóa chủ giải mã cấu hình bảo mật nằm ngoài database; cần bảo vệ và sao lưu nó riêng.
