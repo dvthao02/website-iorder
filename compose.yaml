@@ -12,6 +12,9 @@ services:
   #   docker compose up -d --build
   # Lần đầu job migrate và seed-admin tạo schema/tài khoản quản trị, rồi ba app
   # lần lượt mở ở http://localhost:3000, :3001 và :3002. Không cần pnpm trên máy host.
+  # db, storage, api, admin, website tự chạy lại sau khi Docker/máy khởi động lại (restart: unless-stopped). Website đang được publish qua
+  # Cloudflare Tunnel từ máy này: trước đây chỉ cloudflared tự lên lại, db nằm im (Exited 255) nên Backend lỗi và website treo tới hết timeout.
+  # Dừng chủ ý bằng `docker compose stop` thì không tự chạy lại.
   migrate:
     <<: *migrations-image
     restart: "no"
@@ -70,6 +73,7 @@ services:
       args:
         APP_NAME: api
     image: iorder-local-api
+    restart: unless-stopped
     environment:
       SERVICE_NAME: api
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
@@ -92,6 +96,8 @@ services:
         condition: service_completed_successfully
       storage:
         condition: service_healthy
+      db:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
       interval: 5s
@@ -109,6 +115,7 @@ services:
         BACKEND_URL: http://api:3000
         NEXT_PUBLIC_PUBLISH_WEB_URL: ${NEXT_PUBLIC_PUBLISH_WEB_URL:-http://localhost:3000}
     image: iorder-local-admin
+    restart: unless-stopped
     environment:
       SERVICE_NAME: admin
       BACKEND_URL: http://api:3000
@@ -136,6 +143,7 @@ services:
         # Rewrite /stats/script.js và /stats/api/send của website sang Umami (local không có Caddy); cần chạy kèm profile analytics.
         UMAMI_URL: http://umami:3000
     image: iorder-local-website
+    restart: unless-stopped
     environment:
       SERVICE_NAME: website
       BACKEND_URL: http://api:3000
@@ -155,6 +163,7 @@ services:
 
   db:
     image: postgres:17.11-alpine3.24
+    restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
@@ -174,6 +183,7 @@ services:
   # API tự tạo bucket ${S3_BUCKET} khi chưa có.
   storage:
     image: chrislusf/seaweedfs@sha256:4e61d15fd35994cb1e43e1e553dff106794841fd9a99ade2fc8c8bfce4d7872d
+    restart: unless-stopped
     mem_limit: 768m
     command: ["mini", "-dir=/data", "-master.telemetry=false"]
     environment:
