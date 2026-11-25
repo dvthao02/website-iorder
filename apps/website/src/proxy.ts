@@ -3,7 +3,7 @@ import { getEnabledRedirect } from "@/lib/backend";
 import { builtInRedirect, redirectLoopsBack } from "@iorder/shared/server/shared/legacy-paths";
 import { logger } from "@iorder/shared/server/shared/logger";
 import { builderPreviewHeader, fetchBuilderPreview } from "@/lib/builder-preview";
-import { localeCookie, localeCookieMaxAgeSeconds } from "@/lib/locale-cookie";
+import { localeCookieString } from "@/lib/locale-cookie";
 import { isSiteLocale } from "@iorder/shared/server/translations/locales";
 
 export async function proxy(request: NextRequest) {
@@ -42,7 +42,11 @@ export async function proxy(request: NextRequest) {
     const clean = request.nextUrl.clone();
     clean.searchParams.delete("lang");
     const response = NextResponse.redirect(clean, 302);
-    if (isSiteLocale(chosen)) response.cookies.set(localeCookie, chosen, { path: "/", maxAge: localeCookieMaxAgeSeconds, sameSite: "lax", secure: request.headers.get("x-forwarded-proto") === "https" || request.nextUrl.protocol === "https:" });
+    if (isSiteLocale(chosen)) {
+      const secure = request.headers.get("x-forwarded-proto") === "https" || request.nextUrl.protocol === "https:";
+      // OpenNext chạy proxy Node.js ở Worker; ghi chuỗi Set-Cookie trực tiếp tránh adapter phải chuyển đổi ResponseCookies.
+      response.headers.set("set-cookie", localeCookieString(chosen, secure));
+    }
     response.headers.set("cache-control", "private, no-store");
     return response;
   }
