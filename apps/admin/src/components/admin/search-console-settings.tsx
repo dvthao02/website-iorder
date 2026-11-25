@@ -134,7 +134,7 @@ export function SearchConsoleSettings() {
   }, [show]);
 
   const copyEmail = useCallback(async (email: string) => {
-    try { await navigator.clipboard.writeText(email); show("Đã chép email tài khoản dịch vụ.", "success"); } catch { show("Không chép được. Hãy bôi đen email và chép thủ công.", "error"); }
+    try { await navigator.clipboard.writeText(email); show("Đã sao chép email tài khoản dịch vụ.", "success"); } catch { show("Không sao chép được. Hãy bôi đen email rồi sao chép thủ công.", "error"); }
   }, [show]);
 
   if (state.status === "loading") return <p aria-busy="true" className="admin-dashboard__empty">Đang kiểm tra kết nối…</p>;

@@ -17,6 +17,7 @@ import { withoutEmptyGroupedListItems, withoutEmptyHeroSlides } from "./page-blo
 import { PublishedPreviewLink } from "./published-preview-link";
 import { RevisionHistory } from "./revision-history";
 import { AdminEditorActions } from "./ui/admin-editor-actions";
+import { AdminInput } from "./ui/admin-input";
 import { AdminEditorSection } from "./ui/admin-editor-section";
 import { AdminHelpTip } from "./ui/admin-help-tip";
 import { useUnsavedChanges } from "./ui/use-unsaved-changes";
@@ -159,7 +160,7 @@ export function PageEditorDetail({ page }: { page?: AdminPage }) {
           <header className="admin-post-editor__card-head"><h3>Xuất bản</h3>{page ? <AdminStatusBadge tone={contentStatusBadge[page.status].tone}>{contentStatusBadge[page.status].label}</AdminStatusBadge> : <span className="admin-help">Trang mới — chưa lưu.</span>}{page ? <PublishedPreviewLink id={page.id} kind="page" slug={page.slug} status={page.status} /> : null}</header>
           {page && isDirty ? <p className="admin-help">Xem trước hiển thị bản đã lưu — lưu trước để thấy thay đổi mới.</p> : null}
           <ContentStatusChoice canPublish={canPublish} noun="trang" onChange={status => set("status", status)} savedStatus={page?.status} value={form.status} />
-          {form.status === "scheduled" ? <label className="admin-field">Thời điểm đăng<input className="admin-input" onChange={event => set("scheduledAt", event.target.value)} required type="datetime-local" value={form.scheduledAt} /></label> : null}
+          {form.status === "scheduled" ? <label className="admin-field">Thời điểm đăng<AdminInput onChange={event => set("scheduledAt", event.target.value)} required type="datetime-local" value={form.scheduledAt} /></label> : null}
         </section>
         <section className="admin-content-section">
           <header className="admin-post-editor__card-head"><div className="admin-label-row"><h3>Loại trang</h3><AdminHelpTip label="Giải thích: Loại trang">{listingSlug ? "Danh sách trên trang được cập nhật tự động. Bạn chỉ cần sửa phần giới thiệu, bố cục và thông tin Google." : fixedPage ? "Trang có sẵn của website; địa chỉ không thể thay đổi." : "Trang do bạn tạo. Sau khi xuất bản, hãy thêm trang vào Menu để khách truy cập."}</AdminHelpTip></div><AdminStatusBadge tone="neutral">{pageType}</AdminStatusBadge></header>

@@ -12,8 +12,12 @@
     background: #060b24;
     color: #fff;
   }
-  /* Đang gửi đăng nhập: đèn chớp nhanh lên như đang "hồi hộp chờ". */
-  .xmas:has(.xmas__card button[type="submit"]:disabled) { --xmas-twinkle: 0.38s; }
+  /* Nhịp chớp đèn (--xmas-twinkle) đổi theo trạng thái chỉ ở máy có chuột: biến này kế thừa xuống cả cảnh nên mỗi lần đổi là tính lại style của
+     hàng trăm phần tử và đổi nhịp hàng trăm hoạt ảnh đang chạy, gây giật trên điện thoại (nhất là lúc đăng nhập sai, đổi liền ba lần trong ~1,5 giây). */
+  @media (hover: hover) and (pointer: fine) {
+    /* Đang gửi đăng nhập: đèn chớp nhanh lên như đang "hồi hộp chờ". */
+    .xmas:has(.xmas__card button[type="submit"]:disabled) { --xmas-twinkle: 0.38s; }
+  }
 
   .xmas__scenery { position: absolute; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
   .xmas__sky {
@@ -55,8 +59,18 @@
     aspect-ratio: 1;
     border-radius: 50%;
     background: radial-gradient(circle at 36% 34%, #fffdf0 0 28%, #f6ebbd 60%, #dccb8c 100%);
-    box-shadow: 0 0 40px 8px rgb(255 244 200 / 35%), 0 0 120px 40px rgb(255 240 190 / 14%);
+    box-shadow: 0 0 34px 6px rgb(255 244 200 / 28%), 0 0 100px 30px rgb(255 240 190 / 10%);
+  }
+  /* Quầng sáng "thở": quầng mạnh hơn nằm ở lớp riêng và chỉ đổi độ mờ. Trước đây đổi trực tiếp box-shadow (làm mờ 140px) nên mỗi khung hình
+     trình duyệt phải vẽ lại cả vùng rộng đó trên luồng chính, nặng nhất ở điện thoại. */
+  .xmas__moon::after {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    box-shadow: 0 0 52px 12px rgb(255 244 200 / 22%), 0 0 140px 52px rgb(255 240 190 / 10%);
+    opacity: 0;
     animation: xmas-moon 6s ease-in-out infinite alternate;
+    content: "";
   }
   .xmas__moon::before {
     position: absolute;
@@ -68,7 +82,7 @@
       radial-gradient(circle at 70% 72%, rgb(190 170 110 / 35%) 0 6%, transparent 7%);
     content: "";
   }
-  @keyframes xmas-moon { from { box-shadow: 0 0 34px 6px rgb(255 244 200 / 28%), 0 0 100px 30px rgb(255 240 190 / 10%); } to { box-shadow: 0 0 52px 12px rgb(255 244 200 / 44%), 0 0 140px 52px rgb(255 240 190 / 18%); } }
+  @keyframes xmas-moon { from { opacity: 0; } to { opacity: 1; } }
 
   /* Ông già Noel và tuần lộc bay sát mép trên màn hình, nghỉ một lúc ngoài màn hình rồi bay lại. Là lớp riêng (z-index 12) nằm TRÊN dây kim tuyến (5),
      chuông (6), tuyết (2) và cả thẻ đăng nhập (10): màn hình hẹp hoặc zoom to thì thẻ lên sát mép trên, nếu ông ở dưới thẻ sẽ bị che mất xe trượt.
@@ -306,7 +320,7 @@
   .xmas__card .admin-password-input__toggle[aria-pressed="true"]::after { opacity: 0; transform: scaleY(0.2); }
   .xmas__card .admin-help { color: var(--cms-muted); font-size: 12px; }
 
-  /* Nút đăng nhập: đỏ Giáng sinh, vệt sáng quét qua định kỳ; đang gửi thì hiện vòng xoay. */
+  /* Nút đăng nhập: đỏ Giáng sinh, vệt sáng quét qua định kỳ; đang gửi thì hiện bông tuyết xoay (.login-spinner, vẽ trong login-form.tsx). */
   .xmas__card .admin-button--primary {
     position: relative;
     height: 44px;
@@ -323,12 +337,16 @@
   }
   .xmas__card .admin-button--primary:hover:not(:disabled) { box-shadow: 0 14px 28px rgb(198 40 51 / 48%); filter: brightness(1.06); transform: translateY(-1px); }
   .xmas__card .admin-button--primary:active:not(:disabled) { box-shadow: 0 6px 14px rgb(198 40 51 / 38%); transform: translateY(0); }
-  .xmas__card .admin-button--primary::after { position: absolute; top: 0; bottom: 0; left: -60%; width: 40%; background: linear-gradient(100deg, transparent, rgb(255 255 255 / 45%), transparent); content: ""; transform: skewX(-20deg); animation: xmas-shine 3.6s ease-in-out 1.2s infinite; }
-  @keyframes xmas-shine { 0% { left: -60%; } 45%, 100% { left: 130%; } }
+  /* Vệt sáng chạy bằng transform (không đổi `left`): đổi left buộc tính lại bố cục ở từng khung hình. -150% và 325% bề rộng của chính vệt
+     (rộng 40% nút) tương ứng left -60% và 130% của nút. */
+  .xmas__card .admin-button--primary::after { position: absolute; top: 0; bottom: 0; left: 0; width: 40%; background: linear-gradient(100deg, transparent, rgb(255 255 255 / 45%), transparent); content: ""; transform: translateX(-150%) skewX(-20deg); animation: xmas-shine 3.6s ease-in-out 1.2s infinite; }
+  @keyframes xmas-shine { 0% { transform: translateX(-150%) skewX(-20deg); } 45%, 100% { transform: translateX(325%) skewX(-20deg); } }
   .xmas__card .admin-button--primary:disabled { cursor: progress; opacity: 0.92; }
-  .xmas__card .admin-button--primary:disabled::before { width: 14px; height: 14px; margin-right: 8px; border: 2px solid rgb(255 255 255 / 40%); border-top-color: #fff; border-radius: 50%; content: ""; animation: xmas-spin 0.7s linear infinite; }
 
   .xmas__greeting { margin: 0; color: rgb(255 255 255 / 86%); font-size: 13px; text-align: center; text-shadow: 0 1px 12px rgb(0 0 0 / 55%); }
+
+  /* Thông báo nổi (lỗi đăng nhập…) là con trực tiếp của .xmas, định vị theo màn hình; hạ xuống dưới dây kim tuyến và chuông ở mép trên. */
+  .xmas > .admin-toast-stack { top: 44px; }
 
   /* ===== Nâng cấp chuyển động ===== */
 
@@ -343,12 +361,12 @@
   .xmas__card::after { position: absolute; inset: 0; border-radius: inherit; background: radial-gradient(420px circle at calc(50% + var(--px) * 38%) calc(30% + var(--py) * 38%), rgb(255 120 135 / 15%), transparent 62%); pointer-events: none; content: ""; }
 
   /* Đăng nhập sai: thẻ rung, đèn nháy đỏ. Thành công: đèn chớp dồn dập, thẻ nhô lên rồi bay lên và mờ dần khi pháo hoa nổ. */
-  .xmas--alert { --xmas-twinkle: 0.2s; }
+  @media (hover: hover) and (pointer: fine) { .xmas--alert { --xmas-twinkle: 0.2s; } }
   .xmas--alert .xmas__stack { animation: xmas-shake 0.55s cubic-bezier(0.36, 0.07, 0.19, 0.97) both; }
   @keyframes xmas-shake { 10%, 90% { transform: translateX(-3px); } 20%, 80% { transform: translateX(6px); } 30%, 50%, 70% { transform: translateX(-10px); } 40%, 60% { transform: translateX(10px); } }
   .xmas--alert .xmas-bulb { --bulb: #ff4d5a !important; }
   .xmas--alert .xmas__card { box-shadow: 0 28px 70px rgb(3 8 30 / 55%), 0 0 0 1px rgb(255 255 255 / 60%) inset, 0 0 64px rgb(255 60 70 / 55%); }
-  .xmas--success { --xmas-twinkle: 0.3s; }
+  @media (hover: hover) and (pointer: fine) { .xmas--success { --xmas-twinkle: 0.3s; } }
   .xmas--success .xmas__stack { animation: xmas-success 1.15s cubic-bezier(0.5, 0, 0.3, 1) both; }
   @keyframes xmas-success { 0% { opacity: 1; transform: none; } 22% { opacity: 1; transform: scale(1.035); } 100% { opacity: 0; transform: translateY(-90px) scale(0.94); } }
   .xmas--success .xmas__card { box-shadow: 0 28px 70px rgb(3 8 30 / 55%), 0 0 0 1px rgb(255 255 255 / 60%) inset, 0 0 70px rgb(94 234 160 / 50%); }
@@ -427,5 +445,6 @@
     .xmas-tinsel::before, .xmas-tinsel::after, .xmas-bell { animation: none; }
     .xmas__flare { opacity: 0.75; transform: scale(0.8); }
     .xmas__tilt { transform: none; }
+    .xmas .login-spinner { animation: login-pulse 1.4s ease-in-out infinite !important; }
   }
 }

@@ -24,7 +24,7 @@ const recentSchema = z.object({ result: z.object({ items: z.array(z.object({
 })) }) });
 type RecentEntry = z.infer<typeof recentSchema>["result"]["items"][number];
 
-const dateTime = new Intl.DateTimeFormat("vi-VN", { dateStyle: "medium", timeStyle: "short" });
+const dateTime = new Intl.DateTimeFormat("vi-VN", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Ho_Chi_Minh" });
 export const formatAccessTime = (value: Date | null) => value ? dateTime.format(new Date(value)) : null;
 /** "IP · Chrome 156 · Windows · Máy tính" cho một lần truy cập; thiếu thông tin thì bỏ phần đó. */
 export const accessSource = (ip: string | null, userAgent: string | null) => [ip ? ipLabel(ip) : null, userAgent ? summarizeUserAgent(userAgent).label : null].filter(Boolean).join(" · ");

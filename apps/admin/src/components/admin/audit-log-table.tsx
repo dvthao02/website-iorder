@@ -28,7 +28,7 @@ type AuditLogEntry = {
   changedFields: string[];
 };
 
-const formatter = new Intl.DateTimeFormat("vi-VN", { dateStyle: "short", timeStyle: "medium" });
+const formatter = new Intl.DateTimeFormat("vi-VN", { dateStyle: "short", timeStyle: "medium", timeZone: "Asia/Ho_Chi_Minh" });
 const timeFormatter = new Intl.DateTimeFormat("vi-VN", { timeStyle: "medium", timeZone: "Asia/Ho_Chi_Minh" });
 const dayFormatter = new Intl.DateTimeFormat("vi-VN", { weekday: "long", day: "2-digit", month: "2-digit", year: "numeric", timeZone: "Asia/Ho_Chi_Minh" });
 const notRecorded = <span className="font-normal text-[var(--cms-muted)]">Không ghi nhận (bản ghi cũ hoặc do hệ thống chạy)</span>;

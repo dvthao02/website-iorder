@@ -555,6 +555,13 @@
   .admin-content-actions__button:disabled { cursor: wait; opacity: 0.55; }
   .admin-content-actions__spinner { animation: admin-spin 0.8s linear infinite; }
 
+  /* Vòng xoay trên nút đăng nhập (lúc kiểm tra và lúc chờ mở CMS). Giáng sinh dùng bông tuyết xoay chậm, có ánh sáng quanh. Người chọn giảm chuyển động
+     thì không xoay mà nhấp nháy mờ để vẫn thấy đang xử lý. */
+  .login-spinner { flex: none; animation: admin-spin 0.8s linear infinite; }
+  .login-spinner--christmas { animation-duration: 1.8s; filter: drop-shadow(0 0 4px rgb(255 255 255 / 75%)); }
+  @keyframes login-pulse { 50% { opacity: 0.35; } }
+  @media (prefers-reduced-motion: reduce) { .login-spinner { animation: login-pulse 1.4s ease-in-out infinite; } }
+
   /* Ô số liệu */
   /* Đường kẻ giữa các ô vẽ bằng border của từng ô (xem .admin-dashboard__counts): gap + nền cho nét dày mỏng không đều ở màn hình 125%. */
   .admin-metric-grid { overflow: hidden; border: 1px solid var(--cms-border); border-radius: var(--cms-radius-card); }

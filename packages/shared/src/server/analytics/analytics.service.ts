@@ -80,10 +80,8 @@ export function createAnalyticsService({ fetch: fetcher, env, now, cmsSecret }: 
   }
 
   // `periodDays`: số ngày gần nhất tính cả hôm nay (7, 30 hoặc 90); số liệu so sánh của Umami là khoảng liền trước cùng độ dài.
-  async function getAnalyticsOverview(periodDays: DashboardRange = defaultPeriodDays): Promise<AnalyticsOverview> {
-    const config = readConfig(env, await readStored());
-    if (!config) return { connection: "not_connected", periodDays };
-
+  // Không bao giờ ném lỗi: lỗi Umami được đổi thành `connection: "error"`.
+  async function loadOverview(config: UmamiConfig, periodDays: DashboardRange): Promise<AnalyticsOverview> {
     // Số ngày đã chọn theo giờ Việt Nam, tính cả hôm nay: từ 0h ngày đầu đến hiện tại.
     const endAt = now().getTime();
     const todayStart = Date.parse(`${vietnamDate(endAt)}T00:00:00+07:00`);
@@ -118,6 +116,44 @@ export function createAnalyticsService({ fetch: fetcher, env, now, cmsSecret }: 
       logger.error("Không lấy được số liệu truy cập từ Umami.", { periodDays, error });
       return { connection: "error", periodDays, message: "Không lấy được số liệu từ công cụ thống kê. Kiểm tra dịch vụ Umami, API key và mã website." };
     }
+  }
+
+  // Tổng quan và Thống kê truy cập đều gọi hàm này ở MỖI lần mở trang và chờ Umami (ba truy vấn song song, tối đa 4 giây mỗi truy vấn): Umami chậm
+  // hay ngừng thì trang nào cũng đứng 4 giây (đo: /admin và /admin/analytics ~4,0 giây mỗi lần, các trang khác 50–100 ms). Nên giữ kết quả theo
+  // (kết nối, số ngày): thành công 60 giây, lỗi 30 giây (ngắn hơn để sửa xong cấu hình thì thấy sớm). Đổi khóa/địa chỉ Umami ở CMS đổi luôn khóa bộ đệm.
+  // Hết hạn thì trả ngay bản cũ (tối đa 10 phút tuổi) và làm mới ở nền, nên không ai phải chờ lượt làm mới; chỉ lần đầu (hoặc sau hơn 10 phút
+  // không ai mở) mới chờ Umami.
+  const successCacheMilliseconds = 60_000;
+  const errorCacheMilliseconds = 30_000;
+  const staleCacheMilliseconds = 600_000;
+  type CacheEntry = { storedAt: number; expiresAt: number; value: Promise<AnalyticsOverview>; refreshing: boolean };
+  const cache = new Map<string, CacheEntry>();
+
+  function remember(key: string, storedAt: number, value: Promise<AnalyticsOverview>) {
+    const entry: CacheEntry = { storedAt, expiresAt: storedAt + successCacheMilliseconds, value, refreshing: false };
+    if (cache.size >= 12 && !cache.has(key)) cache.clear();
+    cache.set(key, entry);
+    void value.then((overview) => { if (overview.connection === "error") entry.expiresAt = storedAt + errorCacheMilliseconds; });
+    return entry;
+  }
+
+  async function getAnalyticsOverview(periodDays: DashboardRange = defaultPeriodDays): Promise<AnalyticsOverview> {
+    const config = readConfig(env, await readStored());
+    if (!config) return { connection: "not_connected", periodDays };
+
+    const started = now().getTime();
+    const key = [config.apiUrl, config.websiteId, config.apiKey, periodDays].join("\n");
+    const hit = cache.get(key);
+    if (hit && hit.expiresAt > started) return hit.value;
+    if (hit && started - hit.storedAt < staleCacheMilliseconds) {
+      // Bản cũ vẫn dùng được: trả ngay, làm mới ở nền (mỗi khóa một lượt làm mới tại một thời điểm).
+      if (!hit.refreshing) {
+        hit.refreshing = true;
+        void loadOverview(config, periodDays).then((overview) => { remember(key, now().getTime(), Promise.resolve(overview)); });
+      }
+      return hit.value;
+    }
+    return remember(key, started, loadOverview(config, periodDays)).value;
   }
 
   return { getAnalyticsOverview };

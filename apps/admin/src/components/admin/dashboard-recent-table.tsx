@@ -9,7 +9,7 @@ import { AdminStatusBadge, type AdminFeedbackTone } from "@/components/admin/ui/
 type ContentStatus = "draft" | "review" | "scheduled" | "published" | "archived";
 type DashboardContent = { id: string; title: string; type: string; status: ContentStatus; updatedAt: Date; href: string };
 const statusLabels: Record<ContentStatus, string> = { draft: "Bản nháp", review: "Chờ duyệt", scheduled: "Hẹn giờ", published: "Đã xuất bản", archived: "Lưu trữ" };
-const formatter = new Intl.DateTimeFormat("vi-VN", { dateStyle: "medium", timeStyle: "short" });
+const formatter = new Intl.DateTimeFormat("vi-VN", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Ho_Chi_Minh" });
 
 export function DashboardRecentTable({ items }: { items: DashboardContent[] }) {
   const columns = useMemo<AdminDataTableColumn<DashboardContent>[]>(() => [

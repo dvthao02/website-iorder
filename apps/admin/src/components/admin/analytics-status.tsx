@@ -4,6 +4,8 @@ import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 
 import type { AnalyticsOverview, AnalyticsTotals } from "@iorder/shared/server/analytics/analytics.service";
 
+import { analyticsPageLabel } from "@/lib/analytics-page-label";
+
 import { TrafficChart } from "./traffic-chart";
 import { AdminCard } from "./ui/admin-card";
 import { AdminNotice } from "./ui/admin-feedback";
@@ -51,10 +53,10 @@ export function AnalyticsMetricTiles({ overview }: { overview: AnalyticsOverview
 export function TopPagesList({ pages, days = 7 }: { pages: Connected["topPages"]; days?: number }) {
   if (!pages.length) return <p className="admin-dashboard__empty">Chưa có lượt xem trang nào trong {days} ngày qua.</p>;
   const max = Math.max(...pages.map((page) => page.visitors));
-  return <ol className="m-0 grid list-none gap-2.5 p-0">{pages.map((page) => <li className="admin-field" key={page.path}>
-    <div className="flex items-baseline justify-between gap-3 text-[13px]"><span className="truncate" title={page.path}>{page.path}</span><span className="admin-text-muted shrink-0 text-xs">{number.format(page.visitors)}</span></div>
+  return <ol className="m-0 grid list-none gap-2.5 p-0">{pages.map((page) => { const label = analyticsPageLabel(page.path); return <li className="admin-field" key={page.path}>
+    <div className="flex items-baseline justify-between gap-3 text-[13px]"><span className="min-w-0 truncate" title={page.path}>{label}{label !== page.path ? <span className="admin-text-muted ml-2 text-xs">{page.path}</span> : null}</span><span className="admin-text-muted shrink-0 text-xs">{number.format(page.visitors)}</span></div>
     <span aria-hidden="true" className="block h-1 rounded-full bg-[var(--cms-hover)]"><span className="block h-full rounded-full bg-[var(--cms-primary)]" style={{ width: `${(page.visitors / max) * 100}%` }} /></span>
-  </li>)}</ol>;
+  </li>; })}</ol>;
 }
 
 /** Biểu đồ lượt xem theo ngày, hoặc trạng thái chưa kết nối/lỗi. */

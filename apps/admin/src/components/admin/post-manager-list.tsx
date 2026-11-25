@@ -26,7 +26,7 @@ import { useListNavigation } from "@/components/admin/ui/use-list-navigation";
 const statusLabels: Record<AdminPostListItem["status"], string> = { archived: "Lưu trữ", draft: "Bản nháp", published: "Đã xuất bản", review: "Chờ duyệt", scheduled: "Hẹn giờ" };
 const postTypeLabels: Record<AdminPostListItem["type"], string> = { announcement: "Thông báo", case_study: "Câu chuyện khách hàng", guide: "Hướng dẫn", news: "Tin tức", promotion: "Khuyến mãi" };
 const statusTones: Record<AdminPostListItem["status"], AdminFeedbackTone> = { archived: "neutral", draft: "neutral", published: "success", review: "warning", scheduled: "info" };
-const dateFormatter = new Intl.DateTimeFormat("vi-VN", { dateStyle: "medium" });
+const dateFormatter = new Intl.DateTimeFormat("vi-VN", { dateStyle: "medium", timeZone: "Asia/Ho_Chi_Minh" });
 
 function getPublicPostPath(item: AdminPostListItem) { return item.type === "guide" ? `/support/guides/${item.slug}` : `/news/${item.slug}`; }
 

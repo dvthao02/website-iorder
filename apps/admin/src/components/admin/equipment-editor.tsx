@@ -3,6 +3,7 @@ import { CmsPageBuilder } from "./cms-page-builder";
 import { AppearanceEditor, defaultAppearance } from "./block-appearance-fields";
 import { detailHeroLayoutSchema } from "@iorder/shared/server/shared/appearance";
 import { DetailHeroLayoutFields } from "./ui/detail-hero-layout-fields";
+import { AdminInput } from "./ui/admin-input";
 import { ContentSeoEditor } from "./content-seo-editor";
 
 import { Plus } from "lucide-react";
@@ -228,7 +229,7 @@ export function EquipmentEditor({ groups, item, onDirtyChange, onError, onSaved 
           <header className="admin-post-editor__card-head"><h3>Xuất bản</h3>{item ? <PublishedPreviewLink kind="equipment" slug={item.slug} status={savedStatus} /> : null}</header>
           {savedStatus ? <p className="admin-post-editor__state"><AdminStatusBadge tone={contentStatusBadge[savedStatus].tone}>{contentStatusBadge[savedStatus].label}</AdminStatusBadge></p> : <p className="admin-help">Thiết bị mới — chưa lưu.</p>}
           <ContentStatusChoice canPublish={canPublish} noun={noun} onChange={(status) => update("status", status)} savedStatus={savedStatus} value={form.status} />
-          {form.status === "scheduled" ? <label className="admin-field">Thời điểm đăng<input className="admin-input" onChange={event => update("scheduledAt", event.target.value ? new Date(event.target.value) : null)} required type="datetime-local" value={formatLocalDateTime(form.scheduledAt)} /></label> : null}
+          {form.status === "scheduled" ? <label className="admin-field">Thời điểm đăng<AdminInput onChange={event => update("scheduledAt", event.target.value ? new Date(event.target.value) : null)} required type="datetime-local" value={formatLocalDateTime(form.scheduledAt)} /></label> : null}
           {goingLive ? <PrepublishHints missing={missing} /> : null}
         </section>
         <section className="admin-content-section">

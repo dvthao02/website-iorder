@@ -11,6 +11,7 @@ import { MediaPicker } from "./media-picker";
 import { RevisionHistory } from "./revision-history";
 import { PublishedPreviewLink, offeringCatalogPaths } from "./published-preview-link";
 import { AdminButton } from "./ui/admin-button";
+import { AdminInput } from "./ui/admin-input";
 import { AdminEditorOutline, AdminEditorSection } from "./ui/admin-editor-section";
 import { AdminHintedField } from "./ui/admin-help-tip";
 import { useEditPathRequest } from "./ui/admin-detail-panel";
@@ -276,7 +277,7 @@ export function OfferingEditor({ offering, offeringType, offeringTypeLabel, onSa
           {offering && hasUnsavedChanges ? <p className="admin-help">Xem trước hiển thị bản đã lưu — lưu trước để thấy thay đổi mới.</p> : null}
           {offering ? <p className="admin-post-editor__state"><AdminStatusBadge tone={contentStatusBadge[offering.status].tone}>{contentStatusBadge[offering.status].label}</AdminStatusBadge>{offering.publishedAt ? <small className="admin-help">Đăng lúc {formatDisplayDateTime(offering.publishedAt)}</small> : null}</p> : <p className="admin-help">{offeringTypeLabel} mới — chưa lưu.</p>}
           <ContentStatusChoice canPublish={canPublish} noun={noun} onChange={(status) => update("status", status)} savedStatus={savedStatus} value={form.status} />
-          {form.status === "scheduled" ? <label className={labelClassName}>Thời điểm đăng<input className={inputClassName} onChange={(event) => update("scheduledAt", event.target.value)} required type="datetime-local" value={form.scheduledAt} /></label> : null}
+          {form.status === "scheduled" ? <label className={labelClassName}>Thời điểm đăng<AdminInput onChange={(event) => update("scheduledAt", event.target.value)} required type="datetime-local" value={form.scheduledAt} /></label> : null}
           {goingLive ? <PrepublishHints missing={missing} /> : null}
         </section>
         <section className="admin-content-section">

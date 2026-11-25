@@ -38,7 +38,7 @@ const emptyMessages: Record<StaticPageType, string> = {
   listing: "Chưa có trang danh sách tự động nào.",
   custom: "Chưa có trang tự tạo. Hãy tạo trang mới, sau đó thêm trang vào Menu để khách truy cập.",
 };
-const dateFormatter = new Intl.DateTimeFormat("vi-VN", { dateStyle: "medium" });
+const dateFormatter = new Intl.DateTimeFormat("vi-VN", { dateStyle: "medium", timeZone: "Asia/Ho_Chi_Minh" });
 
 function getPublicPath(page: AdminPage) { return getFixedWebsitePage(page.slug)?.publicPath ?? `/pages/${page.slug}`; }
 const isCustomPage = (page: AdminPage) => !getFixedWebsitePage(page.slug);

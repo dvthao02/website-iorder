@@ -8,6 +8,7 @@ import { AdminShell } from "@/components/admin/admin-shell";
 import { getAdminNotifications } from "@/lib/backend";
 import { WebsiteOriginProvider } from "@/components/admin/website-origin-context";
 import { getWebsiteOrigins } from "@/lib/website-origin-server";
+import { cmsThemeBootScript } from "@/lib/cms-theme";
 
 export const metadata: Metadata = {
   robots: { index: false, follow: false },
@@ -23,5 +24,6 @@ export default async function ProtectedAdministratorLayout({ children }: { child
 
   const [notifications, websiteOrigins] = await Promise.all([getAdminNotifications(), getWebsiteOrigins()]);
 
-  return <WebsiteOriginProvider origin={websiteOrigins.origin} publicOrigin={websiteOrigins.publicOrigin}><AdminShell administrator={administrator} notifications={notifications}>{children}</AdminShell></WebsiteOriginProvider>;
+  // Script chạy trước khi vẽ để đặt bảng màu đã chọn (nhất là "Theo hệ thống" ở thiết bị tối), tránh nháy giao diện sáng rồi mới đổi.
+  return <><script dangerouslySetInnerHTML={{ __html: cmsThemeBootScript() }} /><WebsiteOriginProvider origin={websiteOrigins.origin} publicOrigin={websiteOrigins.publicOrigin}><AdminShell administrator={administrator} notifications={notifications}>{children}</AdminShell></WebsiteOriginProvider></>;
 }

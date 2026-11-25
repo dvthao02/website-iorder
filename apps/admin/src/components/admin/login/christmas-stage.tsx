@@ -9,9 +9,9 @@ import { patterns } from "./christmas-patterns";
 
 // Khung của cả trang đăng nhập mùa Giáng sinh và là bộ điều khiển các tương tác (mọi thứ ở đây đều là trang trí, không ảnh hưởng form):
 // - Con trỏ ghi vào --px/--py (-1..1): các lớp cảnh dịch ngược chiều theo độ sâu, thẻ nghiêng 3D và vệt sáng loang theo.
-//   Thiết bị cảm ứng không có con trỏ nên cảnh tự trôi nhẹ (sin/cos) cho có chiều sâu.
+//   Thiết bị cảm ứng không có con trỏ nên cảnh đứng yên (không ghi --px/--py nữa, xem chú thích bên dưới).
 // - Bấm vào nền bắn pháo hoa; bấm người tuyết, hộp quà, ông già Noel thì chúng "phản ứng" (class is-poked + hiệu ứng).
-// - LoginForm báo thành công/thất bại qua sự kiện: thất bại thì thẻ rung và đèn nháy đỏ; thành công thì xin thêm một nhịp để chiếu
+// - LoginForm báo thành công/thất bại qua sự kiện: thất bại thì thẻ rung và đèn đỏ lên; thành công thì xin thêm một nhịp để chiếu
 //   pháo hoa, pháo giấy và thẻ bay lên trước khi chuyển trang.
 // Mọi thứ tắt khi người dùng chọn "giảm chuyển động" (khi đó đăng nhập chuyển trang ngay, không chờ).
 
@@ -58,18 +58,10 @@ export function ChristmasStage({ children }: { children: ReactNode }) {
         };
         window.addEventListener("pointermove", move, { passive: true });
         cleanups.push(() => { window.removeEventListener("pointermove", move); if (frame) cancelAnimationFrame(frame); });
-      } else {
-        let frame = 0;
-        let last = 0;
-        const drift = (time: number) => {
-          frame = requestAnimationFrame(drift);
-          if (time - last < 33) return;
-          last = time;
-          setParallax(Math.sin(time / 9000) * 0.45, Math.cos(time / 12000) * 0.3);
-        };
-        frame = requestAnimationFrame(drift);
-        cleanups.push(() => cancelAnimationFrame(frame));
       }
+      // Cảm ứng (điện thoại, máy tính bảng) không có con trỏ nên cảnh đứng yên về mặt thị sai: trước đây mỗi 33ms ghi --px/--py lên thẻ gốc, mà hai biến
+      // này kế thừa xuống cả cảnh (hàng trăm phần tử, hàng trăm hoạt ảnh) nên trình duyệt tính lại style toàn cây ~30 lần/giây dù không ai chạm vào;
+      // đo ở máy giả lập chậm gấp 4 thì khoảng 36% thời gian xử lý chỉ để làm việc đó, và lúc đăng nhập sai thì thông báo rung giật.
 
       // Bấm vào nền: pháo hoa. Bấm vào đồ vật có data-xmas: đồ vật phản ứng. Bấm trong thẻ đăng nhập thì bỏ qua.
       // Ông già Noel bay TRÊN thẻ đăng nhập (để không bị thẻ che khi màn hình hẹp/zoom to) nên không nhận chuột, kẻo chặn form khi bay ngang qua;

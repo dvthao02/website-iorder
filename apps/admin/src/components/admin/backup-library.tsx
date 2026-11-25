@@ -74,8 +74,8 @@ export function BackupLibrary({ canOperate, keep, library }: { canOperate: boole
   }
 
   async function copyPath() {
-    try { await navigator.clipboard.writeText(library.dbDir); show("Đã chép đường dẫn.", "success"); }
-    catch { show("Trình duyệt không cho chép tự động. Hãy bôi đen đường dẫn để chép.", "error"); }
+    try { await navigator.clipboard.writeText(library.dbDir); show("Đã sao chép đường dẫn.", "success"); }
+    catch { show("Trình duyệt không cho sao chép tự động. Hãy bôi đen đường dẫn rồi sao chép.", "error"); }
   }
 
   const columns: AdminDataTableColumn<Row>[] = [

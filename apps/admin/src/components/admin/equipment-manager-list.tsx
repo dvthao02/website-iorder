@@ -30,7 +30,7 @@ import { useAdminPermissions } from "./ui/admin-permissions";
 
 const statusLabels: Record<EquipmentItem["status"], string> = { archived: "Lưu trữ", draft: "Bản nháp", published: "Đã xuất bản", review: "Chờ duyệt", scheduled: "Hẹn giờ" };
 const priceFormatter = new Intl.NumberFormat("vi-VN");
-const dateFormatter = new Intl.DateTimeFormat("vi-VN", { dateStyle: "medium" });
+const dateFormatter = new Intl.DateTimeFormat("vi-VN", { dateStyle: "medium", timeZone: "Asia/Ho_Chi_Minh" });
 const statusTones: Record<EquipmentItem["status"], AdminFeedbackTone> = { archived: "neutral", draft: "neutral", published: "success", review: "warning", scheduled: "info" };
 
 type EquipmentManagerListProps = {

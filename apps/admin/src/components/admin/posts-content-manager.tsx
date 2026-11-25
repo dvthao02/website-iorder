@@ -2,6 +2,7 @@
 import { ContentSeoEditor } from "./content-seo-editor";
 import { PostLockBar } from "./post-lock-bar";
 import { useAdminPermissions } from "./ui/admin-permissions";
+import { AdminInput } from "./ui/admin-input";
 import { requestAdminJson } from "@/lib/admin-api";
 import { formatDisplayDateTime, formatLocalDateTime } from "@/lib/local-date-time";
 
@@ -305,7 +306,8 @@ export function PostEditor({ post, taxonomy, onSaved, onError, contentType, onDi
     <form className={livePreview ? "admin-post-editor admin-post-editor--preview" : "admin-post-editor"} onSubmit={submit} ref={formRef}>
       {post ? <PostLockBar canLock={canLock} dirty={isDirty} lockedAt={post.lockedAt} lockedByName={post.lockedByName} postId={post.id} /> : null}
       {!canEdit && !locked ? <div className="col-span-full"><AdminNotice tone="info">Bạn chỉ có quyền xem nội dung này. Nội dung đang hiển thị cần thêm quyền xuất bản để sửa.</AdminNotice></div> : null}
-      <fieldset disabled={processing || !canEdit} className="contents">
+      {/* Bài đã khóa: inert tắt hẳn focus, bấm chuột và Tab vào mọi ô (kể cả vùng soạn và liên kết trong nội dung); thanh khóa ở trên nằm ngoài vùng này nên vẫn mở khóa được. */}
+      <fieldset disabled={processing || !canEdit} className="contents" inert={locked}>
       <div className="admin-post-editor__main">
         <div className="admin-post-editor__toolbar">
           <AdminButton aria-pressed={livePreview} leadingIcon={<Eye aria-hidden="true" size={15} />} onClick={() => setLivePreview((value) => !value)} size="sm" title="Hiện khung website bên cạnh để xem bài trông thế nào khi đăng" variant="secondary">{livePreview ? "Ẩn xem trực tiếp" : "Xem trực tiếp"}</AdminButton>
@@ -349,8 +351,8 @@ export function PostEditor({ post, taxonomy, onSaved, onError, contentType, onDi
           {form.type === "promotion" ? <fieldset className="admin-block-group">
             <legend>Thời gian khuyến mãi</legend>
             <div className="admin-form-grid">
-              <label className={labelClassName}>Bắt đầu<input className={inputClassName} onChange={(event) => update("promotionStartAt", event.target.value)} type="datetime-local" value={form.promotionStartAt} /></label>
-              <label className={labelClassName}>Kết thúc<input className={inputClassName} onChange={(event) => update("promotionEndAt", event.target.value)} type="datetime-local" value={form.promotionEndAt} /></label>
+              <label className={labelClassName}>Bắt đầu<AdminInput onChange={(event) => update("promotionStartAt", event.target.value)} type="datetime-local" value={form.promotionStartAt} /></label>
+              <label className={labelClassName}>Kết thúc<AdminInput onChange={(event) => update("promotionEndAt", event.target.value)} type="datetime-local" value={form.promotionEndAt} /></label>
             </div>
           </fieldset> : null}
         </EditorSection>
@@ -376,7 +378,7 @@ export function PostEditor({ post, taxonomy, onSaved, onError, contentType, onDi
           {/* Bản đã lưu (không gồm thay đổi đang gõ dở) dưới dạng Word để gửi duyệt/chỉnh ngoài CMS rồi nhập lại. */}
           {post ? <a className="admin-link admin-post-editor__word admin-file-tone--word" download href={`/api/v1/admin/posts/${post.id}/word`}><FileText aria-hidden="true" size={14} />Tải bản Word (.docx){isDirty ? " — bản đã lưu" : ""}</a> : null}
           <ContentStatusChoice canPublish={canPublish} noun={postNoun} onChange={(status) => update("status", status)} savedStatus={savedStatus} value={form.status} />
-          {form.status === "scheduled" ? <label className={labelClassName}>Thời điểm đăng<input className={inputClassName} onChange={(event) => update("scheduledAt", event.target.value)} required type="datetime-local" value={form.scheduledAt} /></label> : null}
+          {form.status === "scheduled" ? <label className={labelClassName}>Thời điểm đăng<AdminInput onChange={(event) => update("scheduledAt", event.target.value)} required type="datetime-local" value={form.scheduledAt} /></label> : null}
           {goingLive ? <PrepublishHints missing={missing} /> : null}
         </section>
         <section className="admin-content-section" id="post-cover">

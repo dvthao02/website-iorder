@@ -2,22 +2,28 @@
 
 import { apiErrorMessage } from "@/lib/admin-api";
 import { loginFailureEvent, loginSuccessEvent, type LoginSuccessDetail } from "@/lib/login-events";
+import type { LoginTheme } from "@/lib/login-theme";
+import { LoaderCircle, Snowflake } from "lucide-react";
 import { FormEvent, useEffect, useState } from "react";
 
-import { AdminToastProvider, useAdminToast } from "@/components/admin/ui/admin-feedback";
+import { useAdminToast } from "@/components/admin/ui/admin-feedback";
 import { AdminPasswordInput } from "@/components/admin/ui/admin-password-input";
 
 type LoginFormProps = {
   initialError?: string;
+  /** Giao diện đăng nhập đang hiện: quyết định hình vòng xoay trên nút (mặc định vòng tròn; Giáng sinh là bông tuyết). */
+  theme?: LoginTheme;
 };
 
-export function LoginForm(props: LoginFormProps) {
-  return (
-    <AdminToastProvider>
-      <LoginFormContent {...props} />
-    </AdminToastProvider>
-  );
+// Vòng xoay trên nút đăng nhập, theo giao diện: đứng yên suốt lúc chờ Backend trả lời và lúc chờ mở CMS cho tới khi trang chuyển.
+function LoginSpinner({ theme }: { theme: LoginTheme }) {
+  return theme === "christmas"
+    ? <Snowflake aria-hidden="true" className="login-spinner login-spinner--christmas" size={16} />
+    : <LoaderCircle aria-hidden="true" className="login-spinner" size={16} />;
 }
+
+// Thông báo nổi (AdminToastProvider) do trang đăng nhập đặt NGOÀI thẻ: thẻ Giáng sinh nghiêng 3D và rung bằng transform, mà phần tử fixed nằm trong
+// một tổ tiên có transform thì định vị theo tổ tiên đó chứ không theo màn hình, nên thông báo bị lệch ra ngoài mép phải và rung theo thẻ.
 
 // Khung viền "có khuyết" cho nhãn nổi ở theme Giáng sinh (CSS ẩn nó ở giao diện thường). Dùng fieldset/legend để trình duyệt tự
 // cắt đường viền đúng bằng chiều rộng chữ, nhờ vậy nhãn không cần nền che viền (nền che luôn lệch màu so với ô). Chữ của legend
@@ -30,9 +36,11 @@ function LoginFieldFrame({ label }: { label: string }) {
   );
 }
 
-function LoginFormContent({ initialError }: LoginFormProps) {
+export function LoginForm({ initialError, theme = "default" }: LoginFormProps) {
   const toast = useAdminToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // Đã đăng nhập đúng, đang chờ trang CMS mở (có thể vài giây vì CMS dựng ở server): nút nói rõ điều đó thay vì quay mãi một chữ "Đang đăng nhập".
+  const [isOpening, setIsOpening] = useState(false);
 
   useEffect(() => {
     if (initialError) toast.show(initialError, "error");
@@ -64,7 +72,8 @@ function LoginFormContent({ initialError }: LoginFormProps) {
       return;
     }
 
-    // Giao diện theo mùa có thể xin thêm một nhịp (delayMs) để chiếu hiệu ứng chúc mừng; nút giữ trạng thái "đang đăng nhập" đến lúc chuyển trang.
+    // Giao diện theo mùa có thể xin thêm một nhịp (delayMs) để chiếu hiệu ứng chúc mừng; nút giữ vòng xoay đến lúc chuyển trang.
+    setIsOpening(true);
     const celebration: LoginSuccessDetail = { delayMs: 0 };
     window.dispatchEvent(new CustomEvent<LoginSuccessDetail>(loginSuccessEvent, { detail: celebration }));
     if (celebration.delayMs > 0) await new Promise((resolve) => setTimeout(resolve, celebration.delayMs));
@@ -98,11 +107,13 @@ function LoginFormContent({ initialError }: LoginFormProps) {
         <LoginFieldFrame label="Mật khẩu" />
       </div>
       <button
+        aria-busy={isSubmitting}
         className="admin-button admin-button--primary w-full"
         disabled={isSubmitting}
         type="submit"
       >
-        {isSubmitting ? "Đang đăng nhập…" : "Đăng nhập"}
+        {isSubmitting ? <LoginSpinner theme={theme} /> : null}
+        {isOpening ? "Đăng nhập thành công, đang mở CMS…" : isSubmitting ? "Đang đăng nhập…" : "Đăng nhập"}
       </button>
       <p className="admin-help text-center">Quên mật khẩu? Nhờ quản trị viên đặt lại trong mục Người dùng CMS.</p>
     </form>

@@ -122,3 +122,98 @@ test("Khoảng thời gian chọn được (30, 90 ngày): biểu đồ đủ s�
   assert.ok(week.connection === "connected" && week.periodDays === 7 && week.daily.length === 7);
   assert.equal((await service.getAnalyticsOverview(90)).periodDays, 90);
 });
+
+function countingFetcher(options: { fail?: () => boolean } = {}) {
+  let calls = 0;
+  const fetcher = async (input: RequestInfo | URL) => {
+    calls += 1;
+    if (options.fail?.()) throw new Error("ETIMEDOUT");
+    const url = new URL(String(input));
+    if (url.pathname.endsWith("/stats")) return json({ pageviews: 1, visitors: 1, visits: 1, bounces: 0, totaltime: 10, comparison: { pageviews: 0, visitors: 0, visits: 0, bounces: 0, totaltime: 0 } });
+    if (url.pathname.endsWith("/pageviews")) return json({ pageviews: [], sessions: [] });
+    return json([]);
+  };
+  return { fetcher: fetcher as typeof fetch, calls: () => calls };
+}
+const settle = () => new Promise((resolve) => setImmediate(resolve));
+const start = Date.parse("2026-10-16T03:00:00Z");
+
+test("Số liệu Umami được giữ 60 giây theo từng khoảng ngày: mở Tổng quan nhiều lần không gọi Umami lại", async () => {
+  let clock = start;
+  const { fetcher, calls } = countingFetcher();
+  const service = createAnalyticsService({ fetch: fetcher, env, now: () => new Date(clock) });
+  await service.getAnalyticsOverview(7);
+  const perLoad = calls();
+  assert.equal(perLoad, 3, "một lần tải = ba truy vấn Umami song song");
+  await service.getAnalyticsOverview(7);
+  assert.equal(calls(), perLoad, "trong 60 giây dùng lại");
+  await service.getAnalyticsOverview(30);
+  assert.equal(calls(), perLoad * 2, "khoảng ngày khác là kết quả khác");
+  clock += 59_999;
+  await service.getAnalyticsOverview(7);
+  assert.equal(calls(), perLoad * 2);
+});
+
+test("Hết hạn thì trả ngay bản cũ và làm mới ở nền (không ai chờ Umami), mỗi lượt làm mới chỉ một lần dù nhiều người mở cùng lúc", async () => {
+  let clock = start;
+  const { fetcher, calls } = countingFetcher();
+  const service = createAnalyticsService({ fetch: fetcher, env, now: () => new Date(clock) });
+  const first = await service.getAnalyticsOverview();
+  assert.equal(calls(), 3);
+  clock += 60_000;
+  const stale = await service.getAnalyticsOverview();
+  assert.equal(stale, first, "trả đúng bản cũ ngay lập tức");
+  await Promise.all([service.getAnalyticsOverview(), service.getAnalyticsOverview()]);
+  assert.equal(calls(), 6, "ba người mở cùng lúc chỉ gây một lượt làm mới (3 truy vấn)");
+  await settle();
+  const fresh = await service.getAnalyticsOverview();
+  assert.notEqual(fresh, first, "lượt làm mới xong thì có bản mới");
+  assert.equal(calls(), 6, "bản mới còn hạn nên không gọi thêm");
+});
+
+test("Bản cũ quá 10 phút không dùng nữa: người mở trang chờ số liệu mới", async (context) => {
+  context.mock.method(console, "error", () => undefined);
+  let clock = start;
+  let down = false;
+  const { fetcher, calls } = countingFetcher({ fail: () => down });
+  const service = createAnalyticsService({ fetch: fetcher, env, now: () => new Date(clock) });
+  assert.equal((await service.getAnalyticsOverview()).connection, "connected");
+  down = true;
+  clock += 600_000;
+  assert.equal((await service.getAnalyticsOverview()).connection, "error", "quá 10 phút: chờ lượt tải mới, thấy trạng thái thật");
+  assert.equal(calls(), 6);
+});
+
+test("Umami lỗi cũng được giữ (30 giây) để Umami chết không làm trang nào cũng chờ hết thời gian chờ; hết hạn thì thử lại ở nền và hồi phục", async (context) => {
+  context.mock.method(console, "error", () => undefined);
+  let clock = start;
+  let down = true;
+  const { fetcher, calls } = countingFetcher({ fail: () => down });
+  const service = createAnalyticsService({ fetch: fetcher, env, now: () => new Date(clock) });
+  assert.equal((await service.getAnalyticsOverview()).connection, "error");
+  const failedCalls = calls();
+  assert.equal((await service.getAnalyticsOverview()).connection, "error");
+  assert.equal(calls(), failedCalls, "lần mở lại ngay không phải chờ thêm");
+  down = false;
+  clock += 29_999;
+  assert.equal((await service.getAnalyticsOverview()).connection, "error");
+  assert.equal(calls(), failedCalls, "chưa hết 30 giây thì chưa thử lại");
+  clock += 1;
+  assert.equal((await service.getAnalyticsOverview()).connection, "error", "hết 30 giây: trả ngay bản cũ, thử lại ở nền");
+  await settle();
+  assert.equal((await service.getAnalyticsOverview()).connection, "connected", "Umami sống lại thì thấy số liệu ở lần mở kế tiếp");
+});
+
+test("Các yêu cầu đồng thời dùng chung một lần tải; đổi khóa Umami ở CMS thì không dùng nhầm kết quả của khóa cũ", async () => {
+  const { fetcher, calls } = countingFetcher();
+  const service = createAnalyticsService({ fetch: fetcher, env, now });
+  await Promise.all([service.getAnalyticsOverview(), service.getAnalyticsOverview(), service.getAnalyticsOverview()]);
+  assert.equal(calls(), 3);
+  let key = "khoa_cu";
+  const changing = createAnalyticsService({ fetch: fetcher, env: { ...env, UMAMI_API_KEY: "" }, now, cmsSecret: async (name) => name === "umami_api_key" ? key : undefined });
+  await changing.getAnalyticsOverview();
+  const before = calls();
+  key = "khoa_moi";
+  await changing.getAnalyticsOverview();
+  assert.equal(calls(), before + 3, "khóa mới → hỏi Umami lại");
+});

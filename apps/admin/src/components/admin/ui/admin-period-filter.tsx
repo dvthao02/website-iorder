@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { AdminInput } from "./admin-input";
 
 // Khoảng thời gian chọn nhanh theo ngày Việt Nam; chỉ "Tùy chọn ngày…" mới hiện hai ô nhập ngày.
 export type Period = "all" | "today" | "7d" | "30d" | "thisMonth" | "lastMonth" | "custom";
@@ -56,8 +57,8 @@ export function AdminPeriodFilter({ from, to, label, disabled, onChange }: { fro
       {(Object.keys(periodLabels) as Period[]).map((value) => <option key={value} value={value}>{periodLabels[value]}</option>)}
     </select>
     {period === "custom" ? <>
-      <label className="admin-filter-bar__date">Từ<input disabled={disabled} max={to ?? today} onChange={(event) => onChange({ from: event.target.value || undefined, to })} type="date" value={from ?? ""} /></label>
-      <label className="admin-filter-bar__date">đến<input disabled={disabled} max={today} min={from} onChange={(event) => onChange({ from, to: event.target.value || undefined })} type="date" value={to ?? ""} /></label>
+      <label className="admin-filter-bar__date">Từ<AdminInput disabled={disabled} max={to ?? today} onChange={(event) => onChange({ from: event.target.value || undefined, to })} type="date" value={from ?? ""} /></label>
+      <label className="admin-filter-bar__date">đến<AdminInput disabled={disabled} max={today} min={from} onChange={(event) => onChange({ from, to: event.target.value || undefined })} type="date" value={to ?? ""} /></label>
     </> : null}
   </>;
 }

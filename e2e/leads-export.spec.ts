@@ -31,11 +31,15 @@ test("Màn khách hàng tiềm năng: bảng, khoảng thời gian chọn nhanh,
   await loginAsAdmin(page);
   await page.goto("/admin/leads");
   const period = page.getByLabel("Khoảng thời gian gửi");
+  // Khoảng thời gian nằm trong ô "Bộ lọc khác" của thanh lọc: mở ra trước khi chọn.
+  const openMoreFilters = async () => { if (!(await period.isVisible())) await page.getByRole("button", { name: /Bộ lọc khác/ }).click(); };
+  await openMoreFilters();
   await expect(period).toHaveValue("all");
   await expect(page.locator("input[type=date]")).toHaveCount(0);
   await period.selectOption("30d");
   await expect(page).toHaveURL(/from=\d{4}-\d{2}-\d{2}&to=\d{4}-\d{2}-\d{2}/);
   await expect(page.getByRole("link", { name: "Xuất Excel" })).toHaveAttribute("href", /format=xlsx.*from=/);
+  await openMoreFilters();
   await page.getByLabel("Khoảng thời gian gửi").selectOption("custom");
   await expect(page.locator("input[type=date]")).toHaveCount(2);
 });

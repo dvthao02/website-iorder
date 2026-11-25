@@ -7,7 +7,7 @@ import {
   Minus, Pilcrow, Quote, Redo2, RemoveFormatting, Rows3, SquarePlay, Strikethrough, Table as TableIcon,
   Trash2, Underline, Undo2, Unlink, Wallpaper,
 } from "lucide-react";
-import { useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { imageMediaAccept } from "@iorder/shared/server/media/media-types";
 
 import type { BannerHeight, BannerOverlay, ImageAlign, RichDocument } from "@iorder/shared/server/shared/rich-text";
@@ -71,6 +71,11 @@ export function RichTextEditor({ value, onChange, onImportTitle, placeholder = "
     content: value ?? { type: "doc", content: [{ type: "paragraph" }] },
     onUpdate: ({ editor: current }) => onChange(current.getJSON() as RichDocument),
   });
+  // `editable` của useEditor chỉ đọc lúc tạo trình soạn: khóa/mở khóa bài hay đổi quyền khi trang đang mở phải gọi setEditable thì chế độ mới đổi
+  // (không thì mở khóa xong vẫn không gõ được cho tới khi tải lại trang). emitUpdate=false để không báo "có thay đổi chưa lưu".
+  useEffect(() => {
+    if (editor && editor.isEditable === Boolean(disabled)) editor.setEditable(!disabled, false);
+  }, [editor, disabled]);
 
   if (!editor) return <div aria-busy="true" className="admin-rte admin-rte--loading">Đang tải trình soạn thảo…</div>;
   const state = {

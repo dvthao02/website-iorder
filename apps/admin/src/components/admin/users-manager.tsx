@@ -49,7 +49,7 @@ function valuesOf(user: CmsUser): CmsUserInput {
 
 function dateLabel(value: Date | null) {
   if (!value) return "Chưa đăng nhập";
-  return new Intl.DateTimeFormat("vi-VN", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
+  return new Intl.DateTimeFormat("vi-VN", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Ho_Chi_Minh" }).format(new Date(value));
 }
 
 export function UsersManager({ canAssignSuperAdmin, currentUserId, initialPage, initialQuery, roles, tabs }: { tabs?: ReactNode; currentUserId: string; canAssignSuperAdmin: boolean; initialPage: ListPageResult<CmsUser> & { counts: { all: number; active: number; admins: number } }; initialQuery: CmsUserListQuery; roles: CmsUserRoleOption[] }) {

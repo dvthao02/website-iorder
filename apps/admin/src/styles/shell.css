@@ -556,6 +556,10 @@
     .admin-topbar__view-site > span { display: none; }
     .admin-account-menu { margin-left: 0; padding-left: 0; }
     .admin-account-menu::before { display: none; }
+    /* Chuông thông báo nằm giữa thanh trên, không sát mép phải: khung rộng 300px bám theo chuông bị lòi ra ngoài mép trái màn hình ≤ 375px.
+       Trải theo bề ngang màn hình ngay dưới thanh trên, giống kết quả tìm kiếm; danh sách cuộn trong phần chiều cao còn lại. */
+    .admin-notifications > .admin-header-popover { position: fixed; top: calc(var(--cms-topbar-height) + 6px); right: 12px; left: 12px; width: auto; }
+    .admin-notifications__list { max-height: min(360px, calc(100dvh - var(--cms-topbar-height) - 140px)); }
     .admin-account-menu > summary > span:not(.admin-avatar),
     .admin-account-menu__chevron { display: none; }
   }

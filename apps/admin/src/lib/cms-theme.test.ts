@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import test from "node:test";
 
-import { cmsColorThemeIds, colorThemeCookie, isCmsColorThemeId } from "./cms-theme";
+import { cmsColorThemeIds, cmsThemeBootScript, colorThemeCookie, colorThemeStorageKey, isCmsColorThemeId, isCmsColorThemePreference, legacyThemeStorageKey, resolveColorTheme, systemColorTheme } from "./cms-theme";
 
 // Test chạy từ thư mục gốc của repo (pnpm test).
 const read = (relative: string) => readFileSync(path.join(process.cwd(), relative), "utf8");
@@ -274,4 +274,38 @@ test("Đăng nhập Giáng sinh: nhãn nổi lên mép khung bằng viền khuy�
   // Giảm chuyển động: mảnh vỡ chỉ có nghĩa khi bay ra rồi mờ đi, không có hoạt ảnh thì ẩn hẳn (nếu không sẽ đứng yên cạnh nút).
   const reduced = login.slice(login.indexOf("@media (prefers-reduced-motion: reduce)", login.indexOf(".xmas__shooting")));
   assert.match(reduced, /\.admin-password-input:has\(\.admin-password-input__toggle\[aria-pressed="true"\]\)::after \{ display: none; \}/);
+});
+
+test("Theo hệ thống: là lựa chọn chứ không phải bảng màu có token riêng, và chọn sáng/tối theo thiết bị", () => {
+  assert.equal(isCmsColorThemeId(systemColorTheme), false);
+  assert.equal(isCmsColorThemePreference(systemColorTheme), true);
+  assert.equal(isCmsColorThemePreference("dark"), true);
+  for (const value of ["", "System", "auto", null, undefined]) assert.equal(isCmsColorThemePreference(value), false, String(value));
+  assert.equal(resolveColorTheme("system", true), "dark");
+  assert.equal(resolveColorTheme("system", false), "iorder");
+  // Chọn một bảng màu cụ thể thì thiết bị sáng hay tối không đổi gì.
+  for (const id of cmsColorThemeIds) for (const prefersDark of [true, false]) assert.equal(resolveColorTheme(id, prefersDark), id);
+  assert.ok(read("apps/admin/src/components/admin/admin-theme-settings.tsx").includes('id: "system"'), "Theo hệ thống phải có trong màn hình chọn");
+});
+
+// Chạy đoạn script khởi động với localStorage và matchMedia giả để kiểm tra đúng thứ nó đặt lên <html>.
+function bootTheme(stored: Record<string, string>, prefersDark: boolean) {
+  const documentElement = { dataset: {} as Record<string, string> };
+  new Function("localStorage", "matchMedia", "document", cmsThemeBootScript())(
+    { getItem: (key: string) => stored[key] ?? null },
+    () => ({ matches: prefersDark }),
+    { documentElement },
+  );
+  return documentElement.dataset.cmsTheme;
+}
+
+test("Script khởi động bảng màu: đặt đúng bảng màu trước khi vẽ, theo hệ thống thì theo chế độ của thiết bị", () => {
+  assert.equal(bootTheme({ [colorThemeStorageKey]: "system" }, true), "dark");
+  assert.equal(bootTheme({ [colorThemeStorageKey]: "system" }, false), "iorder");
+  assert.equal(bootTheme({ [colorThemeStorageKey]: "teal-mist" }, true), "teal-mist");
+  assert.equal(bootTheme({ [legacyThemeStorageKey]: "christmas" }, false), "christmas", "khóa cũ vẫn được đọc khi chưa có khóa mới");
+  assert.equal(bootTheme({ [colorThemeStorageKey]: "dark", [legacyThemeStorageKey]: "christmas" }, false), "dark", "khóa mới thắng khóa cũ");
+  // Chưa chọn gì hoặc giá trị lạ: không đặt gì (CMS giữ bảng màu mặc định).
+  assert.equal(bootTheme({}, true), undefined);
+  assert.equal(bootTheme({ [colorThemeStorageKey]: "khong-co" }, true), undefined);
 });

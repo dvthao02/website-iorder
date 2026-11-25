@@ -25,8 +25,8 @@ type Row = BackupHistoryEntry & { id: string };
 function Steps({ steps }: { steps: BackupStep[] }) {
   const { show } = useAdminToast();
   async function copy(command: string) {
-    try { await navigator.clipboard.writeText(command); show("Đã chép lệnh.", "success"); }
-    catch { show("Trình duyệt không cho chép tự động. Hãy bôi đen lệnh để chép.", "error"); }
+    try { await navigator.clipboard.writeText(command); show("Đã sao chép lệnh.", "success"); }
+    catch { show("Trình duyệt không cho sao chép tự động. Hãy bôi đen lệnh rồi sao chép.", "error"); }
   }
   return <ol className="admin-backup-steps">
     {steps.map((step) => <li key={step.title}>
