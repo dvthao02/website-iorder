@@ -12,11 +12,12 @@ import { StaticPageNavigation } from "./static-page-navigation";
 import { getPublishedPage } from "@/lib/backend";
 import { suggestPageSeoDescription } from "@iorder/shared/server/shared/seo";
 import { faqItemsOfBlocks, webPageKindOf } from "@/lib/structured-data";
+import { getT } from "@/lib/messages";
 
 // Metadata cho trang quản lý trong CMS (trang hệ thống hoặc /pages/{slug}).
 export async function cmsStaticMetadata(slug: string, parent: ResolvingMetadata): Promise<Metadata> {
   const page = await getPublishedPage(slug);
-  if (!page) return { title: "Không tìm thấy trang | iOrder" };
+  if (!page) return { title: (await getT())("page.notFoundTitle") };
   return contentMetadata({ title: page.seoTitle || page.title, description: page.seoDescription || suggestPageSeoDescription(page.blocks), path: getFixedWebsitePage(slug)?.publicPath ?? `/pages/${slug}`, canonicalUrl: page.canonicalUrl, seo: page.seo }, parent);
 }
 // Trang quản lý trong CMS (giới thiệu, liên hệ, điều khoản, chính sách, hỗ trợ từ xa, /pages/{slug}): các khối CMS

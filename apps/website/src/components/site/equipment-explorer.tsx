@@ -9,6 +9,7 @@ import { EquipmentImagePlaceholder } from "./equipment-image-placeholder";
 import { EquipmentInquiry } from "./equipment-inquiry";
 import { SiteLink as Link } from "./site-link";
 import type { EquipmentAvailability } from "@iorder/shared/server/equipment/equipment-availability";
+import { useT } from "./messages-provider";
 
 export type ExplorerEquipment = {
   id: string; slug: string; name: string; modelCode: string | null; priceVnd: number; availability?: EquipmentAvailability | null; warrantyMonths: number; summary: string | null;
@@ -35,6 +36,7 @@ const freeText = (label: string) => /^Thông tin \d+$/.test(label);
  * trình duyệt không chạy JavaScript và công cụ tìm kiếm vẫn theo liên kết như thường. Esc hoặc ✕ đóng và trả focus về thẻ.
  */
 export function EquipmentExplorer({ items, grouped, dark = false, Heading = "h3" }: { items: ExplorerEquipment[]; grouped: boolean; dark?: boolean; Heading?: "h2" | "h3" }) {
+  const t = useT();
   const columns = useSyncExternalStore(subscribe, columnsNow, () => 4);
   // Tên thiết bị trong khung chi tiết là tiêu đề ngay dưới cấp tiêu đề nhóm.
   const PanelHeading = Heading === "h2" ? "h3" : "h4";
@@ -79,26 +81,26 @@ export function EquipmentExplorer({ items, grouped, dark = false, Heading = "h3"
         {group.items.map((item, itemIndex) => <Fragment key={item.id}>
           <li>
             <Link aria-controls={selected === item.id ? `thiet-bi-chi-tiet-${item.id}` : undefined} aria-expanded={selected === item.id} className={selected === item.id ? "equipment-tile equipment-tile--active" : "equipment-tile"} href={`/equipment/${item.slug}`} onClick={(event) => toggle(event, item.id)} ref={(element) => { if (element) cards.current.set(item.id, element); else cards.current.delete(item.id); }}>
-              <span className="equipment-tile__media">{item.coverUrl ? <Image alt={item.coverAlt ?? item.name} className="equipment-tile__image" height={360} sizes="(min-width: 1280px) 260px, (min-width: 640px) 30vw, 45vw" src={item.coverUrl} width={480} /> : <EquipmentImagePlaceholder />}</span>
+              <span className="equipment-tile__media">{item.coverUrl ? <Image alt={item.coverAlt ?? item.name} className="equipment-tile__image" height={360} sizes="(min-width: 1280px) 260px, (min-width: 640px) 30vw, 45vw" src={item.coverUrl} width={480} /> : <EquipmentImagePlaceholder label={t("common.noImage")} />}</span>
               <span className="equipment-tile__body">
                 <span className="equipment-tile__name">{item.name}</span>
                 <span className="equipment-tile__price">{priceFormatter.format(item.priceVnd)}</span>
                 <AvailabilityBadge availability={item.availability} className="mt-1" />
-                <span className="equipment-tile__meta">Bảo hành {item.warrantyMonths} tháng</span>
+                <span className="equipment-tile__meta">{t("common.warranty", { months: item.warrantyMonths })}</span>
               </span>
             </Link>
           </li>
           {itemIndex === after && active ? <li className="col-span-full">
-            <div aria-label={`Chi tiết ${active.name}`} className="equipment-panel" id={`thiet-bi-chi-tiet-${active.id}`} ref={panel} role="region" style={{ "--notch-left": `calc(${(column + 0.5) / columns} * (100% + ${gap}px) - ${gap / 2}px)` } as CSSProperties}>
-              <button aria-label="Đóng chi tiết" className="equipment-panel__close" onClick={close} type="button"><X aria-hidden="true" size={20} /></button>
-              <div className="equipment-panel__media">{active.coverUrl ? <Image alt={active.coverAlt ?? active.name} className="equipment-panel__image" height={480} sizes="(min-width: 768px) 300px, 90vw" src={active.coverUrl} width={640} /> : <EquipmentImagePlaceholder size={36} />}</div>
+            <div aria-label={t("equipment.detailsOf", { name: active.name })} className="equipment-panel" id={`thiet-bi-chi-tiet-${active.id}`} ref={panel} role="region" style={{ "--notch-left": `calc(${(column + 0.5) / columns} * (100% + ${gap}px) - ${gap / 2}px)` } as CSSProperties}>
+              <button aria-label={t("equipment.closeDetails")} className="equipment-panel__close" onClick={close} type="button"><X aria-hidden="true" size={20} /></button>
+              <div className="equipment-panel__media">{active.coverUrl ? <Image alt={active.coverAlt ?? active.name} className="equipment-panel__image" height={480} sizes="(min-width: 768px) 300px, 90vw" src={active.coverUrl} width={640} /> : <EquipmentImagePlaceholder label={t("common.noImage")} size={36} />}</div>
               <div className="equipment-panel__body">
                 <p className="mb-1 text-small font-semibold text-brand-700">{active.groupName}</p>
                 <PanelHeading className="mb-0 text-[1.375rem] leading-tight font-bold tracking-tight text-ink sm:text-[1.625rem]">{active.name}</PanelHeading>
                 <p className="mt-1.5 mb-0 flex flex-wrap items-center gap-x-3 gap-y-1 text-[1.25rem] font-bold text-brand-600 sm:text-[1.375rem]">{priceFormatter.format(active.priceVnd)}<AvailabilityBadge always availability={active.availability} /></p>
                 <ul className="mt-3 mb-0 flex list-none flex-wrap gap-x-6 gap-y-2 p-0 text-small text-muted">
-                  {active.modelCode ? <li className="flex items-center gap-2"><BadgeCheck aria-hidden="true" className="text-brand-600" size={18} />Mã / quy cách: <strong className="font-semibold text-ink">{active.modelCode}</strong></li> : null}
-                  <li className="flex items-center gap-2"><ShieldCheck aria-hidden="true" className="text-accent-green" size={18} />Bảo hành <strong className="font-semibold text-ink">{active.warrantyMonths} tháng</strong></li>
+                  {active.modelCode ? <li className="flex items-center gap-2"><BadgeCheck aria-hidden="true" className="text-brand-600" size={18} />{t("equipment.modelCode")} <strong className="font-semibold text-ink">{active.modelCode}</strong></li> : null}
+                  <li className="flex items-center gap-2"><ShieldCheck aria-hidden="true" className="text-accent-green" size={18} />{t("common.warrantyLabel")} <strong className="font-semibold text-ink">{t("common.months", { months: active.warrantyMonths })}</strong></li>
                 </ul>
                 {active.summary ? <p className="mt-3 mb-0 max-w-3xl text-body text-muted">{active.summary}</p> : null}
                 {active.specificationGroups.length ? <div className="equipment-panel__specs">{active.specificationGroups.map((spec, specIndex) => <section key={specIndex}>
@@ -107,7 +109,7 @@ export function EquipmentExplorer({ items, grouped, dark = false, Heading = "h3"
                 </section>)}</div> : null}
                 <div className="mt-5 flex flex-wrap gap-3">
                   <EquipmentInquiry equipment={{ slug: active.slug, name: active.name, modelCode: active.modelCode, priceVnd: active.priceVnd, availability: active.availability }} />
-                  <Link className="button button--secondary" href={`/equipment/${active.slug}`}>Xem trang chi tiết<ArrowRight aria-hidden="true" size={18} /></Link>
+                  <Link className="button button--secondary" href={`/equipment/${active.slug}`}>{t("equipment.viewPage")}<ArrowRight aria-hidden="true" size={18} /></Link>
                 </div>
               </div>
             </div>

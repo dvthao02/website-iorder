@@ -41,6 +41,7 @@ import type { SeoAuditResult } from "@iorder/shared/server/seo-audit/seo-audit";
 import type { getRedirects as getRedirectsFromCore } from "@iorder/shared/server/redirects/redirects.service";
 import type { getConsultForm as getConsultFormFromCore, getPromotionPopup as getPromotionPopupFromCore } from "@iorder/shared/server/settings/consult-popup.service";
 import type { getExternalLinks as getExternalLinksFromCore } from "@iorder/shared/server/settings/external-links.service";
+import type { TranslationOverview } from "@iorder/shared/server/translations/translations.contract";
 import type { getSiteProfile as getSiteProfileFromCore } from "@iorder/shared/server/settings/profile.service";
 import type { getPublishingConfig as getPublishingConfigFromCore } from "@iorder/shared/server/settings/publishing.service";
 import type { getAdminSupportDownloads as getAdminSupportDownloadsFromCore } from "@iorder/shared/server/support/support-downloads.service";
@@ -256,6 +257,8 @@ export async function getAdminNavigation(location = "header"): Promise<Navigatio
 export async function getPublishedNavigationTargets(): Promise<NavigationTargets> { return (await getData<{ targets: NavigationTargets }>("/api/v1/admin/navigation/targets"))?.targets ?? []; }
 export async function getSiteProfile(): Promise<SiteProfile> { return (await getData<{ profile: SiteProfile }>("/api/v1/admin/profile"))?.profile ?? null; }
 export async function getPublishingConfig(): Promise<PublishingConfig> { return (await getData<{ config: PublishingConfig }>("/api/v1/admin/publishing-config"))?.config ?? { siteUrl: null, defaultTitle: null, defaultDescription: null, defaultOgMediaId: null, allowSearchIndexing: false }; }
+/** Tổng quan bản dịch (số câu cần dịch, mỗi ngôn ngữ đã dịch bao nhiêu); null khi Backend không trả được. */
+export async function getTranslationOverview(): Promise<TranslationOverview | null> { return (await getData<{ overview: TranslationOverview }>("/api/v1/admin/translations"))?.overview ?? null; }
 export async function getExternalLinks(): Promise<ExternalLinks> { return (await getData<{ links: ExternalLinks }>("/api/v1/admin/external-links"))?.links ?? null; }
 // Phiên bản dữ liệu cấu hình cho optimistic concurrency; dùng lại response đã cache ở cùng request.
 async function getSettingVersion(path: string) { const version = (await getData<{ version?: unknown }>(path))?.version; return typeof version === "number" ? version : 0; }

@@ -502,6 +502,11 @@ body:has([data-hero-top="dark"]) .site-header:not(.site-header--scrolled) .brand
 .header-cta--primary:hover { background: var(--color-brand-700); }
 .header-cta--secondary { border: 1px solid var(--color-line); background: white; color: var(--color-ink); }
 .header-cta--secondary:hover { border-color: var(--color-brand-300); }
+/* Nút đổi ngôn ngữ (chỉ hiện khi website có bản dịch): chữ viết tắt, ngôn ngữ đang xem có nền xanh, ngôn ngữ khác là liên kết. */
+.language-switcher { display: inline-flex; align-items: center; gap: 2px; padding: 2px; border: 1px solid var(--color-line); border-radius: 999px; background: white; }
+.language-switcher__item { display: inline-grid; place-items: center; min-width: 2.25rem; min-height: 2rem; padding: 0 .6rem; border-radius: 999px; color: var(--color-muted); font-size: .85rem; font-weight: 700; letter-spacing: .02em; }
+a.language-switcher__item:hover { background: var(--color-brand-50); color: var(--color-brand-700); }
+.language-switcher__item--active { background: var(--color-brand-600); color: white; }
 
 /* Menu ngang: mục đang xem có nền viên thuốc xanh nhạt; mục có con mở bảng thả xuống khi rê chuột hoặc focus. */
 .site-nav { position: relative; display: flex; flex: 1 1 auto; justify-content: center; min-width: 0; }

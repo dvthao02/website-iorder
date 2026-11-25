@@ -6,6 +6,7 @@ import type { NavigationItems } from "@iorder/shared/server/navigation/navigatio
 import type { ExternalLinks } from "@iorder/shared/server/settings/external-links.contract";
 import { getMediaById } from "@/lib/backend";
 import { addressLines } from "@/lib/address-lines";
+import { getT } from "@/lib/messages";
 import { descendantsOf } from "@/lib/navigation-tree";
 import { AppleIcon, FacebookIcon, GooglePlayIcon, YouTubeIcon, ZaloIcon } from "./brand-icons";
 
@@ -38,6 +39,7 @@ type ContactItem = { label: string; value: string; href: string | null };
 //    địa chỉ các văn phòng/chi nhánh (Địa chỉ trong Cài đặt, mỗi dòng một nơi), mạng xã hội, nút kho ứng dụng; 2) các cột menu chân trang từ CMS (tiêu đề chữ thường, không biểu tượng);
 // 3) dải cuối hai bên: © năm – đơn vị phát triển · tên pháp lý | DMCA.
 export async function SiteFooter({ profile, navigation, externalLinks, tagline }: { profile: Profile; navigation: NavigationItems; externalLinks: ExternalLinks | null; tagline: string | null }) {
+  const t = await getT();
   const logo = profile?.logoMediaId ? await getMediaById(profile.logoMediaId) : null;
   const items = navigation.filter((item) => item.isEnabled);
   const groups = items.filter((item) => item.parentKey === null);
@@ -45,10 +47,10 @@ export async function SiteFooter({ profile, navigation, externalLinks, tagline }
   const stores = storeOrder.filter(([key]) => externalLinks?.[key]);
   const emails = [profile?.salesEmail, profile?.supportEmail].filter((email, index, list): email is string => Boolean(email) && list.indexOf(email) === index);
   const contacts: ContactItem[] = [
-    profile?.hotline ? { label: "Hotline:", value: profile.hotline, href: tel(profile.hotline) } : null,
-    emails[0] ? { label: emails.length > 1 ? "Kinh doanh:" : "Email:", value: emails[0], href: `mailto:${emails[0]}` } : null,
-    emails[1] ? { label: "Hỗ trợ:", value: emails[1], href: `mailto:${emails[1]}` } : null,
-    profile?.workingHours ? { label: "Giờ làm việc:", value: profile.workingHours, href: null } : null,
+    profile?.hotline ? { label: t("footer.hotline"), value: profile.hotline, href: tel(profile.hotline) } : null,
+    emails[0] ? { label: emails.length > 1 ? t("footer.sales") : t("footer.email"), value: emails[0], href: `mailto:${emails[0]}` } : null,
+    emails[1] ? { label: t("footer.support"), value: emails[1], href: `mailto:${emails[1]}` } : null,
+    profile?.workingHours ? { label: t("footer.workingHours"), value: profile.workingHours, href: null } : null,
   ].filter((item) => item !== null);
   // Địa chỉ có thể nhiều dòng (mỗi dòng một văn phòng/chi nhánh).
   const addresses = addressLines(profile?.address);
@@ -58,13 +60,13 @@ export async function SiteFooter({ profile, navigation, externalLinks, tagline }
   return <footer className="site-footer">
     <div className="site-footer__frame">
       <div className="site-footer__inner" style={{ "--footer-columns": Math.max(groups.length, 1) } as CSSProperties}>
-        <section aria-label={`Giới thiệu ${companyName}`} className="site-footer__profile">
-          <Link aria-label={`${companyName} - Trang chủ`} className="site-footer__logo" href="/">{logo ? <Image alt={logo.altText ?? companyName} className="h-12 w-auto" height={96} src={logo.url} width={240} /> : <strong>{companyName}</strong>}</Link>
+        <section aria-label={t("footer.about", { company: companyName })} className="site-footer__profile">
+          <Link aria-label={t("header.homeLink", { brand: companyName })} className="site-footer__logo" href="/">{logo ? <Image alt={logo.altText ?? companyName} className="h-12 w-auto" height={96} src={logo.url} width={240} /> : <strong>{companyName}</strong>}</Link>
           {tagline ? <p className="site-footer__tagline">{tagline}</p> : null}
-          {contacts.length ? <ul aria-label="Liên hệ iOrder" className="site-footer__contact-list">{contacts.map(({ label, value, href }) => <li key={label}><span>{label}</span>{href ? <a href={href}>{value}</a> : <strong>{value}</strong>}</li>)}</ul> : null}
-          {addresses.length ? <ul aria-label="Địa chỉ văn phòng" className="site-footer__addresses">{addresses.map(({ text }) => <li key={text}><MapPin aria-hidden="true" size={18} /><span>{text}</span></li>)}</ul> : null}
-          {socials.length ? <ul aria-label="Mạng xã hội" className="site-footer__socials">{socials.map(([key, label, mark]) => <li key={key}><a aria-label={label} href={externalLinks![key]!} rel="noopener noreferrer" target="_blank" title={label}>{mark}</a></li>)}</ul> : null}
-          {stores.length ? <ul aria-label="Tải ứng dụng" className="site-footer__stores">{stores.map(([key, caption, name, mark]) => <li key={key}><a aria-label={`${caption} ${name}`} href={externalLinks![key]!} rel="noopener noreferrer" target="_blank">{mark}<span><small>{caption}</small>{name}</span></a></li>)}</ul> : null}
+          {contacts.length ? <ul aria-label={t("footer.contactList", { company: companyName })} className="site-footer__contact-list">{contacts.map(({ label, value, href }) => <li key={label}><span>{label}</span>{href ? <a href={href}>{value}</a> : <strong>{value}</strong>}</li>)}</ul> : null}
+          {addresses.length ? <ul aria-label={t("footer.addresses")} className="site-footer__addresses">{addresses.map(({ text }) => <li key={text}><MapPin aria-hidden="true" size={18} /><span>{text}</span></li>)}</ul> : null}
+          {socials.length ? <ul aria-label={t("footer.socials")} className="site-footer__socials">{socials.map(([key, label, mark]) => <li key={key}><a aria-label={label} href={externalLinks![key]!} rel="noopener noreferrer" target="_blank" title={label}>{mark}</a></li>)}</ul> : null}
+          {stores.length ? <ul aria-label={t("footer.apps")} className="site-footer__stores">{stores.map(([key, caption, name, mark]) => <li key={key}><a aria-label={`${caption} ${name}`} href={externalLinks![key]!} rel="noopener noreferrer" target="_blank">{mark}<span><small>{caption}</small>{name}</span></a></li>)}</ul> : null}
         </section>
         <div className="site-footer__columns">{groups.map((group) => {
           const heading = group.label;
@@ -77,10 +79,10 @@ export async function SiteFooter({ profile, navigation, externalLinks, tagline }
 
       <div className="site-footer__bottom">
         <p className="site-footer__copyright">
-          <span>© {new Date().getFullYear()} {companyName} - Phát triển bởi <a className="site-footer__developer" href={developer.href} rel="noopener noreferrer" target="_blank">{developer.label}</a></span>
+          <span>© {new Date().getFullYear()} {companyName} - {t("footer.developedBy")} <a className="site-footer__developer" href={developer.href} rel="noopener noreferrer" target="_blank">{developer.label}</a></span>
           {profile?.legalName ? <span className="site-footer__legal"><LegalName value={profile.legalName} /></span> : null}
         </p>
-        <a className="site-footer__dmca" href={dmcaUrl} rel="noopener noreferrer" target="_blank" title="Trạng thái bảo vệ bản quyền DMCA"><ShieldCheck aria-hidden="true" size={16} />DMCA Protected</a>
+        <a className="site-footer__dmca" href={dmcaUrl} rel="noopener noreferrer" target="_blank" title={t("footer.dmcaTitle")}><ShieldCheck aria-hidden="true" size={16} />DMCA Protected</a>
       </div>
     </div>
   </footer>;

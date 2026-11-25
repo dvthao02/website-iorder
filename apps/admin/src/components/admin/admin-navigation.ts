@@ -15,6 +15,7 @@ import {
   Image,
   KeyRound,
   Laptop,
+  Languages,
   LayoutDashboard,
   LayoutTemplate,
   Link as LinkIcon,
@@ -105,6 +106,7 @@ export const navigationGroups = ensureUniqueNavigationPaths([
       { href: "/admin/company-profile", label: "Thông tin doanh nghiệp", icon: Building2, permission: "settings.view" },
       { href: "/admin/seo", label: "Tên miền & SEO", icon: Globe, permission: "settings.view" },
       { href: "/admin/external-links", label: "Liên kết & Mạng xã hội", icon: LinkIcon, permission: "settings.view" },
+      { href: "/admin/translations", label: "Đa ngôn ngữ", icon: Languages, permission: "settings.view" },
     ],
   },
   {

@@ -7,6 +7,7 @@ import { loadBlockImages } from "./section-blocks";
 import { SiteLink } from "./site-link";
 import { getBuilderPreviewContext } from "@/lib/builder-preview";
 import { descriptionLines, mosaicMediaKind, mosaicRows } from "@/lib/mosaic-layout";
+import { getT } from "@/lib/messages";
 
 type MosaicItem = Extract<PageBlock, { type: "features" | "industries" | "ecosystem" | "process" }>["data"]["items"][number];
 
@@ -16,6 +17,7 @@ type MosaicItem = Extract<PageBlock, { type: "features" | "industries" | "ecosys
 // - Ảnh chụp thật (JPG): ảnh phủ kín ô, lớp tối cho chữ đọc rõ; rê chuột/bàn phím thì mô tả trượt lên.
 // - Ảnh sản phẩm nền trong suốt (PNG/WebP): đặt to ở góc ô cùng kiểu ô phẳng; rê chuột/bàn phím thì mô tả trượt lên (thẻ có màu riêng trong CMS thì dùng màu đó).
 export async function EcosystemMosaic({ items, first = false }: { items: MosaicItem[]; first?: boolean }) {
+  const t = await getT();
   const galleries = await Promise.all(items.map(item => loadBlockImages([item.mediaId, ...(item.extraMediaIds ?? [])])));
   // Ảnh trong màn hình đầu thì tải ngay (như hero: khối đầu trang) để không thành ảnh LCP bị lazy; khung xem trước CMS cuộn thẳng tới khối đang chọn nên cũng tải ngay.
   const eager = first || Boolean(await getBuilderPreviewContext());
@@ -35,7 +37,7 @@ export async function EcosystemMosaic({ items, first = false }: { items: MosaicI
           const dark = kind === "photo" ? true : kind === "cutout" ? Boolean(item.background && isDarkColor(item.background)) : false;
           const text = <>
             {lines.length > 1 ? <ul className="mosaic__list">{lines.map(line => <li key={line}>{line}</li>)}</ul> : lines[0] ? <p className="mosaic__text">{lines[0]}</p> : null}
-            {item.href && kind !== "text" ? <span className="mosaic__more">Xem thêm →</span> : null}
+            {item.href && kind !== "text" ? <span className="mosaic__more">{t("common.viewMore")}</span> : null}
           </>;
           const content = <>
             {kind === "text" ? null : <div className={`mosaic__media mosaic__media--${kind}`}>

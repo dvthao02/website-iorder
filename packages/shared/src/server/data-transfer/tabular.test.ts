@@ -59,3 +59,20 @@ test("xlsx bị nén bất thường (zip bomb) bị chặn thay vì giải nén
   const zip = Buffer.concat([local, name, compressed, central, name, end]);
   assert.throws(() => readXlsx(zip), /quá lớn/);
 });
+
+test("xlsx do Open XML SDK ghi (mọi thẻ có tiền tố x:, rels mở đầu bằng BOM, ô t=\"str\") vẫn đọc được: tên sheet, chữ tiếng Việt, ô công thức chữ", () => {
+  const main = 'xmlns:x="http://schemas.openxmlformats.org/spreadsheetml/2006/main"';
+  const bytes = zipFiles([
+    ["xl/workbook.xml", `<?xml version="1.0" encoding="utf-8"?><x:workbook ${main}><x:sheets><x:sheet name="Bản dịch" sheetId="1" r:id="Rabc" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" /></x:sheets></x:workbook>`],
+    ["xl/_rels/workbook.xml.rels", '﻿<?xml version="1.0" encoding="utf-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="/xl/worksheets/sheet1.xml" Id="Rabc" /></Relationships>'],
+    ["xl/sharedStrings.xml", `<?xml version="1.0" encoding="utf-8"?><x:sst ${main} />`],
+    ["xl/worksheets/sheet1.xml", `<?xml version="1.0" encoding="utf-8"?><x:worksheet ${main}><x:sheetData>`
+      + '<x:row r="1"><x:c r="A1" s="1" t="inlineStr"><x:is><x:t xml:space="preserve">Khóa</x:t></x:is></x:c><x:c r="B1" t="inlineStr"><x:is><x:t>Tiếng Việt</x:t></x:is></x:c><x:c r="C1" t="inlineStr"><x:is><x:t>en · English</x:t></x:is></x:c></x:row>'
+      + '<x:row r="2"><x:c r="A2" t="inlineStr"><x:is><x:t>ui.header.openMenu</x:t></x:is></x:c><x:c r="B2" t="inlineStr"><x:is><x:t>Mở menu</x:t></x:is></x:c><x:c r="C2" t="str"><x:v>Open menu</x:v></x:c></x:row>'
+      + "</x:sheetData></x:worksheet>"],
+  ]);
+  const file = { name: "ban-dich.xlsx", bytes };
+  assert.deepEqual(listTableSheets(file), ["Bản dịch"]);
+  assert.deepEqual(readTable(file), [["Khóa", "Tiếng Việt", "en · English"], ["ui.header.openMenu", "Mở menu", "Open menu"]]);
+  assert.deepEqual(readTable({ ...file, sheetName: "Bản dịch" })[1], ["ui.header.openMenu", "Mở menu", "Open menu"]);
+});

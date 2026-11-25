@@ -5,6 +5,7 @@ import { Card, CardText, CardTitle, MoreLink } from "@/components/ui";
 import type { BlockIcon as BlockIconName } from "@iorder/shared/server/shared/block-icons";
 import { BlockIcon } from "./block-icon";
 import { CoverPhoto, type CoverPhotoImage } from "./cover-photo";
+import { getT } from "@/lib/messages";
 
 type NetworkItem = { title: string; description: string; href?: string | null; icon?: BlockIconName | null; background?: string | null };
 type NetworkPhoto = CoverPhotoImage[];
@@ -17,7 +18,8 @@ const columns = (count: number, wide: number) => Math.max(1, Math.min(count, wid
  * và thẻ bên dưới — thể hiện các phần liên thông và truyền dữ liệu cho nhau. Chấm sáng chạy dọc đường nối (CSS .eco-net trong globals.css).
  * Đường nối chỉ trang trí (aria-hidden); số cột và đoạn nối nào hiện do class theo từng cỡ màn hình (b = điện thoại, s = bảng, l = máy tính).
  */
-export function EcosystemNetwork({ items, photos }: { items: NetworkItem[]; photos: NetworkPhoto[] }) {
+export async function EcosystemNetwork({ items, photos }: { items: NetworkItem[]; photos: NetworkPhoto[] }) {
+  const t = await getT();
   const count = items.length;
   const smallCols = columns(count, 2);
   const largeCols = count === 4 ? 2 : columns(count, 3);
@@ -44,7 +46,7 @@ export function EcosystemNetwork({ items, photos }: { items: NetworkItem[]; phot
           <div className="flex flex-1 flex-col p-5 sm:p-6">
             <CardTitle>{item.title}</CardTitle>
             {item.description ? <CardText>{item.description}</CardText> : null}
-            {item.href ? <MoreLink /> : null}
+            {item.href ? <MoreLink>{t("common.more")}</MoreLink> : null}
           </div>
         </Card>
         <span aria-hidden="true" className="eco-link eco-link--right" />

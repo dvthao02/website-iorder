@@ -7,12 +7,14 @@ import { HeroImages } from "./hero-images";
 import { OrbitHub } from "./orbit-hub";
 import { loadBlockImages } from "./section-blocks";
 import { SiteLink } from "./site-link";
+import { getT } from "@/lib/messages";
 
 type OrbitItem = Extract<PageBlock, { type: "features" | "industries" | "ecosystem" | "process" }>["data"]["items"][number];
 
 // "Hệ sinh thái" dạng quỹ đạo: vòng tròn thương hiệu ở giữa, các nhóm giải pháp xếp quanh (biểu tượng, tên, mô tả, Xem thêm, ảnh sản phẩm
 // nền trong suốt). Số thẻ lẻ thì thẻ đầu nằm trên cùng, các thẻ còn lại chia đôi hai bên; điện thoại xếp một cột.
 export async function EcosystemOrbit({ items, dark = false }: { items: OrbitItem[]; dark?: boolean }) {
+  const t = await getT();
   const profile = await getSiteProfile();
   const logo = profile?.logoMediaId ? await getMediaById(profile.logoMediaId) : null;
   const brand = profile?.companyName ?? "iOrder";
@@ -40,7 +42,7 @@ export async function EcosystemOrbit({ items, dark = false }: { items: OrbitItem
             <h3 data-builder-field="title">{item.title}</h3>
           </div>
           {item.description ? <p data-builder-field="description">{item.description}</p> : null}
-          {item.href ? <SiteLink className="orbit__more" data-builder-field="href" href={item.href}>Xem thêm →</SiteLink> : null}
+          {item.href ? <SiteLink className="orbit__more" data-builder-field="href" href={item.href}>{t("common.viewMore")}</SiteLink> : null}
         </div>
         {photos.length ? <div className="orbit__photo"><HeroImages builderItem={null} imageClassName="object-contain" images={photos.map(photo => ({ url: photo.url, alt: photo.altText ?? item.title }))} onLight={!dark} preload={false} sizes="200px" variant="cover" /></div> : null}
       </div>;

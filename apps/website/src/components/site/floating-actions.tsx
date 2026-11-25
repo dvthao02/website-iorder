@@ -3,6 +3,7 @@
 import { ArrowUp, Mail, MessageCircle, Phone, X } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { FacebookIcon, ZaloIcon } from "./brand-icons";
+import { useT } from "./messages-provider";
 
 type Contact = { hotline: string | null; zalo: string | null; email: string | null; facebook: string | null };
 type Action = { key: string; href: string; label: string; icon: ReactNode; external: boolean };
@@ -14,10 +15,11 @@ export function FloatingActions({ hotline, zalo, email, facebook }: Contact) {
   const [open, setOpen] = useState(false);
   const [showTop, setShowTop] = useState(false);
   const root = useRef<HTMLElement>(null);
+  const t = useT();
   const candidates: Array<Action | null> = [
     facebook ? { key: "facebook", href: facebook, label: "Facebook", icon: <FacebookIcon size={26} />, external: true } : null,
-    email ? { key: "email", href: `mailto:${email}`, label: `Email: ${email}`, icon: <Mail aria-hidden="true" size={20} />, external: false } : null,
-    hotline ? { key: "hotline", href: `tel:${hotline.replace(/[^\d+]/g, "")}`, label: `Gọi ${hotline}`, icon: <Phone aria-hidden="true" size={20} />, external: false } : null,
+    email ? { key: "email", href: `mailto:${email}`, label: t("floating.email", { email }), icon: <Mail aria-hidden="true" size={20} />, external: false } : null,
+    hotline ? { key: "hotline", href: `tel:${hotline.replace(/[^\d+]/g, "")}`, label: t("floating.call", { hotline }), icon: <Phone aria-hidden="true" size={20} />, external: false } : null,
   ];
   const actions = candidates.filter((action): action is Action => action !== null);
 
@@ -37,13 +39,13 @@ export function FloatingActions({ hotline, zalo, email, facebook }: Contact) {
   }, [open]);
 
   return <>
-    {zalo || actions.length ? <aside aria-label="Liên hệ nhanh" className={open ? "floating-contact floating-contact--open" : "floating-contact"} ref={root}>
+    {zalo || actions.length ? <aside aria-label={t("floating.quickContact")} className={open ? "floating-contact floating-contact--open" : "floating-contact"} ref={root}>
       {actions.length ? <ul aria-hidden={!open} className="floating-contact__menu" id="floating-contact-menu">{actions.map((action) => <li key={action.key}>
         <a aria-label={action.label} className={`floating-action floating-action--${action.key}`} data-label={action.label} href={action.href} rel={action.external ? "noopener noreferrer" : undefined} tabIndex={open ? 0 : -1} target={action.external ? "_blank" : undefined}>{action.icon}</a>
       </li>)}</ul> : null}
-      {zalo ? <a aria-label="Chat Zalo" className="floating-action floating-action--zalo" data-label="Chat Zalo" href={zalo} rel="noopener noreferrer" target="_blank"><ZaloIcon size={34} /></a> : null}
-      {actions.length ? <button aria-controls="floating-contact-menu" aria-expanded={open} aria-label={open ? "Đóng liên hệ nhanh" : "Mở liên hệ nhanh"} className="floating-contact__toggle" onClick={() => setOpen((value) => !value)} type="button">{open ? <X aria-hidden="true" size={22} /> : <MessageCircle aria-hidden="true" size={22} />}</button> : null}
+      {zalo ? <a aria-label={t("floating.chatZalo")} className="floating-action floating-action--zalo" data-label={t("floating.chatZalo")} href={zalo} rel="noopener noreferrer" target="_blank"><ZaloIcon size={34} /></a> : null}
+      {actions.length ? <button aria-controls="floating-contact-menu" aria-expanded={open} aria-label={open ? t("floating.closeQuickContact") : t("floating.openQuickContact")} className="floating-contact__toggle" onClick={() => setOpen((value) => !value)} type="button">{open ? <X aria-hidden="true" size={22} /> : <MessageCircle aria-hidden="true" size={22} />}</button> : null}
     </aside> : null}
-    <button aria-label="Lên đầu trang" className={showTop ? "floating-top floating-top--visible" : "floating-top"} onClick={() => window.scrollTo({ top: 0, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" })} tabIndex={showTop ? 0 : -1} title="Lên đầu trang" type="button"><ArrowUp aria-hidden="true" size={20} /></button>
+    <button aria-label={t("floating.backToTop")} className={showTop ? "floating-top floating-top--visible" : "floating-top"} onClick={() => window.scrollTo({ top: 0, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" })} tabIndex={showTop ? 0 : -1} title={t("floating.backToTop")} type="button"><ArrowUp aria-hidden="true" size={20} /></button>
   </>;
 }

@@ -19,13 +19,15 @@ import { getPartners, getTestimonials } from "@iorder/shared/server/supporting/s
 import { getTaxonomy } from "@iorder/shared/server/taxonomy/taxonomy.service";
 import { logger } from "@iorder/shared/server/shared/logger";
 import { verifyPreviewToken } from "@iorder/shared/server/publishing/preview-token";
+import { defaultLocale } from "@iorder/shared/server/translations/locales";
+import { getSiteLocales, getUiMessages, localizeContent } from "@iorder/shared/server/translations/translations.service";
 import { builderPreviewPublicContent, readBuilderPreview } from "@iorder/shared/server/publishing/builder-preview.service";
 
 export const runtime = "nodejs";
 
 const resourceSchema = z.enum([
   "shared", "page", "page-summaries", "post", "post-summaries", "post-taxonomy",
-  "taxonomy", "offering", "offering-summaries", "equipment", "downloads", "partners", "testimonials", "author", "author-summaries",
+  "taxonomy", "offering", "offering-summaries", "equipment", "downloads", "partners", "testimonials", "author", "author-summaries", "messages",
 ]);
 const offeringTypeSchema = z.enum(["software", "solution"]);
 const postTypeSchema = z.enum(["announcement", "case_study", "guide", "news", "promotion"]);
@@ -47,7 +49,10 @@ export async function GET(request: Request) {
   // Xem trước bản nháp: token hợp lệ chỉ mở đúng một nội dung (loại + id); phản hồi không được cache.
   const preview = verifyPreviewToken(query.get("preview"));
   const previewId = (kind: "post" | "page" | "offering") => preview?.kind === kind ? preview.id : undefined;
-  const respond = (body: unknown) => NextResponse.json(body, preview ? { headers: { "cache-control": "private, no-store" } } : undefined);
+  // Ngôn ngữ website xin (?lang=en): bản dịch đã nhập trong CMS thay chữ tiếng Việt trước khi trả đi, câu chưa dịch giữ tiếng Việt. Xem trước bản nháp luôn là bản gốc.
+  const lang = query.get("lang");
+  const json = async (body: unknown) => NextResponse.json(await localizeContent(body, preview ? null : lang));
+  const respond = (body: unknown) => preview ? NextResponse.json(body, { headers: { "cache-control": "private, no-store" } }) : json(body);
 
   try {
     if (preview?.kind === "builder" && (resource.data === "page" || resource.data === "offering" || resource.data === "equipment" || resource.data === "post")) {
@@ -63,7 +68,7 @@ export async function GET(request: Request) {
         ]);
         // Mã website Umami (không bí mật) để website gắn thẻ theo dõi: biến môi trường thắng, không có thì lấy mã Super Admin nhập ở CMS.
         const umamiId = process.env.UMAMI_WEBSITE_ID?.trim() || await getCmsSecret("umami_website_id").catch(() => undefined);
-        return NextResponse.json({ settings: { config, profile, externalLinks, consultPopup, catalogContent, listingContent }, navigation: { header, headerCta, footer }, integrations: { umamiWebsiteId: umamiId && /^[0-9a-f-]{36}$/i.test(umamiId) ? umamiId : null } });
+        return json({ settings: { config, profile, externalLinks, consultPopup, catalogContent, listingContent }, navigation: { header, headerCta, footer }, i18n: { defaultLocale, locales: await getSiteLocales() }, integrations: { umamiWebsiteId: umamiId && /^[0-9a-f-]{36}$/i.test(umamiId) ? umamiId : null } });
       }
       case "page":
         if (!slug) return invalidRequest("Cần slug trang.");
@@ -72,41 +77,44 @@ export async function GET(request: Request) {
           // Chỉ báo "đã tồn tại nhưng chưa xuất bản" cho slug hệ thống (đã công khai trong code), không dò slug tùy ý.
           return respond({ page, systemPageExists: page ? true : await systemPageExists(slug) });
         }
+      // Bản dịch chữ cố định của giao diện website (nút, nhãn…): chỉ các khóa đã dịch; chưa có thì website dùng tiếng Việt trong code.
+      case "messages":
+        return NextResponse.json({ messages: await getUiMessages(lang) });
       case "page-summaries":
-        return NextResponse.json({ pages: await getPublishedPageSummaries() });
+        return json({ pages: await getPublishedPageSummaries() });
       case "post":
         if (!slug) return invalidRequest("Cần slug bài viết.");
         return respond({ post: (previewId("post") ? await getPublishedPostBySlug(slug, previewId("post")) : undefined) ?? await getPublishedPostBySlug(slug) ?? null });
       case "post-summaries":
-        return NextResponse.json({ posts: await getPublishedPostSummaries(postType?.data) });
+        return json({ posts: await getPublishedPostSummaries(postType?.data) });
       case "post-taxonomy": {
         if (!slug) return invalidRequest("Cần slug phân loại bài viết.");
         const kind = z.enum(["category", "tag"]).safeParse(query.get("taxonomyKind"));
         if (!kind.success) return invalidRequest("Loại phân loại bài viết không hợp lệ.");
-        return NextResponse.json({ posts: await getPublishedPostsByTaxonomy(kind.data, slug) });
+        return json({ posts: await getPublishedPostsByTaxonomy(kind.data, slug) });
       }
       case "taxonomy":
-        return NextResponse.json({ taxonomy: await getTaxonomy() });
+        return json({ taxonomy: await getTaxonomy() });
       // Trang tác giả: chỉ tác giả đã bật trang và có bài đang hiển thị (không thì null → website trả 404).
       case "author":
         if (!slug) return invalidRequest("Cần slug tác giả.");
-        return NextResponse.json({ result: await getPublishedAuthorPage(slug) });
+        return json({ result: await getPublishedAuthorPage(slug) });
       case "author-summaries":
-        return NextResponse.json({ authors: await getPublishedAuthorSummaries() });
+        return json({ authors: await getPublishedAuthorSummaries() });
       case "offering":
         if (!slug || !offeringType?.success) return invalidRequest("Cần loại và slug nội dung catalog.");
         return respond({ offering: (previewId("offering") ? await getPublishedOfferingBySlug(offeringType.data, slug, previewId("offering")) : undefined) ?? await getPublishedOfferingBySlug(offeringType.data, slug) ?? null });
       case "offering-summaries":
         if (!offeringType?.success) return invalidRequest("Cần loại nội dung catalog.");
-        return NextResponse.json({ offerings: await getPublishedOfferingSummaries(offeringType.data) });
+        return json({ offerings: await getPublishedOfferingSummaries(offeringType.data) });
       case "equipment":
-        return NextResponse.json({ equipment: await getEquipment(true) });
+        return json({ equipment: await getEquipment(true) });
       case "downloads":
-        return NextResponse.json({ downloads: await getEnabledSupportDownloads() });
+        return json({ downloads: await getEnabledSupportDownloads() });
       case "partners":
-        return NextResponse.json({ partners: await getPartners(true) });
+        return json({ partners: await getPartners(true) });
       case "testimonials":
-        return NextResponse.json({ testimonials: await getTestimonials(true) });
+        return json({ testimonials: await getTestimonials(true) });
     }
   } catch (error) {
     logger.error("Đọc nội dung public thất bại.", { request, resource: resource.data, error });

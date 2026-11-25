@@ -2,6 +2,8 @@ import type { Metadata, ResolvingMetadata } from "next";
 import { draftMode, headers } from "next/headers";
 import { contentSeoSchema, type ContentSeo } from "@iorder/shared/server/shared/content-seo";
 import { getMediaById, getPublishingConfig } from "@/lib/backend";
+import { getLocale } from "@/lib/locale";
+import { localeTags } from "@iorder/shared/server/translations/locales";
 import { ogImagePath, ogImageSize } from "@/lib/og-image";
 import { robotsDirectives } from "@/lib/robots-meta";
 import { withBrand } from "@iorder/shared/server/shared/seo";
@@ -39,6 +41,7 @@ export async function contentMetadata(input: ContentMetadataInput, parent: Resol
     seo.twitter?.imageMediaId ? getMediaById(seo.twitter.imageMediaId) : null,
   ]);
   const preview = draft.isEnabled || Boolean(requestHeaders.get("x-iorder-builder-preview"));
+  const locale = await getLocale();
   // Không có metadataBase (chưa cấu hình URL website) thì đường dẫn tương đối không có nghĩa.
   const url = input.canonicalUrl ?? (inherited.metadataBase ? input.path : undefined);
   const description = input.description ?? undefined;
@@ -51,7 +54,7 @@ export async function contentMetadata(input: ContentMetadataInput, parent: Resol
   const generated = inherited.metadataBase ? [{ url: ogImagePath(seo.openGraph?.title || input.title), width: ogImageSize.width, height: ogImageSize.height, alt: ogTitle }] : undefined;
   const images = ogMedia?.mimeType.startsWith("image/") ? [{ url: ogMedia.url, alt: ogMedia.altText ?? ogTitle }] : input.image ? [{ url: input.image.url, alt: input.image.alt ?? input.title }] : siteImages ?? generated;
   const twitterImages = twitterMedia?.mimeType.startsWith("image/") ? [{ url: twitterMedia.url, alt: twitterMedia.altText ?? input.title }] : images;
-  const common = { title: ogTitle, description: ogDescription, url, locale: "vi_VN", siteName: inherited.openGraph?.siteName ?? undefined, images };
+  const common = { title: ogTitle, description: ogDescription, url, locale: localeTags[locale].openGraph, siteName: inherited.openGraph?.siteName ?? undefined, images };
   // modifiedTime không được trước publishedTime (dữ liệu nhập tay/nhập khẩu có thể lệch).
   const published = input.article?.publishedTime ?? undefined;
   const modified = input.article?.modifiedTime && (!published || input.article.modifiedTime >= published) ? input.article.modifiedTime : undefined;

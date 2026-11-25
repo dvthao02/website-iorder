@@ -12,6 +12,7 @@ import { youtubeVideoId } from "@iorder/shared/server/shared/youtube";
 import { getMediaById } from "@/lib/backend";
 import { getExternalLinks, getPartners, getSiteProfile, getTestimonials } from "@/lib/backend";
 import { ButtonLink, Card, CardText, CardTitle, FaqList, FrameSection, IconTile, MoreLink, cardFlex, itemAlignClass, SectionHeading, TextLink, gridColumns } from "@/components/ui";
+import { getT } from "@/lib/messages";
 import { ArticleToc } from "./article-toc";
 import { BlockIcon } from "./block-icon";
 import { CollectionList } from "./collection-list";
@@ -77,6 +78,7 @@ type CardItem = Extract<PageBlock, { type: "features" | "industries" | "ecosyste
 // Chỉ cần một thẻ có ảnh (mediaId) là cả lưới chuyển sang thẻ ảnh kiểu KiotViet/iPOS: ảnh ngang bo góc ở đầu thẻ;
 // thẻ chưa có ảnh dùng mảng màu nhấn với biểu tượng lớn để lưới vẫn đều nhau trong lúc chờ ảnh.
 async function CardGrid({ items, visual = false, bento = false, network = false }: { items: CardItem[]; visual?: boolean; bento?: boolean; network?: boolean }) {
+  const t = await getT();
   // Mỗi thẻ có thể có nhiều ảnh (ảnh đầu + ảnh thêm); từ 2 ảnh thì thẻ tự chuyển ảnh.
   const galleries = await Promise.all(items.map(item => loadBlockImages([item.mediaId, ...(item.extraMediaIds ?? [])])));
   const photos = galleries.map(gallery => gallery[0] ?? null);
@@ -96,7 +98,7 @@ async function CardGrid({ items, visual = false, bento = false, network = false 
       <div className="flex flex-col gap-3 border-t border-line p-6 lg:gap-2 lg:p-7">
         <h3 className="mb-0 text-h2 leading-tight font-bold tracking-tight text-balance text-ink" data-builder-field="title">{lead.title}</h3>
         {lead.description ? <span className="max-w-xl text-body text-muted" data-builder-field="description">{lead.description}</span> : null}
-        {lead.href ? <span className="mt-1 text-small font-semibold text-brand-700 group-hover:underline">Xem chi tiết →</span> : null}
+        {lead.href ? <span className="mt-1 text-small font-semibold text-brand-700 group-hover:underline">{t("common.viewDetail")}</span> : null}
       </div>
     </>;
     const leadClass = `group relative flex min-h-[26rem] flex-col overflow-hidden rounded-card border border-line bg-white shadow-card transition hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-raised sm:col-span-2 lg:col-span-1 lg:row-span-2 lg:min-h-0 ${lead.background && isDarkColor(lead.background) ? "card-on-dark" : ""}`;
@@ -114,7 +116,7 @@ async function CardGrid({ items, visual = false, bento = false, network = false 
           <div className="flex min-w-0 flex-1 flex-col p-5 lg:py-4">
             <CardTitle className="lg:text-body! xl:text-lead!">{item.title}</CardTitle>
             {item.description ? <CardText className="mt-2 line-clamp-3 shrink-0 text-small! lg:mt-1 lg:line-clamp-2">{item.description}</CardText> : null}
-            {item.href ? <span className="mt-auto pt-5 text-small font-semibold text-brand-700 group-hover:underline lg:pt-2">Xem thêm →</span> : null}
+            {item.href ? <span className="mt-auto pt-5 text-small font-semibold text-brand-700 group-hover:underline lg:pt-2">{t("common.viewMore")}</span> : null}
           </div>
         </Card>;
       })}
@@ -164,14 +166,15 @@ async function CardGrid({ items, visual = false, bento = false, network = false 
 
 // Lưới thẻ trên nền tối (ví dụ "Vì sao chọn iOrder"): tiêu đề cột trái, các ý xếp 2 cột bên phải, ngăn bằng vạch mảnh,
 // không đóng khung từng ý; khác hẳn nhịp "tiêu đề giữa + hàng thẻ" của các phần sáng. Điện thoại: một cột.
-function DarkFeatureList({ eyebrow, title, description, items }: { eyebrow: string | null; title: string; description: string | null; items: CardItem[] }) {
+async function DarkFeatureList({ eyebrow, title, description, items }: { eyebrow: string | null; title: string; description: string | null; items: CardItem[] }) {
+  const t = await getT();
   return <div className="grid gap-10 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-16">
     <SectionHeading align="left" className="lg:sticky lg:top-28 lg:self-start" dark description={description} eyebrow={eyebrow} title={title} />
     <ul className="m-0 grid list-none gap-x-10 p-0 sm:grid-cols-2">{items.map((item, index) => <li className="border-t border-white/15 py-7" data-builder-item={`items:${index}`} key={`${item.title}-${index}`}>
       <span aria-hidden="true" className="mb-5 grid size-11 place-items-center rounded-control bg-brand-500/20 text-brand-200 ring-1 ring-white/10">{item.icon ? <BlockIcon name={item.icon} size={22} strokeWidth={1.8} /> : <span className="text-small font-bold">{String(index + 1).padStart(2, "0")}</span>}</span>
       <h3 className="mb-0 text-h3 font-bold tracking-tight text-white" data-builder-field="title">{item.title}</h3>
       {item.description ? <p className="mt-2 mb-0 text-body text-white/70" data-builder-field="description">{item.description}</p> : null}
-      {item.href ? <TextLink className="mt-3 inline-block text-small font-bold text-white hover:underline" field="href" href={item.href}>Xem thêm →</TextLink> : null}
+      {item.href ? <TextLink className="mt-3 inline-block text-small font-bold text-white hover:underline" field="href" href={item.href}>{t("common.viewMore")}</TextLink> : null}
     </li>)}</ul>
   </div>;
 }
@@ -179,7 +182,8 @@ function DarkFeatureList({ eyebrow, title, description, items }: { eyebrow: stri
 // Các bước theo thứ tự: số lớn nối bằng đường kẻ (ngang trên máy tính, dọc trên điện thoại).
 // Từ 5 bước trở lên, năm cột ở khổ máy tính bảng (768px) quá hẹp: chỉ xếp ngang từ 1024px, dưới đó giữ dạng dọc có đường nối như điện thoại.
 // Hai bộ lớp viết nguyên chuỗi (md / lg) để trình quét Tailwind nhận ra.
-function ProcessSteps({ items, dark = false }: { items: CardItem[]; dark?: boolean }) {
+async function ProcessSteps({ items, dark = false }: { items: CardItem[]; dark?: boolean }) {
+  const t = await getT();
   const wide = items.length >= 5;
   return <ol className={`relative m-0 grid list-none gap-8 p-0 ${wide ? "lg:grid-flow-col lg:auto-cols-fr lg:gap-6" : "md:grid-flow-col md:auto-cols-fr md:gap-6"}`}>
     {items.map((item, index) => <li className={`relative pl-16 ${wide ? "lg:pt-16 lg:pl-0" : "md:pt-16 md:pl-0"}`} data-builder-item={`items:${index}`} key={`${item.title}-${index}`}>
@@ -187,7 +191,7 @@ function ProcessSteps({ items, dark = false }: { items: CardItem[]; dark?: boole
       {index < items.length - 1 ? <span aria-hidden className={`absolute top-12 bottom-[-2rem] left-6 w-px ${wide ? "lg:top-6 lg:right-[-1.5rem] lg:bottom-auto lg:left-14 lg:h-px lg:w-auto" : "md:top-6 md:right-[-1.5rem] md:bottom-auto md:left-14 md:h-px md:w-auto"} ${dark ? "bg-white/25" : "bg-brand-200"}`} /> : null}
       <CardTitle className={dark ? "text-white!" : ""}>{item.title}</CardTitle>
       {item.description ? <CardText className={dark ? "mt-2 text-white/75!" : "mt-2"}>{item.description}</CardText> : null}
-      {item.href ? <TextLink className={`mt-3 inline-block text-small font-bold hover:underline ${dark ? "text-white" : "text-brand-700"}`} field="href" href={item.href}>Xem thêm →</TextLink> : null}
+      {item.href ? <TextLink className={`mt-3 inline-block text-small font-bold hover:underline ${dark ? "text-white" : "text-brand-700"}`} field="href" href={item.href}>{t("common.viewMore")}</TextLink> : null}
     </li>)}
   </ol>;
 }
@@ -204,6 +208,7 @@ function initials(name: string) {
 }
 
 async function Block({ block, first, frame: blockFrame, staticPage }: { block: PageBlock; first: boolean; frame: BlockFrame; staticPage?: StaticPageProfile }) {
+  const t = await getT();
   // Khối đầu trang nằm ngay màn hình đầu tiên: ảnh nền của khung và ảnh nội dung tải ngay (không lazy) để không kéo chậm LCP.
   const frame = first ? { ...blockFrame, eager: true } : blockFrame;
   const dark = frame.tone === "dark";
@@ -267,7 +272,7 @@ async function Block({ block, first, frame: blockFrame, staticPage }: { block: P
         <div className={`grid gap-5 ${gridColumns(testimonials.length)}`} data-builder-field="limit">{testimonials.map(item => <Card as="figure" className="feature-card m-0" key={item.id}>
           {/* Hàng đầu thẻ: số sao (nếu có) bên trái, dấu trích dẫn mờ bên phải. */}
           <div className="mb-4 flex items-center justify-between gap-3">
-            {item.rating ? <p aria-label={`${item.rating} trên 5 sao`} className="mb-0 text-accent-amber">{"★".repeat(item.rating)}<span className="text-subtle">{"★".repeat(5 - item.rating)}</span></p> : <span />}
+            {item.rating ? <p aria-label={t("common.stars", { rating: item.rating })} className="mb-0 text-accent-amber">{"★".repeat(item.rating)}<span className="text-subtle">{"★".repeat(5 - item.rating)}</span></p> : <span />}
             <Quote aria-hidden="true" className="text-brand-200" fill="currentColor" size={28} strokeWidth={1.5} />
           </div>
           <blockquote className="m-0 flex-1 text-body text-ink/80">{item.quote}</blockquote>
@@ -327,16 +332,16 @@ async function Block({ block, first, frame: blockFrame, staticPage }: { block: P
           <div className="document-layout__main">
             {block.data.heading ? <h2 className="mb-6 text-h2 font-bold tracking-tight text-ink" data-builder-field="title">{block.data.heading}</h2> : null}
             <div data-builder-field="body">
-              <RichTableOfContents className="lg:hidden" doc={body} label="Mục lục nội dung" title="Nội dung trong trang" />
+              <RichTableOfContents className="lg:hidden" doc={body} label={t("common.contentTocLabel")} title={t("common.contentTocTitle")} />
               <RichContent doc={body} />
             </div>
           </div>
-          <aside aria-label="Mục lục trang" className="document-layout__toc"><div className="document-layout__sticky"><ArticleToc entries={toc} label="Mục lục nội dung" title="Nội dung trong trang" /></div></aside>
+          <aside aria-label={t("common.pageTocLabel")} className="document-layout__toc"><div className="document-layout__sticky"><ArticleToc entries={toc} label={t("common.contentTocLabel")} title={t("common.contentTocTitle")} /></div></aside>
         </div>
       </FrameSection>;
       return <FrameSection frame={frame} width="text">
       {block.data.heading ? <h2 className="mb-6 text-h2 font-bold tracking-tight text-ink" data-builder-field="title">{block.data.heading}</h2> : null}
-      {typeof block.data.body === "string" ? <div className="grid gap-5 text-lead text-ink/80" data-builder-field="body">{block.data.body.split("\n").map((paragraph, index) => paragraph ? <p className="mb-0" key={index}>{paragraph}</p> : null)}</div> : <div data-builder-field="body">{staticPage === "document" ? <RichTableOfContents doc={block.data.body} label="Mục lục nội dung" title="Nội dung trong trang" /> : null}<RichContent doc={block.data.body} /></div>}
+      {typeof block.data.body === "string" ? <div className="grid gap-5 text-lead text-ink/80" data-builder-field="body">{block.data.body.split("\n").map((paragraph, index) => paragraph ? <p className="mb-0" key={index}>{paragraph}</p> : null)}</div> : <div data-builder-field="body">{staticPage === "document" ? <RichTableOfContents doc={block.data.body} label={t("common.contentTocLabel")} title={t("common.contentTocTitle")} /> : null}<RichContent doc={block.data.body} /></div>}
     </FrameSection>;
     }
     case "image": {

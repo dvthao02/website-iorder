@@ -2,6 +2,7 @@ import { ChevronDown } from "lucide-react";
 import type { ReactNode } from "react";
 
 import type { GuideGroup } from "@/lib/guides";
+import { createTranslate, type Translate } from "@/lib/translate";
 import { SiteLink as Link } from "./site-link";
 import { SlidingRail } from "./sliding-rail";
 
@@ -10,8 +11,8 @@ import { SlidingRail } from "./sliding-rail";
  * thanh trượt theo bài đang rê chuột rồi quay về bài đang xem.
  * Nhóm chứa bài đang xem mở sẵn; ở trang tổng hợp (không có bài đang xem) mọi nhóm đều mở.
  */
-function GuideNav({ groups, activeHref }: { groups: GuideGroup[]; activeHref?: string }) {
-  return <nav aria-label="Danh mục hướng dẫn" className="guide-nav"><SlidingRail className="guide-nav__rail">
+function GuideNav({ groups, activeHref, t }: { groups: GuideGroup[]; activeHref?: string; t: Translate }) {
+  return <nav aria-label={t("guide.navLabel")} className="guide-nav"><SlidingRail className="guide-nav__rail">
     {groups.map((group) => {
       const open = !activeHref || groups.length === 1 || group.items.some((item) => item.href === activeHref);
       return <details className="guide-nav__group" key={group.key} open={open}>
@@ -27,12 +28,12 @@ function GuideNav({ groups, activeHref }: { groups: GuideGroup[]; activeHref?: s
  * Hai cột bên bám theo khi cuộn. Dưới 1024px danh mục thành hộp "Danh mục hướng dẫn" gập ở đầu nội dung;
  * dưới 1280px mục lục phải ẩn (bài tự hiện mục lục ngay đầu nội dung).
  */
-export function GuideDocsLayout({ groups, activeHref, toc = null, children }: { groups: GuideGroup[]; activeHref?: string; toc?: ReactNode; children: ReactNode }) {
+export function GuideDocsLayout({ groups, activeHref, toc = null, children, t = createTranslate() }: { groups: GuideGroup[]; activeHref?: string; toc?: ReactNode; children: ReactNode; t?: Translate }) {
   return <div className="guide-docs">
     <div className={`site-container guide-docs__grid${toc ? " guide-docs__grid--toc" : ""}`}>
-      <aside className="guide-docs__side"><div className="guide-docs__sticky"><GuideNav activeHref={activeHref} groups={groups} /></div></aside>
+      <aside className="guide-docs__side"><div className="guide-docs__sticky"><GuideNav activeHref={activeHref} groups={groups} t={t} /></div></aside>
       <div className="min-w-0">
-        <details className="guide-docs__mobile-nav"><summary>Danh mục hướng dẫn<ChevronDown aria-hidden="true" size={18} /></summary><GuideNav activeHref={activeHref} groups={groups} /></details>
+        <details className="guide-docs__mobile-nav"><summary>{t("guide.navLabel")}<ChevronDown aria-hidden="true" size={18} /></summary><GuideNav activeHref={activeHref} groups={groups} t={t} /></details>
         {children}
       </div>
       {toc ? <aside className="guide-docs__toc"><div className="guide-docs__sticky">{toc}</div></aside> : null}

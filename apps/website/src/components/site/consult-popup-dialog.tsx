@@ -4,11 +4,13 @@ import { ArrowRight, ChevronDown, CircleCheck, ExternalLink, Phone, ShieldCheck,
 import Image from "next/image";
 import { useCallback, useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from "react";
 
-import { isPopupExternalLink, type ConsultPopup as ConsultPopupSettings } from "@iorder/shared/server/settings/consult-popup.contract";
+import type { ConsultPopup as ConsultPopupSettings } from "@iorder/shared/server/settings/consult-popup.contract";
+import { isPopupExternalLink } from "@iorder/shared/server/settings/popup-link";
 import { consultPopupPromoLayout, consultPopupPromoPresentation } from "@iorder/shared/server/settings/consult-popup.presentation";
 import { consultPopupImageSizes, consultPopupRemember, consultPopupSubmittedDays, type ConsultPopupKind } from "@/lib/consult-popup-behavior";
 import { submitLead, warmLeadToken } from "@/lib/submit-lead";
 import { Field, inputClassName } from "./lead-form";
+import { useT } from "./messages-provider";
 import { PhoneInput } from "./phone-input";
 import { SiteLink } from "./site-link";
 
@@ -67,6 +69,7 @@ function PopupContent({ popup, image, hotline, pathname, close, kind, storageKey
   const panel = useRef<HTMLDivElement>(null);
   const titleId = useId();
   const descriptionId = useId();
+  const t = useT();
   const [busy, setBusy] = useState(false);
   const [success, setSuccess] = useState(false);
   const [message, setMessage] = useState("");
@@ -116,7 +119,7 @@ function PopupContent({ popup, image, hotline, pathname, close, kind, storageKey
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setBusy(true); setMessage("");
     const data = Object.fromEntries(new FormData(event.currentTarget).entries());
-    const result = await submitLead({ name: String(data.name ?? ""), phone: String(data.phone ?? ""), email: "", need: String(data.need ?? ""), message: `Gửi từ biểu mẫu tư vấn tự hiện · ${pathname}`, website: String(data.website ?? "") });
+    const result = await submitLead({ name: String(data.name ?? ""), phone: String(data.phone ?? ""), email: "", need: String(data.need ?? ""), message: `Gửi từ biểu mẫu tư vấn tự hiện · ${pathname}`, website: String(data.website ?? "") }, t);
     setBusy(false);
     if (result.ok) { setSuccess(true); consultPopupRemember(storageKey, consultPopupSubmittedDays); }
     else setMessage(result.message);
@@ -134,9 +137,9 @@ function PopupContent({ popup, image, hotline, pathname, close, kind, storageKey
     : "consult-popup__body";
   return <div className={bar ? "consult-popup consult-popup--bar" : "consult-popup"} onMouseDown={(event) => { if (!bar && event.target === event.currentTarget) dismiss(); }} role="presentation">
     <div aria-describedby={!banner && description ? descriptionId : undefined} aria-label={banner ? title : undefined} aria-labelledby={banner ? undefined : titleId} aria-modal={modal ? true : undefined} className={panelClass} data-layout={promo ? popup.promo.layout : "form"} data-testid="consult-popup-dialog" ref={panel} role="dialog" tabIndex={-1}>
-      <button aria-label="Đóng cửa sổ" className={banner ? "consult-popup__close consult-popup__close--float" : "consult-popup__close"} onClick={dismiss} type="button"><X aria-hidden="true" size={20} /></button>
+      <button aria-label={t("form.closeDialog")} className={banner ? "consult-popup__close consult-popup__close--float" : "consult-popup__close"} onClick={dismiss} type="button"><X aria-hidden="true" size={20} /></button>
       {banner && image
-        ? <PromoLink className="consult-popup__banner group" href={href} label={`${title}${external ? " (mở trang ngoài)" : ""}`} onClick={() => close(repeatDays)}>
+        ? <PromoLink className="consult-popup__banner group" href={href} label={external ? t("consult.openExternal", { title }) : title} onClick={() => close(repeatDays)}>
           {image.width && image.height
             ? <Image alt="" className="consult-popup__banner-image" height={image.height} sizes={consultPopupImageSizes("image")} src={image.url} width={image.width} />
             : <span className="consult-popup__banner-fallback"><Image alt="" className="object-cover" fill sizes={consultPopupImageSizes("image")} src={image.url} /></span>}
@@ -146,11 +149,11 @@ function PopupContent({ popup, image, hotline, pathname, close, kind, storageKey
           <div className={bodyClass}>
             {success ? <div aria-live="polite" className="grid justify-items-center gap-3 py-6 text-center" role="status">
               <CircleCheck aria-hidden="true" className="text-accent-green" size={44} />
-              <p className="mb-0 text-h3 font-bold text-ink">Đã nhận thông tin của bạn</p>
-              <p className="mb-0 text-body text-muted">iOrder sẽ gọi lại trong giờ làm việc.</p>
-              <button className="button button--secondary mt-2" onClick={() => close(consultPopupSubmittedDays)} type="button">Đóng</button>
+              <p className="mb-0 text-h3 font-bold text-ink">{t("consult.receivedTitle")}</p>
+              <p className="mb-0 text-body text-muted">{t("consult.receivedText")}</p>
+              <button className="button button--secondary mt-2" onClick={() => close(consultPopupSubmittedDays)} type="button">{t("form.close")}</button>
             </div> : <>
-              {promo ? null : <p className="consult-popup__eyebrow">Tư vấn iOrder</p>}
+              {promo ? null : <p className="consult-popup__eyebrow">{t("consult.eyebrow")}</p>}
               <div className={promo ? "consult-popup__promo-copy" : "consult-popup__copy"}>
                 <h2 className="mb-0 text-h3 font-bold tracking-tight text-balance text-ink" id={titleId}>{title}</h2>
                 {description ? <p className="mb-0 text-body text-muted" id={descriptionId}>{description}</p> : null}
@@ -158,18 +161,18 @@ function PopupContent({ popup, image, hotline, pathname, close, kind, storageKey
               {promo
                 ? <div className="consult-popup__actions">
                   <PromoLink className="button button--primary" href={href} onClick={() => close(repeatDays)}>{promoActionLabel}{external ? <ExternalLink aria-hidden="true" size={18} /> : <ArrowRight aria-hidden="true" size={18} />}</PromoLink>
-                  {bar ? null : <button className="button button--secondary" onClick={dismiss} type="button">Để sau</button>}
+                  {bar ? null : <button className="button button--secondary" onClick={dismiss} type="button">{t("consult.later")}</button>}
                 </div>
-                : <form aria-label="Đăng ký nhận tư vấn" className="grid gap-4" onSubmit={submit}>
-                  <Field label="Họ và tên" required><input autoComplete="name" className={inputClassName} enterKeyHint="next" maxLength={180} minLength={2} name="name" placeholder="Nguyễn Văn A" required /></Field>
-                  <Field label="Số điện thoại" required><PhoneInput className={inputClassName} enterKeyHint={popup.form.needOptions.length ? "next" : "send"} /></Field>
-                  {popup.form.needOptions.length ? <Field label="Nhu cầu chính" optional><div className="relative"><select className={`${inputClassName} appearance-none pr-10`} name="need"><option value="">Chọn nhu cầu</option>{popup.form.needOptions.map(option => <option key={option}>{option}</option>)}</select><ChevronDown aria-hidden="true" className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-muted" size={18} /></div></Field> : null}
+                : <form aria-label={t("consult.formLabel")} className="grid gap-4" onSubmit={submit}>
+                  <Field label={t("form.name")} required><input autoComplete="name" className={inputClassName} enterKeyHint="next" maxLength={180} minLength={2} name="name" placeholder={t("form.namePlaceholder")} required /></Field>
+                  <Field label={t("form.phone")} required><PhoneInput className={inputClassName} enterKeyHint={popup.form.needOptions.length ? "next" : "send"} /></Field>
+                  {popup.form.needOptions.length ? <Field label={t("form.need")} optional><div className="relative"><select className={`${inputClassName} appearance-none pr-10`} name="need"><option value="">{t("form.needPlaceholder")}</option>{popup.form.needOptions.map(option => <option key={option}>{option}</option>)}</select><ChevronDown aria-hidden="true" className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-muted" size={18} /></div></Field> : null}
                   <label aria-hidden="true" className="hidden">Website<input autoComplete="off" name="website" tabIndex={-1} /></label>
-                  <button className="button button--primary w-full disabled:opacity-60" disabled={busy} type="submit">{busy ? "Đang gửi…" : popup.form.submitLabel}</button>
-                  <p className="mb-0 flex items-center gap-1.5 text-caption text-faint"><ShieldCheck aria-hidden="true" size={14} />Thông tin của bạn chỉ dùng để liên hệ tư vấn.</p>
+                  <button className="button button--primary w-full disabled:opacity-60" disabled={busy} type="submit">{busy ? t("form.sending") : popup.form.submitLabel}</button>
+                  <p className="mb-0 flex items-center gap-1.5 text-caption text-faint"><ShieldCheck aria-hidden="true" size={14} />{t("form.privacy")}</p>
                   {message ? <p className="mb-0 text-small font-medium text-accent-rose" role="alert">{message}</p> : null}
                 </form>}
-              {!promo && hotline ? <p className="mb-0 flex flex-wrap items-center gap-x-2 border-t border-line pt-4 text-small text-muted"><Phone aria-hidden="true" size={16} />Muốn trao đổi trực tiếp? Gọi <a className="font-bold text-ink hover:text-brand-700 hover:underline" href={`tel:${hotline.replace(/[^\d+]/g, "")}`}>{hotline}</a></p> : null}
+              {!promo && hotline ? <p className="mb-0 flex flex-wrap items-center gap-x-2 border-t border-line pt-4 text-small text-muted"><Phone aria-hidden="true" size={16} />{t("form.callDirect")} <a className="font-bold text-ink hover:text-brand-700 hover:underline" href={`tel:${hotline.replace(/[^\d+]/g, "")}`}>{hotline}</a></p> : null}
             </>}
           </div>
         </>}

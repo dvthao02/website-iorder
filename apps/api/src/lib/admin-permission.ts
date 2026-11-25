@@ -31,6 +31,8 @@ const resourceModules: Record<string, CmsModuleKey> = {
   "consult-popup": "settings",
   "consult-form": "settings",
   "promotion-popup": "settings",
+  // Bản dịch nội dung công khai: xem/xuất cùng quyền xem cài đặt, nhập file cần settings.update (xem requiredAdminPermissions).
+  translations: "settings",
   // Cùng quyền với màn "Kiểm tra xuất bản" chứa nó; service tự lọc nội dung theo quyền xem từng module.
   "seo-audit": "settings",
   // Số liệu tìm kiếm đọc từ Google Search Console (chỉ đọc), cùng quyền với màn "Kiểm tra xuất bản".
@@ -96,6 +98,9 @@ export function requiredAdminPermissions(pathname: string, method: string): CmsP
   if ((resource === "dashboard" || resource === "tim-kiem" || resource === "notifications") && action === "view") return cmsPermissions.filter((permission) => permission.code.endsWith(".view")).map((permission) => permission.code);
   // Đọc/xóa thông báo chỉ đổi trạng thái riêng của người đang xem (không đổi nội dung nào): ai mở được chuông thì thao tác được.
   if (resource === "notifications" && action === "create") return cmsPermissions.filter((permission) => permission.code.endsWith(".view")).map((permission) => permission.code);
+
+  // Bản dịch: nhập file là POST nhưng là sửa nội dung công khai chứ không phải tạo mới, mà module settings chỉ có view/update.
+  if (resource === "translations") return action === "view" ? permissionsFor("settings", ["view"]) : action === "create" || action === "update" ? permissionsFor("settings", ["update"]) : [];
 
   // Xuất/nhập file theo bảng: quyền của module sở hữu bảng (xuất = view; nhập = create hoặc update, route kiểm từng dòng).
   if (resource === "data-transfer") {

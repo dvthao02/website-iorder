@@ -10,20 +10,22 @@ import { fixedWebsitePages } from "@iorder/shared/server/pages/pages.contract";
 import { getPublishedPage } from "@/lib/backend";
 import { ContentJsonLd } from "./content-json-ld";
 import { suggestPageSeoDescription } from "@iorder/shared/server/shared/seo";
+import { getT } from "@/lib/messages";
 
 export type Crumb = { name: string; path: string };
 
 /** Dữ liệu cấu trúc breadcrumb (Trang chủ › …) cho Google; không hiện gì trên trang. Cần URL website trong Cài đặt. */
 export async function BreadcrumbJsonLd({ crumbs }: { crumbs: Crumb[] }) {
+  const t = await getT();
   const site = (await getPublishingConfig()).siteUrl;
   const binding = fixedWebsitePages.find(page => page.publicPath === crumbs.at(-1)?.path);
   const page = binding ? await getPublishedPage(binding.slug) : undefined;
   if (page && site) {
     const description = page.seoDescription || suggestPageSeoDescription(page.blocks);
     // Trang danh sách là CollectionPage; trang hệ thống khác (hỗ trợ…) là WebPage. Cả hai thuộc WebSite chung và có ngày sửa.
-    return <ContentJsonLd seo={page.seo} title={page.title} description={description} path={binding!.publicPath} defaults={[breadcrumbJsonLd(site, [{ name: "Trang chủ", path: "/" }, ...crumbs]), webPageJsonLd(site, { kind: webPageKindOf(binding!.slug, binding!.kind), name: page.title, description, path: binding!.publicPath, modifiedAt: page.updatedAt })]} />;
+    return <ContentJsonLd seo={page.seo} title={page.title} description={description} path={binding!.publicPath} defaults={[breadcrumbJsonLd(site, [{ name: t("crumb.home"), path: "/" }, ...crumbs]), webPageJsonLd(site, { kind: webPageKindOf(binding!.slug, binding!.kind), name: page.title, description, path: binding!.publicPath, modifiedAt: page.updatedAt })]} />;
   }
-  return site ? <JsonLd data={[breadcrumbJsonLd(site, [{ name: "Trang chủ", path: "/" }, ...crumbs])]} /> : null;
+  return site ? <JsonLd data={[breadcrumbJsonLd(site, [{ name: t("crumb.home"), path: "/" }, ...crumbs])]} /> : null;
 }
 
 // Phần đầu trang con (trang danh sách, chuyên mục, thẻ…): đường dẫn "Trang chủ › … › trang này" (kèm dữ liệu cấu trúc),
@@ -44,12 +46,13 @@ export async function PageHero({ crumbs, eyebrow, title, description, children }
   </header>;
 }
 
-export function BreadcrumbTrail({ crumbs }: { crumbs: Crumb[] }) {
+export async function BreadcrumbTrail({ crumbs }: { crumbs: Crumb[] }) {
+  const t = await getT();
   const trail = crumbs.slice(0, -1);
   const current = crumbs.at(-1);
-  return <nav aria-label="Đường dẫn">
+  return <nav aria-label={t("article.breadcrumb")}>
         <ol className="m-0 flex list-none flex-wrap items-center gap-1.5 p-0 text-small text-muted">
-          <li><Link className="transition hover:text-brand-700" href="/">Trang chủ</Link></li>
+          <li><Link className="transition hover:text-brand-700" href="/">{t("crumb.home")}</Link></li>
           {trail.map((crumb) => <li className="flex items-center gap-1.5" key={crumb.path}>
             <ChevronRight aria-hidden="true" size={14} />
             <Link className="transition hover:text-brand-700" href={crumb.path}>{crumb.name}</Link>

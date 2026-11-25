@@ -5,6 +5,7 @@ import { ArrowLeft, ArrowRight, Pause, Play } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { SiteLink } from "./site-link";
 import { nextSliderIndex, previousSliderIndex, sliderIndexFromScroll, sliderPages } from "@/lib/slider-math";
+import { useT } from "./messages-provider";
 
 export type CarouselSlide = { title: string; description: string | null; href: string | null; image: { url: string; alt: string; kind: "photo" | "cutout" } | null };
 
@@ -16,6 +17,7 @@ const interval = 4500;
 // `variant="quad"`: dải cuối của lưới ảnh thực tế, hiện 4 ảnh cùng lúc (khớp các ô phía trên) và luôn hiện tên; `firstIndex`: vị trí của ảnh đầu dải trong danh sách thẻ gốc (cho trình dựng trang).
 // `eager`: dải nằm trong màn hình đầu hoặc đang xem trước trong CMS → ảnh đầu được ưu tiên tải, hai ảnh kế tải ngay; còn lại vẫn lazy.
 export function StoreCarousel({ slides, label, variant, firstIndex = 0, eager = false }: { slides: CarouselSlide[]; label: string; variant?: "quad"; firstIndex?: number; eager?: boolean }) {
+  const t = useT();
   const track = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState(0);
   const [pages, setPages] = useState(Math.max(1, slides.length));
@@ -105,7 +107,7 @@ export function StoreCarousel({ slides, label, variant, firstIndex = 0, eager = 
           <span className="slider__caption">
             <strong data-builder-field="title">{slide.title}</strong>
             {slide.description ? <span className="slider__text" data-builder-field="description">{slide.description}</span> : null}
-            {slide.href ? <span aria-hidden="true" className="slider__more">Xem thêm →</span> : null}
+            {slide.href ? <span aria-hidden="true" className="slider__more">{t("common.viewMore")}</span> : null}
           </span>
         </>;
         return <div aria-label={`${index + 1} / ${slides.length}`} aria-roledescription="slide" className="slider__item" data-builder-item={`items:${firstIndex + index}`} key={`${slide.title}-${index}`} role="group">
@@ -116,13 +118,13 @@ export function StoreCarousel({ slides, label, variant, firstIndex = 0, eager = 
       })}
     </div>
     {pages > 1 ? <div className="slider__controls">
-      <div aria-label="Chọn ảnh" className="slider__dots" role="group">
-        {Array.from({ length: pages }, (_, index) => <button aria-current={index === active ? "true" : undefined} aria-label={`Ảnh ${index + 1}`} className="slider__dot" key={index} onClick={() => goTo(index)} type="button" />)}
+      <div aria-label={t("slider.selectImage")} className="slider__dots" role="group">
+        {Array.from({ length: pages }, (_, index) => <button aria-current={index === active ? "true" : undefined} aria-label={t("slider.image", { n: index + 1 })} className="slider__dot" key={index} onClick={() => goTo(index)} type="button" />)}
       </div>
       <div className="slider__buttons">
-        <button aria-label={playing ? "Tạm dừng tự trượt" : "Bật tự trượt"} className="slider__button" onClick={() => setPlaying(value => !value)} type="button">{playing ? <Pause aria-hidden="true" size={16} /> : <Play aria-hidden="true" size={16} />}</button>
-        <button aria-label="Ảnh trước" className="slider__button" onClick={() => goTo(previousSliderIndex(active, pages))} type="button"><ArrowLeft aria-hidden="true" size={18} /></button>
-        <button aria-label="Ảnh kế tiếp" className="slider__button" onClick={() => goTo(nextSliderIndex(active, pages))} type="button"><ArrowRight aria-hidden="true" size={18} /></button>
+        <button aria-label={playing ? t("slider.pause") : t("slider.play")} className="slider__button" onClick={() => setPlaying(value => !value)} type="button">{playing ? <Pause aria-hidden="true" size={16} /> : <Play aria-hidden="true" size={16} />}</button>
+        <button aria-label={t("slider.prevImage")} className="slider__button" onClick={() => goTo(previousSliderIndex(active, pages))} type="button"><ArrowLeft aria-hidden="true" size={18} /></button>
+        <button aria-label={t("slider.nextImage")} className="slider__button" onClick={() => goTo(nextSliderIndex(active, pages))} type="button"><ArrowRight aria-hidden="true" size={18} /></button>
       </div>
     </div> : null}
   </div>;

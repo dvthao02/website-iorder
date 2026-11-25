@@ -8,6 +8,7 @@ import { ChipList, DetailHero } from "@/components/site/detail-hero";
 import { OfferingContent } from "@/components/site/offering-content";
 import { loadBlockImages } from "@/components/site/section-blocks";
 import { SiteHeader } from "@/components/site/site-header";
+import { getT } from "@/lib/messages";
 import { getBuilderPreviewContext } from "@/lib/builder-preview";
 import { getOfferingTypeFromCatalogPath, getPublishedOfferingBySlug, getPublishingConfig, getSiteProfile } from "@/lib/backend";
 import { ContentJsonLd } from "@/components/site/content-json-ld";
@@ -19,9 +20,9 @@ type OfferingDetailPageProps = {
   params: Promise<{ catalog: string; slug: string }>;
 };
 
-const catalogLabel = {
-  solutions: "Giải pháp",
-  software: "Phần mềm",
+const catalogLabelKeys = {
+  solutions: "catalog.solutions",
+  software: "catalog.software",
 } as const;
 
 export async function generateMetadata({ params }: OfferingDetailPageProps, parent: ResolvingMetadata): Promise<Metadata> {
@@ -29,20 +30,22 @@ export async function generateMetadata({ params }: OfferingDetailPageProps, pare
   const type = getOfferingTypeFromCatalogPath(catalog);
 
   if (!type) {
-    return { title: "Không tìm thấy nội dung | iOrder" };
+    return { title: (await getT())("offering.notFoundTitle") };
   }
 
   const offering = await getPublishedOfferingBySlug(type, slug);
 
   return offering
     ? contentMetadata({ title: offering.seoTitle ?? offering.title, description: offering.seoDescription ?? offering.summary, path: `/${catalog}/${offering.slug}`, canonicalUrl: offering.canonicalUrl, seo: offering.seo, image: offering.cover ? { url: offering.cover.url, alt: offering.cover.altText } : null }, parent)
-    : { title: "Không tìm thấy nội dung | iOrder" };
+    : { title: (await getT())("offering.notFoundTitle") };
 }
 
 export default async function OfferingDetailPage({ params }: OfferingDetailPageProps) {
+  const t = await getT();
   const { catalog, slug } = await params;
   const type = getOfferingTypeFromCatalogPath(catalog);
-  const label = catalogLabel[catalog as keyof typeof catalogLabel];
+  const labelKey = catalogLabelKeys[catalog as keyof typeof catalogLabelKeys];
+  const label = labelKey ? t(labelKey) : undefined;
 
   if (!type || !label) {
     notFound();
@@ -76,7 +79,7 @@ export default async function OfferingDetailPage({ params }: OfferingDetailPageP
   return (
     <>
       <SiteHeader />
-      {site ? <ContentJsonLd seo={offering.seo} title={offering.title} description={offering.seoDescription} path={`/${catalog}/${offering.slug}`} faq={offering.content.faq.map(([question, answer]) => ({ question, answer }))} defaults={[offeringJsonLd(), breadcrumbJsonLd(site, [{ name: "Trang chủ", path: "/" }, { name: label, path: `/${catalog}` }, { name: offering.title, path: `/${catalog}/${offering.slug}` }])]} /> : null}
+      {site ? <ContentJsonLd seo={offering.seo} title={offering.title} description={offering.seoDescription} path={`/${catalog}/${offering.slug}`} faq={offering.content.faq.map(([question, answer]) => ({ question, answer }))} defaults={[offeringJsonLd(), breadcrumbJsonLd(site, [{ name: t("crumb.home"), path: "/" }, { name: label, path: `/${catalog}` }, { name: offering.title, path: `/${catalog}/${offering.slug}` }])]} /> : null}
       {/* Phần đầu chiếm một màn hình như trang chủ; các phần nội dung phía dưới cũng mỗi phần một màn hình. */}
       <main id="noi-dung">
         {heroIsBlock ? null : <BuilderAnchor active={inBuilder} index={-1}>
@@ -85,27 +88,27 @@ export default async function OfferingDetailPage({ params }: OfferingDetailPageP
           height={offering.content.appearance?.hero?.height}
           layout={offering.content.appearance?.hero?.layout}
           appearance={offering.content.appearance?.hero?.appearance}
-          back={{ href: `/${catalog}`, label: `Tất cả ${label.toLowerCase()}` }}
+          back={{ href: `/${catalog}`, label: t("offering.allOf", { label: label.toLowerCase() }) }}
           extraImages={heroExtraImages}
-          image={offering.cover ? { url: offering.cover.url, alt: offering.cover.altText ?? (type === "software" ? `Giao diện ${offering.title}` : `Ảnh minh họa ${offering.title}`), width: offering.cover.width, height: offering.cover.height } : null}
+          image={offering.cover ? { url: offering.cover.url, alt: offering.cover.altText ?? (type === "software" ? t("offering.coverSoftware", { name: offering.title }) : t("offering.coverSolution", { name: offering.title })), width: offering.cover.width, height: offering.cover.height } : null}
           label={offering.content.category ?? label}
-          primary={{ label: "Nhận tư vấn miễn phí", href: "/contact" }}
-          secondary={offering.content.pricing ? { label: "Xem bảng giá", href: "#bang-gia" } : null}
+          primary={{ label: t("offering.freeAdvice"), href: "/contact" }}
+          secondary={offering.content.pricing ? { label: t("offering.viewPricing"), href: "#bang-gia" } : null}
           summary={offering.summary}
           title={offering.title}
         >
           {/* Tạm ẩn số liệu phần mềm vì dữ liệu hiện có chưa được xác nhận. */}
-          {type !== "software" && offering.content.metrics.length ? <ul aria-label="Điểm nổi bật" data-builder-field="metrics" className="m-0 mt-6 flex list-none flex-wrap gap-x-6 gap-y-2 p-0">{offering.content.metrics.map(metric => <li className="flex items-center gap-2 font-semibold text-ink" key={metric}><CircleCheck aria-hidden="true" className="shrink-0 text-accent-green" size={20} />{metric}</li>)}</ul> : null}
+          {type !== "software" && offering.content.metrics.length ? <ul aria-label={t("offering.highlights")} data-builder-field="metrics" className="m-0 mt-6 flex list-none flex-wrap gap-x-6 gap-y-2 p-0">{offering.content.metrics.map(metric => <li className="flex items-center gap-2 font-semibold text-ink" key={metric}><CircleCheck aria-hidden="true" className="shrink-0 text-accent-green" size={20} />{metric}</li>)}</ul> : null}
           {/* Khi nội dung dựng bằng thành phần, "Phù hợp với" và "Giá trị nổi bật" thuộc phần đầu trang (bản cũ hiện trong phần Tổng quan). */}
           {type === "software" && offering.content.blocks && (offering.content.bestFor || offering.content.keyValue) ? <dl className="m-0 mt-6 grid gap-4 text-small text-muted">
-            {offering.content.bestFor ? <div className="grid grid-cols-[1.125rem_minmax(0,1fr)] items-start gap-x-3 text-left"><UsersRound aria-hidden="true" className="mt-0.5 text-brand-700" size={18} /><div className="min-w-0"><dt className="font-semibold text-brand-700">Phù hợp với</dt><dd className="m-0 mt-1 leading-6 text-ink" data-builder-field="bestFor">{offering.content.bestFor}</dd></div></div> : null}
-            {offering.content.keyValue ? <div className="grid grid-cols-[1.125rem_minmax(0,1fr)] items-start gap-x-3 text-left"><Sparkles aria-hidden="true" className="mt-0.5 text-accent-violet" size={18} /><div className="min-w-0"><dt className="font-semibold text-accent-violet">Giá trị nổi bật</dt><dd className="m-0 mt-1 leading-6 text-ink" data-builder-field="keyValue">{offering.content.keyValue}</dd></div></div> : null}
+            {offering.content.bestFor ? <div className="grid grid-cols-[1.125rem_minmax(0,1fr)] items-start gap-x-3 text-left"><UsersRound aria-hidden="true" className="mt-0.5 text-brand-700" size={18} /><div className="min-w-0"><dt className="font-semibold text-brand-700">{t("offering.bestFor")}</dt><dd className="m-0 mt-1 leading-6 text-ink" data-builder-field="bestFor">{offering.content.bestFor}</dd></div></div> : null}
+            {offering.content.keyValue ? <div className="grid grid-cols-[1.125rem_minmax(0,1fr)] items-start gap-x-3 text-left"><Sparkles aria-hidden="true" className="mt-0.5 text-accent-violet" size={18} /><div className="min-w-0"><dt className="font-semibold text-accent-violet">{t("offering.keyValue")}</dt><dd className="m-0 mt-1 leading-6 text-ink" data-builder-field="keyValue">{offering.content.keyValue}</dd></div></div> : null}
           </dl> : null}
           {type !== "software" && offering.content.blocks && (offering.content.bestFor || offering.content.keyValue) ? <dl className="m-0 mt-4 grid gap-2 text-small text-muted">
-            {offering.content.bestFor ? <div className="flex flex-wrap items-center gap-x-2"><dt className="flex items-center gap-2 font-semibold text-brand-700"><UsersRound aria-hidden="true" size={18} />Phù hợp với:</dt><dd className="m-0 font-semibold text-ink" data-builder-field="bestFor">{offering.content.bestFor}</dd></div> : null}
-            {offering.content.keyValue ? <div className="flex flex-wrap items-center gap-x-2"><dt className="flex items-center gap-2 font-semibold text-accent-violet"><Sparkles aria-hidden="true" size={18} />Giá trị nổi bật:</dt><dd className="m-0 font-semibold text-ink" data-builder-field="keyValue">{offering.content.keyValue}</dd></div> : null}
+            {offering.content.bestFor ? <div className="flex flex-wrap items-center gap-x-2"><dt className="flex items-center gap-2 font-semibold text-brand-700"><UsersRound aria-hidden="true" size={18} />{t("offering.bestForColon")}</dt><dd className="m-0 font-semibold text-ink" data-builder-field="bestFor">{offering.content.bestFor}</dd></div> : null}
+            {offering.content.keyValue ? <div className="flex flex-wrap items-center gap-x-2"><dt className="flex items-center gap-2 font-semibold text-accent-violet"><Sparkles aria-hidden="true" size={18} />{t("offering.keyValueColon")}</dt><dd className="m-0 font-semibold text-ink" data-builder-field="keyValue">{offering.content.keyValue}</dd></div> : null}
           </dl> : null}
-          <ChipList items={offering.content.tags.map(tag => ({ key: tag, text: tag }))} field="tags" label="Chủ đề liên quan" />
+          <ChipList items={offering.content.tags.map(tag => ({ key: tag, text: tag }))} field="tags" label={t("offering.relatedTopics")} />
         </DetailHero>
         </BuilderAnchor>}
         <OfferingContent closing={{ title: offering.title, hotline: profile?.hotline ?? null }} content={offering.content} />

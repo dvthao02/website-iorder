@@ -3,6 +3,7 @@
 import Image from "next/image";
 import React, { useEffect, useRef, useState } from "react";
 import { FitImage } from "./fit-image";
+import { useT } from "./messages-provider";
 
 export type HeroImage = { url: string; alt: string };
 
@@ -15,6 +16,7 @@ const interval = 5000;
 // `builderItem`: mã mục con gắn trên ảnh để bấm trên canvas CMS chọn đúng chỗ (phần đầu trang: "hero.primary"; khối khác: không có mã).
 // `fit="contain"` (chỉ kiểu `cover`): mỗi ảnh hiện đủ trong khung bằng FitImage (không cắt, phần thừa liền màu ảnh); mặc định "cover" giữ nguyên cách cũ (`imageClassName` quyết định).
 export function HeroImages({ images, preload, variant, sizes, className = "", imageClassName = "h-auto w-full", onLight = false, builderItem = "hero.primary", index, fit = "cover" }: { images: HeroImage[]; preload: boolean; variant: "fill" | "inline" | "cover"; sizes: string; className?: string; imageClassName?: string; onLight?: boolean; builderItem?: string | null; index?: number; fit?: "cover" | "contain" }) {
+  const t = useT();
   // `index`: nơi dùng điều khiển ảnh đang xem (ví dụ quy trình trượt xem hết ảnh của bước rồi mới sang bước khác); khi đó không tự chuyển ảnh.
   const [ownActive, setActive] = useState(0);
   const controlled = index !== undefined;
@@ -45,6 +47,6 @@ export function HeroImages({ images, preload, variant, sizes, className = "", im
       </div>)}
     </div>
     {count > 1 && cover ? <div aria-hidden="true" className="hero-images__dots">{images.map((_, index) => <span className={index === active ? "hero-images__dot hero-images__dot--active" : "hero-images__dot"} key={index} />)}</div> : null}
-    {count > 1 && !cover ? <div className="hero-images__dots" {...(variant === "fill" ? pause : {})}>{images.map((_, index) => <button aria-current={index === active} aria-label={`Xem ảnh ${index + 1}`} className={index === active ? "hero-images__dot hero-images__dot--active" : "hero-images__dot"} key={index} onClick={() => setActive(index)} type="button" />)}</div> : null}
+    {count > 1 && !cover ? <div className="hero-images__dots" {...(variant === "fill" ? pause : {})}>{images.map((_, index) => <button aria-current={index === active} aria-label={t("carousel.viewImage", { n: index + 1 })} className={index === active ? "hero-images__dot hero-images__dot--active" : "hero-images__dot"} key={index} onClick={() => setActive(index)} type="button" />)}</div> : null}
   </div>;
 }

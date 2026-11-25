@@ -41,7 +41,7 @@ test("Menu: Sản phẩm, Thiết bị, Tệp cài đặt, Đối tác nằm chu
 test("Menu: theo dõi hiệu quả nằm chung Công việc; cấu trúc tách khỏi cài đặt; Hệ thống đi từ vận hành tới truy cập rồi khóa kết nối", () => {
   assert.deepEqual(labelsOf("work"), ["Bảng điều khiển", "Khách hàng tiềm năng", "Thống kê truy cập", "Google Search Console", "Kiểm tra trước xuất bản"]);
   assert.deepEqual(labelsOf("structure"), ["Menu & Điều hướng", "Chuyển hướng URL", "Biểu mẫu tư vấn", "Quảng cáo"]);
-  assert.deepEqual(labelsOf("settings"), ["Thông tin doanh nghiệp", "Tên miền & SEO", "Liên kết & Mạng xã hội"]);
+  assert.deepEqual(labelsOf("settings"), ["Thông tin doanh nghiệp", "Tên miền & SEO", "Liên kết & Mạng xã hội", "Đa ngôn ngữ"]);
   assert.deepEqual(labelsOf("system"), ["Tình trạng hệ thống", "Sao lưu & phục hồi", "Người dùng & vai trò", "Nhật ký hoạt động", "Kết nối & khóa API"]);
 });
 

@@ -3,6 +3,7 @@ import { AppWindow, Apple, Download, ExternalLink, FileArchive, FileText, Folder
 
 // Đường dẫn tương đối (không dùng alias @/) để bộ chạy test import được component này.
 import { downloadHost, downloadKind, groupDownloads, groupIcon, type DownloadIcon, type GroupIcon } from "../../lib/downloads";
+import { createTranslate, type Translate } from "../../lib/translate";
 import { DownloadButton } from "../ui/download-button";
 
 export type DownloadListItem = { id: string; title: string; description: string | null; meta: string | null; groupName: string | null; downloadUrl: string; external: boolean };
@@ -14,10 +15,10 @@ const typeChip = "inline-flex items-center rounded-full border border-line px-2 
 
 // Một tệp = một ô gọn: biểu tượng theo loại tệp, tên (kèm thông tin phụ, loại tệp), mô tả hoặc nguồn tải, nút tải bên phải.
 // Điện thoại: nút chỉ còn biểu tượng vuông 44px (nhãn "Tải xuống" vẫn có cho trình đọc màn hình) nằm cùng hàng để ô vẫn gọn.
-function DownloadRow({ item }: { item: DownloadListItem }) {
+function DownloadRow({ item, t }: { item: DownloadListItem; t: Translate }) {
   const kind = downloadKind(item.downloadUrl);
   const host = item.external ? downloadHost(item.downloadUrl) : null;
-  const subline = item.description ?? (host ? `Tải từ ${host}` : null);
+  const subline = item.description ?? (host ? t("download.from", { host }) : null);
   const Icon = fileIcons[kind.icon];
   // Nhãn loại tệp (ZIP, PDF…) bỏ đi khi thông tin phụ đã nêu loại tệp (ví dụ "EXE · 80 MB").
   const typeLabel = kind.label && !item.meta?.toUpperCase().includes(kind.label) ? kind.label : null;
@@ -32,7 +33,7 @@ function DownloadRow({ item }: { item: DownloadListItem }) {
       {subline ? <span className="mt-0.5 line-clamp-2 text-small text-muted">{subline}</span> : null}
     </span>
     <DownloadButton className="button button--secondary button--sm button--sm-icon shrink-0" external={item.external} href={item.downloadUrl}>
-      {item.external ? <ExternalLink aria-hidden="true" size={16} /> : <Download aria-hidden="true" size={16} />}<span className="max-sm:sr-only">Tải xuống</span>
+      {item.external ? <ExternalLink aria-hidden="true" size={16} /> : <Download aria-hidden="true" size={16} />}<span className="max-sm:sr-only">{t("download.button")}</span>
     </DownloadButton>
   </li>;
 }
@@ -43,11 +44,11 @@ function DownloadRow({ item }: { item: DownloadListItem }) {
  * `columns`: 2 = các tệp xếp hai cột từ 1024px (tệp lẻ cuối dòng trải hết hàng), 1 = một cột (chỗ hẹp như trang Hỗ trợ).
  * `Heading`: cấp tiêu đề của nhóm, theo cấp của khối chứa danh sách.
  */
-export function DownloadList({ items, Heading = "h3", grouped = true, columns = 2 }: { items: readonly DownloadListItem[]; Heading?: "h2" | "h3"; grouped?: boolean; columns?: 1 | 2 }) {
+export function DownloadList({ items, Heading = "h3", grouped = true, columns = 2, t = createTranslate() }: { items: readonly DownloadListItem[]; Heading?: "h2" | "h3"; grouped?: boolean; columns?: 1 | 2; t?: Translate }) {
   const groups = grouped ? groupDownloads(items) : [{ label: null, items: [...items] }];
   // Đường kẻ mảnh giữa các ô bằng gap-px trên nền màu đường kẻ; ô lẻ cuối cùng trải hết hàng để không để lại ô trống tối màu.
   const grid = columns === 2 ? "lg:grid-cols-2 lg:[&>li:last-child:nth-child(odd)]:col-span-2" : "";
-  return <div aria-label="Tệp hỗ trợ để tải xuống" className="grid gap-6">
+  return <div aria-label={t("download.listLabel")} className="grid gap-6">
     {groups.map(group => {
       const GroupIcon = group.label ? groupIcons[groupIcon(group.label)] : null;
       return <section className="overflow-hidden rounded-card border border-line bg-white shadow-card" key={group.label ?? "tat-ca"}>
@@ -57,7 +58,7 @@ export function DownloadList({ items, Heading = "h3", grouped = true, columns = 
           <span className="text-small font-medium text-faint">({group.items.length})</span>
         </Heading> : null}
         <ul className={`m-0 grid list-none gap-px bg-line p-0 ${grid}`.trim()}>
-          {group.items.map(item => <DownloadRow item={item} key={item.id} />)}
+          {group.items.map(item => <DownloadRow item={item} key={item.id} t={t} />)}
         </ul>
       </section>;
     })}

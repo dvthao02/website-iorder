@@ -31,12 +31,12 @@ function csvCell(value: TabularCell) {
 /** CSV cho Excel: BOM để mở đúng tiếng Việt, xuống dòng CRLF. */
 export function buildCsv(headers: readonly string[], rows: readonly TabularCell[][]) {
   const lines = [headers.map(csvCell).join(","), ...rows.map((row) => row.map(csvCell).join(","))];
-  return `﻿${lines.join("\r\n")}\r\n`;
+  return `\uFEFF${lines.join("\r\n")}\r\n`;
 }
 
 /** Đọc CSV (dấu phẩy hoặc chấm phẩy — Excel tiếng Việt lưu bằng ";"), có ô trong ngoặc kép nhiều dòng. */
 export function parseCsv(input: string): string[][] {
-  const text = input.replace(/^﻿/, "");
+  const text = input.replace(/^\uFEFF/, "");
   const firstLine = text.slice(0, text.search(/\r?\n|$/));
   const delimiter = (firstLine.match(/;/g)?.length ?? 0) > (firstLine.match(/,/g)?.length ?? 0) ? ";" : ",";
   const rows: string[][] = [];
@@ -88,6 +88,12 @@ function zipEntries(buffer: Buffer): Map<string, ZipEntry> {
   return entries;
 }
 
+// Một số công cụ (Open XML SDK, vài dịch vụ tạo file) ghi mọi thẻ kèm tiền tố vùng tên (<x:sheet>, <x:row>, <x:t>…) và có thể mở đầu bằng BOM.
+// Bỏ BOM và tiền tố tên thẻ để các biểu thức đọc bên dưới hiểu như file Excel thường; thuộc tính (r:id…) giữ nguyên.
+function plainXml(xml: string) {
+  return xml.replace(/^\uFEFF/, "").replace(/<(\/?)[A-Za-z_][\w.-]*:(?=[A-Za-z_])/g, "<$1");
+}
+
 function readZipEntry(buffer: Buffer, entry: ZipEntry, budget: { left: number }) {
   const local = entry.localOffset;
   if (local + 30 > buffer.length || buffer.readUInt32LE(local) !== 0x04034b50) throw new TabularFileError("File .xlsx bị hỏng.");
@@ -102,7 +108,7 @@ function readZipEntry(buffer: Buffer, entry: ZipEntry, budget: { left: number })
     throw new TabularFileError("File .xlsx quá lớn sau khi giải nén hoặc bị hỏng.");
   }
   budget.left -= output.length;
-  return output.toString("utf8");
+  return plainXml(output.toString("utf8"));
 }
 
 function decodeXml(text: string) {
@@ -151,7 +157,7 @@ export function listTableSheets(file: { name: string; bytes: Buffer }): string[]
 }
 
 /** Đọc sheet được chọn của .xlsx thành bảng chữ. */
-export function readXlsx(buffer: Buffer, sheetName?: string): string[][] {
+export function readXlsx(buffer: Buffer, sheetName?: string, maxRows = maxImportRows): string[][] {
   const entries = zipEntries(buffer);
   const budget = { left: maxXlsxUncompressedBytes };
   const read = (name: string) => { const entry = entries.get(name); return entry ? readZipEntry(buffer, entry, budget) : undefined; };
@@ -159,7 +165,7 @@ export function readXlsx(buffer: Buffer, sheetName?: string): string[][] {
   if (!workbook) throw new TabularFileError("File .xlsx không có workbook.");
   const sheets = workbookSheets(workbook);
   const selected = sheetName === undefined ? sheets[0] : sheets.find((sheet) => sheet.name === sheetName);
-  if (!selected) throw new TabularFileError("Không tìm thấy sheet đã chọn trong file Excel.");
+  if (!selected) throw new TabularFileError(sheets.length ? "Không tìm thấy sheet đã chọn trong file Excel." : "Không đọc được danh sách sheet trong file Excel (định dạng lạ). Hãy mở file bằng Excel rồi Lưu thành .xlsx, hoặc dùng file CSV.");
   const firstSheetId = selected.id;
   const rels = read("xl/_rels/workbook.xml.rels") ?? "";
   const target = firstSheetId ? new RegExp(`<Relationship\\b[^>]*Id="${firstSheetId}"[^>]*Target="([^"]+)"`).exec(rels)?.[1] ?? new RegExp(`<Relationship\\b[^>]*Target="([^"]+)"[^>]*Id="${firstSheetId}"`).exec(rels)?.[1] : undefined;
@@ -173,7 +179,7 @@ export function readXlsx(buffer: Buffer, sheetName?: string): string[][] {
   for (const rowMatch of sheet.matchAll(/<row\b([^>]*)>([\s\S]*?)<\/row>|<row\b([^>]*)\/>/g)) {
     const attributes = rowMatch[1] ?? rowMatch[3] ?? "";
     const rowNumber = Number(/\br="(\d+)"/.exec(attributes)?.[1] ?? rows.length + 1);
-    if (rowNumber > maxImportRows + 1) throw new TabularFileError(`File có quá ${maxImportRows} dòng dữ liệu; hãy chia nhỏ file.`);
+    if (rowNumber > maxRows + 1) throw new TabularFileError(`File có quá ${maxRows} dòng dữ liệu; hãy chia nhỏ file.`);
     const cells: string[] = [];
     for (const cellMatch of (rowMatch[2] ?? "").matchAll(/<c\b([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g)) {
       const cellAttributes = cellMatch[1];
@@ -196,13 +202,15 @@ export function readXlsx(buffer: Buffer, sheetName?: string): string[][] {
 }
 
 /** Đọc file nhập (.xlsx hoặc .csv) thành bảng chữ; dòng đầu là tiêu đề cột. */
-export function readTable(file: { name: string; bytes: Buffer; sheetName?: string }): string[][] {
+export function readTable(file: { name: string; bytes: Buffer; sheetName?: string }, limits: { maxBytes?: number; maxRows?: number } = {}): string[][] {
+  const maxBytes = limits.maxBytes ?? maxImportBytes;
+  const maxRows = limits.maxRows ?? maxImportRows;
   if (!file.bytes.length) throw new TabularFileError("File rỗng.");
-  if (file.bytes.length > maxImportBytes) throw new TabularFileError(`File lớn hơn ${maxImportBytes / 1024 / 1024} MB; hãy chia nhỏ file.`);
+  if (file.bytes.length > maxBytes) throw new TabularFileError(`File lớn hơn ${maxBytes / 1024 / 1024} MB; hãy chia nhỏ file.`);
   const isZip = file.bytes.length >= 4 && file.bytes.readUInt32LE(0) === 0x04034b50;
   const extension = file.name.toLowerCase().split(".").pop();
   if (extension === "xls") throw new TabularFileError("File .xls (Excel 97–2003) không được hỗ trợ: trong Excel chọn Lưu thành → Sổ làm việc Excel (.xlsx).");
-  const rows = isZip ? readXlsx(file.bytes, file.sheetName) : extension === "xlsx" ? (() => { throw new TabularFileError("File .xlsx bị hỏng hoặc không phải file Excel."); })() : parseCsv(file.bytes.toString("utf8"));
-  if (rows.length - 1 > maxImportRows) throw new TabularFileError(`File có quá ${maxImportRows} dòng dữ liệu; hãy chia nhỏ file.`);
+  const rows = isZip ? readXlsx(file.bytes, file.sheetName, maxRows) : extension === "xlsx" ? (() => { throw new TabularFileError("File .xlsx bị hỏng hoặc không phải file Excel."); })() : parseCsv(file.bytes.toString("utf8"));
+  if (rows.length - 1 > maxRows) throw new TabularFileError(`File có quá ${maxRows} dòng dữ liệu; hãy chia nhỏ file.`);
   return rows;
 }

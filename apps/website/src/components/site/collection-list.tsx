@@ -14,18 +14,20 @@ import { EquipmentExplorer } from "./equipment-explorer";
 import { EquipmentImagePlaceholder } from "./equipment-image-placeholder";
 import { PostRows, PostSpotlight } from "./post-collection";
 import { getEnabledSupportDownloads, getEquipment, getPublishedOfferingSummaries, getPublishedPostSummaries } from "@/lib/backend";
+import { getT } from "@/lib/messages";
+import { newsLabel } from "@/lib/post-links";
+import type { UiMessageKey } from "@iorder/shared/server/translations/ui-messages";
 
-const postTypeLabel = { announcement: "Thông báo", case_study: "Câu chuyện khách hàng", guide: "Hướng dẫn", news: "Tin tức", promotion: "Khuyến mãi" } as const;
 const offeringPath = { software: "/software", solution: "/solutions" } as const;
-const emptyMessages: Record<CollectionSource, string> = {
-  posts: "Chưa có bài viết nào được xuất bản.",
-  guides: "Chưa có bài viết hướng dẫn nào được xuất bản.",
-  downloads: "Hiện chưa có tệp hỗ trợ nào.",
-  equipment: "Chưa có thiết bị được xuất bản.",
-  software: "Chưa có phần mềm nào được xuất bản.",
-  solution: "Chưa có giải pháp nào được xuất bản.",
+const emptyKeys: Record<CollectionSource, UiMessageKey> = {
+  posts: "empty.posts",
+  guides: "empty.guides",
+  downloads: "empty.downloads",
+  equipment: "empty.equipment",
+  software: "empty.software",
+  solution: "empty.solution",
 };
-const dateFormatter = new Intl.DateTimeFormat("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
+const dateFormatter = new Intl.DateTimeFormat("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: "Asia/Ho_Chi_Minh" });
 const priceFormatter = new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" });
 // Thẻ ảnh dùng chung với Lưới thẻ: ảnh sát mép trên cùng, phần chữ đệm đều, nhãn dạng chip, dòng cuối thẻ luôn sát đáy.
 // Có bóng nhẹ và nổi lên khi rê chuột (.feature-card), cùng kiểu với thẻ ở các khối khác.
@@ -47,6 +49,7 @@ const listingPath: Partial<Record<CollectionSource, string>> = { posts: "/news",
 // Tiêu đề mặc định của site nằm trong @layer base nên class Tailwind trên từng tiêu đề luôn thắng.
 // Khi khối không có tiêu đề (thường là ngay dưới phần đầu trang danh sách), thẻ dùng h2.
 export async function CollectionList({ data, frame }: { data: CollectionListData; frame: BlockFrame }) {
+  const t = await getT();
   const Card = data.title ? "h3" : "h2";
   const dark = frame.tone === "dark";
   const items = await renderItems(data, Card, dark);
@@ -56,15 +59,16 @@ export async function CollectionList({ data, frame }: { data: CollectionListData
     {data.title ? <SectionHeading dark={dark} description={data.description} eyebrow={data.eyebrow} title={data.title} /> : null}
     {items ?? <div className="grid justify-items-center gap-3 rounded-card border border-dashed border-line bg-white px-6 py-12 text-center text-body text-muted">
       <span aria-hidden="true" className="grid size-12 place-items-center rounded-control bg-brand-50 text-brand-600"><Inbox size={24} strokeWidth={1.8} /></span>
-      {emptyMessages[data.source]}
+      {t(emptyKeys[data.source])}
     </div>}
-    {items && href ? <div className="mt-8 flex justify-center sm:mt-10"><TextLink className={`button ${dark ? "button--outline-light" : "button--secondary"}`} href={href}>Xem tất cả →</TextLink></div> : null}
+    {items && href ? <div className="mt-8 flex justify-center sm:mt-10"><TextLink className={`button ${dark ? "button--outline-light" : "button--secondary"}`} href={href}>{t("common.viewAll")}</TextLink></div> : null}
   </FrameSection>;
 }
 
 // Thẻ bài viết (ảnh, loại bài, tiêu đề, tóm tắt, ngày): danh sách bài viết, trang chuyên mục và trang thẻ.
-export function PostCard({ post, Heading = "h3" }: { post: PublicPostSummary; Heading?: "h2" | "h3" }) {
-  const label = post.categories[0]?.name ?? postTypeLabel[post.type];
+export async function PostCard({ post, Heading = "h3" }: { post: PublicPostSummary; Heading?: "h2" | "h3" }) {
+  const t = await getT();
+  const label = newsLabel(post, t);
   const date = post.publishedAt ?? post.createdAt;
   return <Link className={cardClass} href={post.type === "guide" ? `/support/guides/${post.slug}` : `/news/${post.slug}`}>
     {/* Có ảnh: nhãn chuyên mục nằm đè góc ảnh (nhìn thấy ngay chủ đề); chưa có ảnh: nhãn là dòng chữ phía trên tiêu đề. */}
@@ -76,16 +80,17 @@ export function PostCard({ post, Heading = "h3" }: { post: PublicPostSummary; He
       {post.cover ? null : <p className="mb-2 text-small font-semibold text-brand-700">{label}</p>}
       <Heading className={`${titleClass} line-clamp-2`}>{post.title}</Heading>
       {post.excerpt ? <p className={`${textClass} line-clamp-2`}>{post.excerpt}</p> : null}
-      <p className={`${metaClass} flex items-center justify-between gap-3`}><time dateTime={date.toISOString()}>{dateFormatter.format(date)}</time><span aria-hidden="true" className="font-semibold text-brand-700 group-hover:underline">Đọc tiếp →</span></p>
+      <p className={`${metaClass} flex items-center justify-between gap-3`}><time dateTime={date.toISOString()}>{dateFormatter.format(date)}</time><span aria-hidden="true" className="font-semibold text-brand-700 group-hover:underline">{t("common.readMore")}</span></p>
     </div>
   </Link>;
 }
 
 type EquipmentItem = Awaited<ReturnType<typeof getEquipment>>[number];
 // Thẻ thiết bị: dùng ở danh sách thiết bị và phần "Thiết bị khác" của trang chi tiết thiết bị.
-export function EquipmentCard({ item, Heading = "h3" }: { item: EquipmentItem; Heading?: "h2" | "h3" }) {
+export async function EquipmentCard({ item, Heading = "h3" }: { item: EquipmentItem; Heading?: "h2" | "h3" }) {
+  const t = await getT();
   return <Link className="equipment-tile group" href={`/equipment/${item.slug}`}>
-    <div className="equipment-tile__media">{item.coverUrl ? <Image alt={item.coverAlt ?? item.name} className="equipment-tile__image" height={450} sizes="(min-width: 1280px) 25vw, (min-width: 640px) 50vw, 100vw" src={item.coverUrl} width={600} /> : <EquipmentImagePlaceholder />}</div>
+    <div className="equipment-tile__media">{item.coverUrl ? <Image alt={item.coverAlt ?? item.name} className="equipment-tile__image" height={450} sizes="(min-width: 1280px) 25vw, (min-width: 640px) 50vw, 100vw" src={item.coverUrl} width={600} /> : <EquipmentImagePlaceholder label={t("common.noImage")} />}</div>
     <div className="equipment-tile__body">
       <p className={`mb-1 ${chipClass}`}>{item.groupName}</p>
       <Heading className="equipment-tile__name mb-0 line-clamp-2">{item.name}</Heading>
@@ -93,22 +98,23 @@ export function EquipmentCard({ item, Heading = "h3" }: { item: EquipmentItem; H
       <div className="mt-auto flex flex-col items-center gap-1 pt-3">
         <p className="equipment-tile__price mb-0">{priceFormatter.format(item.priceVnd)}</p>
         <AvailabilityBadge availability={item.availability} />
-        <span className="equipment-tile__meta">Bảo hành {item.warrantyMonths} tháng</span>
-        <span className="text-small font-semibold text-brand-700 group-hover:underline">Xem chi tiết →</span>
+        <span className="equipment-tile__meta">{t("common.warranty", { months: item.warrantyMonths })}</span>
+        <span className="text-small font-semibold text-brand-700 group-hover:underline">{t("common.viewDetail")}</span>
       </div>
     </div>
   </Link>;
 }
 
 async function renderItems(data: CollectionListData, Card: "h2" | "h3", dark: boolean) {
+  const t = await getT();
   switch (data.source) {
     case "posts": {
       // Hướng dẫn có nguồn riêng; "Loại bài" cho một phần trang chỉ hiện ưu đãi, câu chuyện khách hàng… (thiếu hoặc "Tất cả" = mọi loại trừ hướng dẫn).
       const type = data.postType && data.postType !== "all" ? data.postType : null;
       const posts = take((await getPublishedPostSummaries()).filter(post => post.type !== "guide" && (!type || post.type === type)), data.limit);
       if (!posts.length) return null;
-      if (data.layout === "featured") return <PostSpotlight Heading={Card} posts={posts} />;
-      if (data.layout === "list") return <PostRows Heading={Card} posts={posts} />;
+      if (data.layout === "featured") return <PostSpotlight Heading={Card} posts={posts} t={t} />;
+      if (data.layout === "list") return <PostRows Heading={Card} posts={posts} t={t} />;
       // `data-card-grid="posts"`: móc cho CSS trang chủ (thẻ lẻ cuối ở máy tính bảng xếp ngang, trải hết hai cột).
       return <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3" data-card-grid="posts" data-cols={posts.length}>{posts.map(post => <PostCard Heading={Card} key={post.id} post={post} />)}</div>;
     }
@@ -121,7 +127,7 @@ async function renderItems(data: CollectionListData, Card: "h2" | "h3", dark: bo
           {guide.categories[0] ? <span className={`mb-1.5 ${chipClass}`}>{guide.categories[0].name}</span> : null}
           <Card className="mb-0 text-lead leading-snug font-bold tracking-tight text-ink group-hover:text-brand-700">{guide.title}</Card>
           {guide.excerpt ? <span className="mt-1 line-clamp-2 text-small text-muted">{guide.excerpt}</span> : null}
-          <span className="mt-2 text-caption text-faint">Cập nhật {dateFormatter.format(guide.publishedAt ?? guide.createdAt)}</span>
+          <span className="mt-2 text-caption text-faint">{t("common.updatedOn", { date: dateFormatter.format(guide.publishedAt ?? guide.createdAt) })}</span>
         </span>
       </Link>)}</div> : null;
     }
@@ -145,10 +151,10 @@ async function renderItems(data: CollectionListData, Card: "h2" | "h3", dark: bo
       const markFeatured = offerings.some(offering => !offering.isFeatured);
       // Hai mục thì hai cột rộng vừa phải (không để trống một ô của lưới ba cột).
       return offerings.length ? <div className={`grid gap-5 sm:grid-cols-2 ${offerings.length === 2 ? "lg:mx-auto lg:max-w-5xl" : "lg:grid-cols-3"}`}>{offerings.map(offering => <Link className={cardClass} href={`${offeringPath[data.source as keyof typeof offeringPath]}/${offering.slug}`} key={offering.id}>
-        {offering.cover ? <span className={offeringFrameClass}><CoverPhoto alt={`Ảnh minh họa ${offering.title}`} className="transition duration-500 group-hover:scale-[1.02]" fit="contain" photos={[{ url: offering.cover.url, altText: offering.cover.altText ?? null }]} sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw" /></span> : null}
+        {offering.cover ? <span className={offeringFrameClass}><CoverPhoto alt={t("offering.coverSolution", { name: offering.title })} className="transition duration-500 group-hover:scale-[1.02]" fit="contain" photos={[{ url: offering.cover.url, altText: offering.cover.altText ?? null }]} sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw" /></span> : null}
         <div className={bodyClass}>
           {offering.category || (markFeatured && offering.isFeatured) ? <p className="mb-3 flex flex-wrap gap-2">
-            {markFeatured && offering.isFeatured ? <span className="inline-flex w-fit items-center rounded-full bg-brand-600 px-2.5 py-0.5 text-caption font-semibold text-white">Nổi bật</span> : null}
+            {markFeatured && offering.isFeatured ? <span className="inline-flex w-fit items-center rounded-full bg-brand-600 px-2.5 py-0.5 text-caption font-semibold text-white">{t("common.featured")}</span> : null}
             {offering.category ? <span className={chipClass}>{offering.category}</span> : null}
           </p> : null}
           <Card className={`${titleClass} line-clamp-2`}>{offering.title}</Card>
@@ -157,7 +163,7 @@ async function renderItems(data: CollectionListData, Card: "h2" | "h3", dark: bo
           {offering.metrics?.length ? <ul className="m-0 mt-4 grid list-none gap-1.5 p-0">{offering.metrics.slice(0, 2).map(metric => <li className="flex items-start gap-2 text-small font-semibold text-ink" key={metric}>
             <Check aria-hidden="true" className="mt-0.5 shrink-0 text-accent-green" size={16} strokeWidth={2.6} />{metric}
           </li>)}</ul> : null}
-          <p className={moreClass}>Xem chi tiết →</p>
+          <p className={moreClass}>{t("common.viewDetail")}</p>
         </div>
       </Link>)}</div> : null;
     }

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { SiteLink } from "./site-link";
 import { HeroImages, type HeroImage } from "./hero-images";
+import { useT } from "./messages-provider";
 
 export type ProcessStep = { title: string; description: string; href: string | null; images: HeroImage[] };
 
@@ -14,6 +15,7 @@ const interval = 6000;
 // bàn phím hoặc khi người dùng bật giảm chuyển động. Bước có nhiều ảnh thì chạy hết ảnh của bước đó rồi mới chuyển bước.
 // `heading`: phần tiêu đề của khối (dựng ở server), đặt cùng cột với danh sách bước để cả khối gọn trong một màn.
 export function ProcessStepper({ steps, heading = null, dark = false }: { steps: ProcessStep[]; heading?: ReactNode; dark?: boolean }) {
+  const t = useT();
   const [position, setPosition] = useState({ step: 0, image: 0 });
   const active = position.step;
   const [paused, setPaused] = useState(false);
@@ -50,7 +52,7 @@ export function ProcessStepper({ steps, heading = null, dark = false }: { steps:
   return <div className={`process-stepper grid items-start gap-10 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:items-stretch lg:gap-16 ${dark ? "process-stepper--dark" : ""}`} {...pause}>
     <div>
       {heading}
-      <ol aria-label="Các bước" className="process-stepper__list" ref={listRef} style={{ paddingBottom: reserve }}>
+      <ol aria-label={t("stepper.steps")} className="process-stepper__list" ref={listRef} style={{ paddingBottom: reserve }}>
         {steps.map((step, index) => {
           const current = index === active;
           return <li className={current ? "process-stepper__item process-stepper__item--active" : "process-stepper__item"} data-builder-item={`items:${index}`} key={`${step.title}-${index}`}>
@@ -61,7 +63,7 @@ export function ProcessStepper({ steps, heading = null, dark = false }: { steps:
             <div className="process-stepper__more" inert={!current}>
               <div>
                 {step.description ? <p className="m-0 whitespace-pre-line" data-builder-field="description">{step.description}</p> : null}
-                {step.href ? <SiteLink className="process-stepper__link" data-builder-field="href" href={step.href}>Xem thêm →</SiteLink> : null}
+                {step.href ? <SiteLink className="process-stepper__link" data-builder-field="href" href={step.href}>{t("common.viewMore")}</SiteLink> : null}
               </div>
             </div>
           </li>;

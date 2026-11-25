@@ -18,6 +18,11 @@ import { publicContentCacheTag } from "@iorder/shared/server/publishing/cache-in
 import { cache } from "react";
 import { cookies, draftMode, headers } from "next/headers";
 
+import { defaultLocale } from "@iorder/shared/server/translations/locales";
+
+import { getLocale } from "./locale";
+import { createRedirectLookupCache } from "./redirect-cache";
+
 type SharedContent = {
   settings: {
     config: Awaited<ReturnType<typeof getPublishingConfigFromService>>;
@@ -27,6 +32,8 @@ type SharedContent = {
     catalogContent: Awaited<ReturnType<typeof getCatalogContentFromService>>;
     listingContent: Awaited<ReturnType<typeof getListingContentFromService>>;
   };
+  /** Ngôn ngữ website đang có (tiếng Việt và các ngôn ngữ đã có bản dịch); nút đổi ngôn ngữ chỉ hiện khi có từ hai ngôn ngữ. */
+  i18n?: { defaultLocale: string; locales: string[] };
   /** Cấu hình tích hợp không bí mật do Backend quyết định (biến môi trường hoặc CMS). */
   integrations?: { umamiWebsiteId: string | null };
   navigation: {
@@ -85,6 +92,10 @@ async function publicResource<T>(resource: string, params: Record<string, string
     const token = await previewToken();
     if (token) query.set("preview", token);
   }
+  // Ngôn ngữ khách chọn: Backend thay chữ tiếng Việt bằng bản dịch đã nhập trong CMS (câu chưa dịch giữ tiếng Việt). Địa chỉ gọi Backend khác nhau
+  // theo ngôn ngữ nên cache cũng tách theo ngôn ngữ. Bản xem trước bản nháp luôn là tiếng Việt gốc.
+  const locale = await getLocale();
+  if (locale !== defaultLocale && !query.has("preview")) query.set("lang", locale);
   return fetchPublicResource(resource, query.toString()) as Promise<T>;
 }
 
@@ -93,6 +104,16 @@ const getSharedContent = cache(() => publicResource<SharedContent>("shared"));
 export function getOfferingTypeFromCatalogPath(path: string) {
   return ({ software: "software", solutions: "solution" } as const)[path as "software" | "solutions"];
 }
+/**
+ * Bản dịch chữ cố định của giao diện cho ngôn ngữ đang xem (chỉ khóa đã dịch). Tiếng Việt không cần gọi Backend; Backend lỗi thì trả rỗng
+ * để website vẫn hiện (chữ cố định tự dùng tiếng Việt trong code) thay vì lỗi cả trang chỉ vì thiếu bản dịch.
+ */
+export async function getUiMessageOverrides(): Promise<Record<string, string>> {
+  if ((await getLocale()) === defaultLocale) return {};
+  try { return (await publicResource<{ messages?: Record<string, string> }>("messages")).messages ?? {}; } catch { return {}; }
+}
+/** Ngôn ngữ website đang có, tiếng Việt đứng đầu. */
+export async function getSiteLocales() { return (await getSharedContent()).i18n?.locales ?? [defaultLocale]; }
 export async function getUmamiWebsiteId() { return (await getSharedContent()).integrations?.umamiWebsiteId ?? process.env.UMAMI_WEBSITE_ID?.trim() ?? null; }
 export async function getPublishingConfig() { return (await getSharedContent()).settings.config; }
 export async function getSiteProfile() { return (await getSharedContent()).settings.profile; }
@@ -131,8 +152,19 @@ export async function getMediaById(id: string) {
     return null;
   }
 }
-export async function getEnabledRedirect(path: string): Promise<{ destinationPath: string; statusCode: 301 | 308 } | null> {
+type EnabledRedirect = { destinationPath: string; statusCode: 301 | 308 } | null;
+async function fetchEnabledRedirect(path: string): Promise<EnabledRedirect> {
   const response = await fetch(`${backendUrl}/api/v1/public/redirect?path=${encodeURIComponent(path)}`, { ...publicCacheOptions, signal: AbortSignal.timeout(redirectTimeoutMs) });
   if (!response.ok) return null;
   return (await response.json()).redirect;
 }
+// Proxy chạy ở mọi lượt xem trang mà không dùng được bộ đệm dữ liệu của Next, nên kết quả tra chuyển hướng được giữ trong bộ nhớ (xem redirect-cache.ts).
+// Proxy và route /api/internal/revalidate được đóng gói riêng, không dùng chung biến module; globalThis thì chung một tiến trình.
+const redirectCacheKey = Symbol.for("iorder.website.redirectCache");
+function redirectCache() {
+  const store = globalThis as unknown as Record<symbol, ReturnType<typeof createRedirectLookupCache<EnabledRedirect>> | undefined>;
+  return (store[redirectCacheKey] ??= createRedirectLookupCache<EnabledRedirect>({ load: fetchEnabledRedirect }));
+}
+export function getEnabledRedirect(path: string): Promise<EnabledRedirect> { return redirectCache().lookup(path); }
+/** Gọi khi CMS báo nội dung đổi để chuyển hướng vừa lưu có hiệu lực ngay thay vì chờ hết thời hạn bộ đệm. */
+export function clearRedirectCache() { redirectCache().clear(); }

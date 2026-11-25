@@ -4,7 +4,7 @@ export const auditEntityLabels: Record<string, string> = {
   partner: "Đối tác", testimonial: "Đánh giá", support_download: "Tệp hỗ trợ",
   contact_lead: "Liên hệ khách hàng", user: "Tài khoản", menu: "Menu điều hướng",
   category: "Chuyên mục", tag: "Thẻ", author: "Tác giả", redirect: "Chuyển hướng",
-  site_setting: "Cấu hình website", site_profile: "Thông tin doanh nghiệp", backup: "Sao lưu & phục hồi", audit: "Nhật ký hoạt động",
+  site_setting: "Cấu hình website", site_profile: "Thông tin doanh nghiệp", backup: "Sao lưu & phục hồi", audit: "Nhật ký hoạt động", translation: "Bản dịch",
 };
 const actionSubjects: Record<string, string> = {
   ...auditEntityLabels, lead: "Liên hệ khách hàng", navigation: "Menu điều hướng",
@@ -20,7 +20,7 @@ const verbs: Record<string, string> = {
 const actionOverrides: Record<string, string> = {
   "user.login": "Đăng nhập", "user.login_failed": "Đăng nhập thất bại (sai mật khẩu)", "user.logout": "Đăng xuất",
   "backup.run": "Chạy sao lưu", "backup.restore": "Phục hồi dữ liệu", "backup.delete": "Xóa bản sao lưu", "backup.export": "Tải bản sao lưu về",
-  "backup.history_clear": "Xóa lịch sử sao lưu", "audit.purge": "Xóa nhật ký hoạt động", "backup.keep_update": "Đổi số bản sao lưu giữ lại",
+  "backup.history_clear": "Xóa lịch sử sao lưu", "audit.purge": "Xóa nhật ký hoạt động", "backup.keep_update": "Đổi số bản sao lưu giữ lại", "translations.import": "Nhập bản dịch",
 };
 export function auditEntityLabel(code: string) {
   return Object.hasOwn(auditEntityLabels, code) ? auditEntityLabels[code] : code;

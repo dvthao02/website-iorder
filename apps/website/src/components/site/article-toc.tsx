@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+import { useT } from "./messages-provider";
 import { SlidingRail } from "./sliding-rail";
 
 type Entry = { id: string; text: string; level: 2 | 3 };
@@ -10,7 +11,8 @@ type Entry = { id: string; text: string; level: 2 | 3 };
  * Mục lục bám theo khi cuộn (cột phải của bài viết, bài hướng dẫn): mục đang đọc được tô đậm — là tiêu đề cuối cùng
  * đã cuộn qua mép trên (dưới header). Bấm mục thì nhảy tới tiêu đề (neo #id, có chừa chỗ cho header).
  */
-export function ArticleToc({ entries, title = "Trong bài này", label = "Mục lục bài viết" }: { entries: Entry[]; title?: string; label?: string }) {
+export function ArticleToc({ entries, title, label }: { entries: Entry[]; title?: string; label?: string }) {
+  const t = useT();
   const [active, setActive] = useState(entries[0]?.id ?? "");
   useEffect(() => {
     let frame = 0;
@@ -30,8 +32,8 @@ export function ArticleToc({ entries, title = "Trong bài này", label = "Mục 
     return () => { window.removeEventListener("scroll", schedule); window.removeEventListener("resize", schedule); cancelAnimationFrame(frame); };
   }, [entries]);
 
-  return <nav aria-label={label} className="article-toc">
-    <p className="article-toc__title">{title}</p>
+  return <nav aria-label={label ?? t("article.tocLabel")} className="article-toc">
+    <p className="article-toc__title">{title ?? t("article.tocTitle")}</p>
     <SlidingRail><ol>{entries.map((entry) => <li data-level={entry.level} key={entry.id}>
       <a aria-current={entry.id === active ? "location" : undefined} href={`#${entry.id}`}>{entry.text}</a>
     </li>)}</ol></SlidingRail>

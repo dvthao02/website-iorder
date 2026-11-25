@@ -5,12 +5,15 @@ import { Google_Sans_Flex } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
 import { StructuredData } from "@/components/site/structured-data";
-import { getMediaById } from "@/lib/backend";
+import { getMediaById, getUiMessageOverrides } from "@/lib/backend";
 import { getExternalLinks } from "@/lib/backend";
 import { getSiteProfile } from "@/lib/backend";
 import { getPublishingConfig } from "@/lib/backend";
 import { getUmamiWebsiteId } from "@/lib/backend";
+import { MessagesProvider } from "@/components/site/messages-provider";
+import { getLocale } from "@/lib/locale";
 import { robotsDirectives } from "@/lib/robots-meta";
+import { localeTags } from "@iorder/shared/server/translations/locales";
 
 // Font tròn, dễ đọc như các website phần mềm bán hàng phổ biến (KiotViet); có đủ dấu tiếng Việt.
 // Next chưa có số đo của Google Sans Flex để tự tạo font dự phòng (báo "Failed to find font override values"),
@@ -28,12 +31,13 @@ async function isPreviewRequest() {
 }
 
 export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getLocale();
   const [config, profile] = await Promise.all([getPublishingConfig(), getSiteProfile()]);
   const image = config.defaultOgMediaId && config.siteUrl ? await getMediaById(config.defaultOgMediaId) : null;
   const title = config.defaultTitle ?? profile?.companyName ?? "iOrder";
   const description = config.defaultDescription ?? "Nền tảng vận hành và giải pháp công nghệ cho doanh nghiệp.";
   const preview = await isPreviewRequest();
-  return { metadataBase: config.siteUrl ? new URL(config.siteUrl) : undefined, title, description, robots: robotsDirectives(!preview && config.allowSearchIndexing, !preview && config.allowSearchIndexing), alternates: config.siteUrl && config.allowSearchIndexing ? { types: { "application/rss+xml": [{ url: "/feed.xml", title: `${title} – Tin tức` }] } } : undefined, openGraph: { type: "website", locale: "vi_VN", title, description, siteName: title, images: image ? [{ url: image.url, alt: image.altText ?? title }] : undefined } };
+  return { metadataBase: config.siteUrl ? new URL(config.siteUrl) : undefined, title, description, robots: robotsDirectives(!preview && config.allowSearchIndexing, !preview && config.allowSearchIndexing), alternates: config.siteUrl && config.allowSearchIndexing ? { types: { "application/rss+xml": [{ url: "/feed.xml", title: `${title} – Tin tức` }] } } : undefined, openGraph: { type: "website", locale: localeTags[locale].openGraph, title, description, siteName: title, images: image ? [{ url: image.url, alt: image.altText ?? title }] : undefined } };
 }
 
 // Umami (tự host, không cookie). Script và điểm nhận sự kiện đi qua cùng domain website ở /stats/*
@@ -44,9 +48,10 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const [config, profile, externalLinks, umamiWebsiteId, preview] = await Promise.all([getPublishingConfig(), getSiteProfile(), getExternalLinks(), getUmamiWebsiteId(), isPreviewRequest()]);
   const logo = profile?.logoMediaId ? await getMediaById(profile.logoMediaId) : null;
+  const [locale, messages] = await Promise.all([getLocale(), getUiMessageOverrides()]);
   return (
-    <html className={sans.variable} data-scroll-behavior="smooth" lang="vi">
-      <body suppressHydrationWarning><StructuredData config={config} externalLinks={externalLinks} logoUrl={logo?.url ?? null} profile={profile} />{children}{umamiWebsiteId && !preview ? <Script data-website-id={umamiWebsiteId} src="/stats/script.js" strategy="afterInteractive" /> : null}</body>
+    <html className={sans.variable} data-scroll-behavior="smooth" lang={localeTags[locale].html}>
+      <body suppressHydrationWarning><StructuredData config={config} externalLinks={externalLinks} logoUrl={logo?.url ?? null} profile={profile} /><MessagesProvider messages={messages}>{children}</MessagesProvider>{umamiWebsiteId && !preview ? <Script data-website-id={umamiWebsiteId} src="/stats/script.js" strategy="afterInteractive" /> : null}</body>
     </html>
   );
 }

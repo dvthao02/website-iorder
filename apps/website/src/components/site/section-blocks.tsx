@@ -6,6 +6,7 @@ import { getMediaById } from "@/lib/backend";
 import { Actions, Badge, ButtonLink, Card, CardText, CardTitle, CheckList, FrameSection, IconTile, SectionHeading, TextLink, defaultFrame, gridColumns, itemAlignClass } from "@/components/ui";
 import { BlockIcon } from "./block-icon";
 import { HeroImages } from "./hero-images";
+import { getT } from "@/lib/messages";
 
 // Ảnh + chữ hai cột; nhiều khối liền nhau đổi xen kẽ trái/phải (nền tự xen kẽ theo vỏ chung).
 // Các ảnh của một khối (ảnh đầu + ảnh thêm); bỏ ảnh đã xóa hoặc không phải ảnh. Từ 2 ảnh thì website tự chuyển ảnh.
@@ -62,7 +63,8 @@ export function PricingSection({ data, frame = defaultFrame }: { data: Extract<P
 
 // Danh sách theo nhóm: mỗi nhóm một thẻ có biểu tượng, tên, số mục; bên trong là các dòng ngắn kèm biểu tượng.
 // Tiêu đề căn trái (đọc như một phần giới thiệu năng lực, không phải lưới sản phẩm); ô biểu tượng cùng tông thương hiệu.
-export function GroupedListSection({ data, frame }: { data: Extract<PageBlock, { type: "grouped_list" }>["data"]; frame: BlockFrame }) {
+export async function GroupedListSection({ data, frame }: { data: Extract<PageBlock, { type: "grouped_list" }>["data"]; frame: BlockFrame }) {
+  const t = await getT();
   const dark = frame.tone === "dark";
   return <FrameSection frame={frame}>
     <div className="section-heading mb-10 grid gap-x-16 gap-y-4 sm:mb-12 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-end">
@@ -76,13 +78,13 @@ export function GroupedListSection({ data, frame }: { data: Extract<PageBlock, {
           {data.groupLabel ? <p className="mb-0.5 text-caption font-bold tracking-wider text-muted uppercase" data-builder-field="groupLabel">{data.groupLabel}</p> : null}
           <CardTitle>{group.title}</CardTitle>
         </div>
-        {data.showCount && group.items.length ? <span className="grid size-8 shrink-0 place-items-center rounded-full bg-subtle text-caption font-bold text-muted" title={`${group.items.length} mục`}>{group.items.length}</span> : null}
+        {data.showCount && group.items.length ? <span className="grid size-8 shrink-0 place-items-center rounded-full bg-subtle text-caption font-bold text-muted" title={t("common.itemCount", { count: group.items.length })}>{group.items.length}</span> : null}
       </div>
       {group.items.length ? <ul className="m-0 mt-2 flex-1 list-none p-0">{group.items.map((item, itemIndex) => {
         const content = <>{item.icon ? <BlockIcon className="shrink-0 text-faint" name={item.icon} size={18} strokeWidth={1.7} /> : <span aria-hidden="true" className="size-[18px] shrink-0" />}<span data-builder-field="label">{item.label}</span></>;
         const row = `grouped-row flex items-center gap-3 border-b border-line py-3 text-body text-ink ${rowJustify[group.align ?? "left"]}`;
         return <li data-builder-item={`groups.${index}.items:${itemIndex}`} key={`${item.label}-${itemIndex}`}>{item.href ? <TextLink className={`${row} transition hover:text-brand-700`} href={item.href}>{content}</TextLink> : <div className={row}>{content}</div>}</li>;
-      })}</ul> : <CardText className="mt-4 flex-1">Chưa có mục nào.</CardText>}
+      })}</ul> : <CardText className="mt-4 flex-1">{t("common.emptyItems")}</CardText>}
       {group.action ? <TextLink field="action" className="mt-5 inline-flex min-h-6 items-center gap-2 self-start text-small font-bold text-brand-700 hover:underline" href={group.action.href}><Sparkles aria-hidden="true" size={16} />{group.action.label}</TextLink> : null}
     </Card>)}</div>
   </FrameSection>;

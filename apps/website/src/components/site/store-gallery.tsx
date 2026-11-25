@@ -5,6 +5,7 @@ import { loadBlockImages } from "./section-blocks";
 import { SiteLink } from "./site-link";
 import { StoreCarousel } from "./store-carousel";
 import { getBuilderPreviewContext } from "@/lib/builder-preview";
+import { getT } from "@/lib/messages";
 
 type GalleryItem = Extract<PageBlock, { type: "features" | "industries" | "ecosystem" | "process" }>["data"]["items"][number];
 
@@ -16,6 +17,7 @@ const gridWhenSliding = 5;
 // Từ 5 ảnh thì ảnh đầu to gấp đôi (hai cột × hai hàng) làm điểm nhấn. Thẻ có nhiều ảnh thì tự đổi ảnh; có đường dẫn thì cả ảnh bấm được.
 // Dải trượt ở cuối chỉ dùng ảnh đầu của mỗi thẻ.
 export async function StoreGallery({ items, first = false }: { items: GalleryItem[]; first?: boolean }) {
+  const t = await getT();
   const galleries = await Promise.all(items.map(item => loadBlockImages([item.mediaId, ...(item.extraMediaIds ?? [])])));
   // Ảnh trong màn hình đầu thì tải ngay (như hero: khối đầu trang) để không thành ảnh LCP bị lazy; khung xem trước CMS cuộn thẳng tới khối đang chọn nên cũng tải ngay.
   const eager = first || Boolean(await getBuilderPreviewContext());
@@ -45,6 +47,6 @@ export async function StoreGallery({ items, first = false }: { items: GalleryIte
         </figure>;
       })}
     </div>
-    {slides.length ? <div className="store-gallery__slider"><StoreCarousel firstIndex={gridCount} label="Khách hàng khác" slides={slides} variant="quad" /></div> : null}
+    {slides.length ? <div className="store-gallery__slider"><StoreCarousel firstIndex={gridCount} label={t("gallery.otherCustomers")} slides={slides} variant="quad" /></div> : null}
   </>;
 }

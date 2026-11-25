@@ -2,6 +2,7 @@
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useT } from "./messages-provider";
 
 const interval = 6000;
 
@@ -10,6 +11,7 @@ const interval = 6000;
 // Dừng khi rê chuột/đang thao tác bàn phím hoặc khi người dùng bật giảm chuyển động; mũi tên, chấm, phím ←/→ để chuyển tay.
 // `fade`: chỉ mờ dần, không trượt ngang (kiểu ảnh nền: ảnh phủ kín phần đầu trang, trượt ngang sẽ lộ mép).
 export function HeroRotator({ panels, dark = false, fade = false, center = false }: { panels: ReactNode[]; dark?: boolean; fade?: boolean; center?: boolean }) {
+  const t = useT();
   const [active, setActive] = useState(0);
   const [paused, setPaused] = useState(false);
   const reducedMotion = useRef(false);
@@ -24,14 +26,14 @@ export function HeroRotator({ panels, dark = false, fade = false, center = false
   }, [active, count, paused]);
 
   const panelClass = (index: number) => ["hero-rotator__panel", index === active ? "hero-rotator__panel--active" : index < active ? "hero-rotator__panel--before" : ""].join(" ").trim();
-  return <div aria-label="Nội dung nổi bật" aria-roledescription="carousel" className={`hero-rotator ${fade ? "hero-rotator--fade" : ""} ${dark ? "hero-rotator--dark" : ""}`.trim()} onBlur={() => setPaused(false)} onFocus={() => setPaused(true)} onKeyDown={(event) => { if (event.key === "ArrowLeft") go(active - 1); if (event.key === "ArrowRight") go(active + 1); }} onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)} role="region">
+  return <div aria-label={t("carousel.rotatorLabel")} aria-roledescription="carousel" className={`hero-rotator ${fade ? "hero-rotator--fade" : ""} ${dark ? "hero-rotator--dark" : ""}`.trim()} onBlur={() => setPaused(false)} onFocus={() => setPaused(true)} onKeyDown={(event) => { if (event.key === "ArrowLeft") go(active - 1); if (event.key === "ArrowRight") go(active + 1); }} onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)} role="region">
     <div className="hero-rotator__stack">
       {panels.map((panel, index) => <div aria-hidden={index !== active} aria-label={`${index + 1} / ${count}`} aria-roledescription="slide" className={panelClass(index)} inert={index !== active} key={index} role="group">{panel}</div>)}
     </div>
     <div className={`hero-rotator__nav ${center ? "justify-center" : ""}`}>
-      <button aria-label="Khối trước" className="hero-rotator__arrow" onClick={() => go(active - 1)} type="button"><ChevronLeft aria-hidden="true" size={20} /></button>
-      <div className="hero-rotator__dots">{panels.map((_, index) => <button aria-current={index === active} aria-label={`Xem khối ${index + 1}`} className={index === active ? "hero-rotator__dot hero-rotator__dot--active" : "hero-rotator__dot"} key={index} onClick={() => go(index)} type="button" />)}</div>
-      <button aria-label="Khối sau" className="hero-rotator__arrow" onClick={() => go(active + 1)} type="button"><ChevronRight aria-hidden="true" size={20} /></button>
+      <button aria-label={t("carousel.prevBlock")} className="hero-rotator__arrow" onClick={() => go(active - 1)} type="button"><ChevronLeft aria-hidden="true" size={20} /></button>
+      <div className="hero-rotator__dots">{panels.map((_, index) => <button aria-current={index === active} aria-label={t("carousel.viewBlock", { n: index + 1 })} className={index === active ? "hero-rotator__dot hero-rotator__dot--active" : "hero-rotator__dot"} key={index} onClick={() => go(index)} type="button" />)}</div>
+      <button aria-label={t("carousel.nextBlock")} className="hero-rotator__arrow" onClick={() => go(active + 1)} type="button"><ChevronRight aria-hidden="true" size={20} /></button>
     </div>
   </div>;
 }

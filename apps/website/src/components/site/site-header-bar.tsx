@@ -1,7 +1,10 @@
 "use client";
 
 import Image from "next/image";
+import { LanguageSwitcher, type LanguageOption } from "@/components/site/language-switcher";
+import { useT } from "@/components/site/messages-provider";
 import { SiteLink as Link } from "@/components/site/site-link";
+import type { SiteLocale } from "@iorder/shared/server/translations/locales";
 import { usePathname } from "next/navigation";
 import { ChevronDown, Menu, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type FocusEvent, type KeyboardEvent as ReactKeyboardEvent } from "react";
@@ -28,8 +31,9 @@ function DropdownPanel({ link, pathname }: { link: HeaderLink; pathname: string 
 
 // Đầu trang: dính trên cùng, có bóng khi cuộn. Máy tính: menu ngang, mục có con mở bảng thả xuống
 // (nhiều mục thì chia 2 cột). Điện thoại: nút ☰ mở bảng menu toàn chiều ngang, mục có con gập/mở.
-export function SiteHeaderBar({ actions, brand, links, logo }: { actions: HeaderLink[]; brand: string; links: HeaderLink[]; logo: { url: string; alt: string } | null }) {
+export function SiteHeaderBar({ actions, brand, languages, links, logo }: { actions: HeaderLink[]; brand: string; languages: { current: SiteLocale; options: LanguageOption[] } | null; links: HeaderLink[]; logo: { url: string; alt: string } | null }) {
   const pathname = usePathname();
+  const t = useT();
   const [scrolled, setScrolled] = useState(false);
   // Menu điện thoại gắn với đường dẫn lúc mở: chuyển trang là tự đóng.
   const [openOn, setOpenOn] = useState<string | null>(null);
@@ -92,13 +96,13 @@ export function SiteHeaderBar({ actions, brand, links, logo }: { actions: Header
 
   // Bảng menu điện thoại nằm ngoài <header>: header có backdrop-filter nên phần tử fixed bên trong sẽ bị định vị theo header.
   // "Bỏ qua tới nội dung chính": phần tử đầu tiên khi bấm Tab, chỉ hiện khi được focus (người dùng bàn phím, trình đọc màn hình).
-  return <><a className="skip-link" href="#noi-dung">Bỏ qua tới nội dung chính</a><header className={scrolled || mobileOpen ? "site-header site-header--scrolled" : "site-header"}>
+  return <><a className="skip-link" href="#noi-dung">{t("header.skipToContent")}</a><header className={scrolled || mobileOpen ? "site-header site-header--scrolled" : "site-header"}>
     <div className="site-header__inner">
-      <Link aria-label={`${brand} - Trang chủ`} className="brand" href="/">
+      <Link aria-label={t("header.homeLink", { brand })} className="brand" href="/">
         {logo ? <Image alt={logo.alt} className="h-[2.75rem] w-auto max-sm:h-[2.375rem]" height={80} preload src={logo.url} width={200} /> : <><span aria-hidden="true" className="brand__mark">i</span>{brand}</>}
       </Link>
 
-      <nav aria-label="Điều hướng chính" className="site-nav" ref={navRef}>
+      <nav aria-label={t("header.mainNavigation")} className="site-nav" ref={navRef}>
         <ul className="site-nav__list" onBlur={leaveNav} onMouseLeave={() => moveBar(activeIndex)}>{links.map((link, index) => {
           const active = isActive(pathname, link);
           const hover = { onFocus: () => moveBar(index), onMouseEnter: () => moveBar(index) };
@@ -113,19 +117,20 @@ export function SiteHeaderBar({ actions, brand, links, logo }: { actions: Header
       </nav>
 
       <div className="site-header__actions">
+        {languages ? <LanguageSwitcher current={languages.current} options={languages.options} pathname={pathname} /> : null}
         {actions.map((action, index) => <Link className={index === actions.length - 1 ? "header-cta header-cta--primary" : "header-cta header-cta--secondary"} href={action.url} key={action.key} {...external(action)}>{action.label}</Link>)}
-        <button aria-controls="site-mobile-menu" aria-expanded={mobileOpen} aria-label={mobileOpen ? "Đóng menu" : "Mở menu"} className="site-menu-toggle" onClick={() => { setExpanded(null); setOpenOn(mobileOpen ? null : pathname); }} type="button">{mobileOpen ? <X aria-hidden="true" size={22} /> : <Menu aria-hidden="true" size={22} />}</button>
+        <button aria-controls="site-mobile-menu" aria-expanded={mobileOpen} aria-label={mobileOpen ? t("header.closeMenu") : t("header.openMenu")} className="site-menu-toggle" onClick={() => { setExpanded(null); setOpenOn(mobileOpen ? null : pathname); }} type="button">{mobileOpen ? <X aria-hidden="true" size={22} /> : <Menu aria-hidden="true" size={22} />}</button>
       </div>
     </div>
   </header>
 
     <div className={mobileOpen ? "site-mobile-menu site-mobile-menu--open" : "site-mobile-menu"} hidden={!mobileOpen} id="site-mobile-menu">
-      <nav aria-label="Điều hướng chính trên điện thoại">
+      <nav aria-label={t("header.mobileNavigation")}>
         <ul className="site-mobile-menu__list">{links.map((link) => <li key={link.key}>
           {link.children.length ? <>
             <div className="site-mobile-menu__row">
               <Link aria-current={matches(pathname, link.url) ? "page" : undefined} className={isActive(pathname, link) ? "site-mobile-menu__link site-mobile-menu__link--active" : "site-mobile-menu__link"} href={link.url} {...external(link)}>{link.label}</Link>
-              <button aria-controls={`site-mobile-sub-${link.key}`} aria-expanded={expanded === link.key} aria-label={`${expanded === link.key ? "Đóng" : "Mở"} mục con của ${link.label}`} className="site-mobile-menu__toggle" onClick={() => setExpanded((current) => current === link.key ? null : link.key)} type="button"><ChevronDown aria-hidden="true" className={expanded === link.key ? "rotate-180 transition" : "transition"} size={18} /></button>
+              <button aria-controls={`site-mobile-sub-${link.key}`} aria-expanded={expanded === link.key} aria-label={t(expanded === link.key ? "header.closeSubmenu" : "header.openSubmenu", { label: link.label })} className="site-mobile-menu__toggle" onClick={() => setExpanded((current) => current === link.key ? null : link.key)} type="button"><ChevronDown aria-hidden="true" className={expanded === link.key ? "rotate-180 transition" : "transition"} size={18} /></button>
             </div>
             {expanded === link.key ? <ul className="site-mobile-menu__children" id={`site-mobile-sub-${link.key}`}>{link.children.map((child) => <li key={child.key}><Link aria-current={matches(pathname, child.url) ? "page" : undefined} className="site-mobile-menu__child" href={child.url} {...external(child)}>{child.label}</Link></li>)}</ul> : null}
           </> : <Link className={isActive(pathname, link) ? "site-mobile-menu__link site-mobile-menu__link--active" : "site-mobile-menu__link"} href={link.url} {...external(link)}>{link.label}</Link>}

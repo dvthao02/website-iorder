@@ -5,6 +5,7 @@ import { ArrowRight, Search, X } from "lucide-react";
 import { useId, useState } from "react";
 
 import { fold } from "@/lib/fold";
+import { useT } from "./messages-provider";
 import { SiteLink as Link } from "./site-link";
 
 export type SupportSearchItem = { title: string; href: string; kind: string; text?: string | null };
@@ -15,7 +16,8 @@ export type SupportSearchItem = { title: string; href: string; kind: string; tex
  * (dữ liệu từ CMS truyền xuống). Mọi từ gõ vào phải có trong tiêu đề hoặc mô tả; tiêu đề khớp được xếp trước.
  * Enter mở kết quả đầu tiên; các gợi ý nhanh bên dưới điền sẵn từ khóa.
  */
-export function SupportSearch({ items, suggestions, label = "Tìm trong trung tâm hỗ trợ", placeholder = "Ví dụ: kết ca, in hóa đơn…" }: { items: SupportSearchItem[]; suggestions: string[]; label?: string; placeholder?: string }) {
+export function SupportSearch({ items, suggestions, label, placeholder }: { items: SupportSearchItem[]; suggestions: string[]; label?: string; placeholder?: string }) {
+  const t = useT();
   const router = useRouter();
   const [query, setQuery] = useState("");
   const resultsId = useId();
@@ -29,15 +31,15 @@ export function SupportSearch({ items, suggestions, label = "Tìm trong trung t�
 
   return <div className="support-search">
     <form onSubmit={(event) => { event.preventDefault(); if (results[0]) router.push(results[0].href); }} role="search">
-      <label className="sr-only" htmlFor={`${resultsId}-input`}>{label}</label>
+      <label className="sr-only" htmlFor={`${resultsId}-input`}>{label ?? t("search.supportLabel")}</label>
       <div className="support-search__box">
         <Search aria-hidden="true" className="shrink-0 text-muted" size={22} />
-        <input aria-controls={resultsId} autoComplete="off" className="support-search__input" id={`${resultsId}-input`} onChange={(event) => setQuery(event.target.value)} placeholder={placeholder} type="search" value={query} />
-        {query ? <button aria-label="Xóa từ khóa" className="support-search__clear" onClick={() => setQuery("")} type="button"><X aria-hidden="true" size={18} /></button> : null}
+        <input aria-controls={resultsId} autoComplete="off" className="support-search__input" id={`${resultsId}-input`} onChange={(event) => setQuery(event.target.value)} placeholder={placeholder ?? t("search.placeholder")} type="search" value={query} />
+        {query ? <button aria-label={t("search.clear")} className="support-search__clear" onClick={() => setQuery("")} type="button"><X aria-hidden="true" size={18} /></button> : null}
       </div>
     </form>
     <div id={resultsId}>
-      <p aria-live="polite" className="sr-only">{words.length ? `${results.length} kết quả` : ""}</p>
+      <p aria-live="polite" className="sr-only">{words.length ? t("search.results", { count: results.length }) : ""}</p>
       {words.length ? <div className="support-search__results">
         {results.length ? <ul className="m-0 list-none p-0">{results.map((item) => <li key={item.href}>
           <Link className="support-search__result" href={item.href}>
@@ -45,11 +47,11 @@ export function SupportSearch({ items, suggestions, label = "Tìm trong trung t�
             <span className="min-w-0 flex-1 truncate font-semibold text-ink">{item.title}</span>
             <ArrowRight aria-hidden="true" className="shrink-0 text-brand-600" size={18} />
           </Link>
-        </li>)}</ul> : <p className="m-0 px-5 py-4 text-body text-muted">Chưa tìm thấy nội dung phù hợp. Thử từ khóa khác, hoặc gọi hotline để được hỗ trợ trực tiếp.</p>}
+        </li>)}</ul> : <p className="m-0 px-5 py-4 text-body text-muted">{t("search.empty")}</p>}
       </div> : null}
     </div>
     {suggestions.length ? <div className="mt-4 flex flex-wrap items-center justify-center gap-2 text-small">
-      <span className="text-muted">Tìm nhiều:</span>
+      <span className="text-muted">{t("search.popular")}</span>
       {suggestions.map((suggestion) => <button className="support-search__chip" key={suggestion} onClick={() => setQuery(suggestion)} type="button">{suggestion}</button>)}
     </div> : null}
   </div>;

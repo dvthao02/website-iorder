@@ -3,6 +3,8 @@ import { getEnabledRedirect } from "@/lib/backend";
 import { builtInRedirect, redirectLoopsBack } from "@iorder/shared/server/shared/legacy-paths";
 import { logger } from "@iorder/shared/server/shared/logger";
 import { builderPreviewHeader, fetchBuilderPreview } from "@/lib/builder-preview";
+import { localeCookie, localeCookieMaxAgeSeconds } from "@/lib/locale-cookie";
+import { isSiteLocale } from "@iorder/shared/server/translations/locales";
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -32,6 +34,18 @@ export async function proxy(request: NextRequest) {
   // API calls are proxied to the backend through next.config.ts and never
   // participate in CMS URL redirects.
   if (pathname.startsWith("/api")) return NextResponse.next({ request: { headers: forwarded } });
+
+  // Chọn ngôn ngữ bằng liên kết ?lang=en (nút đổi ngôn ngữ, hoặc liên kết chia sẻ): ghi cookie rồi chuyển về đúng địa chỉ không có ?lang để mỗi trang chỉ có một URL
+  // (slug không đổi theo ngôn ngữ; công cụ tìm kiếm không gửi cookie nên vẫn thấy tiếng Việt). Giá trị lạ thì chỉ bỏ ?lang, không đổi cookie.
+  if (request.nextUrl.searchParams.has("lang")) {
+    const chosen = request.nextUrl.searchParams.get("lang");
+    const clean = request.nextUrl.clone();
+    clean.searchParams.delete("lang");
+    const response = NextResponse.redirect(clean, 302);
+    if (isSiteLocale(chosen)) response.cookies.set(localeCookie, chosen, { path: "/", maxAge: localeCookieMaxAgeSeconds, sameSite: "lax", secure: request.headers.get("x-forwarded-proto") === "https" || request.nextUrl.protocol === "https:" });
+    response.headers.set("cache-control", "private, no-store");
+    return response;
+  }
 
   // Redirects are an optimisation for old URLs; a Backend outage must not block every page.
   let redirect: Awaited<ReturnType<typeof getEnabledRedirect>> = null;

@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { publicContentCacheTag, verifyPublicCacheInvalidation } from "@iorder/shared/server/publishing/cache-invalidation";
+import { clearRedirectCache } from "@/lib/backend";
 
 export const runtime = "nodejs";
 
@@ -39,5 +40,6 @@ export async function POST(request: Request) {
   if (!parsed.success) return failure("Tag làm mới cache không hợp lệ.", 400);
 
   revalidateTag(publicContentCacheTag, { expire: 0 });
+  clearRedirectCache();
   return NextResponse.json({ revalidated: true, tags: parsed.data.tags });
 }
