@@ -47,7 +47,7 @@
     "test:downloads": "node --import tsx --test apps/website/src/components/ui/download-button.test.tsx apps/website/src/components/site/download-list.test.tsx apps/website/src/lib/downloads.test.ts packages/shared/src/server/support/support-downloads.service.test.ts packages/shared/src/server/support/support-downloads.contract.test.ts",
     "test:navigation": "node --import tsx --test packages/shared/src/server/navigation/navigation.service.test.ts packages/shared/src/server/navigation/navigation.contract.test.ts apps/website/src/lib/navigation-tree.test.ts",
     "test:taxonomy": "node --import tsx --test packages/shared/src/server/taxonomy/taxonomy.service.test.ts",
-    "test:media": "node --import tsx --test packages/shared/src/server/shared/remote-file.test.ts packages/shared/src/server/media/media.service.test.ts packages/shared/src/server/media/image-dimensions.test.ts packages/shared/src/server/media/media-origin.test.ts packages/shared/src/server/media/media.contract.test.ts apps/api/src/proxy.test.ts apps/api/src/lib/admin-permission.test.ts",
+    "test:media": "node --import tsx --test packages/shared/src/server/shared/remote-file.test.ts packages/shared/src/server/media/media.service.test.ts packages/shared/src/server/media/media-usage-link.test.ts packages/shared/src/server/media/image-dimensions.test.ts packages/shared/src/server/media/media-origin.test.ts packages/shared/src/server/media/media.contract.test.ts apps/api/src/proxy.test.ts apps/api/src/lib/admin-permission.test.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:check": "drizzle-kit check",

@@ -5,6 +5,7 @@ import { anyMediaAccept } from "@iorder/shared/server/media/media-types";
 import { useWebsiteUrl } from "./website-origin-context";
 import { ChevronLeft, ChevronRight, Copy, ExternalLink, ImageIcon, LayoutGrid, List, Paperclip, Trash2, UploadCloud } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type DragEvent, type FormEvent } from "react";
 
 import type { MediaAsset, MediaListQuery, MediaUsage } from "@iorder/shared/server/media/media.contract";
@@ -425,7 +426,7 @@ function MediaDetail({ asset, navigation, onDeleted, onSaved, onStateChange }: {
     <section className="admin-media-detail__usage" aria-label="Nơi đang dùng tệp">
       {!usage ? <p className="admin-help" role="status">Đang kiểm tra nơi sử dụng…</p> : usage.error ? <p className="admin-help admin-text-warning" role="status">{usage.error}</p> : inUse ? <>
         <strong>Đang dùng tại {usage.items.length} nơi</strong>
-        <ul>{usage.items.slice(0, 6).map((item) => <li key={`${item.entityType}-${item.entityId}`}>{item.location}: {item.label}</li>)}</ul>
+        <ul>{usage.items.slice(0, 6).map((item) => <li key={`${item.entityType}-${item.entityId}`}>{item.location}: {item.href ? <Link href={item.href} title="Mở nơi đang dùng tệp này">{item.label}</Link> : item.label}</li>)}</ul>
         {usage.items.length > 6 ? <p className="admin-help">và {usage.items.length - 6} nơi khác.</p> : null}
       </> : <p className="admin-help">Chưa được dùng ở đâu.</p>}
     </section>

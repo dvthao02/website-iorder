@@ -48,6 +48,8 @@ export const mediaUsageItemSchema = z.object({
   entityId: z.string().uuid(),
   label: z.string().min(1),
   location: z.string().min(1),
+  /** Màn hình CMS chứa nơi dùng tệp (xem media-usage-link.ts); không có thì chỉ liệt kê tên. */
+  href: z.string().regex(/^\/admin(\/|$)/).optional(),
 }).strict();
 
 export const mediaUsageSchema = z.object({

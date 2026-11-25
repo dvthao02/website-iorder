@@ -403,6 +403,8 @@
   .admin-media-detail__links button:hover { text-decoration: underline; }
   .admin-media-detail__usage { display: grid; gap: 4px; border-radius: var(--cms-radius-component); background: var(--cms-subtle); padding: 10px 12px; font-size: var(--cms-text-sm); }
   .admin-media-detail__usage ul { margin: 0; padding-left: 18px; color: var(--cms-muted); list-style: disc; }
+  .admin-media-detail__usage li a { color: var(--cms-primary); }
+  .admin-media-detail__usage li a:hover { text-decoration: underline; }
   .admin-media-detail__actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 
   /* Tab chuyển giữa các tập dữ liệu trong một màn: nằm ngay dưới tiêu đề card, gạch chân tab đang mở. */

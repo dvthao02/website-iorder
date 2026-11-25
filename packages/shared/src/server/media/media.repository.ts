@@ -21,6 +21,7 @@ import {
 } from "@iorder/shared/db/schema";
 import type { MediaMetadata } from "./media.contract";
 import { mediaPath } from "./storage";
+import { mediaUsageHref } from "./media-usage-link";
 import type { MediaUsage } from "./media.contract";
 import type { MediaListQuery } from "./media.contract";
 import { toAdminListPage } from "../shared/admin-list.contract";
@@ -120,18 +121,18 @@ export async function collectMediaUsage(mediaId: string): Promise<MediaUsage[]> 
   const [asset] = await getDb().select({ storageKey: mediaAssets.storageKey }).from(mediaAssets).where(eq(mediaAssets.id, mediaId)).limit(1);
   const url = asset ? mediaPath(asset.storageKey) : null;
   const [postContentRows, richBlockRows] = url ? await Promise.all([
-    getDb().select({ id: posts.id, label: posts.title }).from(posts).where(and(isNull(posts.deletedAt), sql<boolean>`position(${url} in ${posts.content}::text) > 0`)),
-    getDb().select({ id: pageBlocks.id, label: pages.title }).from(pageBlocks).innerJoin(pages, eq(pageBlocks.pageId, pages.id))
+    getDb().select({ id: posts.id, label: posts.title, contentType: posts.type }).from(posts).where(and(isNull(posts.deletedAt), sql<boolean>`position(${url} in ${posts.content}::text) > 0`)),
+    getDb().select({ id: pageBlocks.id, pageId: pageBlocks.pageId, label: pages.title }).from(pageBlocks).innerJoin(pages, eq(pageBlocks.pageId, pages.id))
       .where(and(isNull(pages.deletedAt), sql<boolean>`position(${url} in ${pageBlocks.data}::text) > 0`)),
   ]) : [[], []];
   const [pageRows, postRows, offeringRows, groupRows, equipmentRows, partnerRows, testimonialRows, profileRows, downloadRows, publishingRows, userRows, authorRows] = await Promise.all([
-    getDb().select({ id: pageBlocks.id, label: pages.title }).from(pageBlocks).innerJoin(pages, eq(pageBlocks.pageId, pages.id))
+    getDb().select({ id: pageBlocks.id, pageId: pageBlocks.pageId, label: pages.title }).from(pageBlocks).innerJoin(pages, eq(pageBlocks.pageId, pages.id))
       // Mã tệp có thể nằm ở bất kỳ đâu trong dữ liệu khối (ảnh minh họa, slide của phần đầu trang…); UUID là duy nhất nên dò chuỗi là đủ.
       // Ảnh nền của khối nằm ở vỏ chung (appearance), nên dò cả hai cột.
       .where(and(isNull(pages.deletedAt), sql<boolean>`position(${mediaId} in (${pageBlocks.data}::text || coalesce(${pageBlocks.appearance}::text, ''))) > 0`)),
-    getDb().select({ id: posts.id, label: posts.title }).from(posts).where(and(eq(posts.coverMediaId, mediaId), isNull(posts.deletedAt))),
+    getDb().select({ id: posts.id, label: posts.title, contentType: posts.type }).from(posts).where(and(eq(posts.coverMediaId, mediaId), isNull(posts.deletedAt))),
     // Ảnh bìa, hoặc ảnh nền của một phần trang chi tiết (nằm trong nội dung JSON).
-    getDb().select({ id: offerings.id, label: offerings.title }).from(offerings).where(and(or(eq(offerings.coverMediaId, mediaId), sql<boolean>`position(${mediaId} in ${offerings.content}::text) > 0`), isNull(offerings.deletedAt))),
+    getDb().select({ id: offerings.id, label: offerings.title, contentType: offerings.type }).from(offerings).where(and(or(eq(offerings.coverMediaId, mediaId), sql<boolean>`position(${mediaId} in ${offerings.content}::text) > 0`), isNull(offerings.deletedAt))),
     getDb().select({ id: equipmentGroups.id, label: equipmentGroups.name }).from(equipmentGroups).where(and(eq(equipmentGroups.coverMediaId, mediaId), isNull(equipmentGroups.deletedAt))),
     getDb().select({ id: salesEquipment.id, label: salesEquipment.name }).from(salesEquipment).where(and(or(eq(salesEquipment.coverMediaId, mediaId), sql<boolean>`position(${mediaId} in coalesce(${salesEquipment.blocks}::text, '')) > 0`), isNull(salesEquipment.deletedAt))),
     getDb().select({ id: partners.id, label: partners.name }).from(partners).where(and(eq(partners.logoMediaId, mediaId), isNull(partners.deletedAt))),
@@ -146,15 +147,15 @@ export async function collectMediaUsage(mediaId: string): Promise<MediaUsage[]> 
 
   const seoRows = await Promise.all([
     getDb().select({ id: pages.id, label: pages.title }).from(pages).where(and(isNull(pages.deletedAt), sql<boolean>`position(${mediaId} in ${pages.seo}::text) > 0`)),
-    getDb().select({ id: posts.id, label: posts.title }).from(posts).where(and(isNull(posts.deletedAt), sql<boolean>`position(${mediaId} in ${posts.seo}::text) > 0`)),
-    getDb().select({ id: offerings.id, label: offerings.title }).from(offerings).where(and(isNull(offerings.deletedAt), sql<boolean>`position(${mediaId} in ${offerings.seo}::text) > 0`)),
+    getDb().select({ id: posts.id, label: posts.title, contentType: posts.type }).from(posts).where(and(isNull(posts.deletedAt), sql<boolean>`position(${mediaId} in ${posts.seo}::text) > 0`)),
+    getDb().select({ id: offerings.id, label: offerings.title, contentType: offerings.type }).from(offerings).where(and(isNull(offerings.deletedAt), sql<boolean>`position(${mediaId} in ${offerings.seo}::text) > 0`)),
     getDb().select({ id: salesEquipment.id, label: salesEquipment.name }).from(salesEquipment).where(and(isNull(salesEquipment.deletedAt), sql<boolean>`position(${mediaId} in ${salesEquipment.seo}::text) > 0`)),
   ]);
-  return [
-    ...seoRows.flatMap((rows, index) => rows.map(row => ({ entityType: ["page", "post", "offering", "equipment"][index], entityId: row.id, label: row.label, location: "Ảnh SEO, chia sẻ hoặc dữ liệu cấu trúc" }))),
-    ...pageRows.map((row) => ({ entityType: "page_block", entityId: row.id, label: row.label, location: "Khối hình ảnh của trang" })),
-    ...postRows.map((row) => ({ entityType: "post", entityId: row.id, label: row.label, location: "Ảnh bìa bài viết" })),
-    ...offeringRows.map((row) => ({ entityType: "offering", entityId: row.id, label: row.label, location: "Ảnh bìa catalog" })),
+  const items: Array<MediaUsage & { pageId?: string; contentType?: string }> = [
+    ...seoRows.flatMap((rows, index) => rows.map(row => ({ entityType: ["page", "post", "offering", "equipment"][index], entityId: row.id, label: row.label, location: "Ảnh SEO, chia sẻ hoặc dữ liệu cấu trúc", contentType: "contentType" in row ? row.contentType : undefined }))),
+    ...pageRows.map((row) => ({ entityType: "page_block", entityId: row.id, label: row.label, location: "Khối hình ảnh của trang", pageId: row.pageId })),
+    ...postRows.map((row) => ({ entityType: "post", entityId: row.id, label: row.label, location: "Ảnh bìa bài viết", contentType: row.contentType })),
+    ...offeringRows.map((row) => ({ entityType: "offering", entityId: row.id, label: row.label, location: "Ảnh bìa catalog", contentType: row.contentType })),
     ...groupRows.map((row) => ({ entityType: "equipment_group", entityId: row.id, label: row.label, location: "Ảnh nhóm thiết bị" })),
     ...equipmentRows.map((row) => ({ entityType: "equipment", entityId: row.id, label: row.label, location: "Ảnh thiết bị" })),
     ...partnerRows.map((row) => ({ entityType: "partner", entityId: row.id, label: row.label, location: "Logo đối tác" })),
@@ -164,7 +165,8 @@ export async function collectMediaUsage(mediaId: string): Promise<MediaUsage[]> 
     ...publishingRows.map((row) => ({ entityType: "site_setting", entityId: row.id, label: "Cấu hình SEO & Xuất bản", location: "Ảnh chia sẻ mặc định" })),
     ...userRows.map((row) => ({ entityType: "user", entityId: row.id, label: row.label, location: "Ảnh đại diện tài khoản CMS" })),
     ...authorRows.map((row) => ({ entityType: "author", entityId: row.id, label: row.label, location: "Ảnh đại diện tác giả bài viết" })),
-    ...postContentRows.map((row) => ({ entityType: "post_content", entityId: row.id, label: row.label, location: "Ảnh trong nội dung bài viết" })),
-    ...richBlockRows.map((row) => ({ entityType: "page_block_content", entityId: row.id, label: row.label, location: "Ảnh trong khối văn bản của trang" })),
+    ...postContentRows.map((row) => ({ entityType: "post_content", entityId: row.id, label: row.label, location: "Ảnh trong nội dung bài viết", contentType: row.contentType })),
+    ...richBlockRows.map((row) => ({ entityType: "page_block_content", entityId: row.id, label: row.label, location: "Ảnh trong khối văn bản của trang", pageId: row.pageId })),
   ];
+  return items.map(({ pageId, contentType, ...item }) => ({ ...item, href: mediaUsageHref({ ...item, pageId, contentType }) }));
 }
