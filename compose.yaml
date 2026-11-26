@@ -89,6 +89,12 @@ services:
       SESSION_COOKIE_SECURE: ${LAN_BIND:+false}
       UMAMI_API_KEY: ${UMAMI_API_KEY:-}
       UMAMI_WEBSITE_ID: ${UMAMI_WEBSITE_ID:-}
+      # Khóa chủ mã hóa khóa API nhập ở CMS (Umami, Gmail…). Phải nằm trong volume bền: để trong container thì mỗi lần build lại là mất khóa chủ
+      # và mọi khóa đã lưu không giải mã được nữa (phải nhập lại, kết nối lại Gmail). Không nằm trong sao lưu database nên sao lưu riêng.
+      SECRETS_MASTER_KEY: ${SECRETS_MASTER_KEY:-}
+      SECRETS_KEY_FILE: /data/secrets/master.key
+    volumes:
+      - secrets-data:/data/secrets
     ports:
       - "127.0.0.1:3002:3000"
     depends_on:
@@ -234,4 +240,5 @@ services:
 
 volumes:
   postgres-data:
+  secrets-data:
   seaweed-data:

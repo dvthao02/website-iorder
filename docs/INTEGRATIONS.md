@@ -18,7 +18,7 @@ Cách chạy (`packages/shared/src/server/gmail/`): chỉ liên hệ MỚI đư�
 
 ## Khóa kết nối
 
-Giá trị nhập ở CMS được mã hóa trong `secure_settings`. Khóa chủ nằm ngoài database, trong biến môi trường hoặc tệp khóa của Backend. Cần bảo vệ và sao lưu khóa chủ riêng: chỉ phục hồi database mà thiếu khóa chủ sẽ không giải mã được các giá trị đã lưu. Không tạo đè khóa khi chưa xác định nguyên nhân lỗi.
+Giá trị nhập ở CMS được mã hóa trong `secure_settings`. Cả `compose.yaml` (local) lẫn `compose.production.yaml` đều cất khóa chủ ở volume bền `secrets-data` (`SECRETS_KEY_FILE=/data/secrets/master.key`): để khóa chủ trong container thì mỗi lần build lại là mất khóa, mọi khóa đã lưu (Umami, Gmail…) không giải mã được và phải nhập lại, kết nối lại Gmail. Không `docker compose down -v` và không xóa volume này; sao lưu riêng tệp khóa. Khóa chủ nằm ngoài database, trong biến môi trường hoặc tệp khóa của Backend. Cần bảo vệ và sao lưu khóa chủ riêng: chỉ phục hồi database mà thiếu khóa chủ sẽ không giải mã được các giá trị đã lưu. Không tạo đè khóa khi chưa xác định nguyên nhân lỗi.
 
 ## SEO và xem trước
 
