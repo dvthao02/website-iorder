@@ -39,9 +39,17 @@ cd /srv/iorder
 
 ### 3.2 Tạo `.env.production`
 
-Tệp này chứa mật khẩu database, khóa S3 và các khóa bí mật. **Không bao giờ commit.** `.gitignore` đã chặn `.env*`.
+Tệp này chứa mật khẩu database, khóa S3 và các khóa bí mật. **Không đưa lên GitHub hay nơi công khai.** Chủ dự án đã chủ động đưa `.env.production` vào nhánh GitLab này (chỉ có ở GitLab, không có ở GitHub), nên sau khi clone tệp đã nằm sẵn ở thư mục gốc: chỉ cần khóa quyền.
 
-Cách 1 (khuyến nghị nếu đã có tệp từ máy phát triển): chép sang VPS rồi khóa quyền.
+```sh
+chmod 600 .env.production
+```
+
+Chỉ sửa tệp này ở một nơi (máy phát triển, rồi phát hành lại lên GitLab). Sửa tay trên VPS thì lần `git pull` sau có thể báo xung đột ở đúng tệp này.
+
+Nếu tệp không có hoặc cần tạo lại:
+
+Cách 1: chép từ máy phát triển sang VPS rồi khóa quyền.
 
 ```sh
 scp .env.production <user>@<vps>:/srv/iorder/
@@ -193,7 +201,8 @@ docker compose --env-file .env.production -f compose.production.yaml restart web
 
 ## 11. Bảo mật
 
-- Không đưa `.env.production`, gói sao lưu hay khóa chủ lên Git, chat hay issue.
+- Không đưa `.env.production` lên GitHub hay nơi công khai; trên GitLab chỉ giữ khi repo giới hạn đúng những người cần đọc. Không đưa gói sao lưu hay khóa chủ lên Git, chat hay issue.
+- Nghi ngờ `.env.production` bị lộ: nếu hệ thống chưa chạy lần đầu thì sinh lại bằng script (`--force`) rồi phát hành lại. Nếu đã chạy thì xoay khóa phức tạp hơn, vì mật khẩu database và khóa S3 đã nằm trong volume.
 - Đổi mật khẩu quản trị CMS sau lần đăng nhập đầu; đổi mật khẩu mặc định của Umami.
 - Chỉ cổng 80 và 443 mở ra ngoài; database, S3 và Backend chỉ nằm trong mạng nội bộ của Docker.
 - Chép bản sao lưu ra ngoài máy chủ và thử phục hồi định kỳ.
@@ -207,6 +216,7 @@ docker compose --env-file .env.production -f compose.production.yaml restart web
 | `drizzle/` | Migration SQL |
 | `Dockerfile`, `compose.production.yaml`, `Caddyfile` | Build và chạy production |
 | `.env.production.example` | Mẫu biến môi trường (tên biến, không có giá trị thật) |
+| `.env.production` | Biến môi trường production thật; chỉ có ở nhánh GitLab, không có ở GitHub |
 | `scripts/` | Chỉ các script production dùng: `generate-env-production.mjs`, `restore-package.sh`, `backup.sh`, `backup.ps1` (chỉ cho máy Windows phát triển), `backup-media.mjs`, `backup-status.sql`, `seed-admin.ts`, `cleanup-*.ts`, `data/base-content.sql` |
 
 ## 13. Đã kiểm chứng và chưa kiểm chứng
