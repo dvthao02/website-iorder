@@ -9,10 +9,10 @@ export type SecretKey = (typeof secretKeys)[number];
 
 /** Mỗi công cụ ngoài là một thẻ ở CMS gồm nhiều biến kết nối. Thêm công cụ mới = thêm khóa vào secretKeys, secretMetas, bộ kiểm tra ở secrets.catalog.ts và một dòng ở đây. */
 export const integrationTools = [
-  { id: "umami", label: "Umami (thống kê truy cập)", description: "Công cụ đếm lượt truy cập tự host. Điền đủ địa chỉ, mã website và API key để Tổng quan hiện số liệu truy cập; mã website còn được dùng để gắn thẻ theo dõi lên website công khai.", keys: ["umami_api_url", "umami_website_id", "umami_api_key"] },
-  { id: "google_search_console", label: "Google Search Console", description: "Cho CMS xem tình trạng lập chỉ mục và hiệu quả tìm kiếm của website. Chỉ cần khóa tài khoản dịch vụ; thuộc tính chỉ điền khi muốn chọn thuộc tính cụ thể.", keys: ["google_service_account", "search_console_property"] },
-  { id: "gmail", label: "Gmail (gửi thư báo liên hệ mới)", description: "Mã khách OAuth tạo một lần ở Google Cloud để CMS xin quyền gửi thư từ Gmail của bạn. Điền xong, vào Hệ thống → Gmail báo liên hệ để bấm Kết nối.", keys: ["google_oauth_client_id", "google_oauth_client_secret"] },
-] as const satisfies ReadonlyArray<{ id: string; label: string; description: string; keys: readonly SecretKey[] }>;
+  { id: "umami", label: "Umami (thống kê truy cập)", description: "Đếm lượt truy cập website để hiện số liệu ở Tổng quan. Cần địa chỉ Umami, mã website và API key.", keys: ["umami_api_url", "umami_website_id", "umami_api_key"] },
+  { id: "google_search_console", label: "Google Search Console", description: "Cho CMS xem website đã được Google lập chỉ mục chưa và khách tìm ra bằng từ khóa nào. Chỉ cần tệp khóa tài khoản dịch vụ.", keys: ["google_service_account", "search_console_property"], optionalKeys: ["search_console_property"] },
+  { id: "gmail", label: "Gmail (gửi thư báo liên hệ mới)", description: "Gửi thư báo khi có khách để lại liên hệ. Điền mã khách Google ở đây, rồi bấm Kết nối ở mục Hệ thống → Gmail báo liên hệ.", keys: ["google_oauth_client_id", "google_oauth_client_secret"] },
+] as const satisfies ReadonlyArray<{ id: string; label: string; description: string; keys: readonly SecretKey[]; /** Biến không bắt buộc: thiếu thì công cụ vẫn tính là đã thiết lập. */ optionalKeys?: readonly SecretKey[] }>;
 export type IntegrationToolId = (typeof integrationTools)[number]["id"];
 
 export type SecretMeta = {
@@ -49,7 +49,7 @@ export const secretMetas: Record<SecretKey, SecretMeta> = {
   umami_api_url: {
     key: "umami_api_url",
     label: "Địa chỉ Umami (API)",
-    description: "Địa chỉ gốc để Backend gọi Umami, ví dụ http://umami:3000 trong mạng Docker hoặc https://thongke.ten-mien.vn. Không kèm đường dẫn phía sau. Đường chuyển tiếp /stats của website công khai do máy chủ web đảm nhiệm, không đổi ở đây.",
+    description: "Địa chỉ để máy chủ CMS gọi Umami, ví dụ http://umami:3000 (trong Docker) hoặc https://thongke.ten-mien.vn. Không thêm đường dẫn phía sau.",
     input: "text",
     exposeValue: true,
     envNames: ["UMAMI_API_URL"],
@@ -58,7 +58,7 @@ export const secretMetas: Record<SecretKey, SecretMeta> = {
   umami_website_id: {
     key: "umami_website_id",
     label: "Mã website trong Umami",
-    description: "Mã dạng UUID của website, lấy ở Umami → Websites → Settings. Dùng cả để đọc số liệu lẫn để gắn thẻ theo dõi lên website công khai (website cập nhật trong khoảng một phút).",
+    description: "Mã dạng UUID, lấy ở Umami → Websites → Settings. Cũng dùng để gắn thẻ theo dõi lên website (cập nhật trong khoảng một phút).",
     input: "text",
     exposeValue: true,
     envNames: ["UMAMI_WEBSITE_ID"],

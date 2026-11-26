@@ -25,7 +25,19 @@ const stateText: Record<SecretStatus["state"], { tone: "success" | "warning" | "
 
 const fieldsOf = (tool: IntegrationTool, overview: SecretsOverview) => tool.keys.map((key) => overview.secrets.find((secret) => secret.key === key)).filter((secret): secret is SecretStatus => Boolean(secret));
 
-/** Phần hiển thị thuần (tách khỏi việc tải/gửi dữ liệu để kiểm thử được). Mỗi công cụ là một thẻ tóm tắt; bấm Cấu hình thì mở MỘT panel trượt chứa mọi biến của công cụ đó. */
+/** Tình trạng một công cụ: chỉ đếm biến bắt buộc (biến không bắt buộc thiếu thì công cụ vẫn là đã thiết lập). */
+function toolState(tool: IntegrationTool, fields: SecretStatus[]): { tone: "success" | "warning" | "neutral"; label: string } {
+  const optional: readonly string[] = "optionalKeys" in tool ? tool.optionalKeys : [];
+  const required = fields.filter((secret) => !optional.includes(secret.key));
+  const set = required.filter((secret) => secret.state !== "none").length;
+  if (set === required.length) return { tone: "success", label: "Đã thiết lập" };
+  return set > 0 ? { tone: "warning", label: "Thiếu thông tin" } : { tone: "neutral", label: "Chưa thiết lập" };
+}
+
+/**
+ * Phần hiển thị thuần (tách khỏi việc tải/gửi dữ liệu để kiểm thử được). Mỗi công cụ là một thẻ: tên, một dòng mô tả, một tình trạng, một nút Cấu hình
+ * (mở MỘT panel trượt chứa mọi biến của công cụ). Giải thích bảo mật, nguồn khóa chủ và từng biến gập sẵn; chỉ cảnh báo chặn việc lưu mới hiện thẳng.
+ */
 export function IntegrationSecretsView({ overview, editingTool, onEditTool, onCloseEdit, renderForm, creatingMasterKey = false, onCreateMasterKey, onCloseMasterKey, masterKeyForm }: {
   overview: SecretsOverview;
   /** Công cụ đang mở trong panel trượt. */
@@ -44,51 +56,60 @@ export function IntegrationSecretsView({ overview, editingTool, onEditTool, onCl
   const openTool = editingTool ? integrationTools.find((tool) => tool.id === editingTool) : undefined;
   return <div className="admin-status-stack admin-status-stack--wide">
     <AdminCard>
-      <header><div><h2>Kết nối &amp; khóa API</h2><p>Nơi điền các biến kết nối của CMS với công cụ ngoài (địa chỉ, mã, khóa), thay cho việc sửa tệp cấu hình trên máy chủ. Chỉ Super Admin. Khóa bí mật chỉ ghi: lưu xong không xem lại được, muốn đổi thì nhập khóa mới; địa chỉ và mã không bí mật thì hiện lại được.</p></div></header>
-      <ul className="admin-status-list admin-status-list--tight">
-        <li>Mỗi lần lưu hoặc xóa đều phải <strong>nhập lại mật khẩu của chính bạn</strong>; nhập sai nhiều lần sẽ bị chặn tạm.</li>
-        <li>Khóa được <strong>mã hóa</strong> trước khi lưu vào cơ sở dữ liệu; khóa giải mã nằm ở máy chủ, không nằm trong database hay bản sao lưu.</li>
-        <li>Nếu máy chủ đã đặt biến môi trường tương ứng thì biến <strong>thắng</strong>: giá trị ở đây chưa có hiệu lực cho tới khi gỡ biến đó.</li>
-        <li>Mọi thay đổi được ghi vào Nhật ký hoạt động (chỉ ghi ai đổi khóa nào, không ghi giá trị).</li>
-      </ul>
+      <p className="admin-integration-intro">Điền thông tin để CMS nối với các công cụ bên dưới. Thông tin được mã hóa, và mỗi lần lưu cần nhập lại mật khẩu của bạn.</p>
       {overview.masterKey === "missing" && overview.canCreateMasterKey ? <>
         <AdminNotice tone="warning">Chưa có khóa chủ nên chưa lưu được khóa ở CMS. Bấm “Tạo khóa chủ”: CMS tự tạo một khóa ngẫu nhiên và cất trong tệp riêng trên máy chủ{overview.keyFilePath ? <> (<code>{overview.keyFilePath}</code>)</> : null}, không nằm trong database hay bản sao lưu database. Khóa chủ không xem lại được, dùng được ngay, không cần khởi động lại. Hoặc người quản trị máy chủ đặt biến <code>SECRETS_MASTER_KEY</code>.</AdminNotice>
         <div><AdminButton leadingIcon={<KeyRound aria-hidden="true" />} onClick={onCreateMasterKey} variant="primary">Tạo khóa chủ</AdminButton></div>
       </> : null}
       {overview.masterKey === "missing" && !overview.canCreateMasterKey ? <AdminNotice tone="warning">Chưa đặt khóa chủ nên chưa lưu được khóa ở CMS. Người quản trị máy chủ tạo khóa bằng lệnh <code>openssl rand -base64 32</code>, đặt vào biến <code>SECRETS_MASTER_KEY</code> rồi khởi động lại Backend. Cất khóa chủ ở nơi riêng (ví dụ trình quản lý mật khẩu): mất khóa này thì phải nhập lại toàn bộ khóa API.</AdminNotice> : null}
       {overview.masterKey === "invalid" ? <AdminNotice tone="error">Khóa chủ {overview.masterKeySource === "file" ? <>trong tệp trên máy chủ{overview.keyFilePath ? <> (<code>{overview.keyFilePath}</code>)</> : null} không đọc được hoặc</> : <><code>SECRETS_MASTER_KEY</code></>} sai định dạng: cần base64 của đúng 32 byte (tạo bằng <code>openssl rand -base64 32</code>). Sửa rồi khởi động lại Backend. CMS không tự tạo đè lên khóa đã có.</AdminNotice> : null}
-      {overview.masterKey === "ok" && overview.masterKeySource === "file" ? <AdminNotice tone="info">Khóa chủ đang cất trong tệp trên máy chủ{overview.keyFilePath ? <> (<code>{overview.keyFilePath}</code>)</> : null}. Sao lưu riêng tệp này (nó không nằm trong sao lưu database); mất tệp thì phải nhập lại toàn bộ khóa API.</AdminNotice> : null}
-      {overview.masterKey === "ok" && overview.masterKeySource === "env" ? <AdminNotice tone="info">Khóa chủ lấy từ biến môi trường <code>SECRETS_MASTER_KEY</code> của máy chủ.</AdminNotice> : null}
+      <details className="admin-integration-details">
+        <summary className="admin-link">Bảo mật và chi tiết kỹ thuật</summary>
+        <ul className="admin-status-list admin-status-list--tight">
+          <li>Khóa bí mật chỉ ghi: lưu xong không xem lại được, muốn đổi thì nhập khóa mới. Địa chỉ và mã không bí mật thì hiện lại được.</li>
+          <li>Mỗi lần lưu hoặc xóa đều phải <strong>nhập lại mật khẩu của chính bạn</strong>; nhập sai nhiều lần sẽ bị chặn tạm.</li>
+          <li>Khóa được <strong>mã hóa</strong> trước khi lưu vào cơ sở dữ liệu; khóa giải mã nằm ở máy chủ, không nằm trong database hay bản sao lưu.</li>
+          <li>Nếu máy chủ đã đặt biến môi trường tương ứng thì biến <strong>thắng</strong>: giá trị ở đây chưa có hiệu lực cho tới khi gỡ biến đó.</li>
+          <li>Mọi thay đổi được ghi vào Nhật ký hoạt động (chỉ ghi ai đổi khóa nào, không ghi giá trị).</li>
+        </ul>
+        {overview.masterKey === "ok" && overview.masterKeySource === "file" ? <AdminNotice tone="info">Khóa chủ đang cất trong tệp trên máy chủ{overview.keyFilePath ? <> (<code>{overview.keyFilePath}</code>)</> : null}. Sao lưu riêng tệp này (nó không nằm trong sao lưu database); mất tệp thì phải nhập lại toàn bộ khóa API.</AdminNotice> : null}
+        {overview.masterKey === "ok" && overview.masterKeySource === "env" ? <AdminNotice tone="info">Khóa chủ lấy từ biến môi trường <code>SECRETS_MASTER_KEY</code> của máy chủ.</AdminNotice> : null}
+      </details>
     </AdminCard>
 
     {integrationTools.map((tool) => {
       const fields = fieldsOf(tool, overview);
-      const configured = fields.filter((secret) => secret.state !== "none").length;
       const overridden = fields.filter((secret) => secret.envOverrides);
       const overriddenNames = [...new Set(overridden.flatMap((secret) => secretMetas[secret.key].envNames))];
+      const state = toolState(tool, fields);
       return <AdminCard key={tool.id}>
         <header>
           <div><h2>{tool.label}</h2><p>{tool.description}</p></div>
-          <AdminStatusBadge tone={configured === fields.length ? "success" : configured > 0 ? "warning" : "neutral"}>{configured}/{fields.length} biến đã đặt</AdminStatusBadge>
+          <AdminStatusBadge tone={state.tone}>{state.label}</AdminStatusBadge>
         </header>
-        {overridden.length ? <AdminNotice tone="warning">Máy chủ đã đặt biến {overriddenNames.map((name, index) => <React.Fragment key={name}>{index ? ", " : ""}<code>{name}</code></React.Fragment>)} nên các giá trị tương ứng đang được dùng thay cho giá trị ở CMS (giá trị ở CMS được giữ nhưng chưa có hiệu lực). Muốn quản lý ở CMS, nhờ người quản trị máy chủ gỡ biến đó rồi khởi động lại Backend.</AdminNotice> : null}
-        <ul className="admin-integration-rows">
-          {fields.map((secret) => {
-            const badge = stateText[secret.state];
-            return <li key={secret.key}>
-              <div>
-                <strong>{secret.label}</strong>
-                <span className="admin-integration-rows__value">{secret.hint ?? "—"}</span>
-                {secret.updatedAt ? <small className="admin-status-note">Cập nhật {dateTime.format(new Date(secret.updatedAt))}{secret.updatedByName ? ` bởi ${secret.updatedByName}` : ""}</small> : null}
-              </div>
-              <AdminStatusBadge tone={badge.tone}>{badge.label}</AdminStatusBadge>
-            </li>;
-          })}
-        </ul>
+        {overridden.length ? <small className="admin-status-note">Máy chủ đang dùng cấu hình riêng nên giá trị nhập ở đây chưa có tác dụng.</small> : null}
         <div className="admin-status-tags">
           <AdminButton disabled={locked} leadingIcon={<KeyRound aria-hidden="true" />} onClick={() => onEditTool?.(tool.id)} variant="primary">Cấu hình</AdminButton>
+          {tool.id === "gmail" ? <AdminButton href="/admin/integrations/gmail" variant="secondary">Kết nối Gmail</AdminButton> : null}
         </div>
         {locked ? <small className="admin-status-note">Chưa lưu được: máy chủ chưa có khóa chủ hợp lệ (xem khung cảnh báo ở đầu trang).</small> : null}
+        <details className="admin-integration-details">
+          <summary className="admin-link">Xem từng mục ({fields.length})</summary>
+          {overridden.length ? <AdminNotice tone="warning">Máy chủ đã đặt biến {overriddenNames.map((name, index) => <React.Fragment key={name}>{index ? ", " : ""}<code>{name}</code></React.Fragment>)} nên các giá trị tương ứng đang được dùng thay cho giá trị ở CMS (giá trị ở CMS được giữ nhưng chưa có hiệu lực). Muốn quản lý ở CMS, nhờ người quản trị máy chủ gỡ biến đó rồi khởi động lại Backend.</AdminNotice> : null}
+          <ul className="admin-integration-rows">
+            {fields.map((secret) => {
+              const badge = stateText[secret.state];
+              return <li key={secret.key}>
+                <div>
+                  <strong>{secret.label}</strong>
+                  <span className="admin-integration-rows__value">{secret.hint ?? "—"}</span>
+                  {secret.updatedAt ? <small className="admin-status-note">Cập nhật {dateTime.format(new Date(secret.updatedAt))}{secret.updatedByName ? ` bởi ${secret.updatedByName}` : ""}</small> : null}
+                </div>
+                <AdminStatusBadge tone={badge.tone}>{badge.label}</AdminStatusBadge>
+              </li>;
+            })}
+          </ul>
+        </details>
       </AdminCard>;
     })}
 

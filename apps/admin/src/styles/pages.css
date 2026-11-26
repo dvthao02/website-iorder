@@ -216,6 +216,10 @@
   .admin-integration-rows li:first-child { border-top: 0; }
   .admin-integration-rows li > div { display: grid; min-width: 0; gap: 2px; }
   .admin-integration-rows__value { overflow-wrap: anywhere; color: var(--cms-muted); font-size: var(--cms-text-sm); }
+  .admin-integration-intro { margin: 0; color: var(--cms-text); font-size: var(--cms-text-sm); }
+  .admin-integration-details > summary { width: fit-content; cursor: pointer; font-size: var(--cms-text-sm); }
+  .admin-integration-details[open] > summary { margin-bottom: 8px; }
+  .admin-integration-details > * + * { margin-top: 8px; }
   .admin-integration-remove { display: inline-flex; align-items: center; gap: 6px; margin-top: 6px; color: var(--cms-muted); font-size: var(--cms-text-sm); }
   /* Thân panel là cột flex để thanh nút luôn nằm sát đáy panel (dính đáy khi biểu mẫu dài), giống panel Tài khoản. */
   .admin-integration-panel .admin-side-panel__content { display: flex; flex-direction: column; padding: 52px 24px 0; }

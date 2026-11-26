@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 
 export default async function IntegrationsPage() {
   await requireSuperAdmin();
-  return <SettingsDetailPage bare description="Nhập khóa API cho các kết nối (Google Search Console, Umami, mã khách Gmail) ngay trong CMS, không cần sửa tệp cấu hình trên máy chủ. Muốn bấm Kết nối Gmail và chọn người nhận thư báo liên hệ mới thì vào mục Gmail báo liên hệ. Chỉ Super Admin, mỗi thay đổi cần nhập lại mật khẩu của bạn." title="Kết nối & khóa API">
+  return <SettingsDetailPage bare description="Nhập thông tin để CMS nối với Umami, Google Search Console và Gmail, không cần sửa tệp cấu hình trên máy chủ. Chỉ Super Admin." title="Kết nối & khóa API">
     <IntegrationSecretsPanel />
   </SettingsDetailPage>;
 }

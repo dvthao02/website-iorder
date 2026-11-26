@@ -31,7 +31,11 @@ test("Màn Kết nối & khóa API: chưa có biến nào thì cả bảy hiện
   assert.match(html, /Umami \(thống kê truy cập\)/);
   assert.match(html, /Google Search Console/);
   assert.match(html, /Gmail \(gửi thư báo liên hệ mới\)/);
-  assert.equal((html.match(/0\/3 biến đã đặt|0\/2 biến đã đặt/g) ?? []).length, 3, "mỗi công cụ là một thẻ, ghi số biến đã đặt");
+  assert.equal((html.match(/Chưa thiết lập/g) ?? []).length, 3, "mỗi công cụ là một thẻ với một tình trạng dễ hiểu, không đếm biến");
+  assert.doesNotMatch(html, /biến đã đặt/);
+  assert.equal((html.match(/<details/g) ?? []).length, 4, "giải thích bảo mật và chi tiết từng công cụ gập sẵn");
+  assert.match(html, /<summary class="admin-link">Bảo mật và chi tiết kỹ thuật<\/summary>/);
+  assert.match(html, /<a class="admin-button admin-button--secondary" href="\/admin\/integrations\/gmail">Kết nối Gmail<\/a>/, "thẻ Gmail dẫn tới trang kết nối");
   assert.match(html, /UUID|Địa chỉ Umami/);
   assert.match(html, /Khóa bí mật chỉ ghi/);
   assert.match(html, /nhập lại mật khẩu của chính bạn/);
@@ -56,13 +60,29 @@ test("Màn Kết nối & khóa API: đã đặt thì hiện gợi ý (không l�
   assert.equal((html.match(/Đã đặt ở CMS/g) ?? []).length, 7);
   assert.equal((html.match(/>Cấu hình</g) ?? []).length, 3);
   assert.match(html, /http:\/\/umami:3000/, "địa chỉ và mã website hiện lại được");
-  assert.match(html, /3\/3 biến đã đặt/);
-  assert.match(html, /2\/2 biến đã đặt/);
+  assert.equal((html.match(/Đã thiết lập/g) ?? []).length, 3, "đủ biến thì mỗi công cụ là Đã thiết lập");
   assert.match(html, /cms@du-an\.iam\.gserviceaccount\.com/);
   assert.match(html, /••••7890/);
   assert.match(html, /bởi Administrator/);
   assert.match(html, /sc-domain:iorder\.com\.vn/, "thuộc tính không bí mật nên hiển thị lại giá trị");
   assert.doesNotMatch(html, /Xem khóa|Hiện khóa|Sao chép khóa/);
+});
+
+test("Tình trạng công cụ: biến không bắt buộc thiếu vẫn là Đã thiết lập; thiếu biến bắt buộc là Thiếu thông tin", () => {
+  const partial = overview("ok", [
+    status("umami_api_url", { state: "cms", storedInCms: true, hint: "http://umami:3000", version: 1 }),
+    status("umami_website_id"),
+    status("umami_api_key"),
+    status("google_service_account", { state: "cms", storedInCms: true, hint: "cms@du-an.iam.gserviceaccount.com", version: 1 }),
+    status("search_console_property"),
+    status("google_oauth_client_id"),
+    status("google_oauth_client_secret"),
+  ]);
+  const html = renderToStaticMarkup(<IntegrationSecretsView overview={partial} />);
+  const badgeOf = (title: string) => new RegExp(`<h2>${title}</h2>[\\s\\S]*?admin-status-badge--(\\w+)">([^<]+)<`).exec(html)?.slice(1, 3);
+  assert.deepEqual(badgeOf("Umami \\(thống kê truy cập\\)"), ["warning", "Thiếu thông tin"]);
+  assert.deepEqual(badgeOf("Google Search Console"), ["success", "Đã thiết lập"], "thuộc tính Search Console không bắt buộc");
+  assert.deepEqual(badgeOf("Gmail \\(gửi thư báo liên hệ mới\\)"), ["neutral", "Chưa thiết lập"]);
 });
 
 test("Biến môi trường đã đặt thì thắng: cảnh báo nêu tên biến và nói giá trị ở CMS chưa có hiệu lực", () => {
@@ -75,6 +95,7 @@ test("Biến môi trường đã đặt thì thắng: cảnh báo nêu tên bi�
   assert.equal((html.match(/Đang dùng biến môi trường/g) ?? []).length, 2);
   assert.match(html, /GOOGLE_SERVICE_ACCOUNT_JSON<\/code>, <code>GOOGLE_SERVICE_ACCOUNT_FILE/);
   assert.match(html, /UMAMI_API_KEY/);
+  assert.equal((html.match(/Máy chủ đang dùng cấu hình riêng nên giá trị nhập ở đây chưa có tác dụng/g) ?? []).length, 2, "dòng ngắn dưới tên công cụ; tên biến nằm trong phần gập");
   assert.match(html, /giá trị ở CMS được giữ nhưng chưa có hiệu lực/);
   assert.match(html, /gỡ biến đó/);
 });
