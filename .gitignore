@@ -72,3 +72,36 @@ next-env.d.ts
 # Tệp hướng dẫn cho trợ lý AI: giữ trên máy làm việc, không đưa lên Git
 AGENTS.md
 CLAUDE.md
+
+# Khóa, chứng chỉ và tệp khóa dịch vụ (đã có *.pem và .env*): tuyệt đối không commit
+*.key
+*.p12
+*.pfx
+client_secret*.json
+**/client_secret*.json
+*service-account*.json
+*service_account*.json
+credentials*.json
+
+# Sao lưu và bản xuất cơ sở dữ liệu (dữ liệu thật, không phải mã nguồn)
+/backups/
+*.dump
+*.bak
+*.sql.gz
+
+# Nhật ký, kết quả chạy thử và tệp xuất của công cụ
+*.log
+**/outputs/
+**/test-results/
+**/playwright-report/
+.eslintcache
+.turbo/
+
+# Thư mục cấu hình riêng của trình soạn thảo, hệ điều hành và công cụ AI trên máy làm việc
+.idea/
+.vscode/
+.claude/
+.cursor/
+*.swp
+Thumbs.db
+desktop.ini

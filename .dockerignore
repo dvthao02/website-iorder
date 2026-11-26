@@ -20,3 +20,13 @@ test-results
 .playwright-mcp
 debug.log
 **/*.tsbuildinfo
+AGENTS.md
+.codex-tmp
+outputs
+**/outputs
+.wrangler
+**/.wrangler
+.vscode
+.idea
+.claude
+*.log
