@@ -88,6 +88,19 @@ test("Bắt đầu kết nối: cần địa chỉ quay lại https (hoặc loca
   await assert.rejects(wrong.service.startConnect({ userId: "u1", password: "sai", redirectUri }), /INVALID_PASSWORD/);
 });
 
+test("Trạng thái báo tình trạng khóa chủ để CMS giải thích vì sao Client ID đã nhập mà chưa đọc được", async () => {
+  assert.equal((await setup().service.getStatus()).masterKey, "ok", "không truyền thì coi là ổn");
+  const store = { settings: { ...defaultGmailSettings }, connection: null as GmailConnection | null };
+  const service = createGmailService({
+    repository: { readSettings: async () => ({ settings: store.settings, version: 1 }), readConnection: async () => store.connection } as unknown as GmailDependencies["repository"],
+    secrets: { get: async () => undefined, put: async () => undefined, remove: async () => undefined, verifyPassword: async () => undefined, masterKeyState: async () => "missing" },
+    env: {}, fetch: (async () => new Response("{}")) as typeof fetch, now: () => new Date(), log: () => undefined,
+  });
+  const status = await service.getStatus();
+  assert.equal(status.masterKey, "missing");
+  assert.equal(status.clientConfigured, false);
+});
+
 test("Biến môi trường GOOGLE_OAUTH_CLIENT_ID/SECRET được ưu tiên hơn giá trị lưu ở CMS", async () => {
   const { service } = setup({ env: { GOOGLE_OAUTH_CLIENT_ID: "env.apps.googleusercontent.com", GOOGLE_OAUTH_CLIENT_SECRET: "env-secret-1" } });
   const { authUrl } = await service.startConnect({ userId: "u1", password: "p", redirectUri });

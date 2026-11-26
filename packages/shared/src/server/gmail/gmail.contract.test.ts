@@ -31,5 +31,5 @@ test("Trạng thái trả về CMS không có chỗ cho token: schema chặt t�
   const connection = { email: "a@gmail.com", status: "connected", connectedAt: "2026-11-26T03:00:00.000Z", cmsOrigin: "https://cms.example.vn", lastSentAt: null, lastError: null, lastErrorAt: null };
   assert.equal(gmailConnectionSchema.safeParse(connection).success, true);
   assert.equal(gmailConnectionSchema.safeParse({ ...connection, refreshToken: "x" }).success, false);
-  assert.equal(gmailStatusSchema.safeParse({ clientConfigured: true, connection, settings: { enabled: true, cc: [] }, version: 1, callbackPath: gmailCallbackPath }).success, true);
+  assert.equal(gmailStatusSchema.safeParse({ clientConfigured: true, masterKey: "ok", connection, settings: { enabled: true, cc: [] }, version: 1, callbackPath: gmailCallbackPath }).success, true);
 });

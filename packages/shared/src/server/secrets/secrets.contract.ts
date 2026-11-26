@@ -142,6 +142,8 @@ export type SecretStatus = {
   storedInCms: boolean;
   /** Biến môi trường đang ghi đè: giá trị lưu ở CMS (nếu có) chưa có hiệu lực. */
   envOverrides: boolean;
+  /** Đã lưu ở CMS nhưng không giải mã được bằng khóa chủ hiện tại (khóa chủ đã mất hoặc bị thay): coi như chưa đặt, cần nhập lại. */
+  unreadable?: boolean;
   /** Gợi ý không bí mật: email tài khoản dịch vụ, bốn ký tự cuối của API key, hoặc chính giá trị nếu exposeValue. */
   hint: string | null;
   version: number;

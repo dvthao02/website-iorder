@@ -44,6 +44,8 @@ export type GmailConnection = z.infer<typeof gmailConnectionSchema>;
 export const gmailStatusSchema = z.object({
   /** Đã có cả Client ID và Client secret (ở CMS hoặc biến môi trường). */
   clientConfigured: z.boolean(),
+  /** Khóa chủ của kho khóa: khác "ok" thì CMS chưa đọc/lưu được Client ID và Client secret đã nhập. */
+  masterKey: z.enum(["ok", "missing", "invalid"]),
   connection: gmailConnectionSchema.nullable(),
   settings: gmailSettingsSchema,
   version: z.number().int().min(0),

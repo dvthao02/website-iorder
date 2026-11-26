@@ -85,6 +85,22 @@ test("Tình trạng công cụ: biến không bắt buộc thiếu vẫn là Đ�
   assert.deepEqual(badgeOf("Gmail \\(gửi thư báo liên hệ mới\\)"), ["neutral", "Chưa thiết lập"]);
 });
 
+test("Khóa đã lưu nhưng không đọc được (khóa chủ đã mất): hiện Cần nhập lại và coi như chưa thiết lập; ô nhập không điền sẵn giá trị cũ và không bảo để trống", () => {
+  const stale = overview("ok", [
+    status("umami_api_url", { state: "none", storedInCms: true, unreadable: true, hint: null, version: 1 }),
+    status("umami_website_id"),
+    status("umami_api_key", { state: "none", storedInCms: true, unreadable: true, hint: null, version: 1 }),
+  ]);
+  const html = renderToStaticMarkup(<IntegrationSecretsView overview={stale} />);
+  assert.equal((html.match(/Cần nhập lại/g) ?? []).length, 2);
+  assert.match(html, /Giá trị đã lưu không đọc được/);
+  assert.match(html, /<h2>Umami \(thống kê truy cập\)<\/h2>[\s\S]*?admin-status-badge--neutral">Chưa thiết lập</);
+  const tool = integrationTools.find((item) => item.id === "umami")!;
+  const form = renderToStaticMarkup(<AdminToastProvider><ToolSecretsForm onCancel={() => undefined} onSaved={() => undefined} secrets={stale.secrets.slice(0, 3)} tool={tool} /></AdminToastProvider>);
+  assert.doesNotMatch(form, /Để trống = giữ nguyên/);
+  assert.match(form, /id="secret-umami-umami_api_url"[^>]*value=""/);
+});
+
 test("Biến môi trường đã đặt thì thắng: cảnh báo nêu tên biến và nói giá trị ở CMS chưa có hiệu lực", () => {
   const envWins = overview("ok", [
     status("google_service_account", { state: "env", envOverrides: true, storedInCms: true, hint: "cms@du-an.iam.gserviceaccount.com" }),
@@ -165,7 +181,12 @@ test("Biểu mẫu một công cụ: mọi biến trong một panel, một ô m�
   assert.equal((umami.match(/<label[^>]*>Mật khẩu của bạn \(để xác nhận\)<\/label>/g) ?? []).length, 1, "một lần nhập mật khẩu cho cả nhóm");
   assert.match(umami, /aria-label="Giải thích: Mã website trong Umami"/);
   assert.doesNotMatch(umami, /admin-status-note/, "không có dòng mô tả chiếm chỗ dưới ô nhập");
-  assert.match(read("apps/admin/src/components/admin/integration-secrets-panel.tsx"), /<AdminFormField error=\{fieldError\(secret\.key, id\)\} hint=\{note\}/, "mô tả từng biến nằm trong chú giải ⓘ cạnh nhãn");
+  assert.match(read("apps/admin/src/components/admin/integration-secrets-panel.tsx"), /<AdminFormField hint=\{note\}/, "mô tả từng biến nằm trong chú giải ⓘ cạnh nhãn");
+  // Lỗi nhập/lưu hiện bằng thông báo nổi (toast), không chen thêm dòng báo lỗi dưới ô nhập; ô sai chỉ được tô viền.
+  const source = read("apps/admin/src/components/admin/integration-secrets-panel.tsx");
+  assert.doesNotMatch(source, /admin-field__error/, "không còn dòng báo lỗi dưới ô nhập");
+  assert.match(source, /show\(message, "error"\)/, "lỗi hiện bằng toast");
+  assert.doesNotMatch(umami, /role="alert"/, "biểu mẫu mới mở không có báo lỗi nào");
   assert.equal((umami.match(/type="submit"/g) ?? []).length, 1, "một nút Lưu");
   assert.match(umami, /autoComplete="current-password"/);
   assert.doesNotMatch(umami, /Xóa khỏi CMS/, "chưa lưu gì thì chưa có mục xóa");

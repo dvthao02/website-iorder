@@ -5,7 +5,7 @@ import React, { useCallback, useEffect, useState, type ChangeEvent, type FormEve
 
 import { integrationTools, secretMetas, type IntegrationToolId, type SecretKey, type SecretStatus, type SecretsOverview } from "@iorder/shared/server/secrets/secrets.contract";
 
-import { AdminApiError, requestAdminJson } from "../../lib/admin-api";
+import { AdminApiError, adminErrorTextWithLogHint, requestAdminJson } from "../../lib/admin-api";
 import { AdminButton } from "./ui/admin-button";
 import { AdminCard } from "./ui/admin-card";
 import { AdminNotice, AdminStatusBadge, useAdminToast } from "./ui/admin-feedback";
@@ -98,11 +98,12 @@ export function IntegrationSecretsView({ overview, editingTool, onEditTool, onCl
           {overridden.length ? <AdminNotice tone="warning">Máy chủ đã đặt biến {overriddenNames.map((name, index) => <React.Fragment key={name}>{index ? ", " : ""}<code>{name}</code></React.Fragment>)} nên các giá trị tương ứng đang được dùng thay cho giá trị ở CMS (giá trị ở CMS được giữ nhưng chưa có hiệu lực). Muốn quản lý ở CMS, nhờ người quản trị máy chủ gỡ biến đó rồi khởi động lại Backend.</AdminNotice> : null}
           <ul className="admin-integration-rows">
             {fields.map((secret) => {
-              const badge = stateText[secret.state];
+              const badge = secret.unreadable ? { tone: "warning" as const, label: "Cần nhập lại" } : stateText[secret.state];
               return <li key={secret.key}>
                 <div>
                   <strong>{secret.label}</strong>
                   <span className="admin-integration-rows__value">{secret.hint ?? "—"}</span>
+                  {secret.unreadable ? <small className="admin-status-note admin-text-warning">Giá trị đã lưu không đọc được (khóa chủ đã mất hoặc bị đổi). Bấm Cấu hình để nhập lại.</small> : null}
                   {secret.updatedAt ? <small className="admin-status-note">Cập nhật {dateTime.format(new Date(secret.updatedAt))}{secret.updatedByName ? ` bởi ${secret.updatedByName}` : ""}</small> : null}
                 </div>
                 <AdminStatusBadge tone={badge.tone}>{badge.label}</AdminStatusBadge>
@@ -152,17 +153,19 @@ export function ToolSecretsForm({ tool, secrets, onSaved, onCancel }: { tool: In
   const [removed, setRemoved] = useState<Set<string>>(() => new Set());
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<FormError | null>(null);
+  // Chỉ để tô viền ô sai; câu báo lỗi hiện ở thông báo nổi (toast).
+  const [invalid, setInvalid] = useState<FormError["field"] | null>(null);
   const { show } = useAdminToast();
   const idOf = (key: string) => `secret-${tool.id}-${key}`;
+  const reject = useCallback((field: FormError["field"], message: string) => { setInvalid(field); show(message, "error"); }, [show]);
 
   const setValue = (key: string, value: string) => setValues((current) => ({ ...current, [key]: value }));
 
   async function chooseFile(secret: SecretStatus, event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
-    setError(null);
+    setInvalid(null);
     if (!file) { setValue(secret.key, ""); setFileNames((current) => ({ ...current, [secret.key]: "" })); return; }
-    if (file.size > 20_000) { setValue(secret.key, ""); setFileNames((current) => ({ ...current, [secret.key]: "" })); setError({ field: secret.key, message: "Tệp quá lớn: tệp khóa JSON của Google chỉ vài KB. Chọn đúng tệp tải từ Google Cloud." }); return; }
+    if (file.size > 20_000) { setValue(secret.key, ""); setFileNames((current) => ({ ...current, [secret.key]: "" })); reject(secret.key, "Tệp quá lớn: tệp khóa JSON của Google chỉ vài KB. Chọn đúng tệp tải từ Google Cloud."); return; }
     setValue(secret.key, await file.text());
     setFileNames((current) => ({ ...current, [secret.key]: file.name }));
   }
@@ -172,16 +175,16 @@ export function ToolSecretsForm({ tool, secrets, onSaved, onCancel }: { tool: In
     if (busy) return;
     const toSet = secrets.filter((secret) => !removed.has(secret.key) && values[secret.key]?.trim() && values[secret.key] !== initialValue(secret));
     const toClear = secrets.filter((secret) => removed.has(secret.key) && secret.storedInCms);
-    if (!toSet.length && !toClear.length) { setError({ field: "form", message: "Chưa có thay đổi nào để lưu." }); return; }
-    if (!password) { setError({ field: "password", message: "Nhập mật khẩu của bạn để xác nhận." }); return; }
+    if (!toSet.length && !toClear.length) { reject("form", "Chưa có thay đổi nào để lưu."); return; }
+    if (!password) { reject("password", "Nhập mật khẩu của bạn để xác nhận."); return; }
     setBusy(true);
-    setError(null);
+    setInvalid(null);
     const saved: SecretStatus[] = [];
     const fail = (apiError: ApiError | null | undefined) => {
       const code = apiError?.code ?? "";
       const field: FormError["field"] = code === "INVALID_SECRET" && isSecretKey(apiError?.key) ? apiError.key : code === "INVALID_PASSWORD" || code === "TOO_MANY_ATTEMPTS" ? "password" : "form";
       setPassword("");
-      setError({ field, message: errorByCode[code] ?? apiError?.message ?? "Không lưu được lúc này. Thử lại sau." });
+      reject(field, errorByCode[code] ?? apiError?.message ?? "Không lưu được lúc này. Thử lại sau.");
       if (saved.length) onSaved(saved, { close: false });
     };
     try {
@@ -200,35 +203,33 @@ export function ToolSecretsForm({ tool, secrets, onSaved, onCancel }: { tool: In
       onSaved(saved, { close: true });
     } catch (requestError) {
       // Phản hồi lỗi của máy chủ (kèm mã và, với INVALID_SECRET, tên khóa sai); còn lại là mất kết nối.
-      if (requestError instanceof AdminApiError) { fail({ code: requestError.code, message: requestError.message, key: typeof requestError.details?.key === "string" ? requestError.details.key : undefined }); return; }
-      setError({ field: "form", message: "Không kết nối được máy chủ. Thử lại sau." });
+      if (requestError instanceof AdminApiError) { fail({ code: requestError.code, message: adminErrorTextWithLogHint(requestError), key: typeof requestError.details?.key === "string" ? requestError.details.key : undefined }); return; }
+      reject("form", "Không kết nối được máy chủ. Thử lại sau.");
       if (saved.length) onSaved(saved, { close: false });
     } finally {
       setBusy(false);
     }
   }
 
-  const fieldError = (field: FormError["field"], id: string) => error?.field === field ? <small className="admin-field__error" id={`${id}-error`} role="alert">{error.message}</small> : null;
   return <form className="admin-status-stack admin-integration-form" noValidate onSubmit={(event) => void submit(event)}>
     {secrets.map((secret) => {
       const id = idOf(secret.key);
       const isFile = secret.input === "json_file";
       const markedForRemoval = removed.has(secret.key);
-      const note = secret.exposeValue ? secret.description : `${secret.description}${secret.storedInCms ? " Đã có giá trị (không xem lại được): để trống nếu giữ nguyên, nhập mới để thay." : ""}`;
-      return <AdminFormField error={fieldError(secret.key, id)} hint={note} id={id} key={secret.key} label={secret.label}>
+      const note = secret.exposeValue ? secret.description : `${secret.description}${secret.storedInCms && !secret.unreadable ? " Đã có giá trị (không xem lại được): để trống nếu giữ nguyên, nhập mới để thay." : ""}`;
+      return <AdminFormField hint={note} id={id} key={secret.key} label={secret.label}>
         {isFile
-          ? <><input accept="application/json,.json" aria-describedby={`${id}-error`} disabled={busy || markedForRemoval} id={id} onChange={(event) => void chooseFile(secret, event)} type="file" />{fileNames[secret.key] ? <small className="admin-status-note">Đã chọn: {fileNames[secret.key]}. Nội dung không hiển thị trên màn hình.</small> : null}</>
+          ? <><input accept="application/json,.json" aria-invalid={invalid === secret.key || undefined} disabled={busy || markedForRemoval} id={id} onChange={(event) => void chooseFile(secret, event)} type="file" />{fileNames[secret.key] ? <small className="admin-status-note">Đã chọn: {fileNames[secret.key]}. Nội dung không hiển thị trên màn hình.</small> : null}</>
           : secret.exposeValue
-            ? <input aria-describedby={`${id}-error`} autoComplete="off" className="admin-input" disabled={busy || markedForRemoval} id={id} onChange={(event) => setValue(secret.key, event.target.value)} placeholder={secret.placeholder} spellCheck={false} type="text" value={values[secret.key] ?? ""} />
-            : <AdminPasswordInput aria-describedby={`${id}-error`} autoComplete="off" disabled={busy || markedForRemoval} id={id} onChange={(event) => setValue(secret.key, event.target.value)} placeholder={secret.storedInCms ? "Để trống = giữ nguyên" : undefined} spellCheck={false} value={values[secret.key] ?? ""} />}
+            ? <input aria-invalid={invalid === secret.key || undefined} autoComplete="off" className="admin-input" disabled={busy || markedForRemoval} id={id} onChange={(event) => setValue(secret.key, event.target.value)} placeholder={secret.placeholder} spellCheck={false} type="text" value={values[secret.key] ?? ""} />
+            : <AdminPasswordInput aria-invalid={invalid === secret.key || undefined} autoComplete="off" disabled={busy || markedForRemoval} id={id} onChange={(event) => setValue(secret.key, event.target.value)} placeholder={secret.storedInCms && !secret.unreadable ? "Để trống = giữ nguyên" : undefined} spellCheck={false} value={values[secret.key] ?? ""} />}
         {secret.storedInCms ? <label className="admin-integration-remove"><input checked={markedForRemoval} disabled={busy} onChange={(event) => setRemoved((current) => { const next = new Set(current); if (event.target.checked) next.add(secret.key); else next.delete(secret.key); return next; })} type="checkbox" /> Xóa khỏi CMS</label> : null}
       </AdminFormField>;
     })}
     {removed.size ? <AdminNotice tone="warning">Các biến đánh dấu “Xóa khỏi CMS” sẽ bị xóa khi lưu: tính năng dùng chúng sẽ ngừng hoạt động (trừ khi máy chủ có biến môi trường tương ứng).</AdminNotice> : null}
-    <AdminFormField error={fieldError("password", idOf("password"))} hint="Mật khẩu đăng nhập CMS của chính bạn, để xác nhận đây đúng là bạn. Không phải mật khẩu của khóa." id={idOf("password")} label="Mật khẩu của bạn (để xác nhận)">
-      <AdminPasswordInput aria-describedby={`${idOf("password")}-error`} autoComplete="current-password" disabled={busy} id={idOf("password")} onChange={(event) => setPassword(event.target.value)} value={password} />
+    <AdminFormField hint="Mật khẩu đăng nhập CMS của chính bạn, để xác nhận đây đúng là bạn. Không phải mật khẩu của khóa." id={idOf("password")} label="Mật khẩu của bạn (để xác nhận)">
+      <AdminPasswordInput aria-invalid={invalid === "password" || undefined} autoComplete="current-password" disabled={busy} id={idOf("password")} onChange={(event) => setPassword(event.target.value)} value={password} />
     </AdminFormField>
-    {fieldError("form", idOf("form"))}
     <div className="admin-status-tags admin-integration-actions">
       <AdminButton disabled={busy} type="submit" variant="primary">{busy ? "Đang lưu…" : "Lưu"}</AdminButton>
       <AdminButton disabled={busy} onClick={onCancel} variant="secondary">Hủy</AdminButton>
@@ -240,20 +241,21 @@ export function ToolSecretsForm({ tool, secrets, onSaved, onCancel }: { tool: In
 export function MasterKeyForm({ onDone, onCancel }: { onDone: (overview: SecretsOverview) => void; onCancel: () => void }) {
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [invalid, setInvalid] = useState(false);
   const { show } = useAdminToast();
+  const reject = (message: string) => { setInvalid(true); show(message, "error"); };
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (busy) return;
-    if (!password) { setError("Nhập mật khẩu của bạn để xác nhận."); return; }
+    if (!password) { reject("Nhập mật khẩu của bạn để xác nhận."); return; }
     setBusy(true);
-    setError(null);
+    setInvalid(false);
     try {
       const body = await requestAdminJson("/api/v1/admin/secrets", "POST", { action: "create-master-key", password }, "Không tạo được khóa chủ lúc này. Thử lại sau.", { cache: "no-store" }) as { overview?: SecretsOverview } | null;
       if (!body?.overview) {
         setPassword("");
-        setError("Không tạo được khóa chủ lúc này. Thử lại sau.");
+        reject("Không tạo được khóa chủ lúc này. Thử lại sau.");
         return;
       }
       setPassword("");
@@ -262,18 +264,18 @@ export function MasterKeyForm({ onDone, onCancel }: { onDone: (overview: Secrets
     } catch (requestError) {
       if (requestError instanceof AdminApiError) {
         setPassword("");
-        setError(errorByCode[requestError.code ?? ""] ?? requestError.message);
+        reject(errorByCode[requestError.code ?? ""] ?? adminErrorTextWithLogHint(requestError));
         return;
       }
-      setError("Không kết nối được máy chủ. Thử lại sau.");
+      reject("Không kết nối được máy chủ. Thử lại sau.");
     } finally {
       setBusy(false);
     }
   }
 
   return <form className="admin-status-stack admin-integration-form" noValidate onSubmit={(event) => void submit(event)}>
-    <AdminFormField error={error ? <small className="admin-field__error" id="master-key-password-error" role="alert">{error}</small> : null} hint="Mật khẩu đăng nhập CMS của chính bạn, để xác nhận đây đúng là bạn." id="master-key-password" label="Mật khẩu của bạn (để xác nhận)">
-      <AdminPasswordInput aria-describedby="master-key-password-error" autoComplete="current-password" disabled={busy} id="master-key-password" onChange={(event) => setPassword(event.target.value)} value={password} />
+    <AdminFormField hint="Mật khẩu đăng nhập CMS của chính bạn, để xác nhận đây đúng là bạn." id="master-key-password" label="Mật khẩu của bạn (để xác nhận)">
+      <AdminPasswordInput aria-invalid={invalid || undefined} autoComplete="current-password" disabled={busy} id="master-key-password" onChange={(event) => setPassword(event.target.value)} value={password} />
     </AdminFormField>
     <div className="admin-status-tags admin-integration-actions">
       <AdminButton disabled={busy} type="submit" variant="primary">{busy ? "Đang tạo…" : "Tạo khóa chủ"}</AdminButton>

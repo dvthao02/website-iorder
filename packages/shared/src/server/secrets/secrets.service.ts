@@ -87,14 +87,15 @@ export function createSecretsService({ repository, env, now, verifyPassword, log
 
   const envOverrides = (key: SecretKey) => secretMetas[key].envNames.some((name) => Boolean(env[name]?.trim()));
 
-  function statusOf(key: SecretKey, row: StoredSecretRow | undefined): SecretStatus {
+  function statusOf(key: SecretKey, row: StoredSecretRow | undefined, unreadable = false): SecretStatus {
     const meta = secretMetas[key];
     const overridden = envOverrides(key);
     return {
       key, label: meta.label, description: meta.description, input: meta.input, exposeValue: meta.exposeValue, ...(meta.placeholder ? { placeholder: meta.placeholder } : {}),
-      state: overridden ? "env" : row ? "cms" : "none",
-      storedInCms: Boolean(row), envOverrides: overridden,
-      hint: row?.hint ?? null, version: row?.version ?? 0,
+      state: overridden ? "env" : row && !unreadable ? "cms" : "none",
+      storedInCms: Boolean(row), envOverrides: overridden, ...(unreadable ? { unreadable: true } : {}),
+      // Gợi ý của giá trị không đọc được không còn đúng nữa nên không đưa ra (ô nhập không bị điền sẵn giá trị cũ).
+      hint: unreadable ? null : row?.hint ?? null, version: row?.version ?? 0,
       updatedAt: row ? row.updatedAt.toISOString() : null, updatedByName: row?.updatedByName ?? null,
     };
   }
@@ -102,11 +103,24 @@ export function createSecretsService({ repository, env, now, verifyPassword, log
   /** Trạng thái các khóa cho màn CMS và màn Tình trạng hệ thống. Không có giá trị rõ trong kết quả. */
   async function getOverview(): Promise<SecretsOverview> {
     const [rows, master] = await Promise.all([repository.list(), loadMasterKey()]);
+    // Có khóa chủ hợp lệ mà giải mã bản đã lưu thất bại (khóa chủ cũ đã mất hoặc bị thay): đánh dấu để CMS bảo nhập lại thay vì báo "đã đặt".
+    const unreadable = new Set<string>();
+    const masterKey = master.key;
+    if (masterKey) {
+      await Promise.all(rows.map(async (row) => {
+        try {
+          const payload = await repository.findPayload(row.key as SecretKey);
+          if (payload) decryptSecret(payload, row.key as SecretKey, masterKey);
+        } catch {
+          unreadable.add(row.key);
+        }
+      }));
+    }
     return {
       masterKey: master.state, masterKeySource: master.source,
       canCreateMasterKey: Boolean(keyFile) && master.state === "missing",
       keyFilePath: keyFile?.path ?? null,
-      secrets: secretKeys.map((key) => statusOf(key, rows.find((row) => row.key === key))),
+      secrets: secretKeys.map((key) => statusOf(key, rows.find((row) => row.key === key), unreadable.has(key))),
     };
   }
 

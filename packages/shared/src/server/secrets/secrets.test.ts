@@ -215,6 +215,23 @@ test("Lưu nhiều biến của một công cụ: một lần xác nhận mật 
   assert.equal(setSecretsRequestSchema.safeParse({ items: [{ key: "umami_api_url", value: "a" }], password: "" }).success, false, "thiếu mật khẩu");
 });
 
+test("Khóa đã lưu bằng khóa chủ cũ (mất hoặc bị thay): đánh dấu cần nhập lại, không lộ gợi ý cũ, nhập lại được với đúng version", async () => {
+  const first = setup();
+  await first.service.setSecret({ userId: "u1", key: "umami_api_url", value: "http://umami:3000", password: goodPassword });
+  await first.service.setSecret({ userId: "u1", key: "umami_api_key", value: umami, password: goodPassword });
+  // Cùng kho, khóa chủ khác (ví dụ container được tạo lại mà tệp khóa chủ mất).
+  const other = createSecretsService({ ...first.dependencies, env: { SECRETS_MASTER_KEY: randomBytes(32).toString("base64") } });
+  const find = async (key: string) => (await other.getOverview()).secrets.find((item) => item.key === key)!;
+  const stale = await find("umami_api_url");
+  assert.deepEqual([stale.state, stale.unreadable, stale.hint, stale.storedInCms, stale.version], ["none", true, null, true, 1]);
+  assert.equal((await find("umami_api_key")).unreadable, true);
+  assert.equal((await find("google_service_account")).unreadable, undefined, "khóa chưa lưu thì không bị đánh dấu");
+  const fixed = await other.setSecret({ userId: "u1", key: "umami_api_url", value: "http://umami:3000", password: goodPassword, expectedVersion: 1 });
+  assert.deepEqual([fixed.state, fixed.unreadable], ["cms", undefined]);
+  assert.equal((await find("umami_api_url")).unreadable, undefined, "nhập lại xong thì đọc được");
+  assert.equal((await find("umami_api_key")).unreadable, true, "khóa khác vẫn cần nhập lại");
+});
+
 test("Khóa Google nhập từ tệp: lưu mã hóa, hiển thị lại email, khóa riêng không xuất hiện trong trạng thái", async () => {
   const { service } = setup();
   const status = await service.setSecret({ userId: "u1", key: "google_service_account", value: serviceAccountJson, password: goodPassword });

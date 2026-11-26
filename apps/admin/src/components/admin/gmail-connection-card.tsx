@@ -6,7 +6,7 @@ import React, { useCallback, useEffect, useState, type FormEvent } from "react";
 
 import { gmailStatusSchema, maxGmailCc, type GmailStatus } from "@iorder/shared/server/gmail/gmail.contract";
 
-import { AdminApiError, requestAdminJson } from "../../lib/admin-api";
+import { AdminApiError, adminErrorTextWithLogHint, requestAdminJson } from "../../lib/admin-api";
 import { AdminButton } from "./ui/admin-button";
 import { AdminCard } from "./ui/admin-card";
 import { AdminNotice, AdminStatusBadge, useAdminToast } from "./ui/admin-feedback";
@@ -21,7 +21,7 @@ const errorByCode: Record<string, string> = {
   TOO_MANY_ATTEMPTS: "Nhập sai mật khẩu quá nhiều lần. Chờ vài phút rồi thử lại.",
   VERSION_CONFLICT: "Cài đặt vừa được người khác thay đổi. Tải lại trang để xem bản mới nhất.",
 };
-const failureText = (error: unknown) => error instanceof AdminApiError ? errorByCode[error.code ?? ""] ?? error.message : "Không kết nối được máy chủ. Thử lại sau.";
+const failureText = (error: unknown) => error instanceof AdminApiError ? errorByCode[error.code ?? ""] ?? adminErrorTextWithLogHint(error) : "Không kết nối được máy chủ. Thử lại sau.";
 
 type Prompt = "connect" | "disconnect" | null;
 const emailPattern = /^[^\s@<>,;"()]+@[^\s@<>,;"()]+\.[^\s@<>,;"()]+$/;
@@ -44,7 +44,6 @@ export function GmailConnectionCard() {
   const [cc, setCc] = useState<string[]>([]);
   const [ccInput, setCcInput] = useState("");
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState<{ tone: "error" | "info"; text: string } | null>(null);
   const { show } = useAdminToast();
 
   const apply = useCallback((status: GmailStatus) => {
@@ -76,13 +75,12 @@ export function GmailConnectionCard() {
   async function run(task: () => Promise<void>) {
     if (busy) return;
     setBusy(true);
-    setMessage(null);
-    try { await task(); } catch (error) { setMessage({ tone: "error", text: failureText(error) }); } finally { setBusy(false); }
+    try { await task(); } catch (error) { show(failureText(error), "error"); } finally { setBusy(false); }
   }
 
   async function confirmPrompt(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!password) { setMessage({ tone: "error", text: "Nhập mật khẩu của bạn để xác nhận." }); return; }
+    if (!password) { show("Nhập mật khẩu của bạn để xác nhận.", "error"); return; }
     const action = prompt;
     await run(async () => {
       try {
@@ -133,17 +131,18 @@ export function GmailConnectionCard() {
 
   function addCc() {
     const address = ccInput.trim().toLowerCase();
-    if (!emailPattern.test(address)) { setMessage({ tone: "error", text: "Địa chỉ email không hợp lệ." }); return; }
-    if (cc.includes(address)) { setMessage({ tone: "error", text: "Địa chỉ này đã có trong danh sách CC." }); return; }
-    if (cc.length >= maxGmailCc) { setMessage({ tone: "error", text: `Tối đa ${maxGmailCc} địa chỉ CC.` }); return; }
-    setMessage(null);
+    if (!emailPattern.test(address)) { show("Địa chỉ email không hợp lệ.", "error"); return; }
+    if (cc.includes(address)) { show("Địa chỉ này đã có trong danh sách CC.", "error"); return; }
+    if (cc.length >= maxGmailCc) { show(`Tối đa ${maxGmailCc} địa chỉ CC.`, "error"); return; }
     setCc([...cc, address]);
     setCcInput("");
   }
 
-  const switchDescription = !connection ? "Kết nối Gmail ở trên rồi bật công tắc này."
-    : connection.status !== "connected" ? (status.settings.enabled ? "Đang tạm dừng vì cần kết nối lại Gmail." : "Kết nối lại Gmail ở trên rồi bật công tắc này.")
-      : status.settings.enabled ? `Mỗi liên hệ mới gửi từ ${connection.email} tới chính nó${status.settings.cc.length ? `, CC ${status.settings.cc.length} địa chỉ` : ""}.`
+  // Công tắc chỉ "bật" khi thật sự gửi được: cài đặt bật mà chưa kết nối (hoặc cần kết nối lại) thì hiện tắt, kèm lời giải thích; kết nối xong sẽ gửi lại.
+  const connected = connection?.status === "connected";
+  const switchOn = status.settings.enabled && connected;
+  const switchDescription = !connected ? (status.settings.enabled ? "Đang tạm dừng vì chưa kết nối Gmail. Kết nối xong sẽ tự gửi lại." : "Kết nối Gmail ở trên rồi bật công tắc này.")
+      : status.settings.enabled ? `Mỗi liên hệ mới gửi từ ${connection?.email ?? ""} tới chính nó${status.settings.cc.length ? `, CC ${status.settings.cc.length} địa chỉ` : ""}.`
         : "Liên hệ mới vẫn lưu trong CMS nhưng không gửi thư.";
 
   const badge = !connection ? <AdminStatusBadge tone="neutral">Chưa kết nối</AdminStatusBadge>
@@ -157,7 +156,8 @@ export function GmailConnectionCard() {
     </header>
     <div className="admin-status-stack">
 
-    {!status.clientConfigured ? <AdminNotice tone="warning">Chưa có Client ID và Client secret. Điền ở thẻ “Gmail (gửi thư báo liên hệ mới)” trong <Link className="admin-link" href="/admin/integrations">Hệ thống → Kết nối &amp; khóa API</Link> (bấm Cấu hình), rồi quay lại đây bấm Kết nối.</AdminNotice> : null}
+    {status.masterKey !== "ok" ? <AdminNotice tone="warning">CMS chưa có khóa chủ hợp lệ nên chưa đọc được Client ID và Client secret đã nhập (hoặc chưa lưu được giá trị mới). Vào <Link className="admin-link" href="/admin/integrations">Hệ thống → Kết nối &amp; khóa API</Link>, bấm <strong>Tạo khóa chủ</strong>, rồi nhập lại hai giá trị đó ở thẻ “Gmail (gửi thư báo liên hệ mới)”.</AdminNotice>
+      : !status.clientConfigured ? <AdminNotice tone="warning">Chưa có Client ID và Client secret. Điền ở thẻ “Gmail (gửi thư báo liên hệ mới)” trong <Link className="admin-link" href="/admin/integrations">Hệ thống → Kết nối &amp; khóa API</Link> (bấm Cấu hình), rồi quay lại đây bấm Kết nối.</AdminNotice> : null}
     <details>
       <summary className="admin-link">Cách tạo Client ID ở Google Cloud (làm một lần)</summary>
       <ol className="admin-status-list admin-status-list--tight">
@@ -178,24 +178,22 @@ export function GmailConnectionCard() {
       </li>
     </ul> : null}
 
-    {message ? <AdminNotice tone={message.tone}>{message.text}</AdminNotice> : null}
-
     {prompt ? <form className="admin-status-stack admin-integration-form" noValidate onSubmit={(event) => void confirmPrompt(event)}>
       <AdminFormField hint="Mật khẩu đăng nhập CMS của chính bạn, để xác nhận đây đúng là bạn." id="gmail-password" label="Mật khẩu của bạn">
         <AdminPasswordInput autoComplete="current-password" disabled={busy} id="gmail-password" onChange={(event) => setPassword(event.target.value)} value={password} />
       </AdminFormField>
       <div className="admin-status-tags">
         <AdminButton disabled={busy} type="submit" variant={prompt === "disconnect" ? "danger" : "primary"}>{busy ? "Đang xử lý…" : prompt === "connect" ? "Tiếp tục sang Google" : "Ngắt kết nối"}</AdminButton>
-        <AdminButton disabled={busy} onClick={() => { setPrompt(null); setPassword(""); setMessage(null); }} variant="secondary">Hủy</AdminButton>
+        <AdminButton disabled={busy} onClick={() => { setPrompt(null); setPassword(""); }} variant="secondary">Hủy</AdminButton>
       </div>
     </form> : <div className="admin-status-tags">
-      <AdminButton disabled={busy || !status.clientConfigured} leadingIcon={<Plug aria-hidden="true" />} onClick={() => { setMessage(null); setPrompt("connect"); }} variant={connection?.status === "connected" ? "secondary" : "primary"}>{connection ? "Kết nối lại" : "Kết nối Gmail"}</AdminButton>
+      <AdminButton disabled={busy || !status.clientConfigured} leadingIcon={<Plug aria-hidden="true" />} onClick={() => setPrompt("connect")} variant={connection?.status === "connected" ? "secondary" : "primary"}>{connection ? "Kết nối lại" : "Kết nối Gmail"}</AdminButton>
       {connection ? <AdminButton disabled={busy || connection.status !== "connected"} leadingIcon={<Send aria-hidden="true" />} onClick={() => void sendTest()} variant="secondary">Gửi thư thử</AdminButton> : null}
-      {connection ? <AdminButton disabled={busy} leadingIcon={<Unplug aria-hidden="true" />} onClick={() => { setMessage(null); setPrompt("disconnect"); }} variant="danger">Ngắt kết nối</AdminButton> : null}
+      {connection ? <AdminButton disabled={busy} leadingIcon={<Unplug aria-hidden="true" />} onClick={() => setPrompt("disconnect")} variant="danger">Ngắt kết nối</AdminButton> : null}
     </div>}
 
     <div className="admin-status-stack">
-      <AdminSwitch checked={status.settings.enabled} description={switchDescription} disabled={busy || (!status.settings.enabled && connection?.status !== "connected")} label="Gửi thư báo khi có liên hệ mới" onChange={(next) => void toggle(next)} />
+      <AdminSwitch checked={switchOn} description={switchDescription} disabled={busy || !connected} label="Gửi thư báo khi có liên hệ mới" onChange={(next) => void toggle(next)} />
     </div>
 
     {connection ? <div className="admin-status-stack">

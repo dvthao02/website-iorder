@@ -1,4 +1,4 @@
-import { getCmsSecret, putServerSecret, removeServerSecret, verifyReauthentication } from "../secrets/secrets";
+import { getCmsSecret, getSecretsOverview, putServerSecret, removeServerSecret, verifyReauthentication } from "../secrets/secrets";
 import { logger } from "../shared/logger";
 import { gmailRepository } from "./gmail.repository";
 import { createGmailService } from "./gmail.service";
@@ -16,6 +16,7 @@ const service = createGmailService({
     put: putServerSecret,
     remove: removeServerSecret,
     verifyPassword: ({ userId, password }) => verifyReauthentication({ userId, password, subject: "gmail_refresh_token" }),
+    masterKeyState: async () => (await getSecretsOverview()).masterKey,
   },
   env: process.env,
   // Gọi qua globalThis.fetch mỗi lần để dùng bản fetch hiện hành (kể cả lớp giới hạn thời gian của website/Next).

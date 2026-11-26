@@ -25,6 +25,8 @@ export type GmailDependencies = {
     put(input: { userId: string; key: SecretKey; value: string }): Promise<void>;
     remove(input: { userId: string; key: SecretKey }): Promise<void>;
     verifyPassword(input: { userId: string; password: string }): Promise<void>;
+    /** Tình trạng khóa chủ của kho khóa; không truyền thì coi là ổn. */
+    masterKeyState?(): Promise<"ok" | "missing" | "invalid">;
   };
   env: Record<string, string | undefined>;
   fetch: typeof fetch;
@@ -65,8 +67,8 @@ export function createGmailService(deps: GmailDependencies) {
   }
 
   async function getStatus(): Promise<GmailStatus> {
-    const [{ settings, version }, connection, client] = await Promise.all([deps.repository.readSettings(), deps.repository.readConnection(), clientCredentials()]);
-    return { clientConfigured: Boolean(client), connection, settings, version, callbackPath: gmailCallbackPath };
+    const [{ settings, version }, connection, client, masterKey] = await Promise.all([deps.repository.readSettings(), deps.repository.readConnection(), clientCredentials(), deps.secrets.masterKeyState?.().catch(() => "ok" as const) ?? "ok" as const]);
+    return { clientConfigured: Boolean(client), masterKey, connection, settings, version, callbackPath: gmailCallbackPath };
   }
 
   /** Google chỉ nhận địa chỉ quay lại là https (hoặc http trên localhost) và phải trùng đúng địa chỉ đã đăng ký; ở đây chặn dạng sai trước khi gửi sang Google. */
