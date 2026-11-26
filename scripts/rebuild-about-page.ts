@@ -8,8 +8,9 @@ import { getAdminPageBySlug, saveAdminPage } from "../packages/shared/src/server
 import { aboutMediaIds, aboutPageTitle, aboutPageValues } from "./lib/about-page";
 import { ensureCertificateMedia } from "./lib/company-certificate";
 
-// Làm lại nội dung trang "Về chúng tôi" (/about): giới thiệu, con số kiểm chứng được, sứ mệnh – tầm nhìn – cam kết, nguyên tắc làm sản phẩm, hệ sinh thái,
-// quy trình đồng hành, khách hàng và đối tác, giấy chứng nhận, thông tin doanh nghiệp. Nội dung ở scripts/lib/about-page.ts.
+// Làm lại nội dung trang "Về chúng tôi" (/about) bằng các khối CMS chuẩn (website vẽ như trang chủ và trang sản phẩm, không có bố cục riêng): mở đầu, chúng tôi là ai,
+// sứ mệnh – tầm nhìn – cam kết, nguyên tắc, danh sách phần mềm và giải pháp (tự lấy từ CMS), quy trình, cửa hàng khách hàng, logo đối tác (tự lấy từ CMS),
+// giấy chứng nhận (ẩn), thông tin doanh nghiệp, CTA. Nội dung ở scripts/lib/about-page.ts.
 // Trang giữ nguyên tiêu đề, đường dẫn, trạng thái và SEO nâng cao; chỉ thay các khối và tiêu đề/mô tả SEO. Nội dung cũ vẫn nằm trong lịch sử phiên bản của trang
 // (CMS › Trang › Về iOrder › Lịch sử) nên khôi phục được bằng một lần bấm.
 // Khối giấy chứng nhận mặc định ẩn (ảnh có số hộ chiếu và địa chỉ của tác giả); thêm --show-certificate để hiện ngay.
