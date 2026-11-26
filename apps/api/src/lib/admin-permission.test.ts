@@ -91,6 +91,10 @@ const routeTable: Array<[string, string, CmsPermissionCode[] | null]> = [
   ["/api/v1/admin/secrets", "POST", []],
   ["/api/v1/admin/secrets", "PUT", []],
   ["/api/v1/admin/secrets", "DELETE", []],
+  // Gmail báo liên hệ mới: cũng chỉ Super Admin (kết nối tài khoản Gmail cá nhân, gửi thư).
+  ["/api/v1/admin/gmail", "GET", []],
+  ["/api/v1/admin/gmail", "POST", []],
+  ["/api/v1/admin/gmail", "PUT", []],
   ["/api/v1/admin/builder-preview", "GET", []],
   ["/api/v1/admin/builder-preview", "DELETE", []],
   ["/api/v1/admin/data-transfer/equipment", "GET", ["equipment.view"]],
@@ -253,6 +257,17 @@ test("Khóa API ở CMS chỉ Super Admin: không vai trò mặc định nào (k
   assert.ok(/createMasterKeyRequestSchema\.parse/.test(route) && (route.match(/export const (POST|PUT|DELETE)/g) ?? []).length === 3, "POST chỉ để tạo khóa chủ (kèm mật khẩu), cùng PUT và DELETE; không có method nào khác");
   // Giá trị khóa người dùng gửi lên không được đưa lại vào phản hồi hay log.
   assert.ok(!/NextResponse\.json\(\{[^}]*\bvalue\b/.test(route) && !/logger\.[a-z]+\([^)]*\bbody\b/.test(route), "phản hồi và log không chứa body.value");
+});
+
+test("Gmail báo liên hệ mới chỉ Super Admin: không vai trò mặc định nào gọi được; route tự kiểm Super Admin, không cache và không có DELETE", () => {
+  for (const role of defaultCmsRoles.filter((item) => item.code !== "admin")) {
+    for (const method of ["GET", "PUT", "POST"]) assert.equal(roleCan(role.code, "/api/v1/admin/gmail", method), false, `${role.code} ${method}`);
+  }
+  assert.equal(requiredAdminPermissions("/api/v1/admin/gmail/", "post")?.length, 0, "dấu / cuối và method chữ thường không làm lỏng quyền");
+  const route = readFileSync(path.join(process.cwd(), "apps/api/src/app/api/v1/admin/gmail/route.ts"), "utf8");
+  assert.match(route, /isSuperAdmin\(user\)/, "route tự kiểm Super Admin");
+  assert.match(route, /"cache-control": "no-store"/);
+  assert.deepEqual(route.match(/export const (GET|POST|PUT|DELETE|PATCH)\b/g)?.sort(), ["export const GET", "export const POST", "export const PUT"]);
 });
 
 test("Tải bản sao lưu chứa cả dữ liệu nhạy cảm: route tự kiểm Super Admin (vai trò Vận hành qua được proxy nhưng không qua được route) và không cache", () => {

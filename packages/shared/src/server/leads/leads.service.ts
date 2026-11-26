@@ -1,5 +1,7 @@
 import { createHash } from "node:crypto";
 import { getDb } from "@iorder/shared/db/client";
+import { notifyNewLeadByGmail } from "../gmail/gmail";
+import type { LeadMailInput } from "../gmail/gmail.lead-mail";
 import { leadExportQuerySchema, leadListQuerySchema, leadMergeSchema, publicLeadInputSchema, type LeadUpdate } from "./leads.contract";
 import { leadsToCsv, leadsToXlsx } from "./leads.csv";
 import { checkLeadToken, issueLeadToken } from "./leads.guard";
@@ -23,7 +25,7 @@ export type SubmitLeadResult =
  * Nhận liên hệ từ website. Thứ tự: dữ liệu hợp lệ (ném ZodError) → ô bẫy → mã phiên → tra thiết bị khách hỏi mua → giới hạn IP, số điện thoại
  * và liên hệ trùng (leads.repository.ts). Ô bẫy có chữ: báo đã nhận nhưng không lưu gì, để bot không biết mình bị chặn mà đổi cách.
  */
-export async function submitPublicLead(input: unknown, ipAddress: string | null, database: ReturnType<typeof getDb> = getDb()): Promise<SubmitLeadResult> {
+export async function submitPublicLead(input: unknown, ipAddress: string | null, database: ReturnType<typeof getDb> = getDb(), onCreated: (lead: LeadMailInput) => unknown = notifyNewLeadByGmail): Promise<SubmitLeadResult> {
   const { website, token, equipmentSlug, ...lead } = publicLeadInputSchema.parse(input);
   if (website?.trim()) return { accepted: true, duplicate: false, discarded: true };
   const check = checkLeadToken(token);
@@ -31,6 +33,9 @@ export async function submitPublicLead(input: unknown, ipAddress: string | null,
   const context = equipmentSlug ? await findLeadEquipment(equipmentSlug, database) : null;
   const result = await createRateLimitedLead(lead satisfies LeadValues, ipFingerprint(ipAddress), context, database);
   if (!result.accepted) return result.reason === "same_device" ? { accepted: false, kind: "same_device" } : { accepted: false, kind: "rate_limited", retryAfterSeconds: result.retryAfterSeconds, scope: result.scope };
+  // Liên hệ MỚI (không phải bản trùng chỉ nhận mà không lưu) thì báo qua Gmail ở nền: không chờ và không để lỗi gửi thư làm hỏng việc lưu liên hệ.
+  const createdId = result.duplicate ? null : result.id;
+  if (createdId) void Promise.resolve().then(() => onCreated({ id: createdId, ...lead, context, createdAt: new Date() })).catch(() => undefined);
   return { accepted: true, duplicate: result.duplicate, discarded: false };
 }
 

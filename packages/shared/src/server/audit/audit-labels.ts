@@ -18,6 +18,7 @@ const verbs: Record<string, string> = {
 };
 // Thao tác tự nói đủ nghĩa, không cần ghép "· Tài khoản".
 const actionOverrides: Record<string, string> = {
+  "gmail.connect": "Kết nối Gmail", "gmail.disconnect": "Ngắt kết nối Gmail", "gmail.settings_update": "Đổi cài đặt Gmail báo liên hệ mới", "gmail.test_send": "Gửi thư thử qua Gmail",
   "user.login": "Đăng nhập", "user.login_failed": "Đăng nhập thất bại (sai mật khẩu)", "user.logout": "Đăng xuất",
   "backup.run": "Chạy sao lưu", "backup.restore": "Phục hồi dữ liệu", "backup.delete": "Xóa bản sao lưu", "backup.export": "Tải bản sao lưu về",
   "backup.history_clear": "Xóa lịch sử sao lưu", "audit.purge": "Xóa nhật ký hoạt động", "backup.keep_update": "Đổi số bản sao lưu giữ lại", "translations.import": "Nhập bản dịch", "translations.locales": "Đổi danh sách ngôn ngữ",
