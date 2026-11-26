@@ -46,7 +46,6 @@ debug.log
 
 # env files (can opt-in for committing if needed)
 .env*
-!.env.example
 !.env.production.example
 
 # vercel
@@ -105,3 +104,30 @@ credentials*.json
 *.swp
 Thumbs.db
 desktop.ini
+
+# Chỉ giữ trên Git những gì cần để build và chạy production. Kiểm thử, tài liệu, CI và công cụ phát triển giữ trên máy làm việc.
+/docs/
+/e2e/
+/.github/
+/playwright.config.ts
+/eslint.config.mjs
+/compose.yaml
+*.test.ts
+*.test.tsx
+*.test.mjs
+*.spec.ts
+
+# scripts/: chỉ giữ tệp production dùng (tạo .env.production, seed admin, sao lưu, dọn dữ liệu định kỳ, nội dung nền)
+/scripts/*
+!/scripts/backup.sh
+!/scripts/backup-media.mjs
+!/scripts/backup-status.sql
+!/scripts/generate-env-production.mjs
+!/scripts/seed-admin.ts
+!/scripts/cleanup-*.ts
+!/scripts/lib/
+/scripts/lib/*
+!/scripts/lib/script-error.ts
+!/scripts/data/
+/scripts/data/*
+!/scripts/data/base-content.sql
