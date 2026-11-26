@@ -78,6 +78,8 @@
     "db:fill:seo-gaps": "tsx scripts/fill-seo-gaps.ts",
     "db:split-support-guides": "tsx scripts/split-support-guides.ts",
     "db:seed:contact-page": "tsx scripts/seed-contact-page.ts",
+    "db:seed:company-profile": "tsx scripts/seed-company-profile-page.ts",
+    "db:rebuild:about-page": "tsx scripts/rebuild-about-page.ts",
     "db:seed:v1-static-pages": "tsx scripts/seed-v1-static-pages.ts",
     "db:import:v1-testimonials": "tsx scripts/import-v1-testimonials.ts",
     "db:seed:rest-stop": "tsx scripts/seed-rest-stop-software.ts",
