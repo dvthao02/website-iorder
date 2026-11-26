@@ -22,6 +22,8 @@ export const translationOverviewSchema = z.object({
   groups: z.array(z.object({ id: groupIdSchema, label: z.string(), total: count })),
   locales: z.array(z.object({
     ...localeInfo,
+    /** Đang bật cho khách (hiện nút chọn ngôn ngữ và áp bản dịch). Tắt thì bản dịch vẫn được giữ. */
+    visible: z.boolean(),
     translated: count,
     /** Trong số đã dịch, số chữ cố định của giao diện. */
     uiTranslated: count,
@@ -37,8 +39,8 @@ export const translationOverviewSchema = z.object({
 });
 export type TranslationOverview = z.infer<typeof translationOverviewSchema>;
 
-/** Thêm hoặc gỡ ngôn ngữ: toàn bộ danh sách ngôn ngữ mong muốn (theo mã) và version đã đọc. */
-export const translationLocalesUpdateSchema = z.object({ locales: z.array(localeSchema).max(translationLocaleCodes.length), expectedVersion: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER) }).strict();
+/** Thêm, gỡ hoặc bật/tắt ngôn ngữ: toàn bộ danh sách ngôn ngữ mong muốn (theo mã), tùy chọn danh sách ngôn ngữ đang tắt (không gửi thì giữ nguyên) và version đã đọc. */
+export const translationLocalesUpdateSchema = z.object({ locales: z.array(localeSchema).max(translationLocaleCodes.length), hidden: z.array(localeSchema).max(translationLocaleCodes.length).optional(), expectedVersion: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER) }).strict();
 
 /** Các dòng cần xuất: `all` mọi câu đang dùng trên website (kèm bản dịch đã có); `missing` chỉ các câu chưa có bản dịch. */
 export const translationExportScopeSchema = z.enum(["all", "missing"]);

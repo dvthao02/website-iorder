@@ -17,10 +17,20 @@ import { isUiMessageKey, messagePlaceholders, storedUiKey, uiKeyPrefix, uiMessag
 const cacheMs = 15_000;
 const lookupCache = new Map<string, { at: number; rows: Map<string, StoredTranslation> }>();
 let localesCache: { at: number; locales: SiteLocale[] } | undefined;
+let hiddenCache: { at: number; codes: ReadonlySet<string> } | undefined;
 
 export function invalidateTranslationCache() {
   lookupCache.clear();
   localesCache = undefined;
+  hiddenCache = undefined;
+}
+
+/** Ngôn ngữ đang tắt: khách không thấy và website không áp bản dịch (như chưa có ngôn ngữ đó). */
+async function getHiddenLocales(): Promise<ReadonlySet<string>> {
+  if (hiddenCache && Date.now() - hiddenCache.at < cacheMs) return hiddenCache.codes;
+  const codes: ReadonlySet<string> = new Set((await getTranslationLocaleSetting()).hidden);
+  hiddenCache = { at: Date.now(), codes };
+  return codes;
 }
 
 async function getRows(locale: TranslationLocale) {
@@ -36,7 +46,7 @@ async function getRows(locale: TranslationLocale) {
  * thì trả nguyên nội dung. Không sửa `body` gốc.
  */
 export async function localizeContent<T>(body: T, locale: string | null | undefined): Promise<T> {
-  if (!isTranslationLocale(locale)) return body;
+  if (!isTranslationLocale(locale) || (await getHiddenLocales()).has(locale)) return body;
   const rows = await getRows(locale);
   if (!rows.size) return body;
   return mapTranslatable(body, (core) => rows.get(sourceKey(core))?.value);
@@ -47,7 +57,7 @@ export async function localizeContent<T>(body: T, locale: string | null | undefi
  * (sửa câu gốc thì bản dịch cũ ngừng áp dụng). Ngôn ngữ gốc trả rỗng: website dùng tiếng Việt trong code.
  */
 export async function getUiMessages(locale: string | null | undefined): Promise<Record<string, string>> {
-  if (!isTranslationLocale(locale)) return {};
+  if (!isTranslationLocale(locale) || (await getHiddenLocales()).has(locale)) return {};
   const rows = await getRows(locale);
   const messages: Record<string, string> = {};
   for (const key of uiMessageKeys) {
@@ -57,11 +67,11 @@ export async function getUiMessages(locale: string | null | undefined): Promise<
   return messages;
 }
 
-/** Ngôn ngữ website đang có: tiếng Việt và mọi ngôn ngữ đã nhập ít nhất một bản dịch (nút đổi ngôn ngữ chỉ hiện khi có từ hai ngôn ngữ). */
+/** Ngôn ngữ website đang có: tiếng Việt và mọi ngôn ngữ đã nhập ít nhất một bản dịch mà chưa bị tắt (nút đổi ngôn ngữ chỉ hiện khi có từ hai ngôn ngữ). */
 export async function getSiteLocales(): Promise<SiteLocale[]> {
   if (localesCache && Date.now() - localesCache.at < cacheMs) return localesCache.locales;
-  const withTranslations = new Set(await listLocalesWithTranslations());
-  const locales: SiteLocale[] = [defaultLocale, ...translationLocales.map((locale) => locale.code).filter((code) => withTranslations.has(code))];
+  const [withTranslations, hidden] = await Promise.all([listLocalesWithTranslations().then((codes) => new Set(codes)), getHiddenLocales()]);
+  const locales: SiteLocale[] = [defaultLocale, ...translationLocales.map((locale) => locale.code).filter((code) => withTranslations.has(code) && !hidden.has(code))];
   localesCache = { at: Date.now(), locales };
   return locales;
 }
@@ -78,7 +88,7 @@ const isUiKey = (key: string) => key.startsWith(uiKeyPrefix);
  */
 async function getEnabledLocales() {
   const [setting, withTranslations] = await Promise.all([getTranslationLocaleSetting(), listLocalesWithTranslations()]);
-  return { locales: translationLocales.filter((locale) => setting.codes.includes(locale.code) || withTranslations.includes(locale.code)), version: setting.version };
+  return { locales: translationLocales.filter((locale) => setting.codes.includes(locale.code) || withTranslations.includes(locale.code)), hidden: setting.hidden, version: setting.version };
 }
 
 export async function getTranslationOverview(): Promise<TranslationOverview> {
@@ -96,7 +106,7 @@ export async function getTranslationOverview(): Promise<TranslationOverview> {
     const missingByGroup = Object.fromEntries(groups.map((group) => [group.id, missingUnits.filter((unit) => unit.groups.includes(group.id)).length]));
     const suggest = createSuggester(translatedSources(units.values(), byKey));
     return {
-      code: locale.code, name: locale.name, label: locale.label, translated, uiTranslated: current.filter((row) => isUiKey(row.sourceKey)).length,
+      code: locale.code, name: locale.name, label: locale.label, visible: !enabled.hidden.includes(locale.code), translated, uiTranslated: current.filter((row) => isUiKey(row.sourceKey)).length,
       missing: units.size - translated, unused: stored.length - translated, missingByGroup, suggestible: missingUnits.filter((unit) => suggest(unit.text)).length,
     };
   }));
@@ -113,15 +123,17 @@ export class TranslationLocaleInUseError extends Error {
 }
 
 /**
- * Đặt danh sách ngôn ngữ đã thêm (CMS gửi lại cả danh sách và version đã đọc; sai version thì 409). Ngôn ngữ đã có bản dịch không gỡ được.
- * Thêm ngôn ngữ chưa làm website đổi gì: nút chọn ngôn ngữ chỉ hiện khi ngôn ngữ đó có ít nhất một bản dịch.
+ * Đặt danh sách ngôn ngữ đã thêm và (tùy chọn) ngôn ngữ đang tắt (CMS gửi lại cả danh sách và version đã đọc; sai version thì 409). Ngôn ngữ đã có bản dịch không gỡ được.
+ * Thêm ngôn ngữ chưa làm website đổi gì: nút chọn ngôn ngữ chỉ hiện khi ngôn ngữ đó có ít nhất một bản dịch và chưa bị tắt. Không truyền `hidden` thì giữ nguyên danh sách tắt.
  */
-export async function updateTranslationLocales(codes: readonly TranslationLocale[], userId: string, expectedVersion: number) {
+export async function updateTranslationLocales(codes: readonly TranslationLocale[], userId: string, expectedVersion: number, hidden?: readonly TranslationLocale[]) {
   const next = sortLocaleCodes(codes);
   const [current, withTranslations] = await Promise.all([getTranslationLocaleSetting(), listLocalesWithTranslations()]);
   const inUse = current.codes.filter((code) => !next.includes(code) && withTranslations.includes(code));
   if (inUse.length) throw new TranslationLocaleInUseError(inUse.map((code) => findTranslationLocale(code)?.label ?? code));
-  const saved = await saveTranslationLocaleSetting(next, userId, expectedVersion);
+  // Chỉ nhớ ngôn ngữ tắt còn đang dùng (đã thêm hoặc đã có bản dịch); gỡ ngôn ngữ thì bỏ luôn khỏi danh sách tắt.
+  const nextHidden = sortLocaleCodes(hidden ?? current.hidden).filter((code) => next.includes(code) || withTranslations.includes(code));
+  const saved = await saveTranslationLocaleSetting(next, nextHidden, userId, expectedVersion);
   invalidateTranslationCache();
   return saved;
 }

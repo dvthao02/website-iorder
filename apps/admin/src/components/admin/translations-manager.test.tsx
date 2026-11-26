@@ -14,8 +14,8 @@ import { AdminPermissionsProvider } from "./ui/admin-permissions";
 type Locale = TranslationOverview["locales"][number];
 const groups: TranslationOverview["groups"] = [{ id: "ui", label: "Chữ giao diện website", total: 9 }, { id: "pages", label: "Trang", total: 2000 }, { id: "news", label: "Bài viết: Tin tức", total: 800 }];
 const available: TranslationOverview["available"] = [{ code: "ja", name: "日本語", label: "Tiếng Nhật" }, { code: "fr", name: "Français", label: "Tiếng Pháp" }];
-const overview: TranslationOverview = { version: 3, available, total: 2754, uiTotal: 9, groups, locales: [{ code: "en", name: "English", label: "Tiếng Anh", translated: 12, uiTranslated: 3, missing: 2742, unused: 3, missingByGroup: { ui: 6, pages: 1990, news: 760 }, suggestible: 12 }] };
-const complete: TranslationOverview = { version: 3, available, total: 2754, uiTotal: 9, groups, locales: [{ code: "en", name: "English", label: "Tiếng Anh", translated: 2754, uiTranslated: 9, missing: 0, unused: 0, missingByGroup: { ui: 0, pages: 0, news: 0 }, suggestible: 0 }] };
+const overview: TranslationOverview = { version: 3, available, total: 2754, uiTotal: 9, groups, locales: [{ code: "en", name: "English", label: "Tiếng Anh", visible: true, translated: 12, uiTranslated: 3, missing: 2742, unused: 3, missingByGroup: { ui: 6, pages: 1990, news: 760 }, suggestible: 12 }] };
+const complete: TranslationOverview = { version: 3, available, total: 2754, uiTotal: 9, groups, locales: [{ code: "en", name: "English", label: "Tiếng Anh", visible: true, translated: 2754, uiTranslated: 9, missing: 0, unused: 0, missingByGroup: { ui: 0, pages: 0, news: 0 }, suggestible: 0 }] };
 // Thẻ input của một lựa chọn phạm vi xuất (thứ tự thuộc tính do React quyết định nên đọc theo tên, không so chuỗi nguyên).
 const scopeInput = (html: string, value: "all" | "missing") => new RegExp(`<input[^>]*name="translation-scope-en"[^>]*value="${value}"[^>]*/>`).exec(html)?.[0] ?? "";
 const render = (permissions: string[], value: TranslationOverview | null = overview) => renderToStaticMarkup(
@@ -40,7 +40,7 @@ test("Màn Đa ngôn ngữ: mỗi ngôn ngữ một thẻ, nói rõ đã dịch 
 test("Màn Đa ngôn ngữ: mỗi ngôn ngữ là một bảng gập, dòng tóm tắt đủ tên, tiến độ và số câu thiếu; chỉ bảng đầu mở sẵn, ngôn ngữ duy nhất thì mở luôn", () => {
   const panel = /<details class="admin-post-editor__panel admin-translation"( open="")?>/g;
   assert.deepEqual([...render(["settings.view", "settings.update"]).matchAll(panel)].map((match) => Boolean(match[1])), [true], "chỉ có một ngôn ngữ thì mở sẵn");
-  const second: Locale = { code: "zh", name: "中文", label: "Tiếng Trung (giản thể)", translated: 0, uiTranslated: 0, missing: 2754, unused: 0, missingByGroup: { ui: 9, pages: 2000, news: 800 }, suggestible: 0 };
+  const second: Locale = { code: "zh", name: "中文", label: "Tiếng Trung (giản thể)", visible: true, translated: 0, uiTranslated: 0, missing: 2754, unused: 0, missingByGroup: { ui: 9, pages: 2000, news: 800 }, suggestible: 0 };
   const html = render(["settings.view", "settings.update"], { ...overview, locales: [overview.locales[0], second] });
   assert.deepEqual([...html.matchAll(panel)].map((match) => Boolean(match[1])), [true, false], "chỉ bảng đầu mở sẵn");
   const summaries = [...html.matchAll(/<summary>([\s\S]*?)<\/summary>/g)].map((match) => match[1]).filter((summary) => summary.includes("câu đã dịch"));
@@ -188,7 +188,7 @@ test("Màn Đa ngôn ngữ: đã thêm mọi ngôn ngữ trong danh mục thì k
 });
 
 test("Màn Đa ngôn ngữ: chỉ ngôn ngữ chưa có bản dịch nào mới có nút Gỡ, và chỉ người có quyền sửa cài đặt thấy", () => {
-  const empty: TranslationOverview = { ...overview, locales: [{ ...overview.locales[0], translated: 0, uiTranslated: 0, unused: 0, missing: 2754, missingByGroup: { ui: 9, pages: 2000, news: 800 }, suggestible: 0 }] };
+  const empty: TranslationOverview = { ...overview, locales: [{ ...overview.locales[0], visible: true, translated: 0, uiTranslated: 0, unused: 0, missing: 2754, missingByGroup: { ui: 9, pages: 2000, news: 800 }, suggestible: 0 }] };
   assert.ok(render(["settings.view", "settings.update"], empty).includes(">Gỡ ngôn ngữ</button>"));
   assert.doesNotMatch(render(["settings.view"], empty), /Gỡ ngôn ngữ/);
   assert.doesNotMatch(render(["settings.view", "settings.update"]), /Gỡ ngôn ngữ/, "đã có bản dịch thì không gỡ");
@@ -200,4 +200,22 @@ test("Màn Đa ngôn ngữ: không tải được tổng quan thì báo lỗi th
   const html = render(["settings.view"], null);
   assert.match(html, /Không tải được tổng quan bản dịch/);
   assert.doesNotMatch(html, /câu đã dịch/);
+});
+
+test("Màn Đa ngôn ngữ: mỗi ngôn ngữ có công tắc hiện cho khách; tắt thì có nhãn ở dòng tóm tắt và nói rõ bản dịch vẫn được giữ; chỉ người có quyền sửa cài đặt bật/tắt được", () => {
+  const hidden: TranslationOverview = { ...overview, locales: [overview.locales[0], { ...overview.locales[0], code: "ja", name: "日本語", label: "Tiếng Nhật", visible: false }] };
+  const html = render(["settings.view", "settings.update"], hidden);
+  assert.equal((html.match(/role="switch"/g) ?? []).length, 2, "mỗi ngôn ngữ một công tắc");
+  assert.equal((html.match(/aria-label="Hiện cho khách trên website"/g) ?? []).length, 2);
+  assert.equal((html.match(/<input[^>]*role="switch"[^>]*checked=""/g) ?? []).length, 1, "chỉ công tắc của ngôn ngữ đang bật có tích");
+  assert.match(html, /Khách thấy nút chọn English ở đầu website\./);
+  assert.match(html, /Đang tắt: khách không thấy ngôn ngữ này\. Bản dịch vẫn được giữ, bật lại là hiện ngay\./);
+  assert.equal((html.match(/Đang tắt với khách/g) ?? []).length, 1, "nhãn ở dòng tóm tắt chỉ cho ngôn ngữ đang tắt");
+  assert.doesNotMatch(render(["settings.view", "settings.update"]), /Đang tắt với khách/, "đang bật hết thì không có nhãn");
+
+  const readOnly = render(["settings.view"], hidden);
+  assert.equal((readOnly.match(/role="switch"[^>]*disabled=""|disabled=""[^>]*role="switch"/g) ?? []).length, 2, "chỉ có quyền xem thì công tắc bị khóa");
+
+  const noTranslation: TranslationOverview = { ...overview, locales: [{ ...overview.locales[0], translated: 0, uiTranslated: 0, unused: 0, missing: 2754, missingByGroup: { ui: 9, pages: 2000, news: 800 }, suggestible: 0 }] };
+  assert.match(render(["settings.view", "settings.update"], noTranslation), /Nút chọn ngôn ngữ chỉ hiện khi đã có ít nhất một bản dịch\./, "chưa có bản dịch nào thì giải thích vì sao khách chưa thấy");
 });

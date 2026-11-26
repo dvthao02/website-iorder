@@ -22,15 +22,16 @@ async function handleGET(request: Request) {
   }
 }
 
-// Thêm hoặc gỡ ngôn ngữ: { locales: ["en", "ja"], expectedVersion } (toàn bộ danh sách mong muốn, version lấy từ tổng quan). Quyền: settings.update (proxy kiểm).
+// Thêm, gỡ hoặc bật/tắt ngôn ngữ: { locales: ["en", "ja"], hidden?: ["ja"], expectedVersion } (toàn bộ danh sách mong muốn; hidden là ngôn ngữ đang tắt, không gửi thì giữ nguyên;
+// version lấy từ tổng quan). Quyền: settings.update (proxy kiểm).
 // Ngôn ngữ đã có bản dịch không gỡ được (400 LOCALE_IN_USE); sai version trả 409.
 async function handlePUT(request: Request) {
   const administrator = await getRequestAdministrator();
   if (!administrator) return NextResponse.json({ error: { code: "UNAUTHORIZED", message: "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại." } }, { status: 401 });
   try {
-    const { locales, expectedVersion } = translationLocalesUpdateSchema.parse(await request.json());
-    const saved = await updateTranslationLocales(locales, administrator.userId, expectedVersion);
-    return NextResponse.json({ locales: saved.codes, version: saved.version });
+    const { locales, hidden, expectedVersion } = translationLocalesUpdateSchema.parse(await request.json());
+    const saved = await updateTranslationLocales(locales, administrator.userId, expectedVersion, hidden);
+    return NextResponse.json({ locales: saved.codes, hidden: saved.hidden, version: saved.version });
   } catch (error) {
     if (error instanceof ContentVersionConflictError) return NextResponse.json({ error: { code: "VERSION_CONFLICT", message: error.message } }, { status: 409 });
     if (error instanceof TranslationLocaleInUseError) return NextResponse.json({ error: { code: "LOCALE_IN_USE", message: error.message } }, { status: 400 });

@@ -12,6 +12,7 @@ import { AdminNotice, AdminStatusBadge, useAdminToast, type AdminFeedbackTone } 
 import { AdminHelpTip } from "./ui/admin-help-tip";
 import { useAdminPermissions } from "./ui/admin-permissions";
 import { AdminSelect } from "./ui/admin-select";
+import { AdminSwitch } from "./ui/admin-switch";
 
 type Locale = TranslationOverview["locales"][number];
 type AvailableLocale = TranslationOverview["available"][number];
@@ -70,11 +71,11 @@ function TranslationsContent({ onRefresh, overview }: { onRefresh: () => void; o
   const [saving, setSaving] = useState(false);
 
   // Gửi cả danh sách ngôn ngữ mong muốn kèm version đã đọc; người khác vừa đổi (409) thì báo và không ghi.
-  async function saveLocales(codes: string[], success: string) {
+  async function saveLocales(codes: string[], success: string, hidden?: string[]) {
     if (saving) return false;
     setSaving(true);
     try {
-      await requestAdminJson("/api/v1/admin/translations", "PUT", { locales: codes, expectedVersion: overview.version }, "Không lưu được danh sách ngôn ngữ.");
+      await requestAdminJson("/api/v1/admin/translations", "PUT", { locales: codes, ...(hidden ? { hidden } : {}), expectedVersion: overview.version }, "Không lưu được danh sách ngôn ngữ.");
       show(success, "success");
       onRefresh();
       return true;
@@ -87,6 +88,9 @@ function TranslationsContent({ onRefresh, overview }: { onRefresh: () => void; o
   }
 
   const codes = overview.locales.map((locale) => locale.code);
+  const hiddenCodes = overview.locales.filter((locale) => !locale.visible).map((locale) => locale.code);
+  // Bật/tắt hiển thị cho khách: có hiệu lực ngay (website cập nhật trong khoảng 15 giây); bản dịch luôn được giữ.
+  const setVisible = (locale: Locale, visible: boolean) => void saveLocales(codes, visible ? `Đã bật ${inSentence(locale.label)} cho khách.` : `Đã tắt ${inSentence(locale.label)}: khách không còn thấy ngôn ngữ này, bản dịch vẫn được giữ.`, visible ? hiddenCodes.filter((code) => code !== locale.code) : [...hiddenCodes, locale.code]);
   // Chỉ một bảng mở một lúc: mặc định bảng đầu; mở bảng khác thì bảng đang mở gập lại; ngôn ngữ vừa thêm mở luôn.
   const [openCode, setOpenCode] = useState<string | null>(overview.locales[0]?.code ?? null);
   const openNow = visibleOpenLocale(openCode, codes);
@@ -102,7 +106,7 @@ function TranslationsContent({ onRefresh, overview }: { onRefresh: () => void; o
       <AddLocale available={overview.available} busy={saving} onAdd={addLocale} />
     </div>
     {overview.locales.length === 0 ? <AdminNotice tone="info">Chưa thêm ngôn ngữ nào. Chọn một ngôn ngữ ở ô phía trên để bắt đầu dịch.</AdminNotice> : null}
-    {overview.locales.map((locale) => <LocaleCard groups={overview.groups} key={locale.code} locale={locale} onRefresh={onRefresh} onRemove={() => void saveLocales(codes.filter((code) => code !== locale.code), `Đã gỡ ${inSentence(locale.label)}.`)} onToggle={(open) => toggle(locale.code, open)} open={openNow === locale.code} removing={saving} total={overview.total} uiTotal={overview.uiTotal} />)}
+    {overview.locales.map((locale) => <LocaleCard groups={overview.groups} key={locale.code} locale={locale} onRefresh={onRefresh} onRemove={() => void saveLocales(codes.filter((code) => code !== locale.code), `Đã gỡ ${inSentence(locale.label)}.`)} onToggle={(open) => toggle(locale.code, open)} onVisibleChange={(visible) => setVisible(locale, visible)} open={openNow === locale.code} removing={saving} total={overview.total} uiTotal={overview.uiTotal} />)}
   </div>;
 }
 
@@ -123,7 +127,7 @@ function AddLocale({ available, busy, onAdd }: { available: AvailableLocale[]; b
   </form>;
 }
 
-function LocaleCard({ groups, locale, onRefresh, onRemove, onToggle, open, removing, total, uiTotal }: { groups: TranslationOverview["groups"]; locale: Locale; onRefresh: () => void; onRemove: () => void; onToggle: (open: boolean) => void; open: boolean; removing: boolean; total: number; uiTotal: number }) {
+function LocaleCard({ groups, locale, onRefresh, onRemove, onToggle, onVisibleChange, open, removing, total, uiTotal }: { groups: TranslationOverview["groups"]; locale: Locale; onRefresh: () => void; onRemove: () => void; onToggle: (open: boolean) => void; onVisibleChange: (visible: boolean) => void; open: boolean; removing: boolean; total: number; uiTotal: number }) {
   const { show } = useAdminToast();
   const { can } = useAdminPermissions();
   const canImport = can("settings.update");
@@ -232,9 +236,11 @@ function LocaleCard({ groups, locale, onRefresh, onRemove, onToggle, open, remov
         <small>{numberFormatter.format(locale.translated)}/{numberFormatter.format(total)} câu đã dịch ({percentFormatter.format(ratio * 100)}%)</small>
       </span>
       <span aria-label={`Tiến độ dịch ${locale.label}`} aria-valuemax={100} aria-valuemin={0} aria-valuenow={Math.round(ratio * 100)} className="admin-translation__bar" role="progressbar"><span style={{ width: `${ratio * 100}%` }} /></span>
+      {locale.visible ? null : <AdminStatusBadge tone="neutral">Đang tắt với khách</AdminStatusBadge>}
       <AdminStatusBadge tone={complete ? "success" : "warning"}>{complete ? "Đã dịch đủ" : `Còn ${numberFormatter.format(locale.missing)} câu hiện tiếng Việt`}</AdminStatusBadge>
     </summary>
     <div className="admin-post-editor__panel-body">
+      <AdminSwitch checked={locale.visible} description={locale.visible ? (locale.translated > 0 ? `Khách thấy nút chọn ${locale.name} ở đầu website.` : "Nút chọn ngôn ngữ chỉ hiện khi đã có ít nhất một bản dịch.") : "Đang tắt: khách không thấy ngôn ngữ này. Bản dịch vẫn được giữ, bật lại là hiện ngay."} disabled={!canImport || removing} label="Hiện cho khách trên website" onChange={onVisibleChange} />
       <div className="admin-translation__facts">
         <dl className="admin-translation__stats">
           <div><dt>Giao diện website</dt><dd>{numberFormatter.format(locale.uiTranslated)}/{numberFormatter.format(uiTotal)}</dd></div>
