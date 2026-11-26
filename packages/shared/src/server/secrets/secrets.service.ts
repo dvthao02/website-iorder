@@ -205,5 +205,28 @@ export function createSecretsService({ repository, env, now, verifyPassword, log
     return getOverview();
   }
 
-  return { getOverview, getCmsSecret, setSecret, setSecrets, clearSecret, createMasterKey };
+  /**
+   * Ghi một khóa do MÁY CHỦ sinh ra (token OAuth sau khi Google cấp quyền), không có ô nhập và không hỏi mật khẩu: người dùng đã xác nhận mật khẩu
+   * ở bước bắt đầu kết nối (xem verifyReauthentication). Vẫn kiểm định dạng, mã hóa bằng khóa chủ và ghi nhật ký như mọi khóa khác.
+   */
+  async function putServerSecret(input: { userId: string; key: SecretKey; value: string }) {
+    const master = await loadMasterKey();
+    if (!master.key) throw master.error ?? new SecretsError("MASTER_KEY_MISSING", "Chưa có khóa chủ.");
+    const normalized = normalizeSecret(input.key, input.value);
+    await repository.upsert({ key: input.key, payload: encryptSecret(normalized.value, input.key, master.key), hint: normalized.hint, userId: input.userId });
+    cache.delete(input.key);
+  }
+
+  /** Xóa một khóa do máy chủ quản lý (khi ngắt kết nối). Gọi sau khi đã xác nhận mật khẩu. */
+  async function removeServerSecret(input: { userId: string; key: SecretKey }) {
+    await repository.remove({ key: input.key, userId: input.userId });
+    cache.delete(input.key);
+  }
+
+  /** Nhập lại mật khẩu của chính người thao tác trước một hành động nhạy cảm không phải lưu khóa (bắt đầu kết nối, ngắt kết nối). Cùng giới hạn nhập sai. */
+  async function verifyReauthentication(input: { userId: string; password: string; subject: SecretKey }) {
+    await assertPassword(input.userId, input.password, input.subject);
+  }
+
+  return { getOverview, getCmsSecret, setSecret, setSecrets, clearSecret, createMasterKey, putServerSecret, removeServerSecret, verifyReauthentication };
 }

@@ -48,6 +48,21 @@ const normalizers: Record<SecretKey, (raw: string) => NormalizedSecret> = {
     if (value.length < 8 || value.length > 500 || /\s/.test(value)) throw new SecretValidationError("API key không hợp lệ: cần 8–500 ký tự, không có khoảng trắng.");
     return { value, hint: `••••${value.slice(-4)}` };
   },
+  google_oauth_client_id(raw) {
+    const value = raw.trim();
+    if (!/^[A-Za-z0-9._-]{10,200}\.apps\.googleusercontent\.com$/.test(value)) throw new SecretValidationError("Client ID không hợp lệ: cần dạng 123456789-abc.apps.googleusercontent.com.");
+    return { value, hint: value };
+  },
+  google_oauth_client_secret(raw) {
+    const value = raw.trim();
+    if (value.length < 8 || value.length > 200 || /\s/.test(value)) throw new SecretValidationError("Client secret không hợp lệ: cần 8–200 ký tự, không có khoảng trắng.");
+    return { value, hint: `••••${value.slice(-4)}` };
+  },
+  gmail_refresh_token(raw) {
+    const value = raw.trim();
+    if (value.length < 20 || value.length > 2000 || /\s/.test(value)) throw new SecretValidationError("Token làm mới không hợp lệ.");
+    return { value, hint: "Đã kết nối" };
+  },
 };
 
 export function normalizeSecret(key: SecretKey, raw: string) {

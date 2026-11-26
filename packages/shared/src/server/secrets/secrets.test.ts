@@ -96,9 +96,10 @@ test("Yêu cầu từ trình duyệt: khóa phải thuộc danh mục, bắt bu�
   assert.equal(setSecretRequestSchema.safeParse({ key: "umami_api_key", value: "x" }).success, false, "thiếu mật khẩu");
   assert.equal(setSecretRequestSchema.safeParse({ key: "umami_api_key", value: "", password: goodPassword }).success, false);
   assert.equal(clearSecretRequestSchema.safeParse({ key: "umami_api_key", password: "" }).success, false);
-  assert.deepEqual(Object.keys(secretMetas).sort(), ["google_service_account", "search_console_property", "umami_api_key", "umami_api_url", "umami_website_id"]);
+  assert.deepEqual(Object.keys(secretMetas).sort(), ["gmail_refresh_token", "google_oauth_client_id", "google_oauth_client_secret", "google_service_account", "search_console_property", "umami_api_key", "umami_api_url", "umami_website_id"]);
   const grouped = integrationTools.flatMap((tool) => [...tool.keys]).sort();
-  assert.deepEqual(grouped, Object.keys(secretMetas).sort(), "mỗi biến kết nối thuộc đúng một công cụ");
+  // Token làm mới của Gmail do máy chủ tự ghi sau khi Google cấp quyền: không có ô nhập nên không thuộc thẻ công cụ nào.
+  assert.deepEqual(grouped, Object.keys(secretMetas).filter((key) => key !== "gmail_refresh_token").sort(), "mỗi biến kết nối thuộc đúng một công cụ");
 });
 
 // ---- Dịch vụ với kho giả trong bộ nhớ ----
@@ -153,7 +154,7 @@ test("Đặt khóa: cần mật khẩu đúng; lưu bản mã (không phải gi�
   const { service, rows } = setup();
   const before = await service.getOverview();
   assert.equal(before.masterKey, "ok");
-  assert.deepEqual(before.secrets.map((item) => [item.key, item.state]), [["google_service_account", "none"], ["search_console_property", "none"], ["umami_api_url", "none"], ["umami_website_id", "none"], ["umami_api_key", "none"]]);
+  assert.deepEqual(before.secrets.map((item) => [item.key, item.state]), [["google_service_account", "none"], ["search_console_property", "none"], ["umami_api_url", "none"], ["umami_website_id", "none"], ["umami_api_key", "none"], ["google_oauth_client_id", "none"], ["google_oauth_client_secret", "none"], ["gmail_refresh_token", "none"]]);
 
   const status = await service.setSecret({ userId: "u1", key: "umami_api_key", value: umami, password: goodPassword });
   assert.deepEqual([status.state, status.storedInCms, status.hint, status.version, status.updatedByName], ["cms", true, "••••7890", 1, "Administrator"]);
@@ -161,6 +162,26 @@ test("Đặt khóa: cần mật khẩu đúng; lưu bản mã (không phải gi�
   assert.ok(!stored.payload.includes(umami) && stored.payload.startsWith("v1."), "trong kho chỉ có bản mã");
   assert.equal(await service.getCmsSecret("umami_api_key"), umami, "dịch vụ nội bộ lấy lại được đúng giá trị");
   assert.ok(!JSON.stringify(await service.getOverview()).includes(umami), "trạng thái không bao giờ chứa giá trị khóa");
+});
+
+test("Khóa do máy chủ sinh ra (token Gmail): ghi không cần mật khẩu nhưng vẫn mã hóa; xác nhận mật khẩu riêng, sai thì chặn và ghi nhật ký", async () => {
+  const { service, rows, calls } = setup();
+  const token = "1//0g-refresh-token-cua-google-0123456789";
+  await service.putServerSecret({ userId: "u1", key: "gmail_refresh_token", value: token });
+  const stored = rows.get("gmail_refresh_token")!;
+  assert.ok(!stored.payload.includes(token) && stored.payload.startsWith("v1."), "trong kho chỉ có bản mã");
+  assert.equal(stored.hint, "Đã kết nối", "gợi ý không chứa token");
+  assert.equal(await service.getCmsSecret("gmail_refresh_token"), token);
+  assert.ok(!JSON.stringify(await service.getOverview()).includes(token), "trạng thái không bao giờ chứa token");
+  await assert.rejects(service.putServerSecret({ userId: "u1", key: "gmail_refresh_token", value: "ngan" }), SecretValidationError);
+
+  await service.verifyReauthentication({ userId: "u1", password: goodPassword, subject: "gmail_refresh_token" });
+  await assert.rejects(service.verifyReauthentication({ userId: "u1", password: "sai-mat-khau", subject: "gmail_refresh_token" }), InvalidPasswordError);
+  assert.deepEqual(calls.failedReauth, ["u1:gmail_refresh_token"]);
+
+  await service.removeServerSecret({ userId: "u1", key: "gmail_refresh_token" });
+  assert.equal(rows.has("gmail_refresh_token"), false);
+  assert.equal(await service.getCmsSecret("gmail_refresh_token"), undefined);
 });
 
 test("Lưu nhiều biến của một công cụ: một lần xác nhận mật khẩu, kiểm tra hết rồi mới ghi (một biến sai thì không biến nào được lưu), lỗi chỉ đúng biến sai", async () => {

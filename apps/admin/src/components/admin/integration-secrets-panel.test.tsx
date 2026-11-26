@@ -21,16 +21,17 @@ function status(key: SecretStatus["key"], extra: Partial<SecretStatus> = {}): Se
 const overview = (masterKey: SecretsOverview["masterKey"], secrets: SecretStatus[], extra: Partial<SecretsOverview> = {}): SecretsOverview => ({
   masterKey, masterKeySource: masterKey === "missing" ? "none" : "env", canCreateMasterKey: false, keyFilePath: null, secrets, ...extra,
 });
-const clean = overview("ok", [status("umami_api_url"), status("umami_website_id"), status("umami_api_key"), status("google_service_account"), status("search_console_property")]);
+const clean = overview("ok", [status("umami_api_url"), status("umami_website_id"), status("umami_api_key"), status("google_service_account"), status("search_console_property"), status("google_oauth_client_id"), status("google_oauth_client_secret")]);
 
-test("Màn Kết nối & khóa API: chưa có biến nào thì cả năm hiện Chưa đặt, mỗi công cụ chỉ một nút Cấu hình, kèm giải thích khóa chỉ ghi và phải nhập lại mật khẩu", () => {
+test("Màn Kết nối & khóa API: chưa có biến nào thì cả bảy hiện Chưa đặt, mỗi công cụ chỉ một nút Cấu hình, kèm giải thích khóa chỉ ghi và phải nhập lại mật khẩu", () => {
   const html = renderToStaticMarkup(<IntegrationSecretsView overview={clean} />);
-  assert.equal((html.match(/Chưa đặt/g) ?? []).length, 5);
-  assert.equal((html.match(/>Cấu hình</g) ?? []).length, 2, "mỗi công cụ chỉ một nút, không nút riêng cho từng biến");
+  assert.equal((html.match(/Chưa đặt/g) ?? []).length, 7);
+  assert.equal((html.match(/>Cấu hình</g) ?? []).length, 3, "mỗi công cụ chỉ một nút, không nút riêng cho từng biến");
   assert.doesNotMatch(html, /Đặt khóa|Điền giá trị|Thay khóa|Đổi giá trị|Xóa khỏi CMS/);
   assert.match(html, /Umami \(thống kê truy cập\)/);
   assert.match(html, /Google Search Console/);
-  assert.equal((html.match(/0\/3 biến đã đặt|0\/2 biến đã đặt/g) ?? []).length, 2, "mỗi công cụ là một thẻ, ghi số biến đã đặt");
+  assert.match(html, /Gmail \(gửi thư báo liên hệ mới\)/);
+  assert.equal((html.match(/0\/3 biến đã đặt|0\/2 biến đã đặt/g) ?? []).length, 3, "mỗi công cụ là một thẻ, ghi số biến đã đặt");
   assert.match(html, /UUID|Địa chỉ Umami/);
   assert.match(html, /Khóa bí mật chỉ ghi/);
   assert.match(html, /nhập lại mật khẩu của chính bạn/);
@@ -48,10 +49,12 @@ test("Màn Kết nối & khóa API: đã đặt thì hiện gợi ý (không l�
     status("google_service_account", { state: "cms", storedInCms: true, hint: "cms@du-an.iam.gserviceaccount.com", version: 2, updatedAt: "2026-11-19T03:00:00.000Z", updatedByName: "Administrator" }),
     status("search_console_property", { state: "cms", storedInCms: true, hint: "sc-domain:iorder.com.vn", version: 1, updatedAt: "2026-11-19T03:00:00.000Z" }),
     status("umami_api_key", { state: "cms", storedInCms: true, hint: "••••7890", version: 1, updatedAt: "2026-11-19T03:00:00.000Z" }),
+    status("google_oauth_client_id", { state: "cms", storedInCms: true, hint: "123-abc.apps.googleusercontent.com", version: 1, updatedAt: "2026-11-19T03:00:00.000Z" }),
+    status("google_oauth_client_secret", { state: "cms", storedInCms: true, hint: "••••abcd", version: 1, updatedAt: "2026-11-19T03:00:00.000Z" }),
   ]);
   const html = renderToStaticMarkup(<IntegrationSecretsView overview={stored} />);
-  assert.equal((html.match(/Đã đặt ở CMS/g) ?? []).length, 5);
-  assert.equal((html.match(/>Cấu hình</g) ?? []).length, 2);
+  assert.equal((html.match(/Đã đặt ở CMS/g) ?? []).length, 7);
+  assert.equal((html.match(/>Cấu hình</g) ?? []).length, 3);
   assert.match(html, /http:\/\/umami:3000/, "địa chỉ và mã website hiện lại được");
   assert.match(html, /3\/3 biến đã đặt/);
   assert.match(html, /2\/2 biến đã đặt/);
@@ -82,8 +85,8 @@ test("Chưa có hoặc sai khóa chủ: hướng dẫn tạo khóa chủ, nút �
   assert.match(missing, /openssl rand -base64 32/);
   assert.match(missing, /SECRETS_MASTER_KEY/);
   assert.match(missing, /mất khóa này thì phải nhập lại toàn bộ khóa API/);
-  assert.equal((missing.match(/disabled=""/g) ?? []).length, 2, "hai nút Cấu hình bị khóa");
-  assert.equal((missing.match(/Chưa lưu được: máy chủ chưa có khóa chủ hợp lệ/g) ?? []).length, 2, "mỗi công cụ nói rõ vì sao nút bị khóa, không chỉ khung ở đầu trang");
+  assert.equal((missing.match(/disabled=""/g) ?? []).length, 3, "ba nút Cấu hình bị khóa");
+  assert.equal((missing.match(/Chưa lưu được: máy chủ chưa có khóa chủ hợp lệ/g) ?? []).length, 3, "mỗi công cụ nói rõ vì sao nút bị khóa, không chỉ khung ở đầu trang");
   assert.doesNotMatch(renderToStaticMarkup(<IntegrationSecretsView overview={clean} />), /Chưa lưu được: máy chủ chưa có khóa chủ/, "khóa chủ ổn thì không hiện dòng này");
   const invalid = renderToStaticMarkup(<IntegrationSecretsView overview={overview("invalid", clean.secrets)} />);
   assert.match(invalid, /sai định dạng/);
@@ -99,7 +102,7 @@ test("Khóa chủ: máy chủ cho tạo thì có nút Tạo khóa chủ và gi�
   assert.match(html, /không nằm trong database hay bản sao lưu database/);
   assert.match(html, /không cần khởi động lại/);
   assert.doesNotMatch(html, /openssl rand/, "không bắt người dùng chạy lệnh khi đã có nút tạo");
-  assert.equal((html.match(/disabled=""/g) ?? []).length, 2, "hai nút Cấu hình vẫn khóa cho tới khi có khóa chủ");
+  assert.equal((html.match(/disabled=""/g) ?? []).length, 3, "ba nút Cấu hình vẫn khóa cho tới khi có khóa chủ");
 
   // Biểu mẫu nằm trong panel trượt (portal, chỉ dựng ở trình duyệt) nên kiểm riêng biểu mẫu; khung panel kiểm ở bài kiểm tra mã nguồn bên dưới.
   const opened = renderToStaticMarkup(<AdminToastProvider><MasterKeyForm onCancel={() => undefined} onDone={() => undefined} /></AdminToastProvider>);

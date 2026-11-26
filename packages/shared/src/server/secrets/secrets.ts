@@ -28,3 +28,7 @@ export const setSecrets = service.setSecrets;
 export const clearSecret = service.clearSecret;
 /** Tạo khóa chủ ngẫu nhiên và cất trong tệp trên máy chủ (không ghi đè khóa đã có). */
 export const createMasterKey = service.createMasterKey;
+/** Ghi/xóa khóa do máy chủ sinh ra (token OAuth của Gmail), không hỏi mật khẩu: người gọi đã gọi verifyReauthentication trước đó. */
+export const putServerSecret = service.putServerSecret;
+export const removeServerSecret = service.removeServerSecret;
+export const verifyReauthentication = service.verifyReauthentication;

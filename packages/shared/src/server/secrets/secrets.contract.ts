@@ -3,13 +3,15 @@ import { z } from "zod";
 // Khóa API và thông tin kết nối Super Admin nhập ở CMS (Cài đặt → Kết nối & khóa API). Tệp này an toàn cho cả trình duyệt: chỉ có kiểu, nhãn và
 // schema, không import gì của Node. Giá trị khóa KHÔNG bao giờ nằm trong kiểu nào ở đây: trạng thái chỉ có "đã đặt/chưa đặt" và gợi ý không bí mật.
 
-export const secretKeys = ["google_service_account", "search_console_property", "umami_api_url", "umami_website_id", "umami_api_key"] as const;
+// `gmail_refresh_token` do luồng "Kết nối Gmail" tự ghi sau khi Google cấp quyền (không có ô nhập, không thuộc thẻ công cụ nào).
+export const secretKeys = ["google_service_account", "search_console_property", "umami_api_url", "umami_website_id", "umami_api_key", "google_oauth_client_id", "google_oauth_client_secret", "gmail_refresh_token"] as const;
 export type SecretKey = (typeof secretKeys)[number];
 
 /** Mỗi công cụ ngoài là một thẻ ở CMS gồm nhiều biến kết nối. Thêm công cụ mới = thêm khóa vào secretKeys, secretMetas, bộ kiểm tra ở secrets.catalog.ts và một dòng ở đây. */
 export const integrationTools = [
   { id: "umami", label: "Umami (thống kê truy cập)", description: "Công cụ đếm lượt truy cập tự host. Điền đủ địa chỉ, mã website và API key để Tổng quan hiện số liệu truy cập; mã website còn được dùng để gắn thẻ theo dõi lên website công khai.", keys: ["umami_api_url", "umami_website_id", "umami_api_key"] },
   { id: "google_search_console", label: "Google Search Console", description: "Cho CMS xem tình trạng lập chỉ mục và hiệu quả tìm kiếm của website. Chỉ cần khóa tài khoản dịch vụ; thuộc tính chỉ điền khi muốn chọn thuộc tính cụ thể.", keys: ["google_service_account", "search_console_property"] },
+  { id: "gmail", label: "Gmail (gửi thư báo liên hệ mới)", description: "Mã khách OAuth tạo một lần ở Google Cloud để CMS xin quyền gửi thư từ Gmail của bạn. Điền xong, dùng khung “Gmail báo liên hệ mới” bên dưới để bấm Kết nối.", keys: ["google_oauth_client_id", "google_oauth_client_secret"] },
 ] as const satisfies ReadonlyArray<{ id: string; label: string; description: string; keys: readonly SecretKey[] }>;
 export type IntegrationToolId = (typeof integrationTools)[number]["id"];
 
@@ -69,6 +71,31 @@ export const secretMetas: Record<SecretKey, SecretMeta> = {
     input: "text",
     exposeValue: false,
     envNames: ["UMAMI_API_KEY"],
+  },
+  google_oauth_client_id: {
+    key: "google_oauth_client_id",
+    label: "Google OAuth: Client ID",
+    description: "Dạng 123456789-abc.apps.googleusercontent.com, lấy ở Google Cloud → APIs & Services → Credentials (loại Web application).",
+    input: "text",
+    exposeValue: true,
+    envNames: ["GOOGLE_OAUTH_CLIENT_ID"],
+    placeholder: "123456789-abc.apps.googleusercontent.com",
+  },
+  google_oauth_client_secret: {
+    key: "google_oauth_client_secret",
+    label: "Google OAuth: Client secret",
+    description: "Mã bí mật đi cùng Client ID, cũng ở trang Credentials của Google Cloud.",
+    input: "text",
+    exposeValue: false,
+    envNames: ["GOOGLE_OAUTH_CLIENT_SECRET"],
+  },
+  gmail_refresh_token: {
+    key: "gmail_refresh_token",
+    label: "Gmail: token làm mới",
+    description: "Do CMS tự lưu khi bấm Kết nối Gmail; không nhập tay.",
+    input: "text",
+    exposeValue: false,
+    envNames: [],
   },
 };
 
