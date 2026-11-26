@@ -3,7 +3,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-import { AdminStatusBadge } from "./ui/admin-feedback";
 import { AdminFormField } from "./ui/admin-form-field";
 import { timingPresets, type PopupDisplay, type TimingPreset } from "./use-popup-setting-editor";
 
@@ -25,8 +24,8 @@ function Choice({ checked, description, label, name, onChange, value }: { checke
 /** Thanh bật/tắt ở đầu màn; `id` nối mô tả với công tắc cho trình đọc màn hình. */
 export function PopupStatusSwitch({ checked, description, disabled, id, label, onChange }: { checked: boolean; description: string; disabled: boolean; id: string; label: string; onChange: (enabled: boolean) => void }) {
   const descriptionId = `${id}-status-description`;
-  return <div className="admin-consult-popup__statusbar" data-active={checked ? "true" : "false"} data-testid="feature-status">
-    <div><AdminStatusBadge tone={checked ? "success" : "neutral"}>{checked ? "Đang bật" : "Đang tắt"}</AdminStatusBadge><strong>{label}</strong><span id={descriptionId}>{description}</span></div>
+  return <div className="admin-consult-popup__statusbar" data-testid="feature-status">
+    <div><strong>{label}</strong><span id={descriptionId}>{description}</span></div>
     <label className="admin-consult-popup__switch">
       <input aria-describedby={descriptionId} aria-label={`Bật ${label.toLocaleLowerCase("vi")}`} checked={checked} disabled={disabled} onChange={(event) => onChange(event.target.checked)} type="checkbox" />
       <span aria-hidden="true" className="admin-consult-popup__switch-track"><span /></span>
