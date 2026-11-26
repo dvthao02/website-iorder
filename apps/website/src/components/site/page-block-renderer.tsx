@@ -63,10 +63,11 @@ export async function PageBlockRenderer({ blocks, previous = null, screens = fal
   // Hai phần liền nhau cùng nền trắng/xanh nhạt (chọn tay trong CMS): một vạch mảnh trong khung nội dung để mắt thấy chỗ chuyển phần,
   // thay vì bắt mọi phần đổi màu nền xen kẽ. Phần có màu hoặc ảnh nền riêng đã tự tách khỏi phần bên cạnh.
   const custom = (index: number) => Boolean(frames[index].background?.color || frames[index].background?.imageUrl);
+  const mediaRun = (index: number) => { let run = 0; while (index - run - 1 >= 0 && enabled[index - run - 1].type === "media_text") run += 1; return run; };
   const divider = (index: number) => index > 0 && enabled[index - 1].type !== "hero" && frames[index].tone !== "dark" && frames[index].tone === frames[index - 1].tone && !custom(index) && !custom(index - 1);
   return <>{await Promise.all(enabled.map(async (block, index) => { const content = <Fragment key={`${block.type}-${index}`}>
     {divider(index) ? <div aria-hidden="true" className={frames[index].tone === "tinted" ? "bg-surface-tinted" : "bg-white"}><div className="site-container"><hr className="m-0 border-0 border-t border-line" /></div></div> : null}
-    {preview && previewIndex(block, index) !== undefined ? <div data-builder-block={previewIndex(block, index)}>{blockUsesScreenHeight(block, screens) ? <div className="screen-block"><Block block={visibleBlockItems(block)} first={index === 0} frame={frames[index]} staticPage={staticPage} /></div> : <Block block={visibleBlockItems(block)} first={index === 0} frame={frames[index]} staticPage={staticPage} />}</div> : blockUsesScreenHeight(block, screens) ? <div className="screen-block"><Block block={visibleBlockItems(block)} first={index === 0} frame={frames[index]} staticPage={staticPage} /></div> : <Block block={visibleBlockItems(block)} first={index === 0} frame={frames[index]} staticPage={staticPage} />}
+    {preview && previewIndex(block, index) !== undefined ? <div data-builder-block={previewIndex(block, index)}>{blockUsesScreenHeight(block, screens) ? <div className="screen-block"><Block block={visibleBlockItems(block)} first={index === 0} frame={frames[index]} run={mediaRun(index)} staticPage={staticPage} /></div> : <Block block={visibleBlockItems(block)} first={index === 0} frame={frames[index]} run={mediaRun(index)} staticPage={staticPage} />}</div> : blockUsesScreenHeight(block, screens) ? <div className="screen-block"><Block block={visibleBlockItems(block)} first={index === 0} frame={frames[index]} run={mediaRun(index)} staticPage={staticPage} /></div> : <Block block={visibleBlockItems(block)} first={index === 0} frame={frames[index]} run={mediaRun(index)} staticPage={staticPage} />}
   </Fragment>; return sectionIds?.[index] ? <div data-static-section={index} data-testid="static-section" id={sectionIds[index]} key={`static-${index}`}>{content}</div> : content; }))}</>;
 }
 
@@ -217,14 +218,15 @@ function SplitHeading({ dark, eyebrow, title, description }: { dark: boolean; ey
   </div>;
 }
 
-async function Block({ block, first, frame: blockFrame, staticPage }: { block: PageBlock; first: boolean; frame: BlockFrame; staticPage?: StaticPageProfile }) {
+// `run`: số khối "Ảnh + chữ" nằm liền ngay phía trên (0 = khối đầu của dãy); dùng cho "Tự động xen kẽ" và số trên ô giữ chỗ ảnh.
+async function Block({ block, first, frame: blockFrame, staticPage, run = 0 }: { block: PageBlock; first: boolean; frame: BlockFrame; staticPage?: StaticPageProfile; run?: number }) {
   const t = await getT();
   // Khối đầu trang nằm ngay màn hình đầu tiên: ảnh nền của khung và ảnh nội dung tải ngay (không lazy) để không kéo chậm LCP.
   const frame = first ? { ...blockFrame, eager: true } : blockFrame;
   const dark = frame.tone === "dark";
   switch (block.type) {
     case "hero": return <HeroSection data={block.data} first={first} frame={frame} />;
-    case "media_text": return <MediaTextSection data={block.data} first={first} frame={frame} />;
+    case "media_text": return <MediaTextSection data={block.data.layout === "auto" ? { ...block.data, layout: run % 2 === 0 ? "image_left" : "image_right" } : block.data} first={first} frame={frame} order={run + 1} />;
     case "pricing": return <PricingSection data={block.data} frame={frame} />;
     case "grouped_list": return <GroupedListSection data={block.data} frame={frame} />;
     case "columns": return <ColumnsSection data={block.data} first={first} frame={frame} />;

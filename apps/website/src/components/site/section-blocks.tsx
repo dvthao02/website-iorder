@@ -3,6 +3,7 @@ import { Check, Sparkles } from "lucide-react";
 import type { BlockFrame } from "@iorder/shared/server/pages/block-layout";
 import type { PageBlock } from "@iorder/shared/server/pages/pages.contract";
 import { getMediaById } from "@/lib/backend";
+import { getBuilderPreviewContext } from "@/lib/builder-preview";
 import { Actions, Badge, ButtonLink, Card, CardText, CardTitle, CheckList, FrameSection, IconTile, SectionHeading, TextLink, defaultFrame, gridColumns, itemAlignClass } from "@/components/ui";
 import { BlockIcon } from "./block-icon";
 import { HeroImages } from "./hero-images";
@@ -15,18 +16,34 @@ export async function loadBlockImages(ids: ReadonlyArray<string | null | undefin
   return found.filter((media): media is NonNullable<typeof media> => media !== null);
 }
 
-export async function MediaTextSection({ data, frame, first = false }: { data: Extract<PageBlock, { type: "media_text" }>["data"]; frame: BlockFrame; first?: boolean }) {
+// Ô giữ chỗ cho ảnh (khối bật "Giữ chỗ cho ảnh" mà chưa có ảnh): số thứ tự lớn trên nền nhạt, để bố cục trái/phải xen kẽ đã đủ khi ảnh chưa có.
+// Trên website chỉ có hình trang trí; trong khung xem trước của CMS có thêm chữ nhắc chưa có ảnh.
+function MediaSlot({ order, caption, dark }: { order: number; caption: string | null; dark: boolean }) {
+  return <div aria-hidden={caption ? undefined : "true"} className="media-slot" data-builder-field="image" data-tone={dark ? "dark" : "light"}>
+    <span aria-hidden="true" className="media-slot__ring" />
+    <span className="media-slot__number">{String(order).padStart(2, "0")}</span>
+    {caption ? <span className="media-slot__caption">{caption}</span> : null}
+  </div>;
+}
+
+// `order`: thứ tự (từ 1) của khối trong dãy "Ảnh + chữ" liền nhau, dùng cho số trên ô giữ chỗ.
+export async function MediaTextSection({ data, frame, first = false, order = 1 }: { data: Extract<PageBlock, { type: "media_text" }>["data"]; frame: BlockFrame; first?: boolean; order?: number }) {
   const images = await loadBlockImages([data.mediaId, ...(data.extraMediaIds ?? [])]);
   const image = images[0] ?? null;
+  const slot = !image && data.imagePlaceholder === true;
+  const t = slot ? await getT() : null;
+  const inPreview = slot ? Boolean(await getBuilderPreviewContext()) : false;
   const imageLeft = data.layout === "image_left";
   const dark = frame.tone === "dark";
-  return <FrameSection frame={frame} width={image ? "default" : "text"}>
-    <div className={`grid items-center gap-10 ${image ? "lg:grid-cols-2 lg:gap-16" : ""}`}>
+  const twoColumns = Boolean(image) || slot;
+  return <FrameSection frame={frame} width={twoColumns ? "default" : "text"}>
+    <div className={`grid items-center gap-10 ${twoColumns ? "lg:grid-cols-2 lg:gap-16" : ""}`}>
       <div className={imageLeft ? "lg:order-2" : ""}>
-        <SectionHeading align={image ? "left" : "center"} className="" dark={dark} description={data.description} eyebrow={data.eyebrow} title={data.title} />
+        <SectionHeading align={twoColumns ? "left" : "center"} className="" dark={dark} description={data.description} eyebrow={data.eyebrow} title={data.title} />
         <CheckList dark={dark} items={data.bullets} />
-        <Actions center={!image} dark={dark} primary={data.primaryAction} secondary={data.secondaryAction} />
+        <Actions center={!twoColumns} dark={dark} primary={data.primaryAction} secondary={data.secondaryAction} />
       </div>
+      {slot ? <div className={imageLeft ? "lg:order-1" : ""}><MediaSlot caption={inPreview && t ? t("common.noImage") : null} dark={dark} order={order} /></div> : null}
       {image ? <div className={`relative isolate ${imageLeft ? "lg:order-1" : ""}`.trim()}>
         {dark ? null : <span aria-hidden="true" className="soft-glow -inset-x-3 -inset-y-[10%] lg:-inset-x-5" />}
         {(() => {

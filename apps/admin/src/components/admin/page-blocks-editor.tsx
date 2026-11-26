@@ -59,6 +59,7 @@ const libraryBlockOptions: ReadonlyArray<LibraryBlockOption> = [
   { id: "hero-centered", type: "hero", label: "Tiêu đề căn giữa", description: "Trang ngắn hoặc thông điệp thương hiệu, ảnh nằm phía dưới.", group: "Mở đầu" },
 
   { id: "media-right", type: "media_text", label: "Chữ trái · ảnh phải", description: "Ảnh minh họa nằm bên phải; tiêu đề, mô tả và nút nằm bên trái.", group: "Giới thiệu" },
+  { id: "media-auto", type: "media_text", label: "Ảnh + chữ xen kẽ (ảnh thêm sau)", description: "Thêm nhiều khối liền nhau: ảnh tự đổi bên trái/phải lần lượt; chưa có ảnh vẫn hiện ô giữ chỗ. Mỗi khối đủ tiêu đề, mô tả, danh sách ✓ và hai nút.", group: "Giới thiệu" },
   { id: "media-left", type: "media_text", label: "Ảnh trái · chữ phải", description: "Ảnh minh họa nằm bên trái; tiêu đề, mô tả và nút nằm bên phải.", group: "Giới thiệu" },
   { id: "features-compact", type: "features", label: "Lưới lợi ích", description: "Thẻ gọn có biểu tượng, tiêu đề và mô tả ngắn.", group: "Giới thiệu" },
   { id: "features-visual", type: "features", label: "Lưới thẻ ảnh", description: "Thẻ ảnh phù hợp giới thiệu các mảng sản phẩm hoặc dịch vụ.", group: "Giới thiệu" },
@@ -211,6 +212,7 @@ function libraryBlock(id: string): PageBlock {
     case "hero-background": { const block = typedNewBlock("hero"); return { ...block, data: { ...block.data, layout: "background", tone: "dark" } }; }
     case "hero-centered": { const block = typedNewBlock("hero"); return { ...block, data: { ...block.data, layout: "centered" } }; }
     case "media-right": { const block = typedNewBlock("media_text"); return { ...block, data: { ...block.data, layout: "image_right" } }; }
+    case "media-auto": { const block = typedNewBlock("media_text"); return { ...block, data: { ...block.data, layout: "auto", imagePlaceholder: true } }; }
     case "media-left":
     case "media-story": { const block = typedNewBlock("media_text"); return { ...block, data: { ...block.data, layout: "image_left" } }; }
     case "features-compact": { const block = newBlock("features"); return block.type === "features" ? { ...block, data: { ...block.data, cardStyle: "compact" } } : block; }
@@ -628,6 +630,7 @@ function ColumnsFields({ block, onChange, disabled, onUploadingChange }: { block
 const mediaTextLayoutOptions: ReadonlyArray<LayoutOption<MediaTextBlock["data"]["layout"]>> = [
   { value: "image_right", label: "Chữ trái · ảnh phải", hint: "Phần chữ nằm bên trái, ảnh nằm bên phải.", preview: heroLayoutPreviews.split },
   { value: "image_left", label: "Ảnh trái · chữ phải", hint: "Ảnh nằm bên trái, phần chữ nằm bên phải.", preview: heroLayoutPreviews.split_reverse },
+  { value: "auto", label: "Tự động xen kẽ", hint: "Các khối “Ảnh + chữ” nằm liền nhau tự đổi bên lần lượt (khối đầu của dãy: ảnh trái, rồi phải, trái…). Thêm hoặc xóa khối ở giữa là dãy tự xen kẽ lại, không phải chọn từng bên.", preview: heroLayoutPreviews.split_reverse },
 ];
 
 // Nhiều ảnh cho khối ảnh + chữ và khối ảnh: ô đầu là `mediaId`, các ô sau là `extraMediaIds`. Ô chưa chọn ảnh vẫn giữ trong form, bỏ khi lưu.
@@ -824,7 +827,11 @@ type BlockTab = "content" | "media" | "appearance" | "itemLayout";
 function BlockLayoutFields({ block, disabled, onChange, onUploadingChange }: { block: PageBlock; disabled?: boolean; onChange: (block: PageBlock) => void; onUploadingChange: (pending: boolean) => void }) {
   const id = useId();
   if (block.type === "hero") return <><HeroFields block={block} disabled={disabled} onChange={onChange} onUploadingChange={onUploadingChange} part="media" /><HeroToneField block={block} disabled={disabled} onChange={onChange} /></>;
-  if (block.type === "media_text") return <LayoutPicker label="Kiểu bố cục" name={id} options={mediaTextLayoutOptions} value={block.data.layout} onChange={layout => onChange({ ...block, data: { ...block.data, layout } })} />;
+  if (block.type === "media_text") return <>
+    <LayoutPicker label="Kiểu bố cục" name={id} options={mediaTextLayoutOptions} value={block.data.layout} onChange={layout => onChange({ ...block, data: { ...block.data, layout } })} />
+    <AdminCheckbox checked={block.data.imagePlaceholder === true} disabled={disabled} onChange={event => onChange({ ...block, data: { ...block.data, imagePlaceholder: event.target.checked ? true : undefined } })}>Giữ chỗ cho ảnh (thêm ảnh sau)</AdminCheckbox>
+    <p className="admin-help">Chưa có ảnh vẫn giữ hai cột trái/phải và hiện ô số thứ tự trên nền nhạt; thêm ảnh ở tab Nội dung là ảnh thay vào ô đó. Không bật thì khối chưa có ảnh chỉ còn chữ, căn giữa.</p>
+  </>;
   // Chỉ danh sách bài viết có nhiều kiểu hiển thị; các nguồn khác (thiết bị, phần mềm…) có bố cục riêng cố định.
   if (block.type === "collection_list" && block.data.source === "posts") return <LayoutPicker label="Kiểu hiển thị bài viết" name={id} options={collectionLayoutOptions} value={block.data.layout ?? "grid"} onChange={layout => onChange({ ...block, data: { ...block.data, layout } })} />;
   if (block.type === "features" || block.type === "industries" || block.type === "ecosystem") return <CardStyleField block={block} onChange={onChange} />;

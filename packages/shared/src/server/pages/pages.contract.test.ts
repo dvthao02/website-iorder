@@ -351,3 +351,13 @@ test("Lưới thẻ nhận kiểu giấy tờ, chứng nhận (document)", () =>
   assert.ok(pageBlockInputSchema.safeParse(features("document")).success);
   assert.equal(pageBlockInputSchema.safeParse(features("documents")).success, false);
 });
+
+test("Ảnh + chữ nhận bố cục tự xen kẽ và cờ giữ chỗ ảnh; dữ liệu cũ không có cờ vẫn hợp lệ", () => {
+  const block = (data: object) => ({ type: "media_text", isEnabled: true, data: { layout: "auto", tone: "light", eyebrow: null, title: "Sứ mệnh", description: "Mô tả", bullets: ["Ý 1"], mediaId: null, primaryAction: null, secondaryAction: null, ...data } });
+  const auto = pageBlockInputSchema.parse(block({ imagePlaceholder: true }));
+  assert.ok(auto.type === "media_text" && auto.data.layout === "auto" && auto.data.imagePlaceholder === true);
+  const old = pageBlockInputSchema.parse(block({ layout: "image_left" }));
+  assert.ok(old.type === "media_text" && old.data.imagePlaceholder === undefined && old.data.extraMediaIds.length === 0);
+  assert.equal(pageBlockInputSchema.safeParse(block({ layout: "zigzag" })).success, false);
+  assert.equal(pageBlockInputSchema.safeParse(block({ imagePlaceholder: "co" })).success, false);
+});

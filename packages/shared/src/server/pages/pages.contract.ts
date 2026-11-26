@@ -244,7 +244,8 @@ export const pageBlockInputSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("download_list"), data: z.object({ eyebrow: z.string().trim().max(160).nullable(), title: z.string().trim().min(1).max(220) }).strict(), isEnabled: z.boolean(), appearance: blockAppearanceSchema.optional() }).strict(),
   // Ảnh + chữ hai cột: giới thiệu một tính năng/lợi ích kèm ảnh chụp màn hình; xếp nhiều khối xen kẽ trái/phải.
   z.object({ type: z.literal("media_text"), data: z.object({
-    layout: z.enum(["image_right", "image_left"]).default("image_right"),
+    // "auto" = xen kẽ tự động: các khối "Ảnh + chữ" nằm liền nhau đổi bên lần lượt (khối đầu của dãy: ảnh trái), website tự tính.
+    layout: z.enum(["image_right", "image_left", "auto"]).default("image_right"),
     tone: sectionToneSchema.default("light"),
     eyebrow: z.string().trim().max(160).nullable(),
     title: z.string().trim().min(1).max(220),
@@ -253,6 +254,8 @@ export const pageBlockInputSchema = z.discriminatedUnion("type", [
     mediaId: z.string().uuid().nullable(),
     // Ảnh thứ 2 trở đi; có từ 2 ảnh thì website tự chuyển ảnh.
     extraMediaIds: z.array(z.string().uuid()).max(7).default([]),
+    // Chưa có ảnh mà bật cờ này: vẫn giữ hai cột và hiện ô giữ chỗ (số thứ tự trên nền nhạt) để thêm ảnh sau; không bật thì khối chỉ có chữ, căn giữa.
+    imagePlaceholder: z.boolean().optional(),
     primaryAction: actionSchema.nullable(),
     secondaryAction: actionSchema.nullable(),
   }).strict(), isEnabled: z.boolean(), appearance: blockAppearanceSchema.optional() }).strict(),

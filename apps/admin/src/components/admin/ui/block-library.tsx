@@ -19,6 +19,7 @@ export const blockThumbnails: Record<string, ReactNode> = {
   "hero-background": <Frame><rect fill={text} height="63" opacity=".82" rx="3" width="111" x="4.5" y="4.5" />{box(10, 10, 100, 52, .22)}{bar(16, 23, 46, 5, .95)}{bar(16, 33, 36, 3, .72)}<rect fill={media} height="8" rx="4" width="25" x="16" y="43" /></Frame>,
   "hero-centered": <Frame>{bar(36, 12, 48, 5, .92)}{bar(27, 22, 66, 3, .7)}{bar(35, 29, 50, 3, .55)}<rect fill={media} height="8" rx="4" width="25" x="48" y="38" />{box(25, 52, 70, 12, .36)}</Frame>,
   "media-right": <Frame><TextLines width={40} x={12} y={20} />{photo(68, 12, 42, 50)}</Frame>,
+  "media-auto": <Frame>{photo(8, 6, 40, 26)}<TextLines width={40} x={60} y={10} />{photo(72, 40, 40, 26)}<TextLines width={40} x={8} y={44} /></Frame>,
   "media-left": <Frame>{photo(10, 12, 42, 50)}<TextLines width={40} x={62} y={20} /></Frame>,
   "features-compact": <Frame>{bar(35, 10, 50, 5, .9)}{bar(25, 18, 70)}{cards(3)}</Frame>,
   "features-orbit": cardStylePreviews.orbit,
