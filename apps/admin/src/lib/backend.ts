@@ -23,6 +23,7 @@ import type { getRequestAdministrator as getRequestAdministratorFromCore } from 
 import type { getRecentAuditLogs as getRecentAuditLogsFromCore } from "@iorder/shared/server/audit/audit.service";
 import type { getAuditLogsPage as getAuditLogsPageFromCore } from "@iorder/shared/server/audit/audit.service";
 import { auditActorSchema, auditListPageSchema, auditListQuerySchema, type AuditListQuery } from "@iorder/shared/server/audit/audit.contract";
+import { errorLogListPageSchema, errorLogListQuerySchema, type ErrorLogListPage, type ErrorLogListQuery } from "@iorder/shared/server/error-log/error-log.contract";
 import type { getEquipment as getEquipmentFromCore, getEquipmentGroups as getEquipmentGroupsFromCore } from "@iorder/shared/server/equipment/equipment.service";
 import type { getEquipmentPage as getEquipmentPageFromCore } from "@iorder/shared/server/equipment/equipment.service";
 import type { getLeadsPage as getLeadsPageFromCore } from "@iorder/shared/server/leads/leads.service";
@@ -170,6 +171,13 @@ export async function getAuditLogsPage(input: AuditListQuery): Promise<Awaited<R
   const parsed = auditListPageSchema.safeParse(data.result);
   if (!parsed.success || parsed.data.page !== query.page || parsed.data.pageSize !== query.pageSize || (query.entityType && parsed.data.items.some(row => row.entityType !== query.entityType))) throw new Error("Dữ liệu phân trang nhật ký không hợp lệ. Vui lòng thử lại.");
   return { ...parsed.data, actors: z.array(auditActorSchema).catch([]).parse(data.actors) };
+}
+export async function getErrorLogsPage(input: Partial<ErrorLogListQuery>): Promise<ErrorLogListPage> {
+  const query = errorLogListQuerySchema.parse(input);
+  const data = await getData<{ result: unknown }>(`/api/v1/admin/error-logs?${listParams(query)}`);
+  const parsed = errorLogListPageSchema.safeParse(data?.result);
+  if (!parsed.success || parsed.data.page !== query.page || parsed.data.pageSize !== query.pageSize) throw new Error("Không tải được nhật ký lỗi. Vui lòng đăng nhập lại hoặc thử lại.");
+  return parsed.data;
 }
 export async function getDashboardContentSummary(days?: number): Promise<DashboardContentSummary> { return (await getDashboard(days))?.content ?? { pages: emptyContentStat, posts: emptyContentStat, offerings: { products: emptyContentStat, solutions: emptyContentStat }, equipment: emptyContentStat, downloads: { enabled: 0, total: 0 }, leads: { new: 0, total: 0 }, recent: [], activity: [], leadsDaily: [] }; }
 

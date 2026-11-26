@@ -42,6 +42,8 @@ const resourceModules: Record<string, CmsModuleKey> = {
   backup: "system",
   // Tình trạng hệ thống (database, kho tệp, website, tài nguyên máy chủ…): thông tin vận hành, quyền riêng system.view. Chỉ có GET.
   "system-status": "system",
+  // Nhật ký lỗi của Backend (lỗi nặng kèm stack, đường dẫn, mã request): cũng là thông tin vận hành nên cùng quyền system.view. Xóa chỉ Super Admin (module system không có delete).
+  "error-logs": "system",
 };
 
 export const revisionTargetModules = {

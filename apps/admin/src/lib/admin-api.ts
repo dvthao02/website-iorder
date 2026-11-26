@@ -25,6 +25,14 @@ export class AdminApiError extends Error {
   }
 }
 
+/**
+ * Câu báo lỗi cho người dùng: lỗi nặng của máy chủ (INTERNAL_ERROR) đã được Backend ghi vào CMS › Hệ thống › Nhật ký lỗi nên nhắc nơi đọc chi tiết.
+ * Chỉ dùng ở màn mà người thấy nó có quyền mở Nhật ký lỗi (system.view; ví dụ màn chỉ Super Admin).
+ */
+export function adminErrorTextWithLogHint(error: AdminApiError) {
+  return error.code === "INTERNAL_ERROR" ? `${error.message} Chi tiết kỹ thuật đã ghi ở Hệ thống → Nhật ký lỗi.` : error.message;
+}
+
 export const upstreamUnavailableMessage = "Máy chủ đang gặp sự cố hoặc mất kết nối tạm thời. Phần bạn đang soạn vẫn còn trên màn hình; hãy thử lại sau ít phút.";
 
 /**

@@ -86,6 +86,9 @@ const routeTable: Array<[string, string, CmsPermissionCode[] | null]> = [
   ["/api/v1/admin/system-status", "GET", ["system.view"]],
   ["/api/v1/admin/system-status", "POST", []],
   ["/api/v1/admin/system-status", "DELETE", []],
+  // Nhật ký lỗi: xem cùng quyền system.view; xóa chỉ Super Admin (module system không có delete).
+  ["/api/v1/admin/error-logs", "GET", ["system.view"]],
+  ["/api/v1/admin/error-logs", "DELETE", []],
   // Kết nối & khóa API: không map permission nào, chỉ Super Admin (mọi method).
   ["/api/v1/admin/secrets", "GET", []],
   ["/api/v1/admin/secrets", "POST", []],
@@ -216,6 +219,8 @@ test("Ma trận role mặc định × thao tác tiêu biểu", () => {
     ["analyst", "/api/v1/admin/users", "GET", false],
     // Vận hành hệ thống: theo dõi (tình trạng, nhật ký, sao lưu xem lịch sử) nhưng không sửa gì.
     ["sysops", "/api/v1/admin/system-status", "GET", true],
+    ["sysops", "/api/v1/admin/error-logs", "GET", true],
+    ["sysops", "/api/v1/admin/error-logs", "DELETE", false],
     ["sysops", "/api/v1/admin/audit", "GET", true],
     ["sysops", "/api/v1/admin/backup", "GET", true],
     ["sysops", "/api/v1/admin/backup", "POST", false],

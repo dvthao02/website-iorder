@@ -54,4 +54,6 @@ Dùng `apps/admin/src/components/admin/ui/`, `apps/admin/src/lib/admin-api.ts` v
 
 Biểu mẫu dùng `AdminFormField`, `AdminInput`, `AdminSelect`, `AdminCheckbox`, `AdminSwitch` (công tắc bật/tắt một tính năng, có hiệu lực ngay), `AdminRadio` (lựa chọn dạng thẻ có hình riêng như `LayoutPicker`, `ContentStatusChoice` giữ kiểu của chúng) và `AdminSlugField` cho ô "Đường dẫn" của mọi trình soạn nội dung. Trang cài đặt dùng `SettingsDetailPage`; màn thông báo cả trang (không có quyền, không tìm thấy, lỗi tải) dùng `AdminMessagePage`. Màn mờ phía sau cửa sổ nổi dùng token `--cms-scrim-soft` (panel trượt), `--cms-scrim` (hộp thoại, `<dialog>`) và `--cms-scrim-strong` (xem ảnh lớn), không viết lại `rgb(...)`.
 
+Kết quả thao tác (lưu xong, nhập sai, lỗi máy chủ) báo bằng thông báo nổi `useAdminToast`, không chen khung báo lỗi vào thân trang; `AdminNotice` dành cho trạng thái bền của màn. Lỗi nặng của Backend (`logger.error`) tự được lưu ở CMS › Hệ thống › Nhật ký lỗi để đọc chi tiết kỹ thuật; thông báo nổi chỉ nói ngắn gọn.
+
 Loại tệp dùng `AdminFileIcon` và token `--cms-file-*`; xuất là mũi tên xuống, nhập là mũi tên lên. Trình dựng thể hiện đúng quan hệ cha–con, bố cục chung chỉnh một lần ở thành phần cha, nội dung từng mục sửa tại mục đó. Đảm bảo có tên truy cập, bàn phím, trạng thái đang xử lý và bố cục co được trên màn hẹp.

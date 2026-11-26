@@ -71,6 +71,13 @@
       "when": 1795548665881,
       "tag": "0009_content_translations_ui_keys",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1795666302935,
+      "tag": "0010_error_logs",
+      "breakpoints": true
     }
   ]
 }

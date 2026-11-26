@@ -2,6 +2,8 @@
 // + jq/grep lọc được theo requestId, level, msg; môi trường dev in dạng dễ đọc.
 // Không bao giờ ghi giá trị của khóa nhạy cảm, tham số SQL hay query string (có thể chứa dữ liệu khách hàng).
 
+import { currentRequestContext } from "./request-context";
+
 export type LogLevel = "debug" | "info" | "warn" | "error";
 type RequestLike = { headers: Headers; method: string; url: string };
 export type LogFields = { request?: RequestLike; error?: unknown; [key: string]: unknown };
@@ -104,13 +106,36 @@ function formatReadable(entry: ReturnType<typeof buildLogEntry>) {
   return lines.join("\n");
 }
 
+export type LogEntry = ReturnType<typeof buildLogEntry>;
+type ErrorSink = (entry: LogEntry) => void;
+// Lưu ở globalThis vì Next biên dịch instrumentation.ts và các route thành những gói riêng: biến cấp module không chung giữa chúng.
+const errorSinkKey = Symbol.for("iorder.logger.errorSink");
+type SinkHost = { [errorSinkKey]?: ErrorSink };
+
+/**
+ * Nơi nhận mọi dòng log mức error (đã lọc khóa nhạy cảm) để lưu lâu dài: Backend đặt nó lúc khởi động (xem apps/api/src/instrumentation.ts)
+ * để lỗi nặng hiện ở CMS › Hệ thống › Nhật ký lỗi. App không có database (website, CMS) không đặt, nên log chỉ ra console như cũ.
+ * Hàm nhận phải tự nuốt lỗi và không được gọi logger.error (sẽ lặp vô hạn); lỗi ném ra ở đây bị bỏ qua.
+ */
+export function setErrorLogSink(sink: ErrorSink | undefined) {
+  (globalThis as SinkHost)[errorSinkKey] = sink;
+}
+
 function write(level: LogLevel, msg: string, fields?: LogFields) {
   if (levelRank[level] < levelRank[minimumLevel()]) return;
   try {
     const entry = buildLogEntry(level, msg, fields);
+    const context = level === "error" ? currentRequestContext() : undefined;
+    // Dòng log không truyền `request` vẫn mang mã request đang xử lý, để nối được với phản hồi và với log của CMS.
+    if (context?.requestId && entry.requestId === undefined) entry.requestId = context.requestId;
     const line = jsonFormatEnabled() ? JSON.stringify(entry) : formatReadable(entry);
     if (level === "error" || level === "warn") console.error(line);
     else console.log(line);
+    if (level === "error") {
+      // Cho route biết request này đã có dòng log lỗi (xem withRequestContext), khỏi ghi thêm dòng "route trả 5xx".
+      if (context) context.errorLogged = true;
+      (globalThis as SinkHost)[errorSinkKey]?.(entry);
+    }
   } catch {
     // Log không bao giờ được làm hỏng request.
     console.error(JSON.stringify({ time: new Date().toISOString(), level, msg, logFailure: true }));

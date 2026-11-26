@@ -288,3 +288,10 @@
   .admin-page-kind a { color: var(--cms-text); }
   .admin-page-kind a:hover { color: var(--cms-primary); text-decoration: underline; text-underline-offset: 2px; }
 }
+
+@layer components {
+  /* Màn "Nhật ký lỗi": stack và chi tiết kỹ thuật xuống dòng thay vì cuộn ngang; câu báo lỗi trong bảng cắt gọn hai dòng. */
+  .admin-error-log__stack { margin: 0; border: 1px solid var(--cms-border); border-radius: var(--cms-radius-component); background: var(--cms-subtle); padding: 8px 10px; font-size: 12px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .admin-error-log__summary { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+  .admin-error-log__path { display: block; overflow: hidden; color: var(--cms-muted); font-size: var(--cms-text-xs); text-overflow: ellipsis; white-space: nowrap; }
+}

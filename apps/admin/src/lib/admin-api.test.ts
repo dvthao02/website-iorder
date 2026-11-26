@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { adminApiError, apiErrorMessage } from "./admin-api";
+import { adminApiError, adminErrorTextWithLogHint, apiErrorMessage } from "./admin-api";
 
 test("apiErrorMessage đọc message chuẩn của backend", () => {
   assert.equal(apiErrorMessage({ error: { code: "CONFLICT", message: "Dữ liệu đã thay đổi." } }, "Dự phòng"), "Dữ liệu đã thay đổi.");
@@ -76,4 +76,13 @@ test("requestAdmin gửi được FormData (tải tệp lên) mà không ép con
   } finally { globalThis.fetch = original; }
   assert.ok(seen!.body instanceof FormData);
   assert.deepEqual(seen!.headers, { accept: "application/json" });
+});
+
+test("adminErrorTextWithLogHint chỉ nhắc Nhật ký lỗi khi máy chủ báo lỗi nặng (INTERNAL_ERROR)", () => {
+  const server = adminApiError({ error: { code: "INTERNAL_ERROR", message: "Không xử lý được yêu cầu lúc này." } }, "Dự phòng", 500);
+  assert.match(adminErrorTextWithLogHint(server), /^Không xử lý được yêu cầu lúc này\. .*Nhật ký lỗi/);
+  const validation = adminApiError({ error: { code: "INVALID_INPUT", message: "Yêu cầu không hợp lệ." } }, "Dự phòng", 400);
+  assert.equal(adminErrorTextWithLogHint(validation), "Yêu cầu không hợp lệ.");
+  const unavailable = adminApiError(null, "Dự phòng", 503);
+  assert.equal(adminErrorTextWithLogHint(unavailable), "Dự phòng");
 });

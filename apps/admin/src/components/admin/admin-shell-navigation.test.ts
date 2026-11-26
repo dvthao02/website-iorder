@@ -42,7 +42,7 @@ test("Menu: theo dõi hiệu quả nằm chung Công việc; cấu trúc tách k
   assert.deepEqual(labelsOf("work"), ["Bảng điều khiển", "Khách hàng tiềm năng", "Thống kê truy cập", "Google Search Console", "Kiểm tra trước xuất bản"]);
   assert.deepEqual(labelsOf("structure"), ["Menu & Điều hướng", "Chuyển hướng URL", "Biểu mẫu tư vấn", "Quảng cáo"]);
   assert.deepEqual(labelsOf("settings"), ["Thông tin doanh nghiệp", "Tên miền & SEO", "Liên kết & Mạng xã hội", "Đa ngôn ngữ"]);
-  assert.deepEqual(labelsOf("system"), ["Tình trạng hệ thống", "Sao lưu & phục hồi", "Người dùng & vai trò", "Nhật ký hoạt động", "Kết nối & khóa API", "Gmail báo liên hệ"]);
+  assert.deepEqual(labelsOf("system"), ["Tình trạng hệ thống", "Sao lưu & phục hồi", "Người dùng & vai trò", "Nhật ký hoạt động", "Nhật ký lỗi", "Kết nối & khóa API", "Gmail báo liên hệ"]);
 });
 
 test("Menu: đường dẫn không trùng, mỗi mục có trang, mọi quyền khai báo đều có thật", () => {
@@ -71,7 +71,7 @@ test("Menu: quyền của từng mục khớp với quyền trang đó kiểm", 
 });
 
 test("Vai trò Vận hành hệ thống chỉ thấy phần theo dõi, không thấy trang cài đặt nội dung", () => {
-  assert.deepEqual(visibleLabels("sysops"), ["Bảng điều khiển", "Thống kê truy cập", "Tình trạng hệ thống", "Sao lưu & phục hồi", "Nhật ký hoạt động"]);
+  assert.deepEqual(visibleLabels("sysops"), ["Bảng điều khiển", "Thống kê truy cập", "Tình trạng hệ thống", "Sao lưu & phục hồi", "Nhật ký hoạt động", "Nhật ký lỗi"]);
 });
 
 test("Sao lưu là thông tin hạ tầng: vai trò nội dung, marketing và phân tích không thấy; Super Admin thấy cả Kết nối & khóa API", () => {

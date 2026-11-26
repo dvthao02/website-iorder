@@ -133,6 +133,30 @@ export const auditLogs = pgTable(
     index("audit_logs_created_at_index").on(table.createdAt.desc().nullsFirst(), table.id.desc().nullsFirst())],
 );
 
+// Nhật ký lỗi của Backend (xem server/error-log): mỗi lỗi nặng (logger.error) được gom theo dấu vân tay, nên một lỗi lặp lại cả nghìn lần
+// vẫn chỉ là một dòng với số lần xảy ra. Bảng không tham chiếu khóa ngoại để việc ghi lỗi không bao giờ vướng ràng buộc khi hệ thống đang hỏng.
+export const errorLogs = pgTable(
+  "error_logs",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    fingerprint: varchar("fingerprint", { length: 64 }).notNull(),
+    message: text("message").notNull(),
+    errorName: varchar("error_name", { length: 160 }),
+    errorMessage: text("error_message"),
+    method: varchar("method", { length: 12 }),
+    path: varchar("path", { length: 400 }),
+    // Lần xảy ra gần nhất (các cột dưới đây bị ghi đè mỗi lần lỗi lặp lại).
+    requestId: varchar("request_id", { length: 128 }),
+    details: jsonb("details").$type<unknown>().notNull(),
+    occurrences: integer("occurrences").default(1).notNull(),
+    firstSeenAt: timestamp("first_seen_at", { withTimezone: true }).defaultNow().notNull(),
+    lastSeenAt: timestamp("last_seen_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [uniqueIndex("error_logs_fingerprint_unique").on(table.fingerprint),
+    // Trang Nhật ký lỗi sắp theo lần xảy ra gần nhất; thứ tự phải là DESC NULLS FIRST thì PostgreSQL mới dùng chỉ mục (xem audit_logs_created_at_index).
+    index("error_logs_last_seen_at_index").on(table.lastSeenAt.desc().nullsFirst(), table.id.desc().nullsFirst())],
+);
+
 // Bản dịch nội dung công khai theo từng câu tiếng Việt (khóa = mã băm của câu gốc, xem server/translations/translatable.ts), không theo vị trí:
 // đổi thứ tự khối hay một câu xuất hiện ở nhiều trang vẫn dùng đúng một bản dịch. Chữ cố định của giao diện website dùng khóa là tên ("ui.header.openMenu"). source_text giữ câu gốc lúc dịch để đối chiếu và để biết bản dịch nào
 // không còn câu gốc tương ứng trong nội dung.
