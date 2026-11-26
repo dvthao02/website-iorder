@@ -22,8 +22,14 @@ test("Máy tính: menu thả xuống, chân trang, liên hệ nổi, lên đầu
 
   const footer = page.locator("footer.site-footer");
   await expect(footer.getByRole("list", { name: "Liên hệ iOrder" })).toBeVisible();
-  await expect(footer.locator(".site-footer__bottom")).toContainText(new RegExp(`© ${new Date().getFullYear()} .+ - Phát triển bởi iOrder\\.vn`));
-  await expect(footer.getByRole("link", { name: "DMCA Protected" })).toHaveAttribute("href", "https://www.dmca.com/Protection/Status.aspx?ID=55ed00a2-083d-43ee-ac48-18341d415669&refurl=https://iorder.vn/");
+  const copyright = footer.getByTestId("site-footer-copyright");
+  await expect(copyright).toHaveText(`© ${new Date().getFullYear()} iOrder.vn · Phát triển bởi iOrder.vn · Bản quyền được bảo vệ bởi DMCA`);
+  await expect(copyright).not.toContainText("IORDER COMPANY LIMITED");
+  await expect(copyright.getByRole("link", { name: "iOrder.vn" })).toHaveAttribute("href", "https://iorder.vn/");
+  await expect(footer.getByRole("link", { name: "DMCA" })).toHaveAttribute("href", "https://www.dmca.com/Protection/Status.aspx?ID=55ed00a2-083d-43ee-ac48-18341d415669&refurl=https://iorder.vn/");
+  const copyrightBox = await copyright.boundingBox();
+  const footerBox = await footer.locator(".site-footer__bottom").boundingBox();
+  expect(Math.abs((copyrightBox!.x + copyrightBox!.width / 2) - (footerBox!.x + footerBox!.width / 2))).toBeLessThanOrEqual(1);
 
   // Nút lên đầu trang chỉ hiện khi đã cuộn.
   // Khung nhìn thấp để trang ngắn vẫn cuộn đủ quá ngưỡng hiện nút.
@@ -51,6 +57,26 @@ test("Máy tính: menu thả xuống, chân trang, liên hệ nổi, lên đầu
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBeLessThan(10);
 });
 
+test("Header: chữ dễ đọc và không chồng nhau ở các breakpoint máy tính", async ({ page }) => {
+  for (const width of [1300, 1440, 1599, 1760, 1920]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto(webUrl);
+    const header = page.locator("header.site-header");
+    const brand = header.locator(".brand");
+    const links = header.locator(".site-nav__list > li > .site-nav__link");
+    const actions = header.locator(".site-header__actions");
+    await expect(links.first()).toBeVisible();
+
+    const brandBox = await brand.boundingBox();
+    const firstLinkBox = await links.first().boundingBox();
+    const lastLinkBox = await links.last().boundingBox();
+    const actionsBox = await actions.boundingBox();
+    expect(firstLinkBox!.x - (brandBox!.x + brandBox!.width), `Khoảng logo–menu tại ${width}px`).toBeGreaterThanOrEqual(8);
+    expect(actionsBox!.x - (lastLinkBox!.x + lastLinkBox!.width), `Khoảng menu–nút tại ${width}px`).toBeGreaterThanOrEqual(8);
+    expect(await links.first().evaluate((node) => Number.parseFloat(getComputedStyle(node).fontSize)), `Cỡ chữ menu tại ${width}px`).toBeGreaterThanOrEqual(width >= 1760 ? 21 : 16);
+  }
+});
+
 test("Điện thoại: nút ☰ mở menu toàn màn hình, nhóm gập/mở, không tràn ngang", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(webUrl);
@@ -68,6 +94,13 @@ test("Điện thoại: nút ☰ mở menu toàn màn hình, nhóm gập/mở, kh
   await expect(page.getByRole("button", { name: "Mở liên hệ nhanh" })).toBeHidden();
   await page.keyboard.press("Escape");
   await expect(menu).toBeHidden();
+
+  const footerBottom = page.locator("footer.site-footer .site-footer__bottom");
+  const copyright = page.getByTestId("site-footer-copyright");
+  await expect(copyright).toHaveText(`© ${new Date().getFullYear()} iOrder.vn · Phát triển bởi iOrder.vn · Bản quyền được bảo vệ bởi DMCA`);
+  const copyrightBox = await copyright.boundingBox();
+  const footerBox = await footerBottom.boundingBox();
+  expect(Math.abs((copyrightBox!.x + copyrightBox!.width / 2) - (footerBox!.x + footerBox!.width / 2))).toBeLessThanOrEqual(1);
 });
 
 test("Bàn phím: Tab đầu tiên là \"Bỏ qua tới nội dung chính\", mọi trang có đúng một vùng nội dung chính", async ({ page }) => {

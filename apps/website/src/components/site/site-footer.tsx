@@ -1,7 +1,7 @@
 import Image from "next/image";
 import { SiteLink as Link } from "@/components/site/site-link";
 import type { CSSProperties, ReactNode } from "react";
-import { MapPin, ShieldCheck } from "lucide-react";
+import { MapPin } from "lucide-react";
 import type { NavigationItems } from "@iorder/shared/server/navigation/navigation.contract";
 import type { ExternalLinks } from "@iorder/shared/server/settings/external-links.contract";
 import { getMediaById } from "@/lib/backend";
@@ -10,7 +10,7 @@ import { getT } from "@/lib/messages";
 import { descendantsOf } from "@/lib/navigation-tree";
 import { AppleIcon, FacebookIcon, GooglePlayIcon, YouTubeIcon, ZaloIcon } from "./brand-icons";
 
-type Profile = { companyName: string; legalName: string | null; hotline: string | null; supportEmail: string | null; salesEmail: string | null; address: string | null; workingHours: string | null; logoMediaId: string | null } | null;
+type Profile = { companyName: string; hotline: string | null; supportEmail: string | null; salesEmail: string | null; address: string | null; workingHours: string | null; logoMediaId: string | null } | null;
 
 // Dòng cuối chân trang: ghi công phát triển và chứng nhận DMCA (cố định theo website iOrder).
 const developer = { label: "iOrder.vn", href: "https://iorder.vn/" };
@@ -24,20 +24,12 @@ const socialOrder: Array<[keyof ExternalLinks, string, ReactNode]> = [["facebook
 const storeOrder: Array<[keyof ExternalLinks, string, string, ReactNode]> = [["appStore", "Download on the", "App Store", <AppleIcon key="apple" size={22} />], ["googlePlay", "GET IT ON", "Google Play", <GooglePlayIcon key="play" size={20} />]];
 // Đăng nhập ứng dụng và Đăng ký dùng thử đã có ở header (luôn hiện khi cuộn) nên chân trang không lặp lại.
 
-// Tên pháp lý in hoa (CÔNG TY TNHH …): phần loại hình viết thường cho dễ đọc, tên riêng giữ in hoa và in đậm.
-function LegalName({ value }: { value: string }) {
-  const match = /^(CÔNG TY (?:TNHH|CỔ PHẦN|CP)(?: [A-ZÀ-Ỹ]+ THÀNH VIÊN)?)\s+(.+)$/u.exec(value);
-  if (!match) return <strong>{value}</strong>;
-  const kind = match[1].toLocaleLowerCase("vi").replace(/^công ty/, "Công ty").replace(/tnhh/, "TNHH");
-  return <>{kind} <strong>{match[2]}</strong></>;
-}
-
 type ContactItem = { label: string; value: string; href: string | null };
 
 // Chân trang phẳng kiểu thông thường:
 // 1) cột thương hiệu: logo, mô tả, liên hệ dạng chữ (hotline, email kinh doanh, email hỗ trợ, giờ làm việc — từ Cài đặt),
 //    địa chỉ các văn phòng/chi nhánh (Địa chỉ trong Cài đặt, mỗi dòng một nơi), mạng xã hội, nút kho ứng dụng; 2) các cột menu chân trang từ CMS (tiêu đề chữ thường, không biểu tượng);
-// 3) dải cuối hai bên: © năm – đơn vị phát triển · tên pháp lý | DMCA.
+// 3) dải cuối căn giữa: © năm – đơn vị phát triển và liên kết trạng thái DMCA.
 export async function SiteFooter({ profile, navigation, externalLinks, tagline }: { profile: Profile; navigation: NavigationItems; externalLinks: ExternalLinks | null; tagline: string | null }) {
   const t = await getT();
   const logo = profile?.logoMediaId ? await getMediaById(profile.logoMediaId) : null;
@@ -78,11 +70,9 @@ export async function SiteFooter({ profile, navigation, externalLinks, tagline }
       </div>
 
       <div className="site-footer__bottom">
-        <p className="site-footer__copyright">
-          <span>© {new Date().getFullYear()} {companyName} - {t("footer.developedBy")} <a className="site-footer__developer" href={developer.href} rel="noopener noreferrer" target="_blank">{developer.label}</a></span>
-          {profile?.legalName ? <span className="site-footer__legal"><LegalName value={profile.legalName} /></span> : null}
+        <p className="site-footer__copyright" data-testid="site-footer-copyright">
+          <span>© {new Date().getFullYear()} {developer.label} · {t("footer.developedBy")} <a className="site-footer__developer" href={developer.href} rel="noopener noreferrer" target="_blank">{developer.label}</a> · {t("footer.copyrightProtectedBy")} <a className="site-footer__dmca" href={dmcaUrl} rel="noopener noreferrer" target="_blank" title={t("footer.dmcaTitle")}>DMCA</a></span>
         </p>
-        <a className="site-footer__dmca" href={dmcaUrl} rel="noopener noreferrer" target="_blank" title={t("footer.dmcaTitle")}><ShieldCheck aria-hidden="true" size={16} />DMCA Protected</a>
       </div>
     </div>
   </footer>;

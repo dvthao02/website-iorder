@@ -500,8 +500,8 @@ body:has([data-hero-top="dark"]) .site-header:not(.site-header--scrolled) .brand
  * Chỉ khi menu ngang đang hiện (từ 1300px); ở điện thoại logo chỉ đứng cạnh các nút nên giữ căn giữa. Đổi logo khác hình dạng thì chỉnh lại số này. */
 @media (min-width: 1300px) { .site-header .brand img { transform: translateY(-14%); } }
 .brand__mark { display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 9px; background: var(--color-brand-600); color: white; font: italic 1.5rem Georgia, serif; }
-/* Tỉ lệ header theo iorder.com.vn: logo 38px, chữ menu 16,5px, nút cao 42px chữ 15,5px — logo, chữ và nút cùng tâm dọc. */
-.header-cta { min-height: 2.875rem; padding: 0 1.4rem; font-size: 1.03rem; font-weight: 600; white-space: nowrap; }
+/* Tỉ lệ header theo iorder.com.vn: logo, chữ menu và nút cùng tâm dọc; chữ nút nhỉnh hơn chữ thân để dễ đọc trên thanh điều hướng. */
+.header-cta { min-height: 2.875rem; padding: 0 1.4rem; font-size: 1.0625rem; font-weight: 600; white-space: nowrap; }
 .header-cta--primary { background: var(--color-brand-600); color: white; }
 .header-cta--primary:hover { background: var(--color-brand-700); }
 .header-cta--secondary { border: 1px solid var(--color-line); background: white; color: var(--color-ink); }
@@ -526,7 +526,7 @@ body:has([data-hero-top="dark"]) .site-header:not(.site-header--scrolled) .brand
 .site-nav { position: relative; display: flex; flex: 1 1 auto; justify-content: center; min-width: 0; }
 .site-nav__list { display: flex; align-items: center; gap: 2px; margin: 0; padding: 0; list-style: none; }
 .site-nav__item { position: relative; }
-.site-nav__link { display: inline-flex; align-items: center; gap: 4px; min-height: 2.875rem; padding: 0 1rem; border-radius: .75rem; color: var(--color-ink); font-size: 1.1rem; font-weight: 600; white-space: nowrap; transition: color 150ms ease; }
+.site-nav__link { display: inline-flex; align-items: center; gap: 4px; min-height: 2.875rem; padding: 0 1rem; border-radius: .75rem; color: var(--color-ink); font-size: 1.125rem; font-weight: 600; white-space: nowrap; transition: color 150ms ease; }
 .site-nav__link:hover { color: var(--color-brand-600); }
 /* Mục đang chọn: chỉ đổi màu chữ, không tô nền; vị trí do thanh trượt bên dưới chỉ ra. */
 .site-nav__link--active { color: var(--color-brand-700); }
@@ -559,18 +559,18 @@ body:has([data-hero-top="dark"]) .site-header:not(.site-header--scrolled) .brand
   .site-header .brand img { height: 2.375rem; }
   .site-header__inner { gap: 1rem; }
   .site-nav__list { gap: 0; }
-  .site-nav__link { padding: 0 .625rem; font-size: .97rem; }
+  .site-nav__link { padding: 0 .625rem; font-size: 1rem; }
   .header-cta, .language-menu__button { min-height: 2.75rem; }
-  .header-cta { padding: 0 1rem; font-size: .95rem; }
+  .header-cta { padding: 0 1rem; font-size: .975rem; }
 }
 
-/* Màn rộng (từ 1760px, gồm màn Full HD 1920px): đầu trang to hơn một nấc cho cân với bề ngang màn hình (cỡ chữ gốc của html đã tăng dần theo màn, nhưng menu 1.1rem vẫn nhỏ so với tiêu đề trang):
+/* Màn rộng (từ 1760px, gồm màn Full HD 1920px): đầu trang to hơn một nấc cho cân với bề ngang màn hình (cỡ chữ gốc của html đã tăng dần theo màn, nhưng menu mặc định vẫn nhỏ so với tiêu đề trang):
  * cao hơn ~14%, logo, chữ menu và các nút lớn hơn ~10–18%. Dưới 1760px giữ cỡ gọn ở trên vì không còn chỗ (menu tiếng Anh ở 1760px còn cách logo và nút 30px). Chỉnh cỡ ở đây thì đo lại khoảng cách logo – menu – nút. */
 @media (min-width: 1760px) {
   :root { --header-height: 6rem; }
   .site-header .brand img { height: 3.25rem; }
-  .site-nav__link { min-height: 3.25rem; padding: 0 1.15rem; font-size: 1.2rem; }
-  .header-cta { min-height: 3.25rem; padding: 0 1.6rem; font-size: 1.12rem; }
+  .site-nav__link { min-height: 3.25rem; padding: 0 1.15rem; font-size: 1.25rem; }
+  .header-cta { min-height: 3.25rem; padding: 0 1.6rem; font-size: 1.18rem; }
   .language-menu__button { min-height: 3.25rem; padding: 0 .85rem 0 .8rem; font-size: .95rem; }
   .language-flag { width: 1.5rem; height: 1.1rem; }
 }
@@ -608,7 +608,7 @@ body:has([data-hero-top="dark"]) .site-header:not(.site-header--scrolled) .brand
 /*
  * Chân trang kiểu thông thường, phẳng: nền xám rất nhạt, không sóng/bóng/viên thuốc.
  * Cột thương hiệu (logo, mô tả, liên hệ dạng chữ, mạng xã hội, kho ứng dụng) → các cột menu từ CMS (tiêu đề chữ thường,
- * không biểu tượng) → dải cuối hai bên: © – đơn vị phát triển · tên pháp lý | DMCA.
+ * không biểu tượng) → dải cuối căn giữa: © – đơn vị phát triển và DMCA.
  */
 .site-footer { border-top: 1px solid var(--color-line); background: #f7f9fc; color: var(--color-muted); }
 .site-footer__frame { width: 100%; max-width: var(--site-width); margin: 0 auto; padding: 56px var(--gutter) 0; }
@@ -639,12 +639,11 @@ a.site-footer__heading:hover { color: var(--color-brand-700); }
 .site-footer__column ul { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
 .site-footer__column ul a { display: inline-block; min-height: 24px; padding-block: 2px; color: #4b5565; font-size: .95rem; line-height: 1.45; text-wrap: pretty; transition: color 150ms ease; }
 .site-footer__column ul a:hover { color: var(--color-brand-700); text-decoration: underline; }
-.site-footer__bottom { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 24px; border-top: 1px solid var(--color-line); padding: 20px 0 24px; font-size: .9rem; }
-.site-footer__copyright { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; margin: 0; color: var(--color-muted); }
-.site-footer__legal::before { content: "·"; margin-right: 6px; }
+.site-footer__bottom { display: flex; align-items: center; justify-content: center; border-top: 1px solid var(--color-line); padding: 20px 0 24px; font-size: .9rem; text-align: center; }
+.site-footer__copyright { margin: 0; color: var(--color-muted); }
 .site-footer__developer { color: var(--color-ink); font-weight: 600; }
 .site-footer__developer:hover { color: var(--color-brand-700); text-decoration: underline; }
-.site-footer__dmca { display: inline-flex; align-items: center; gap: 6px; color: var(--color-muted); }
+.site-footer__dmca { color: var(--color-muted); }
 .site-footer__dmca:hover { color: var(--color-ink); text-decoration: underline; }
 @media (max-width: 1023px) {
   .site-footer__inner { grid-template-columns: minmax(0, 1fr); gap: 36px; }
@@ -652,9 +651,7 @@ a.site-footer__heading:hover { color: var(--color-brand-700); }
 @media (max-width: 767px) { .site-footer__columns { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 640px) {
   .site-footer__frame { padding-top: 40px; }
-  .site-footer__legal::before { content: none; }
-  .site-footer__copyright { flex-direction: column; align-items: flex-start; }
-  .site-footer__bottom { flex-direction: column; align-items: flex-start; padding-bottom: 84px; }
+  .site-footer__bottom { padding-bottom: 84px; }
 }
 
 /* Nút nổi: cụm liên hệ (phải: nút Zalo luôn hiện, to hơn 1,25 lần --float-zalo-size, và bong bóng mở Facebook/Email/Gọi) và lên đầu trang (trái). Cỡ nút --float-size nhỏ dần theo màn hình. */

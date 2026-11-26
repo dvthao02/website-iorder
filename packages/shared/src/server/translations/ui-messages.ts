@@ -30,6 +30,7 @@ export const uiMessages = {
   "footer.socials": "Mạng xã hội",
   "footer.apps": "Tải ứng dụng",
   "footer.developedBy": "Phát triển bởi",
+  "footer.copyrightProtectedBy": "Bản quyền được bảo vệ bởi",
   "footer.dmcaTitle": "Trạng thái bảo vệ bản quyền DMCA",
   // Nút nổi liên hệ nhanh
   "floating.quickContact": "Liên hệ nhanh",
