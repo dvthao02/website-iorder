@@ -840,11 +840,12 @@ section[data-section-align="bottom"] { justify-content: flex-end; }
 }
 
 /*
- * Nội dung hiện dần khi cuộn tới (mọi phần dùng <Section>, data-reveal): mờ → rõ và trượt lên 24px, chạy theo vị trí cuộn
- * (animation-timeline: view()), không cần JavaScript. Trình duyệt chưa hỗ trợ hoặc bật giảm chuyển động thì nội dung hiện sẵn.
+ * Nội dung trượt lên 24px khi cuộn tới (mọi phần dùng <Section>, data-reveal), chạy theo vị trí cuộn. Cố ý KHÔNG làm mờ (opacity 0): ảnh chụp toàn trang,
+ * công cụ chụp màn hình, bản in và trình thu thập chưa cuộn tới phần nào thì vẫn thấy đủ chữ, không có khoảng trắng lớn giữa các phần (trước đây trông như bố cục bị hở).
+ * Dùng animation-timeline: view(), không cần JavaScript. Trình duyệt chưa hỗ trợ hoặc bật giảm chuyển động thì nội dung hiện sẵn.
  * Dùng thuộc tính `translate` (không phải transform) để không đè transform riêng của phần tử.
  */
-@keyframes reveal-up { from { opacity: 0; translate: 0 1.5rem; } to { opacity: 1; translate: 0 0; } }
+@keyframes reveal-up { from { translate: 0 1.5rem; } to { translate: 0 0; } }
 @supports (animation-timeline: view()) {
   @media (prefers-reduced-motion: no-preference) {
     [data-reveal] > div > * { animation: reveal-up linear both; animation-timeline: view(); animation-range: entry 0% entry 45%; }
