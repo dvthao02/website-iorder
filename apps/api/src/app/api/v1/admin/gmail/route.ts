@@ -27,7 +27,9 @@ async function authorize() {
   return { user };
 }
 
-const gmailStatusByCode = { CLIENT_MISSING: 409, INVALID_REDIRECT: 400, STATE_INVALID: 400, NOT_CONNECTED: 409, NEEDS_RECONNECT: 409, GOOGLE_ERROR: 502 } as const;
+// Lỗi từ Google (chưa tích quyền gửi thư, Client ID sai, Google từ chối…) dùng 422, không dùng 502: Cloudflare thay mọi 502 từ máy chủ gốc bằng trang lỗi của nó
+// nên người vận hành sẽ không đọc được lời nhắc cụ thể (ví dụ "giữ nguyên ô Gửi email thay mặt bạn").
+const gmailStatusByCode = { CLIENT_MISSING: 409, INVALID_REDIRECT: 400, STATE_INVALID: 400, NOT_CONNECTED: 409, NEEDS_RECONNECT: 409, GOOGLE_ERROR: 422 } as const;
 
 function mapError(error: unknown, request: Request) {
   if (error instanceof InvalidPasswordError) return fail("INVALID_PASSWORD", error.message, 403);
