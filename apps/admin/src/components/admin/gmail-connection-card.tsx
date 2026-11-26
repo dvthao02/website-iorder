@@ -1,6 +1,7 @@
 "use client";
 
 import { Plug, Send, Unplug } from "lucide-react";
+import Link from "next/link";
 import React, { useCallback, useEffect, useState, type FormEvent } from "react";
 
 import { gmailStatusSchema, maxGmailCc, type GmailStatus } from "@iorder/shared/server/gmail/gmail.contract";
@@ -156,14 +157,14 @@ export function GmailConnectionCard() {
     </header>
     <div className="admin-status-stack">
 
-    {!status.clientConfigured ? <AdminNotice tone="warning">Chưa có Client ID và Client secret. Bấm <strong>Cấu hình</strong> ở thẻ “Gmail (gửi thư báo liên hệ mới)” phía trên để điền, rồi quay lại đây bấm Kết nối.</AdminNotice> : null}
+    {!status.clientConfigured ? <AdminNotice tone="warning">Chưa có Client ID và Client secret. Điền ở thẻ “Gmail (gửi thư báo liên hệ mới)” trong <Link className="admin-link" href="/admin/integrations">Hệ thống → Kết nối &amp; khóa API</Link> (bấm Cấu hình), rồi quay lại đây bấm Kết nối.</AdminNotice> : null}
     <details>
       <summary className="admin-link">Cách tạo Client ID ở Google Cloud (làm một lần)</summary>
       <ol className="admin-status-list admin-status-list--tight">
         <li><strong>1.</strong> Vào Google Cloud Console, tạo một project, bật <strong>Gmail API</strong> (APIs &amp; Services → Library).</li>
         <li><strong>2.</strong> OAuth consent screen: chọn <strong>External</strong>, thêm email của bạn vào Test users, rồi bấm <strong>Publish app</strong> để quyền không tự hết hạn sau 7 ngày. Google sẽ hiện cảnh báo “chưa xác minh” khi bạn cấp quyền; với Gmail của chính bạn thì chọn Tiếp tục.</li>
         <li><strong>3.</strong> Credentials → Create credentials → OAuth client ID → loại <strong>Web application</strong>. Ở Authorized redirect URIs thêm đúng địa chỉ: <code>{redirectUri}</code></li>
-        <li><strong>4.</strong> Chép Client ID và Client secret vào thẻ “Gmail (gửi thư báo liên hệ mới)” phía trên.</li>
+        <li><strong>4.</strong> Chép Client ID và Client secret vào thẻ “Gmail (gửi thư báo liên hệ mới)” ở <Link className="admin-link" href="/admin/integrations">Kết nối &amp; khóa API</Link>.</li>
       </ol>
     </details>
 

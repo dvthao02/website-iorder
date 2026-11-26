@@ -19,6 +19,7 @@ import {
   LayoutDashboard,
   LayoutTemplate,
   Link as LinkIcon,
+  Mail,
   Menu,
   MessageSquareText,
   Megaphone,
@@ -120,6 +121,7 @@ export const navigationGroups = ensureUniqueNavigationPaths([
       { href: "/admin/users", label: "Người dùng & vai trò", icon: Users, permission: ["users.view", "roles.view"] },
       { href: "/admin/audit-log", label: "Nhật ký hoạt động", icon: History, permission: "audit.view" },
       { href: "/admin/integrations", label: "Kết nối & khóa API", icon: KeyRound, superAdminOnly: true },
+      { href: "/admin/integrations/gmail", label: "Gmail báo liên hệ", icon: Mail, matchesChildRoutes: true, superAdminOnly: true },
     ],
   },
 ]);

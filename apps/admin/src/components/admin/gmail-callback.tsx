@@ -24,13 +24,13 @@ export function GmailCallback({ code, state, error }: { code?: string; state?: s
     if (started.current || invalid) return;
     started.current = true;
     requestAdminJson("/api/v1/admin/gmail", "POST", { action: "finish", code, state }, "Không hoàn tất được kết nối Gmail.", { cache: "no-store" })
-      .then(() => router.replace("/admin/integrations?gmail=connected"))
+      .then(() => router.replace("/admin/integrations/gmail?gmail=connected"))
       .catch((requestError: unknown) => setFailure(requestError instanceof AdminApiError ? requestError.message : "Không kết nối được máy chủ. Thử lại sau."));
   }, [code, invalid, router, state]);
 
   if (failure) return <div className="admin-status-stack">
     <AdminNotice tone="error">{failure}</AdminNotice>
-    <div><AdminButton href="/admin/integrations" variant="primary">Quay lại Kết nối &amp; khóa API</AdminButton></div>
+    <div><AdminButton href="/admin/integrations/gmail" variant="primary">Quay lại Gmail báo liên hệ</AdminButton></div>
   </div>;
   return <p aria-busy="true" className="admin-dashboard__empty">Đang hoàn tất kết nối Gmail…</p>;
 }

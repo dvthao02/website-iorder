@@ -11,7 +11,7 @@ export type SecretKey = (typeof secretKeys)[number];
 export const integrationTools = [
   { id: "umami", label: "Umami (thống kê truy cập)", description: "Công cụ đếm lượt truy cập tự host. Điền đủ địa chỉ, mã website và API key để Tổng quan hiện số liệu truy cập; mã website còn được dùng để gắn thẻ theo dõi lên website công khai.", keys: ["umami_api_url", "umami_website_id", "umami_api_key"] },
   { id: "google_search_console", label: "Google Search Console", description: "Cho CMS xem tình trạng lập chỉ mục và hiệu quả tìm kiếm của website. Chỉ cần khóa tài khoản dịch vụ; thuộc tính chỉ điền khi muốn chọn thuộc tính cụ thể.", keys: ["google_service_account", "search_console_property"] },
-  { id: "gmail", label: "Gmail (gửi thư báo liên hệ mới)", description: "Mã khách OAuth tạo một lần ở Google Cloud để CMS xin quyền gửi thư từ Gmail của bạn. Điền xong, dùng khung “Gmail báo liên hệ mới” bên dưới để bấm Kết nối.", keys: ["google_oauth_client_id", "google_oauth_client_secret"] },
+  { id: "gmail", label: "Gmail (gửi thư báo liên hệ mới)", description: "Mã khách OAuth tạo một lần ở Google Cloud để CMS xin quyền gửi thư từ Gmail của bạn. Điền xong, vào Hệ thống → Gmail báo liên hệ để bấm Kết nối.", keys: ["google_oauth_client_id", "google_oauth_client_secret"] },
 ] as const satisfies ReadonlyArray<{ id: string; label: string; description: string; keys: readonly SecretKey[] }>;
 export type IntegrationToolId = (typeof integrationTools)[number]["id"];
 

@@ -58,7 +58,7 @@ test("Thanh bên có 5 nhóm theo công việc; theo dõi hiệu quả nằm chu
   await expect(itemsOf(page, "Công việc")).toHaveText(["Bảng điều khiển", "Khách hàng tiềm năng", "Thống kê truy cập", "Google Search Console", "Kiểm tra trước xuất bản"]);
   await expect(itemsOf(page, "Cấu trúc website")).toHaveText(["Menu & Điều hướng", "Chuyển hướng URL", "Biểu mẫu tư vấn", "Quảng cáo"]);
   await expect(itemsOf(page, "Cài đặt website")).toHaveText(["Thông tin doanh nghiệp", "Tên miền & SEO", "Liên kết & Mạng xã hội"]);
-  await expect(itemsOf(page, "Hệ thống")).toHaveText(["Tình trạng hệ thống", "Sao lưu & phục hồi", "Người dùng & vai trò", "Nhật ký hoạt động", "Kết nối & khóa API"]);
+  await expect(itemsOf(page, "Hệ thống")).toHaveText(["Tình trạng hệ thống", "Sao lưu & phục hồi", "Người dùng & vai trò", "Nhật ký hoạt động", "Kết nối & khóa API", "Gmail báo liên hệ"]);
 
   // Mục chuyển nhóm vẫn mở đúng trang và sáng đúng mục.
   await page.locator(".admin-sidebar").getByRole("link", { name: "Google Search Console" }).click();
@@ -124,7 +124,7 @@ test("Vai trò chỉ có quyền cài đặt (nội dung/marketing) không thấ
   try {
     const labels = await page.locator(".admin-sidebar .admin-navigation__link").allTextContents();
     expect(labels).toContain("Tên miền & SEO");
-    for (const hidden of ["Sao lưu & phục hồi", "Tình trạng hệ thống", "Kết nối & khóa API", "Nhật ký hoạt động"]) expect(labels, hidden).not.toContain(hidden);
+    for (const hidden of ["Sao lưu & phục hồi", "Tình trạng hệ thống", "Kết nối & khóa API", "Gmail báo liên hệ", "Nhật ký hoạt động"]) expect(labels, hidden).not.toContain(hidden);
     expect((await context.request.get("/api/v1/admin/backup")).status()).toBe(403);
     expect((await context.request.get("/api/v1/admin/system-status")).status()).toBe(403);
     await page.goto("/admin/backup");
