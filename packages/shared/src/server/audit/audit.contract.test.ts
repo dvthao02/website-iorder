@@ -29,6 +29,8 @@ test("Yêu cầu dọn nhật ký: bốn phạm vi, mặc định không phải 
   assert.deepEqual(auditPurgeRequestSchema.parse({ mode: "all" }), { mode: "all", dryRun: false });
   assert.deepEqual(auditPurgeRequestSchema.parse({ mode: "older_than", days: 90, dryRun: true }), { mode: "older_than", days: 90, dryRun: true });
   assert.deepEqual(auditPurgeRequestSchema.parse({ mode: "selected", ids: [id] }), { mode: "selected", ids: [id], dryRun: false });
+  for (const days of [1, 7, 30, 90, 180, 365]) assert.equal(auditPurgeRequestSchema.safeParse({ mode: "older_than", days }).success, true, `mốc ${days} ngày`);
+  assert.equal(auditPurgeRequestSchema.safeParse({ mode: "older_than", days: 2 }).success, false, "chỉ nhận các mốc có sẵn");
   for (const value of [{}, { mode: "everything" }, { mode: "all", days: 30 }, { mode: "all", extra: 1 }, { mode: "older_than" }, { mode: "older_than", days: 15 }, { mode: "older_than", days: "30" }, { mode: "all", dryRun: "yes" }]) {
     assert.equal(auditPurgeRequestSchema.safeParse(value).success, false, JSON.stringify(value));
   }

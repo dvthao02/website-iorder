@@ -15,8 +15,16 @@ import { AdminTypedConfirmDialog } from "./ui/admin-typed-confirm-dialog";
 type Mode = "selected" | "filtered" | "older_than" | "all";
 export type AuditPurgeFilter = { query?: string; entityType?: string; userId?: string; verb?: string; from?: string; to?: string };
 
-const dayLabels: Record<(typeof auditPurgeDays)[number], string> = { 30: "30 ngày", 90: "90 ngày", 180: "6 tháng", 365: "1 năm" };
+const dayLabels: Record<(typeof auditPurgeDays)[number], string> = { 1: "1 ngày", 7: "7 ngày", 30: "30 ngày", 90: "90 ngày", 180: "6 tháng", 365: "1 năm" };
 const count = (value: number) => value.toLocaleString("vi-VN");
+
+/** Vì sao nút Xóa đang khóa: không có dòng nào trong phạm vi đã chọn, kèm gợi ý đổi phạm vi (nhật ký còn mới thì các mốc dài đều trống). */
+function emptyMessage(mode: Mode, days: number) {
+  const keep = "Các dòng ghi việc xóa nhật ký luôn được giữ lại.";
+  if (mode === "older_than") return `Không có dòng nào cũ hơn ${dayLabels[days as keyof typeof dayLabels] ?? `${days} ngày`}. Nhật ký còn mới nên hãy chọn khoảng ngắn hơn, hoặc “Toàn bộ nhật ký” (gõ “xóa hết” để xác nhận). ${keep}`;
+  if (mode === "all") return `Nhật ký không còn dòng nào để xóa. ${keep}`;
+  return `Không có dòng nào để xóa trong phạm vi này. ${keep}`;
+}
 
 function requestBody(mode: Mode, days: number, selectedIds: string[], filter: AuditPurgeFilter | null) {
   if (mode === "selected") return { mode, ids: selectedIds };
@@ -81,7 +89,7 @@ export function AuditLogPurgeDialog({ filter, onClose, onDone, selectedIds }: { 
         </AdminSelect></span>)}
       {option("all", <span>Toàn bộ nhật ký</span>)}
     </div>
-    <p className="admin-purge__count" role="status">{affected === null ? "Đang đếm…" : affected === 0 ? "Không có dòng nào để xóa (các dòng ghi việc xóa nhật ký luôn được giữ lại)." : <>Sẽ xóa <strong>{count(affected)}</strong> thao tác. Không hoàn tác được.</>}</p>
+    <p className="admin-purge__count" role="status">{affected === null ? "Đang đếm…" : affected === 0 ? emptyMessage(mode, days) : <>Sẽ xóa <strong>{count(affected)}</strong> thao tác. Không hoàn tác được.</>}</p>
     <p className="admin-help">Việc xóa được ghi lại thành một dòng &quot;Xóa nhật ký hoạt động&quot; (ai xóa, lúc nào, phạm vi, số dòng); các dòng ghi việc xóa trước đó không bị xóa. Bản sao lưu database tạo trước đó vẫn chứa các dòng này.</p>
   </AdminTypedConfirmDialog>;
 }

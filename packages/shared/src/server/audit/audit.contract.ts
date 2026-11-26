@@ -44,13 +44,13 @@ export const auditPurgeFilterSchema = z.object({
 }).strict().refine((filter) => Boolean(filter.query || filter.entityType || filter.userId || filter.verb || filter.from || filter.to), { message: "Bộ lọc rỗng: muốn xóa toàn bộ nhật ký, chọn \"toàn bộ\"." });
 export type AuditPurgeFilter = z.infer<typeof auditPurgeFilterSchema>;
 
-export const auditPurgeDays = [30, 90, 180, 365] as const;
+export const auditPurgeDays = [1, 7, 30, 90, 180, 365] as const;
 const dryRun = z.boolean().default(false);
 // dryRun: chỉ đếm số dòng sẽ bị xóa (để hộp xác nhận cho biết trước), không xóa gì.
 export const auditPurgeRequestSchema = z.discriminatedUnion("mode", [
   z.object({ mode: z.literal("selected"), ids: z.array(z.string().uuid()).min(1).max(200), dryRun }).strict(),
   z.object({ mode: z.literal("filtered"), filter: auditPurgeFilterSchema, dryRun }).strict(),
-  z.object({ mode: z.literal("older_than"), days: z.union([z.literal(30), z.literal(90), z.literal(180), z.literal(365)]), dryRun }).strict(),
+  z.object({ mode: z.literal("older_than"), days: z.union([z.literal(1), z.literal(7), z.literal(30), z.literal(90), z.literal(180), z.literal(365)]), dryRun }).strict(),
   z.object({ mode: z.literal("all"), dryRun }).strict(),
 ]);
 export type AuditPurgeRequest = z.infer<typeof auditPurgeRequestSchema>;
