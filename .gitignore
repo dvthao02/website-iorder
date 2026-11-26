@@ -117,12 +117,30 @@ desktop.ini
 *.test.mjs
 *.spec.ts
 
+# Chỉ dùng cho Cloudflare Worker (đã thử, không dùng; production chạy Docker + Caddy) và tệp PostCSS gốc trùng với tệp trong từng app
+/apps/website/wrangler.jsonc
+/apps/website/open-next.config.ts
+/apps/website/public/_headers
+/postcss.config.mjs
+
+# Tệp xuất/nén sinh ra khi vận hành (có thể chứa dữ liệu khách hàng) và tệp tạm của công cụ gộp/sửa
+*.csv
+*.xlsx
+*.zip
+*.tgz
+*.tar.gz
+*.tmp
+*.orig
+*.rej
+
 # scripts/: chỉ giữ tệp production dùng (tạo .env.production, seed admin, sao lưu, dọn dữ liệu định kỳ, nội dung nền)
 /scripts/*
 !/scripts/backup.sh
+!/scripts/backup.ps1
 !/scripts/backup-media.mjs
 !/scripts/backup-status.sql
 !/scripts/generate-env-production.mjs
+!/scripts/restore-package.sh
 !/scripts/seed-admin.ts
 !/scripts/cleanup-*.ts
 !/scripts/lib/

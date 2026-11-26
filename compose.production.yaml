@@ -182,8 +182,8 @@ services:
     command: pnpm db:seed:admin
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:?missing}:${POSTGRES_PASSWORD:?missing}@db:5432/${POSTGRES_DB:?missing}
-      INITIAL_ADMIN_USERNAME: ${INITIAL_ADMIN_USERNAME}
-      INITIAL_ADMIN_PASSWORD: ${INITIAL_ADMIN_PASSWORD}
+      INITIAL_ADMIN_USERNAME: ${INITIAL_ADMIN_USERNAME:?missing}
+      INITIAL_ADMIN_PASSWORD: ${INITIAL_ADMIN_PASSWORD:?missing}
       INITIAL_ADMIN_NAME: ${INITIAL_ADMIN_NAME:-Administrator}
       INITIAL_ADMIN_HIDDEN: ${INITIAL_ADMIN_HIDDEN:-true}
     depends_on:

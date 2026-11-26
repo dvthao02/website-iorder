@@ -1,2 +1,10 @@
 # Script chạy trên Linux phải giữ LF dù Git trên Windows bật autocrlf.
 *.sh text eol=lf
+
+# Tệp cấu hình Docker/Caddy/env và SQL chạy trên Linux cũng phải giữ LF (CR thừa làm hỏng giá trị biến môi trường và lệnh trong Dockerfile).
+Dockerfile text eol=lf
+.dockerignore text eol=lf
+Caddyfile text eol=lf
+*.yaml text eol=lf
+*.sql text eol=lf
+.env.production.example text eol=lf
