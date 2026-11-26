@@ -25,6 +25,7 @@ export const blockThumbnails: Record<string, ReactNode> = {
   "features-gallery": cardStylePreviews.gallery,
   "features-mosaic": cardStylePreviews.mosaic,
   "features-slider": cardStylePreviews.slider,
+  "features-document": cardStylePreviews.document,
   "features-visual": <Frame>{bar(35, 9, 50, 5, .9)}{[0, 1, 2].map((index) => <g key={index}><rect height="38" rx="3" stroke="var(--cms-border-strong)" width="30" x={12 + index * 34} y="24" />{box(14 + index * 34, 26, 26, 17, .5)}{bar(16 + index * 34, 49, 20, 3, .85)}{bar(16 + index * 34, 55, 16, 2.5)}</g>)}</Frame>,
   "collection-software": <Frame>{bar(12, 10, 44, 5, .9)}{[0, 1, 2].map((index) => <g key={index}><rect height="34" rx="3" stroke="var(--cms-border-strong)" width="29" x={12 + index * 34} y="24" />{box(16 + index * 34, 28, 9, 9, .55)}{bar(16 + index * 34, 43, 20, 3, .82)}{bar(16 + index * 34, 49, 15, 2.5)}</g>)}</Frame>,
   "collection-solution": <Frame>{bar(12, 10, 46, 5, .9)}{[0, 1, 2].map((index) => <g key={index}><rect height="34" rx="3" stroke="var(--cms-border-strong)" width="29" x={12 + index * 34} y="24" /><circle cx={21 + index * 34} cy="33" fill={media} opacity=".55" r="5" />{bar(16 + index * 34, 43, 20, 3, .82)}{bar(16 + index * 34, 49, 15, 2.5)}</g>)}</Frame>,

@@ -26,6 +26,7 @@ import { EcosystemMosaic } from "./ecosystem-mosaic";
 import { StoreSlider } from "./store-slider";
 import { EcosystemOrbit } from "./ecosystem-orbit";
 import { StoreGallery } from "./store-gallery";
+import { DocumentCards } from "./document-cards";
 import { ColumnsSection } from "./columns-section";
 import { LeadForm } from "./lead-form";
 import type { StaticPageProfile } from "@iorder/shared/server/pages/static-page-layout";
@@ -207,6 +208,15 @@ function initials(name: string) {
   return name.split(/\s+/).filter(Boolean).slice(-2).map(part => part[0]?.toUpperCase()).join("");
 }
 
+// Đầu phần kiểu chia đôi: tiêu đề bên trái, mô tả bên phải (thấp hơn tiêu đề căn giữa hai dòng + mô tả hai dòng) để cả phần vừa một màn hình.
+// Dùng cho "Thẻ lớn nổi bật" (bento) và "Giấy tờ, chứng nhận" (document).
+function SplitHeading({ dark, eyebrow, title, description }: { dark: boolean; eyebrow: string | null; title: string; description: string | null }) {
+  return <div className="section-heading mb-10 grid gap-x-16 gap-y-4 sm:mb-12 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-end">
+    <SectionHeading align="left" className="" dark={dark} eyebrow={eyebrow} title={title} />
+    {description ? <p className={`mb-0 text-lead ${dark ? "text-white/80" : "text-muted"}`} data-builder-field="description">{description}</p> : null}
+  </div>;
+}
+
 async function Block({ block, first, frame: blockFrame, staticPage }: { block: PageBlock; first: boolean; frame: BlockFrame; staticPage?: StaticPageProfile }) {
   const t = await getT();
   // Khối đầu trang nằm ngay màn hình đầu tiên: ảnh nền của khung và ảnh nội dung tải ngay (không lazy) để không kéo chậm LCP.
@@ -233,6 +243,10 @@ async function Block({ block, first, frame: blockFrame, staticPage }: { block: P
       <SectionHeading dark={dark} description={block.data.description} eyebrow={block.data.eyebrow} title={block.data.title} />
       <StoreGallery first={first} items={block.data.items} />
     </FrameSection>;
+    if (block.data.cardStyle === "document") return <FrameSection frame={frame}>
+      <SplitHeading dark={dark} description={block.data.description} eyebrow={block.data.eyebrow} title={block.data.title} />
+      <DocumentCards first={first} items={block.data.items} />
+    </FrameSection>;
     if (block.data.cardStyle === "slider") return <FrameSection frame={frame}>
       <SectionHeading dark={dark} description={block.data.description} eyebrow={block.data.eyebrow} title={block.data.title} />
       <StoreSlider first={first} items={block.data.items} label={block.data.title} />
@@ -251,10 +265,7 @@ async function Block({ block, first, frame: blockFrame, staticPage }: { block: P
     return <FrameSection frame={frame}>
       {block.data.cardStyle === "bento" && block.data.items.length === 5
         // Bento: tiêu đề trái, mô tả phải (thấp hơn tiêu đề căn giữa hai dòng + mô tả hai dòng) để cả phần vừa một màn hình.
-        ? <div className="section-heading mb-10 grid gap-x-16 gap-y-4 sm:mb-12 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-end">
-          <SectionHeading align="left" className="" dark={dark} eyebrow={block.data.eyebrow} title={block.data.title} />
-          {block.data.description ? <p className={`mb-0 text-lead ${dark ? "text-white/80" : "text-muted"}`} data-builder-field="description">{block.data.description}</p> : null}
-        </div>
+        ? <SplitHeading dark={dark} description={block.data.description} eyebrow={block.data.eyebrow} title={block.data.title} />
         : <SectionHeading dark={dark} description={block.data.description} eyebrow={block.data.eyebrow} title={block.data.title} />}
       <CardGrid bento={block.data.cardStyle === "bento"} items={block.data.items} network={block.data.cardStyle === "network"} visual={block.data.cardStyle === "visual"} />
     </FrameSection>;

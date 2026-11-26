@@ -339,6 +339,13 @@ export const uiMessages = {
   "carousel.nextImage": "Ảnh sau",
   "carousel.viewImage": "Xem ảnh {n}",
   "gallery.otherCustomers": "Khách hàng khác",
+  // Giấy tờ, chứng nhận (thẻ ảnh bản chụp, bấm để xem ảnh lớn)
+  "documents.view": "Xem {name}",
+  "documents.close": "Đóng",
+  "documents.previous": "Giấy tờ trước",
+  "documents.next": "Giấy tờ kế tiếp",
+  "documents.counter": "{current} / {total}",
+  "documents.openOriginal": "Mở ảnh gốc",
   "stepper.steps": "Các bước",
   // Trang 404 và trang lỗi
   "status.retry": "Thử lại",

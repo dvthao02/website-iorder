@@ -345,3 +345,9 @@ test("Lưới thẻ nhận kiểu Hệ sinh thái quỹ đạo (orbit) và kiể
   assert.ok(pageBlockInputSchema.safeParse(features("orbit")).success);
   assert.equal(pageBlockInputSchema.safeParse(features("orbits")).success, false);
 });
+
+test("Lưới thẻ nhận kiểu giấy tờ, chứng nhận (document)", () => {
+  const features = (cardStyle: string) => ({ type: "features", isEnabled: true, data: { cardStyle, eyebrow: "Pháp lý", title: "Giấy chứng nhận", description: null, items: [{ title: "Giấy chứng nhận đăng ký quyền tác giả", description: "Xem giấy chứng nhận", href: null, mediaId: "6f1c3c1e-8f0b-4d3a-9a52-1d3a5b6e7f80" }] } });
+  assert.ok(pageBlockInputSchema.safeParse(features("document")).success);
+  assert.equal(pageBlockInputSchema.safeParse(features("documents")).success, false);
+});
