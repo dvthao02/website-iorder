@@ -12,7 +12,7 @@ const catalogs = [
   { type: "solution", prefix: "/solutions", title: "Giải pháp" },
 ] as const;
 // Trang pháp lý ít giúp AI trả lời câu hỏi về sản phẩm, xếp vào mục phụ cuối tệp.
-const legalSlugs = new Set(["terms", "privacy-policy"]);
+const legalSlugs = new Set(["terms", "privacy-policy", "complaint-policy", "pricing-policy", "payment-policy", "supply-conditions", "delivery-return-policy", "online-support"]);
 const maxPerSection = 60;
 const priceFormatter = new Intl.NumberFormat("vi-VN");
 

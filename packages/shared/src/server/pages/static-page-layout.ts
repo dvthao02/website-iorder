@@ -4,6 +4,7 @@ import { blockAnchor } from "./block-layout";
 export type StaticPageProfile = "about" | "contact" | "document" | "support" | "general";
 const profiles: Record<string, StaticPageProfile> = {
   about: "about", contact: "contact", terms: "document", "privacy-policy": "document",
+  "complaint-policy": "document", "pricing-policy": "document", "payment-policy": "document", "supply-conditions": "document", "delivery-return-policy": "document", "online-support": "document",
   "support-faq": "support", "support-videos": "support", "remote-support": "support",
 };
 export function staticPageProfile(slug: string, template?: string): StaticPageProfile {
